@@ -7,19 +7,16 @@
 #if !defined(WS_UTIL_H)
 #define WS_UTIL_H
 
-// Uncomment one.
-//#include <winsock.h>
 #include <winsock2.h>	// For MS Windows Socket Application 2.0
 
 const char* WSAGetLastErrorMessage(const char* pcMessagePrefix,
-        int nErrorID = 0);
+									int nErrorID = 0);
 bool ShutdownConnection(SOCKET sd, char* sock_name);
 //bool	ShutdownConnection(SOCKET);
-//int		init_sockets(char*[]);
+//int	init_sockets(char*[]);
 
 //Modified functions
-int		do_winsock(const char* , int , const char* , int );
-int	    sendPkt(SOCKET outSoc, const char *dataPkt, int len);
+int		do_winsock(const char* sock_addr);
 
 #endif // !defined (WS_UTIL_H)
 
