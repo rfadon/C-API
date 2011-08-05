@@ -1,4 +1,3 @@
-
 #include "wsa4k_cli.h"
 #include "ws-util.h"
 
@@ -17,14 +16,13 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////
 // Constants
-const int fileSize	= 1024;
 const int IQbus_size	= 32;
 const char* start	= "STARTDATA";
 const char* stop	= "STOPDATA";
 const int startLen	= strlen(start);
 
-const int defaultServerPort = 7000;//4242;
-const int defaultClientPort = defaultServerPort;//7001;
+const int cmd_port = 7000;//4242;
+const int data_port = cmd_port;//7001;
 	      
 
 ////////////////////////////////////////////////////////////////////////
@@ -36,18 +34,19 @@ bool tx_sock(SOCKET sd, const char* pkt_msg);
 int rx_sock(SOCKET sd);
 
 
-/***
+/**
  * Call functions to initialize the sockets
- * @param:
- *
- ***/
+ * 
+ * @param argc - 
+ * @param argv -
+ */
 int init_client(int argc, char* argv[])
 {
 	// Get host and (optionally) port from the command line
     const char* svr_addr = argv[1];
-    int svr_port = defaultServerPort;//atoi(argv[2]);
+    int svr_port = cmd_port;
 	const char* clt_addr = argv[2];
-	int clt_port = defaultClientPort;
+	int clt_port = data_port;
 	if(argc > 3)
 		clt_port = atoi(argv[3]);
 
@@ -72,9 +71,10 @@ int init_client(int argc, char* argv[])
 }
 
 
-//// do_winsock /////////////////////////////////////////////////////////
-// The module's driver function -- we just call other functions and
-// interpret their results.
+/**
+ * The module's driver function -- we just call other functions and
+ * interpret their results.
+ */
 
 int do_winsock(const char* svr_addr, int svr_port, const char* clt_addr, 
 			   int clt_port)
@@ -99,40 +99,6 @@ int do_winsock(const char* svr_addr, int svr_port, const char* clt_addr,
 	int bytesRxed = rx_sock(svr_sock);
 	printf("\ngot %d\n", bytesRxed);
 
-	// Receive incoming msg
-	//printf("Receiving data from remote server/host..." << 
-	//			inet_ntoa(svr_addrIn)
-	//		 << ": " << svr_port << endl;
-/*	SOCKET clientSoc = setup_sock("client", clt_addr, clt_port);
-	if (clientSoc == INVALID_SOCKET) {
-        fprintf(stderr, "%s\n", 
-			WSAGetLastErrorMessage("error connecting to the client socket"));
-        return 3;
-    }
-    else {
-		printf("   ...connected, socket %s.\n", clientSoc);
-
-		int bytesRxed = rx_sock(clientSoc);
-		if (bytesRxed <= 0) {
-			fprintf(stderr, 
-				"\nServer/Client unexpectedly closed the connection.\n");
-		}
-		else {	// Stop the server from sending more data...
-			if (bytesRxed < fileSize) 
-				printf("Only %d received for the file...\n", bytesRxed);
-			else if (bytesRxed > fileSize)
-				fprintf(stderr, "FYI, likely data overflow.\n");
-
-			if (tx_sock(svr_sock, stop))
-				printf("STOPDATA flag sent...\n");
-			else {
-				printf("STOPDATA flag sending failed... exit connection\n");
-				return 3;
-			}
-		}
-	}
-
-*/
 #if defined(SHUTDOWN_DELAY)
     // Delay for a bit, so we can start other clients.  This is strictly
     // for testing purposes, so you can convince yourself that the 
@@ -157,13 +123,7 @@ int do_winsock(const char* svr_addr, int svr_port, const char* clt_addr,
 	else
         fprintf(stderr, "\n%s\n", 
 			WSAGetLastErrorMessage("Shutdown server connection"));
-/*
-	if (ShutdownConnection(clientSoc, "client"))
-        printf("Client connection is down.\n");
-    else
-        fprintf(stderr, "\n%s\n", 
-			WSAGetLastErrorMessage("Shutdown client connection"));
-*/
+
     printf("All done!\n");
 
     return 0;
@@ -272,6 +232,7 @@ bool tx_sock(SOCKET sd, const char* pkt_msg)
 }
 
 
+
 //// rx_sock /////////////////////////////////////////////////////////
 // Receive the incoming packet and check it for sanity.  Returns -1 on 
 // error, 0 on connection closed, > 0 on success.
@@ -282,17 +243,11 @@ int rx_sock(SOCKET sd)
     int nTotalBytes = 0;
 	int nNewBytes = 0;
 
-	//fstream IQ_fptr;
-	//IQ_fptr.open("..\\IQ_data.csv", ios::out); // saved file to where the code is
-	//IQ_fptr.open("IQ_data.csv", ios::out);
-	//if(IQ_fptr.is_open() == 0) printf("Error: File was not open.");
-
 	printf("\nReceiving data from remote server/host...\n");
 
 	// use this loop to modify the length of your data file
     while (nTotalBytes < fileSize) {
 		printf("Looping to rx 32bit data trunk... \n");
-		//nNewBytes = recv(sd, acReadBuffer, IQbus_size, 0);
 		do {
 			printf("waiting for data...\n");;
 			nNewBytes = recv(sd, acReadBuffer, IQbus_size, 0);
@@ -301,7 +256,10 @@ int rx_sock(SOCKET sd)
 			else if (nNewBytes == 0)
 				printf("Connection closed!\n");
 			else
-				printf("recv() failed. Error %d\n", WSAGetLastError());			
+				printf("recv() failed. Error %d\n", WSAGetLastError());	
+			
+			if(tx_sock(sd, stop))
+			printf("%s flag sent...\n", stop);
 		} while (nNewBytes>0);
 
 		if(acReadBuffer[0] == NULL || acReadBuffer[0] == '\n') 
@@ -320,7 +278,7 @@ int rx_sock(SOCKET sd)
             fprintf(stderr, "Connection closed by peer.\n");
             break;
         }
-		//printf("\tnNewBytes: " << nNewBytes << endl;
+
         nTotalBytes += nNewBytes;
     }
 	
@@ -329,4 +287,74 @@ int rx_sock(SOCKET sd)
 	//IQ_fptr.close();
 
     return nTotalBytes;
+}
+
+//****
+// Gets commands strings from the WSA GUI or client one byte at a time
+// Returns number of "words" read
+//****
+int getClientCmds(SOCKET inSocket, char* rx_buf_ptr[], long time_out)
+{
+	int cmdLen = 100;
+	char* cmdStr[1]; cmdStr[0] = (char*) malloc(cmdLen * sizeof(char));  
+	int rxResult = 0, count = 0;
+	int w = 0, c = 0; // word & char indexes
+	double seconds = floor(time_out / 1000.0);
+	// timeval takes (seconds, microseconds)
+	timeval timer = {seconds, (time_out - (long) seconds * 1000) * 1000}; //wait x msec
+
+	// First check for read-ability to the socket
+	FD_SET Reader;
+	
+	/* FD_ZERO() clears out the fd_set called socks, so that
+	   it doesn't contain any file descriptors. */
+	FD_ZERO(&Reader);
+
+	/* FD_SET() adds the file descriptor "socket" to the fd_set,
+		so that select() will return if a connection comes in
+		on that socket (which means you have to do accept(), etc. */
+	FD_SET(inSocket, &Reader);
+
+	// Loop to get incoming command 1 byte at a time
+	do {
+		// Make reading of socket non-blocking w/ time-out of ?msec
+		if(select(0,&Reader,NULL,NULL,&timer) == SOCKET_ERROR)
+		{
+			printf("init select() function returned with error %d\n", 
+				WSAGetLastError());
+			return 0;
+		}
+		
+		// if the socket is read-able, rx packet
+		if(FD_ISSET(inSocket, &Reader)) {
+			count = 0; // reset count
+			// read incoming strings cmdLen at a time
+			rxResult = recv(inSocket, cmdStr[0], cmdLen, 0);
+
+			// Why was 'rxResult - 1' here???
+			while(count < (rxResult)) {
+				if( strncmp(" ", &(cmdStr[0][count]), 1) == 0 || 
+					strncmp("\r", &(cmdStr[0][count]), 1) == 0 || 
+					strncmp("\n", &(cmdStr[0][count]), 1) == 0) 
+				{		
+					// add null termination for end of each string
+					if(w > 0 && c > 0) 
+						rx_buf_ptr[w-1][c] = '\0';  
+					c = 0;	// reset char index
+				}
+				else  {
+					if(c == 0) 
+						w++; // increment the words count
+					rx_buf_ptr[w-1][c++] = toupper(cmdStr[0][count]);
+				}
+
+				count++;
+			}
+		} 
+		else { rxResult = 0; }
+	} while(rxResult > 0);
+
+	free(cmdStr[0]);
+
+	return w;
 }

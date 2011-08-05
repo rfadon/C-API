@@ -1,11 +1,11 @@
-/***********************************************************************
+/**********************************************************************
  ws-util.cpp - Some basic Winsock utility functions.
 
  This program is hereby released into the public domain.  There is
  ABSOLUTELY NO WARRANTY WHATSOEVER for this product.
  
  Source: http://tangentsoft.net/wskfaq/examples/basics/index.html
-***********************************************************************/
+*********************************************************************/
 
 #include "ws-util.h"
 

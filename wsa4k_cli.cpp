@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         cerr << "usage: " << argv[0] << " <server-address> " <<
                 "<client-address> [client-port]" << endl << endl;
         //cerr << "\tIf you don't pass client-port, it defaults to " <<
-        //        defaultClientPort << "." << endl;
+        //        data_port << "." << endl;
         return 1;
     }
 

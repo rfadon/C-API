@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <conio.h>
-//#include <math.h>
+#include <math.h>
 //#include <time.h>
 #include <stdarg.h>	// to be used when passing unknown # or args
 #include "ws-util.h"
