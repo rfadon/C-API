@@ -1,5 +1,5 @@
-#ifndef __WSA4K_LIB_H__
-#define __WSA4K_LIB_H__
+#ifndef __WSA_LIB_H__
+#define __WSA_LIB_H__
 
 #include "stdint.h"
 
@@ -7,7 +7,6 @@
 //*****
 //* List of structures
 //*****
-
 struct wsa_descriptor {
 	char prod_name[50];
 	char prod_serial[20];
@@ -21,17 +20,12 @@ struct wsa_descriptor {
 	//uint64_t min_tune_freq;
 };
 
-/*
-struct wsa_trig {
-	uint16_t id;	
-	bool enable;	
-	uint64_t center;
-	uint64_t start;	
-	uint64_t stop;	
-	double amp;		
-	uint32_t dwell_time;	
-	uint32_t num_pkts;	
-};*/
+
+struct wsa_time {
+	int32_t sec;
+	uint32_t nsec;
+};
+
 
 /**
  * Temporary define for now. Will need to be expanded for more details...
@@ -39,19 +33,12 @@ struct wsa_trig {
 struct wsa_pkt_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
-	wsa_gain gain;
+	char gain[10];
 	//bool  iq_corr;
 	uint32_t pkt_size; 
-	wsa_time time_stamp;
+	struct wsa_time time_stamp;
 	//uint16_t trig_id;
 };
-
-
-/*struct wsa_pkt {
-	wsa_pkt_header header;
-	int16_t *i_buf;
-	int16_t *q_buf;
-};*/
 
 
 struct wsa_device {
@@ -63,22 +50,25 @@ struct wsa_device {
 struct wsa_resp {
 	int16_t status;
 	char *result;
-}
+};
 
 
 //*****
 //* List of functions
 //*****
-struct wsa_device wsa_connect(char *protocol, char *intf_method);
+int16_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
 int16_t wsa_close(struct wsa_device dev);
-void wsa_help(struct wsa_device dev);
+int16_t wsa_help(struct wsa_device dev);
 
 int16_t wsa_send_command(struct wsa_device dev, char *command);
 struct wsa_resp wsa_send_query(struct wsa_device dev, char *command);
-int16_t wsa_query_error(struct wsa_device);
+int16_t wsa_query_error(struct wsa_device dev);
 // this one need better design base on SCPI?
-int32_t wsa_read (struct wsa_device *dev, wsa_pkt_header *header, 
-				  int16_t *i_buf, int16_t *q_buf, const uint32_t pkt_size);
+int32_t wsa_read_data(struct wsa_device *dev, struct wsa_pkt_header *header, 
+				 int16_t *i_buf, int16_t *q_buf, uint32_t frame_size);
 
 
+// Note:
+// wsa_close() could free up the iq bufs??? but still have problem w/ 
+// allocation as u don't know how many to allocate & then when to deallocate
 #endif

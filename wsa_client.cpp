@@ -22,20 +22,21 @@ using namespace std;
 #define MAX_STR_LEN 200
 #define MAX_BUF_SIZE 20
 
+#define HISLIP 4880
 
 const int fileSize = 1024;
 const int IQbus_size = 32;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
-//const int startLen = strlen(start);
 
-const int cmd_port = 7000;//4880;
+const int cmd_port = 7000;//HISLIP;
 const int data_port = cmd_port;//7000;
 	      
 
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
 ///////////////////////////////////////////////////////////////////////////////
+int	do_winsock(const char* sock_addr);
 SOCKET setup_sock( char *sock_name, const char *sock_addr, int sock_port);
 u_long lookup_addr(const char *sock_addr);
 SOCKET establish_connection(u_long sock_addr, u_short sock_port);
