@@ -22,71 +22,6 @@
  * @date Aug 9. 2011
  */
  
- 
-/** @enum wsa_gain
- * Defines the amplification available in the radio front end (RFE) of the WSA.
- * \n If an incorrect setting is specified, an error will be returned
- */
-	/** @var wsa_gain::HIGH
-	 * High RFE amplification. Value 1.
-	 */
-	/** @var wsa_gain::MEDIUM
-	 * Medium RFE amplification.
-	 */
-	/** @var wsa_gain::LOW
-	 * Low RFE amplification.
-	 */
-	/** @var wsa_gain::ULOW
-	 * Ultralow RFE amplification.
-	 */
-
-
-/** @struct wsa_trig 
- * @brief This structure contains parameters required to setup a frequency
- * threshold trigger (FTT).
- *
- * @remark When the required number of packets \b num_pkts have been met, 
- * the trigger will stop/exit (such that WSA could move to the next trigger 
- * if there is one) and the dwell time is ignored. 
- */ 
-	/** @var uint16_t wsa_trig::id
-	 * The trigger ID.\n It is generated automatically when 
-	 * wsa_add_trig() function is called, which returns the id number when 
-	 * successful. The ID number starts at 1.
-	 */
-	/** @var bool wsa_trig::enable
-	 * True to enable the trigger, \b false to disable. \n
-	 * Enabled trigger items will run only when the WSA is set to run in trigger 
-	 * mode (use wsa_set_run_mode(TRIGGER)).
-	 *
-	/** @var uint64_t wsa_trig::center
-	 * A segment center frequency (Hz) at which the trigger 
-	 * will be set.
-	 */
-	/** @var uint64 wsa_trig::start
-	 * The trigger's start frequency (Hz). \n
-	 * Its value must be within the segment bandwidth of the set center frequency 
-	 * and smaller than the stop frequency.
-	 */
-	/** @var uint64_t wsa_trig::stop
-	 * The trigger's stop frequency (Hz). \n 
-	 * Its value must be within the segment bandwidth of the set center frequency 
-	 * and greater than the start frequency.
-	 */
-	/** @var double wsa_trig::amp
-	 * A threshold  amplitude level in dBm. 
-	 */
-	/** @var uint32_t wsa_trig::dwell_time
-	 * The duration of time the WSA dwells at any one defined 
-	 * trigger. \n The time unit depends on the WSA model used. It could be 
-	 * in milli- or micro-seconds. Check with the WSA data-sheet. \n
-	 * Set to a unit of 10 by default regardless of the unit.
-	 */
-	/** @var uint32_t wsa_trig::num_pkts
-	 * Number of packets to capture per trigger. \n
-	 * Set to 0 for infinite capture.
-	 */
-
 
 /** @struct wsa_descriptor
  * @brief This structure stores WSA information. 
@@ -100,15 +35,14 @@
 	/** @var char wsa_descriptor::prod_version
 	 * WSA product version number.
 	 */
+	/** @var char wsa_descriptor::rfe_name
+	 * WSA product name.
+	 */
+	/** @var char wsa_descriptor::rfe_version
+	 * WSA product version number.
+	 */
 	/** @var char wsa_descriptor::fw_version
 	 * The firmware version currently in the WSA.
-	 */
-	/** @var uint64_t wsa_descriptor::inst_bw
-	 * The WSA instantaneous bandwidth in Hz.
-	 */
-	/** @var uint32_t wsa_descriptor::max_pkt_size
-	 * The maximum number of continuous I and Q data samples the WSA 
-	 * can capture per packet.
 	 */
  
  
@@ -116,30 +50,9 @@
  * @brief A structure containing the components associate with each WSA 
  * device.
  */
-	/** @var wsa_connect_type wsa_device::connect
-	 * Connection method to capture data &/or communicate 
-	 * with the WSA.
-	 */
-	/** @var wsa_descriptor wsa_device::info
+	/** @var struct wsa_descriptor wsa_device::descr
 	 * The information structure component of the WSA.
 	 */
-	/** @var wsa_run_mode wsa_device::run_mode
-	 * The mode that the WSA is currently set to run.
-	 */
-	/** @var wsa_trig wsa_device::trig_list
-	 * A pointer to an array of trigger structures.
-	 */
-	/** @union wsa_device::intf 
-	 * @brief A union type defining the WSA interface method in which 
-	 * selection of its members determined by the connection type set in the 
-	 * \b connect parameter.
-	 */
-		/** @var wsa_device::intf::ether
-		 * The Ethernet component of the WSA.
-		 */
-		/** @var wsa_device::intf::usb
-		 * The USB component of the WSA.
-		 */
 
 
 /** @struct wsa_pkt_header
@@ -149,33 +62,21 @@
 	/** @var uint64_t wsa_pkt_header::freq
 	 * The center frequency (Hz) to which the RF PLL is tuned.
 	 */
-	/** @var wsa_gain wsa_pkt_header::gain
+	/** @var char wsa_pkt_header::gain
 	 * The amplification in the radio front end at the time the data 
 	 * packet is captured.
-	 */
-	/** @var bool wsa_pkt_header::iq_corr
-	 * indicates (true/false) if IQ correction has been applied to the 
-	 * data packet.
 	 */
 	/** @var uint32_t wsa_pkt_header::pkt_size
 	 * Number of {I, Q} samples pairs per packet.
 	 */
-	/** @var wsa_time wsa_pkt_header::time_stamp
+	/** @var struct wsa_time wsa_pkt_header::time_stamp
 	 * The time when a data packet capture begins.
 	 */
-	/** @var uint16_t wsa_pkt_header::trig_id
-	 * When in trigger mode, the ID of the trigger when the data is 
-	 * captured will be recorded. If not in trigger mode, a NULL value is used.
-	 */
-/** @var typedef struct wsa_pkt_header wsa_pkt_header
- *	A type definition of wsa_pkt_header struct.
- */
 
 
 /** @struct wsa_time
  * @brief This structure contains the time information. It is used for the 
  * time stamp in a packet header.
- *
  */
 	/** @var int32_t wsa_time::sec
 	 * The number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC.
@@ -184,3 +85,14 @@
 	 * Nanoseconds after the second (0 - 999 999 999).
 	 */
 
+
+/** @struct wsa_resp
+ * @brief This structure contains the response information for each query.
+ */
+	/** @var int16_t wsa_resp::status
+	 * The status of the query. Positive number when success, negative when 
+	 * failed.
+	 */
+	 /** @char wsa_resp::result
+	  * The resulted string responded to a query.
+	  */
