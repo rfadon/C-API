@@ -12,26 +12,6 @@
 
 #include "wsa4k_cli.h"
 
-uint8_t debug_mode = FALSE;
-uint8_t test_mode = FALSE;
-
-
-
-/**
- * Display the available SCPI commands with the WSA4000 in PDF format.
- *
- * @return None
- */
-void print_scpi_menu(void)
-{
-	// Probably call to display a PDF file
-	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
-		printf("ERROR: Failed to opent the SCPI file.\n");
-		//return false;
-	}
-	//system("ThinkRF SCPI DS 101202.pdf");
-}
-
 
 /**
  * Print out the CLI options menu
@@ -76,6 +56,7 @@ int32_t start_cli(void)
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA4000 Command Line Interface Tool_____\n\n");
 
+
 	do {
 		printf("\n>> Enter the WSA4000's IP (or type ':l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
@@ -83,27 +64,37 @@ int32_t start_cli(void)
 		if(strncmp(in_str, ":Q", 2) == 0) 
 			break;
 
-		wsa_addr = in_str;
-
-		if (strncmp(in_str, ":L", 2) == 0) {
+		if (strncmp(in_str, ":H", 2) == 0) {
+			//TODO do help option printing
+		}
+		else if (strncmp(in_str, ":L", 2) == 0) {
 			// TODO: detect all the IPs available to the PC...
+			// Better yet... get only IP of WSA.
+			//get_avail_ips();
 			printf("\t1. 192.168.215.107\n");
 			printf(">> ");
 			strcpy(in_str, get_input_cmd(FALSE));
 			if(atoi(in_str) == 1)
-				result = init_client("192.168.215.107");
-			else
+				wsa_addr = "192.168.215.107";
+			else {
 				printf("Option invalid!\n");
+				continue;
+			}
+			get_host_by_name("192.168.215.107");
 		}
 		else if (strchr(in_str, '.') != 0) {
-			if (lookup_addr(wsa_addr) == INADDR_NONE) 
+			wsa_addr = in_str;
+			if ((result = lookup_addr(wsa_addr)) == INADDR_NONE) {
 				printf("\nInvalid address. Try again or ':q' to exit.\n");
-			else
-				result = init_client(wsa_addr);
+				continue;
+			}
 		}
 		else {
 			printf("Invalid IP address (Use: #.#.#.#)\n");
+			continue;
 		}
+		
+		result = init_client(wsa_addr);
 	} while (!user_quit);
 
 

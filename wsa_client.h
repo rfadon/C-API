@@ -26,6 +26,7 @@
 #define HISLIP 4880
 
 u_long lookup_addr(const char *sock_addr);
+int32_t get_host_by_name(char *argv);
 int32_t init_client(const char *wsa_addr);
 
 #endif

@@ -34,11 +34,9 @@ int32_t main(int32_t argc, char *argv[])
         return 1;
     }
 
+	// Start the CLI program
 	if(start_cli() < 0)
 		printf("ERROR: Unable to start the CLI program!\n");
 
-	//init_client(argc, argv);
-
 	return 0;
 }
-

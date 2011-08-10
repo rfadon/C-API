@@ -1,4 +1,5 @@
 #include "wsa_lib.h"
+#include "wsa_client.h"
 
 
 /**
@@ -48,6 +49,11 @@ int32_t wsa_close(struct wsa_device dev)
  */
 int32_t wsa_help(struct wsa_device dev)
 {
+	// Open the generic SCPI for now
+	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
+		printf("ERROR: Failed to opent the SCPI file.\n");
+		return -1;
+	}
 	return 0;
 }
 
