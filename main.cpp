@@ -1,40 +1,21 @@
-
 #include "wsa4k_cli.h"
-
-//using namespace std;
-
-int debug_mode = FALSE;
-int test_mode = FALSE;
-
-
-/**
- * Print out the CLI options menu
- *
- * @return None
- */
-void print_cli_menu(void)
-{
-	// Call to display SCPI menu or any other customized CLI menu
-	// ex:
-	//print_scpi_menu();
-}
 
 
 /**
  * Starting point
  */
-int main(int argc, char *argv[])
+int32_t main(int32_t argc, char *argv[])
 {
 	char inCmdStr[200];
-	int count_arg = 1;
-	int i, mode_argc = 0;
+	int32_t count_arg = 1;
+	int32_t i, mode_argc = 0;
 	
 
 	// Check user commands for mode parameters
 	if (argc > 1) {
 		while (1) {
 			// Copy the first command string arg to a constant string
-			for (i = 0; i < ((int)strlen(argv[count_arg])); i++) 
+			for (i = 0; i < ((int32_t)strlen(argv[count_arg])); i++) 
 				inCmdStr[i] = toupper(argv[count_arg][i]);	
 			inCmdStr[i] = 0;
 			if (strncmp("-T",inCmdStr,2) == 0) test_mode = TRUE;
@@ -52,6 +33,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "usage: %s <server-address>\n\n", argv[0]);
         return 1;
     }
+
+	if(start_cli() < 0)
+		printf("ERROR: Unable to start the CLI program!\n");
 
 	//init_client(argc, argv);
 

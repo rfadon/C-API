@@ -15,7 +15,7 @@ struct wsa_descriptor {
 	char rfe_version[20];
 	char fw_version[20];
 	//uint64_t inst_bw;
-	//uint32_t max_pkt_size;
+	//uint32_t max_frame_size;
 	//uint64_t max_tune_freq;
 	//uint64_t min_tune_freq;
 };
@@ -30,12 +30,12 @@ struct wsa_time {
 /**
  * Temporary define for now. Will need to be expanded for more details...
  */
-struct wsa_pkt_header {
+struct wsa_frame_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
 	char gain[10];
 	//bool  iq_corr;
-	uint32_t pkt_size; 
+	uint32_t frame_size; 
 	struct wsa_time time_stamp;
 	//uint16_t trig_id;
 };
@@ -48,7 +48,7 @@ struct wsa_device {
 
 
 struct wsa_resp {
-	int16_t status;
+	int32_t status;
 	char *result;
 };
 
@@ -56,16 +56,16 @@ struct wsa_resp {
 //*****
 //* List of functions
 //*****
-int16_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
-int16_t wsa_close(struct wsa_device dev);
-int16_t wsa_help(struct wsa_device dev);
+int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
+int32_t wsa_close(struct wsa_device dev);
+int32_t wsa_help(struct wsa_device dev);
 
-int16_t wsa_send_command(struct wsa_device dev, char *command);
+int32_t wsa_send_command(struct wsa_device dev, char *command);
 struct wsa_resp wsa_send_query(struct wsa_device dev, char *command);
-int16_t wsa_query_error(struct wsa_device dev);
+int32_t wsa_query_error(struct wsa_device dev);
 // this one need better design base on SCPI?
-int32_t wsa_read_data(struct wsa_device *dev, struct wsa_pkt_header *header, 
-				 int16_t *i_buf, int16_t *q_buf, uint32_t frame_size);
+int32_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
+				 int32_t *i_buf, int32_t *q_buf, uint32_t frame_size);
 
 
 // Note:

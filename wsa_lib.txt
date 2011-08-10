@@ -1,5 +1,5 @@
-/** @file wsa4k_lib.txt 
-   @brief Contain some code documents for wsa4k_lib.h
+/** @file wsa_lib.txt 
+   @brief Contain some code documents for wsa_lib.h
  */
 
 /**
@@ -51,32 +51,32 @@
  * device.
  */
 	/** @var struct wsa_descriptor wsa_device::descr
-	 * The information structure component of the WSA.
+	 * The information component of the WSA, stored in wsa_descriptor.
 	 */
 
 
-/** @struct wsa_pkt_header
- * @brief This structure contains header information related to each packet read
- * by \b wsa_read_pkt().
+/** @struct wsa_frame_header
+ * @brief This structure contains header information related to each frame read
+ * by wsa_read_data().
  */ 
-	/** @var uint64_t wsa_pkt_header::freq
+	/** @var uint64_t wsa_frame_header::freq
 	 * The center frequency (Hz) to which the RF PLL is tuned.
 	 */
-	/** @var char wsa_pkt_header::gain
-	 * The amplification in the radio front end at the time the data 
-	 * packet is captured.
+	/** @var char wsa_frame_header::gain
+	 * The amplification in the radio front end at the time a WSA data 
+	 * frame is captured.
 	 */
-	/** @var uint32_t wsa_pkt_header::pkt_size
-	 * Number of {I, Q} samples pairs per packet.
+	/** @var uint32_t wsa_frame_header::frame_size
+	 * Number of {I, Q} samples pairs per WSA data frame.
 	 */
-	/** @var struct wsa_time wsa_pkt_header::time_stamp
-	 * The time when a data packet capture begins.
+	/** @var struct wsa_time wsa_frame_header::time_stamp
+	 * The time when a data frame capture begins, stored in wsa_time structure.
 	 */
 
 
 /** @struct wsa_time
  * @brief This structure contains the time information. It is used for the 
- * time stamp in a packet header.
+ * time stamp in a frame header.
  */
 	/** @var int32_t wsa_time::sec
 	 * The number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC.
@@ -89,7 +89,7 @@
 /** @struct wsa_resp
  * @brief This structure contains the response information for each query.
  */
-	/** @var int16_t wsa_resp::status
+	/** @var int32_t wsa_resp::status
 	 * The status of the query. Positive number when success, negative when 
 	 * failed.
 	 */

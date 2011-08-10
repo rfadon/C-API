@@ -3,7 +3,7 @@
 
 #include "targetver.h"
 #include <fstream>
-//#include <iostream>
+#include <iostream>
 #include <string.h>
 //#include <cmath>
 #include <stdio.h>
@@ -13,18 +13,24 @@
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>	// to be used when passing unknown # or args
-//#include "ws-util.h"
+#include "stdint.h"
+#include "ws-util.h"
 
 #define FALSE	0
 #define TRUE	1
+#define MAX_STR_LEN 200
+#define MAX_BUF_SIZE 20
 
-extern int debug_mode;
-extern int test_mode;
 
+extern uint8_t debug_mode;
+extern uint8_t test_mode;
 
-void print_scpi_menu();
+int32_t start_cli(void);
 
-int init_client(int argc, char *argv[]);
+u_long lookup_addr(const char *sock_addr);
+//int32_t init_client(int argc, char *argv[]);
+int32_t init_client(const char *wsa_addr);
 
+//void print_scpi_menu();
 
 #endif

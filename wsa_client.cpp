@@ -1,5 +1,5 @@
 #include "wsa4k_cli.h"
-#include "ws-util.h"
+//#include "ws-util.h"
 
 using namespace std;
 
@@ -11,7 +11,7 @@ using namespace std;
 	// How long to wait after we do the echo before shutting the connection
 	// down, to give the user time to start other clients, for testing 
 	// multiple simultaneous connections.
-	const int kShutdownDelay = 3;
+	const int8_t kShutdownDelay = 3;
 #endif
 
 
@@ -24,43 +24,41 @@ using namespace std;
 
 #define HISLIP 4880
 
-const int fileSize = 1024;
-const int IQbus_size = 32;
+const int32_t fileSize = 1024;
+const int32_t IQbus_size = 32;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
 
-const int cmd_port = 7000;//HISLIP;
-const int data_port = cmd_port;//7000;
+const int32_t cmd_port = 7000;//HISLIP;
+const int32_t data_port = cmd_port;//7000;
 	      
 
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
 ///////////////////////////////////////////////////////////////////////////////
-int	do_winsock(const char* sock_addr);
-SOCKET setup_sock( char *sock_name, const char *sock_addr, int sock_port);
-u_long lookup_addr(const char *sock_addr);
+int32_t	do_winsock(const char* sock_addr);
+SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port);
 SOCKET establish_connection(u_long sock_addr, u_short sock_port);
-int tx_sock(SOCKET out_sock, char *out_str, int len);
-int rx_sock(SOCKET in_sock, char *rx_buf_ptr[], long time_out);
+int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len);
+int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
 
 
 /**
  * Call functions to initialize the sockets
  * 
- * @param argc - 
- * @param argv -
+ * @param ip_addr -
  *
  * @return
  */
-int init_client(int argc, char *argv[])
+int32_t init_client(const char *wsa_addr)
 {
 	// Get host and (optionally) port from the command line
-    const char *svr_addr = argv[1];
+    //const char *wsa_addr = ip_addr;
 
     // Starting Winsock2
     WSAData ws_data;	// create an instance of Winsock data type
-	int ws_err_code;	// get error code
-	int result = 0;
+	int32_t ws_err_code;	// get error code
+	int32_t result = 0;
 
 	// MAKEWORD(2, 2) - request for version 2.2 of Winsock on the system
     if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
@@ -71,7 +69,7 @@ int init_client(int argc, char *argv[])
     }
 
     // Call the main example routine.
-	result = do_winsock(svr_addr);
+	result = do_winsock(wsa_addr);
 
 	// todo handle the result here
 
@@ -87,7 +85,7 @@ int init_client(int argc, char *argv[])
  *
  * @param sock_addr
  */
-int do_winsock(const char *sock_addr)
+int32_t do_winsock(const char *sock_addr)
 {
 	SOCKET cmd_sock = setup_sock("server", sock_addr, cmd_port);
     if (cmd_sock == INVALID_SOCKET) {
@@ -103,10 +101,10 @@ int do_winsock(const char *sock_addr)
 			return -1;
 	}
 
-	int words_rxed = 0;
+	int32_t words_rxed = 0;
 	char *rx_buf[MAX_BUF_SIZE];
 	// Initialized the receive buffer
-	for (int i = 0; i < MAX_BUF_SIZE; i++) 
+	for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
 		rx_buf[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
 
 	words_rxed = rx_sock(cmd_sock, rx_buf, TIMEOUT);
@@ -159,7 +157,7 @@ int do_winsock(const char *sock_addr)
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
-SOCKET setup_sock(char *sock_name, const char *sock_addr, int sock_port)
+SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 {
 	// Find the server's address
     printf("Looking up %s address... ", sock_name);
@@ -202,7 +200,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int sock_port)
  */
 u_long lookup_addr(const char *sock_addr)
 {
-    u_long new_sock_addr = inet_addr(sock_addr);
+	u_long new_sock_addr = inet_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         // sock_addr isn't a dotted IP, so resolve it through DNS
         hostent *pHE = gethostbyname(sock_addr);
@@ -253,16 +251,18 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 
 /**
  * Sends a string to the server.  
- * @param out_sock
- * @param out_str
+ *
+ * @param out_sock -
+ * @param out_str -
+ * @param len -
  * 
- * @returns number of bytes send on success, or negative otherwise.
+ * @returns Number of bytes sent on success, or negative otherwise.
  */
-int tx_sock(SOCKET out_sock, char *out_str, int len)
+int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
     // Send the string to the server
-	int bytes_txed = send(out_sock, out_str, len, 0);
+	int32_t bytes_txed = send(out_sock, out_str, len, 0);
     if (bytes_txed > 0) {
         printf("Sent %d bytes to server.\n", bytes_txed);
     }
@@ -287,17 +287,17 @@ int tx_sock(SOCKET out_sock, char *out_str, int len)
  * Gets incoming strings from the server socket ? bytes at a time
  *
  * @param in_sock -
- * @param
- * @param time_out Time out in milliseconds
+ * @param rx_buf_ptr -
+ * @param time_out - Time out in milliseconds
  * 
  * @return Number of "words" read
  */
-int rx_sock(SOCKET in_sock, char *rx_buf_ptr[], long time_out)
+int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 {
 	char *rx_buf[1]; 
 		rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
-	int bytes_rxed = 0, count = 0;
-	int w = 0, c = 0; // word & char indexes
+	int32_t bytes_rxed = 0, count = 0;
+	int32_t w = 0, c = 0; // word & char indexes
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
