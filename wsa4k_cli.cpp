@@ -36,7 +36,7 @@ char* get_input_cmd(uint8_t pretext)
 	ZeroMemory(input_opt, str_size);
 
 	//* Get command loop for string input terminated by "enter"
-	if(pretext) printf("\n>> Enter a command (or 'h'): ");
+	if(pretext) printf("\n> Enter a command (or 'h'): ");
 	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
 		input_opt[cnt_ch++] = (char)ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
@@ -48,43 +48,55 @@ int32_t start_cli(void)
 {
 	time_t dateStamp = time(NULL);	// use for display
 	char in_str[MAX_STR_LEN];
+	int16_t in_num = 0;
 	uint8_t user_quit = FALSE;
-	int32_t result;
+	int32_t result = 0;
+	char *ip_list[MAX_BUF_SIZE];
 	const char *wsa_addr;
 
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA4000 Command Line Interface Tool_____\n\n");
 
-
 	do {
-		printf("\n>> Enter the WSA4000's IP (or type ':l'): ");
+	//*****
+	// Ask user to enter an IP address
+	//****
+		printf("\n> Enter the WSA4000's IP (or type ':l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
 
+		// User wants to run away...
 		if(strncmp(in_str, ":Q", 2) == 0) 
 			break;
 
+		// User asked for help
 		if (strncmp(in_str, ":H", 2) == 0) {
 			//TODO do help option printing
+			//print_cli_menu();
+			// print IP input help here
+			continue;
 		}
+
+		// User chose List option
 		else if (strncmp(in_str, ":L", 2) == 0) {
-			// TODO: detect all the IPs available to the PC...
-			// Better yet... get only IP of WSA.
-			//get_avail_ips();
-			printf("\t1. 192.168.215.107\n");
-			printf(">> ");
+			result = list_avail_ips(ip_list);
+			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
-			if(atoi(in_str) == 1)
-				wsa_addr = "192.168.215.107";
+			in_num = atoi(in_str);
+
+			if(in_num <= result && in_num > 0)
+				wsa_addr = ip_list[in_num - 1];
 			else {
 				printf("Option invalid!\n");
 				continue;
 			}
-			get_host_by_name("192.168.215.107");
 		}
+
+		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
+			// TODO convert www type address to IP using get_host_info()
 			wsa_addr = in_str;
-			if ((result = lookup_addr(wsa_addr)) == INADDR_NONE) {
+			if ((result = verify_addr(wsa_addr)) == INADDR_NONE) {
 				printf("\nInvalid address. Try again or ':q' to exit.\n");
 				continue;
 			}
@@ -93,8 +105,11 @@ int32_t start_cli(void)
 			printf("Invalid IP address (Use: #.#.#.#)\n");
 			continue;
 		}
-		
-		result = init_client(wsa_addr);
+
+		//*****
+		// All are good, start the connection
+		// TODO use WSA_CONNECT() here....
+		result = start_client(wsa_addr);
 	} while (!user_quit);
 
 

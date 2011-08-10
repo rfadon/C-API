@@ -45,7 +45,7 @@ int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
  *
  * @return
  */
-int32_t init_client(const char *wsa_addr)
+int32_t start_client(const char *wsa_addr)
 {
 	// Get host and (optionally) port from the command line
     //const char *wsa_addr = ip_addr;
@@ -74,6 +74,7 @@ int32_t init_client(const char *wsa_addr)
 }
 
 
+// TODO FIX THIS ONE UP
 /**
  * The module's driver function -- we just call other functions and
  * interpret their results.
@@ -138,6 +139,9 @@ int32_t do_winsock(const char *sock_addr)
 			WSAGetLastErrorMessage("Shutdown server connection"));
 
     printf("All done!\n");
+	
+	for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
+		free(rx_buf[i]);
 
     return 0;
 }
@@ -158,7 +162,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
     printf("Looking up %s address... ", sock_name);
 	fflush(stdin);
 
-    u_long new_sock_addr = lookup_addr(sock_addr);
+    u_long new_sock_addr = verify_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
@@ -193,7 +197,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
-u_long lookup_addr(const char *sock_addr)
+u_long verify_addr(const char *sock_addr)
 {
 	u_long new_sock_addr = inet_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
@@ -365,11 +369,12 @@ int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 {	
 	// to rx response string from GUI
-	char *rx_buf[1]; rx_buf[0] = (char*) malloc(20 * sizeof(char));
+	char *rx_buf[1]; 
+		rx_buf[0] = (char*) malloc(20 * sizeof(char));
 	
-	time_t start_time;
-	
+	time_t start_time;	
 	start_time = time(0);			//* time in seconds
+
 	// Wait for client response rxed before proceeds....
 	// but time out if no resp in x seconds
 	while(rx_sock(in_sock, rx_buf, 10) < 1) {
@@ -389,8 +394,10 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	}
 }
 
-
-int32_t get_host_by_name(char *argv)
+/**
+ * Get host information based on the name given either as IP or WWW format
+ */
+int32_t get_host_info(char *name)
 {
 
     //-----------------------------------------
@@ -407,17 +414,6 @@ int32_t get_host_by_name(char *argv)
 
     char **pAlias;
 
-    /* Validate the parameters
-    if (argc != 2) {
-        printf("usage: %s hostname\n", argv[0]);
-        printf("  to return the IP addresses for the host\n");
-        printf("       %s www.contoso.com\n", argv[0]);
-        printf(" or\n");
-        printf("       %s IPv4string\n", argv[0]);
-        printf("  to return an IPv4 binary address for an IPv4string\n");
-        printf("       %s 127.0.0.1\n", argv[0]);
-        return 1;
-    }*/
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
@@ -425,7 +421,7 @@ int32_t get_host_by_name(char *argv)
         return 1;
     }
 
-    host_name = argv;
+    host_name = name;
 
     printf("Calling gethostbyname with %s\n", host_name);
     remoteHost = gethostbyname(host_name);
@@ -479,4 +475,26 @@ int32_t get_host_by_name(char *argv)
     }
 
     return 0;
+}
+
+
+/**
+ *
+ * @param ip_list - 
+ *
+ * @return Number of IP addresses available.
+ */
+int32_t list_avail_ips(char **ip_list) 
+{
+	// TODO: detect all the IPs available to the PC...
+	// Better yet... get only IP of WSA by using .
+	
+	//TODO modify get_host_info() to find out if the given IP is 
+	// IPv4 or 6 & pass that for when setup AF_NET info...
+	// & also if ip address is given instead.
+
+	ip_list[0] = "192.168.215.107";
+	printf("\t1. %s\n", ip_list[0]);
+
+	return 1;
 }
