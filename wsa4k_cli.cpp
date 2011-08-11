@@ -79,7 +79,7 @@ int32_t start_cli(void)
 
 		// User chose List option
 		else if (strncmp(in_str, ":L", 2) == 0) {
-			result = list_avail_ips(ip_list);
+			result = list_ips(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
 			in_num = atoi(in_str);
@@ -94,8 +94,8 @@ int32_t start_cli(void)
 
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
-			// TODO convert www type address to IP using get_host_info()
 			wsa_addr = in_str;
+			// TODO verify & convert www type address to IP using get_host_info()
 			if ((result = verify_addr(wsa_addr)) == INADDR_NONE) {
 				printf("\nInvalid address. Try again or ':q' to exit.\n");
 				continue;
@@ -106,12 +106,31 @@ int32_t start_cli(void)
 			continue;
 		}
 
-		//*****
-		// All are good, start the connection
-		// TODO use WSA_CONNECT() here....
-		result = start_client(wsa_addr);
+		// Has got an IP address
+		break;
 	} while (!user_quit);
 
+	
+	//*****
+	// All are good, start the connection
+	// TODO use WSA_CONNECT() here....
+	// by call do_wsa here...
+	// create wsa_dev there... pass the address in...
+	result = start_client(wsa_addr);
 
+
+	return 0;
+}
+
+
+/**
+ * Setup WSA device variables, start the WSA connection and 
+ *
+ * @param wsa_addr
+ *
+ * @return
+ */
+int32_t do_wsa(const char *wsa_addr)
+{
 	return 0;
 }

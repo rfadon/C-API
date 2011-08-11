@@ -41,7 +41,7 @@ int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
 /**
  * Call functions to initialize the sockets
  * 
- * @param ip_addr -
+ * @param wsa_addr -
  *
  * @return
  */
@@ -394,8 +394,13 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	}
 }
 
+//* @param net_type -
 /**
  * Get host information based on the name given either as IP or WWW format
+ *
+ * @param name -
+ *
+ * @return
  */
 int32_t get_host_info(char *name)
 {
@@ -479,19 +484,23 @@ int32_t get_host_info(char *name)
 
 
 /**
+ * Print a list of host names and the associated IP available to a user's PC.
  *
- * @param ip_list - 
+ * @param ip_list -
  *
  * @return Number of IP addresses available.
  */
-int32_t list_avail_ips(char **ip_list) 
+int32_t list_ips(char **ip_list) 
 {
 	// TODO: detect all the IPs available to the PC...
-	// Better yet... get only IP of WSA by using .
+	// Better yet... get only IP of WSA by using a specified name.
+	// Can only verify w/in a user's ntwk using subnet mask...
 	
 	//TODO modify get_host_info() to find out if the given IP is 
 	// IPv4 or 6 & pass that for when setup AF_NET info...
 	// & also if ip address is given instead.
+
+	// TODO use gethostname() to list <host name> (<IP>)
 
 	ip_list[0] = "192.168.215.107";
 	printf("\t1. %s\n", ip_list[0]);

@@ -25,7 +25,7 @@
 #define TIMEOUT 1000			// in milliseconds
 #define HISLIP 4880
 
-int32_t list_avail_ips(char **ip_list);
+int32_t list_ips(char **ip_list);
 u_long verify_addr(const char *sock_addr);
 int32_t get_host_info(char *name);
 int32_t start_client(const char *wsa_addr);
