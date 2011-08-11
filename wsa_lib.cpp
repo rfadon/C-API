@@ -1,5 +1,5 @@
 #include "wsa_lib.h"
-#include "wsa_client.h"
+#include <string.h>
 
 
 /**
@@ -18,9 +18,23 @@
  */
 int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 {
-	//struct wsa_device wsa4k;
+	struct wsa_device wsa_dev;
+	int32_t result = 0;
+	const char* wsa_addr;
+	//printf("Connect: %s %s \n", protocol, intf_method);
 
-	return 0;
+	if (strncmp(protocol, SCPI, 4) == 0) {
+		//if (strchr(
+		// DO PARSE IP ADDRESS HERE
+	}
+	else
+		printf("Error: Command protocol not supported/recognized!");
+
+	result = start_client(wsa_addr);
+
+	dev = &wsa_dev;
+
+	return result;
 }
 
 

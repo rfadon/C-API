@@ -22,8 +22,8 @@
 #define MAX_STR_LEN 200
 #define MAX_BUF_SIZE 20
 
-#define TIMEOUT 1000			// in milliseconds
-#define HISLIP 4880
+#define TIMEOUT 1000	/* Timeout for sockets in milliseconds */
+#define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
 
 int32_t list_ips(char **ip_list);
 u_long verify_addr(const char *sock_addr);

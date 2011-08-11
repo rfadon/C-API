@@ -26,6 +26,15 @@ void print_cli_menu(void)
 }
 
 
+/**
+ * Get input characters/string from the console and return the string when
+ * the return key is pressed.
+ *
+ * @param pretext - A TRUE or FALSE flag to indicate if the default "enter a
+ * command" text is to be printed.
+ *
+ * @return The characters inputted.
+ */
 char* get_input_cmd(uint8_t pretext)
 {
 	const int str_size = MAX_STR_LEN;	// Maximum characters in an option string
@@ -35,8 +44,8 @@ char* get_input_cmd(uint8_t pretext)
 	// Initialized the option
 	ZeroMemory(input_opt, str_size);
 
-	//* Get command loop for string input terminated by "enter"
-	if(pretext) printf("\n> Enter a command (or 'h'): ");
+	// Get command loop for string input terminated by "enter"
+	if(pretext) printf("\n> Enter a command (or ':h'): ");
 	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
 		input_opt[cnt_ch++] = (char)ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
@@ -44,6 +53,42 @@ char* get_input_cmd(uint8_t pretext)
 	return input_opt;
 }
 
+
+/**
+ * Setup WSA device variables, start the WSA connection and 
+ *
+ * @param wsa_addr
+ *
+ * @return
+ */
+int32_t do_wsa(const char *wsa_addr)
+{	
+	uint8_t user_quit = FALSE;
+	struct wsa_device wsa_dev;
+	char intf_str[30];
+	int result = 0;
+
+	// Create the TCPIP interface method string
+	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
+
+	//do {
+
+		//TODO do help option printing
+		//print_cli_menu();
+		result = wsa_connect(&wsa_dev, SCPI, intf_str);
+
+	//} while (!user_quit);
+
+	return result;
+}
+
+
+/**
+ * Start the CLI tool. First get a valid IP address from users, verify 
+ * and start the WSA connection.
+ * 
+ * @return 0 if su
+ */
 int32_t start_cli(void) 
 {
 	time_t dateStamp = time(NULL);	// use for display
@@ -71,9 +116,8 @@ int32_t start_cli(void)
 
 		// User asked for help
 		if (strncmp(in_str, ":H", 2) == 0) {
-			//TODO do help option printing
-			//print_cli_menu();
-			// print IP input help here
+			printf("Enter an IP address in the format #.#.#.# or a WWW ");
+			printf("address string.\nElse type :l for a list to select from");
 			continue;
 		}
 
@@ -106,31 +150,13 @@ int32_t start_cli(void)
 			continue;
 		}
 
-		// Has got an IP address
-		break;
 	} while (!user_quit);
-
 	
 	//*****
 	// All are good, start the connection
-	// TODO use WSA_CONNECT() here....
-	// by call do_wsa here...
-	// create wsa_dev there... pass the address in...
-	result = start_client(wsa_addr);
-
+	//*****
+	result = do_wsa(wsa_addr);
 
 	return 0;
 }
 
-
-/**
- * Setup WSA device variables, start the WSA connection and 
- *
- * @param wsa_addr
- *
- * @return
- */
-int32_t do_wsa(const char *wsa_addr)
-{
-	return 0;
-}

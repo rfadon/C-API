@@ -83,7 +83,7 @@ int32_t start_client(const char *wsa_addr)
  */
 int32_t do_winsock(const char *sock_addr)
 {
-	SOCKET cmd_sock = setup_sock("server", sock_addr, cmd_port);
+	SOCKET cmd_sock = setup_sock("WSA socket", sock_addr, cmd_port);
     if (cmd_sock == INVALID_SOCKET) {
         fprintf(stderr, "%s\n", 
 			WSAGetLastErrorMessage("error connecting to the server"));

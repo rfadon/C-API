@@ -45,6 +45,19 @@
 	 * The firmware version currently in the WSA.
 	 */
  
+
+/** @struct wsa_socket 
+ * @brief A structure containing the socket parameters used for creating 
+ * TCP/IP connection for control and data acquisition.
+ */
+	/** @var SOCKET wsa_socket::cmd
+	 * The command socket for command controls and queries.  The string 
+	 * protocol used for this socket is HISLIP.
+	 */	 
+	/** @var SOCKET wsa_socket::data
+	 * The data socket used for streaming of data
+	 */
+	 
  
 /** @struct wsa_device 
  * @brief A structure containing the components associate with each WSA 
@@ -52,6 +65,9 @@
  */
 	/** @var struct wsa_descriptor wsa_device::descr
 	 * The information component of the WSA, stored in wsa_descriptor.
+	 */	 
+	/** @var struct wsa_socket wsa_device::sock
+	 * The socket structure component of the WSA, used for TCPIP connection.
 	 */
 
 
