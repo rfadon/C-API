@@ -37,9 +37,9 @@ void print_cli_menu(void)
  */
 char* get_input_cmd(uint8_t pretext)
 {
-	const int str_size = MAX_STR_LEN;	// Maximum characters in an option string
+	const int str_size = MAX_STR_LEN; // Maximum characters in an option string
 	char input_opt[str_size], ch;	// store user's option
-	int	cnt_ch=0;				// count # of chars entered	
+	int	cnt_ch=0;					// count # of chars entered	
 
 	// Initialized the option
 	ZeroMemory(input_opt, str_size);
@@ -63,19 +63,31 @@ char* get_input_cmd(uint8_t pretext)
  */
 int32_t do_wsa(const char *wsa_addr)
 {	
-	uint8_t user_quit = FALSE;
-	struct wsa_device wsa_dev;
-	char intf_str[30];
-	int result = 0;
+	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
+	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_resp query;		// store query results
+	char intf_str[30];			// store the interface method string
+	int result = 0;				// result returned from a function
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
+	
+	// Start the WSA connection
+	if (wsa_connect(&wsa_dev, SCPI, intf_str) < 0) {
+		printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
+		return -1;
+	}
 
+	// Query the WSA status to make sure it is up & running
+	//query = wsa_send_query(wsa_dev, char *command);
+
+	//*****
+	// Start the control or data acquisition loop
+	//*****
 	//do {
 
 		//TODO do help option printing
 		//print_cli_menu();
-		result = wsa_connect(&wsa_dev, SCPI, intf_str);
 
 	//} while (!user_quit);
 
@@ -91,13 +103,13 @@ int32_t do_wsa(const char *wsa_addr)
  */
 int32_t start_cli(void) 
 {
-	time_t dateStamp = time(NULL);	// use for display
-	char in_str[MAX_STR_LEN];
-	int16_t in_num = 0;
-	uint8_t user_quit = FALSE;
-	int32_t result = 0;
-	char *ip_list[MAX_BUF_SIZE];
-	const char *wsa_addr;
+	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
+	time_t dateStamp = time(NULL);	// use for display in the start of CLI
+	char in_str[MAX_STR_LEN];		// store user's input string
+	int16_t in_num = 0;				// store user's entered number
+	char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
+	const char *wsa_addr;			// store the desired WSA IP address
+	int32_t result = 0;				// result returned from a function
 
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));

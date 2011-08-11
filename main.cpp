@@ -6,7 +6,7 @@
  */
 int32_t main(int32_t argc, char *argv[])
 {
-	char inCmdStr[200];
+	char in_str[200];			// Store the converted parameter string
 	int32_t count_arg = 1;
 	int32_t i, mode_argc = 0;
 	
@@ -16,14 +16,19 @@ int32_t main(int32_t argc, char *argv[])
 		while (1) {
 			// Copy the first command string arg to a constant string
 			for (i = 0; i < ((int32_t)strlen(argv[count_arg])); i++) 
-				inCmdStr[i] = toupper(argv[count_arg][i]);	
-			inCmdStr[i] = 0;
-			if (strncmp("-T",inCmdStr,2) == 0) test_mode = TRUE;
-			else if (strncmp("-D",inCmdStr,2) == 0) debug_mode = TRUE;
+				in_str[i] = toupper(argv[count_arg][i]);	
+			in_str[i] = 0;
+
+			if (strncmp("-T", in_str, 2) == 0) 
+				test_mode = TRUE;
+			else if (strncmp("-D", in_str, 2) == 0) 
+				debug_mode = TRUE;
 
 			// up counter to the next argv positn
-			if (count_arg < (argc - 1)) count_arg++;	
-			else break;
+			if (count_arg < (argc - 1)) 
+				count_arg++;	
+			else 
+				break;
 		}
 	}
 	if (test_mode || debug_mode) mode_argc = 1;
@@ -35,7 +40,7 @@ int32_t main(int32_t argc, char *argv[])
     }
 
 	// Start the CLI program
-	if(start_cli() < 0)
+	if (start_cli() < 0)
 		printf("ERROR: Unable to start the CLI program!\n");
 
 	return 0;

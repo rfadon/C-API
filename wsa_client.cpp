@@ -31,7 +31,7 @@ const int32_t data_port = cmd_port;//7000;
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
 ///////////////////////////////////////////////////////////////////////////////
-int32_t	do_winsock(const char* sock_addr);
+int32_t	do_winsock(const char* sock_addr, SOCKET *cmd_sock, SOCKET *data_sock);
 SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port);
 SOCKET establish_connection(u_long sock_addr, u_short sock_port);
 int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len);
@@ -45,15 +45,15 @@ int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
  *
  * @return
  */
-int32_t start_client(const char *wsa_addr)
+int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 {
 	// Get host and (optionally) port from the command line
     //const char *wsa_addr = ip_addr;
 
     // Starting Winsock2
-    WSAData ws_data;	// create an instance of Winsock data type
+    WSAData ws_data;		// create an instance of Winsock data type
 	int32_t ws_err_code;	// get error code
-	int32_t result = 0;
+	int32_t result = 0;		// result returned from a function
 
 	// MAKEWORD(2, 2) - request for version 2.2 of Winsock on the system
     if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
@@ -64,9 +64,9 @@ int32_t start_client(const char *wsa_addr)
     }
 
     // Call the main example routine.
-	result = do_winsock(wsa_addr);
+	result = do_winsock(wsa_addr, cmd_sock, data_sock);
 
-	// todo handle the result here
+	//TODO: handle the result here
 
     // Shut Winsock back down and take off.
     WSACleanup();
@@ -81,7 +81,7 @@ int32_t start_client(const char *wsa_addr)
  *
  * @param sock_addr
  */
-int32_t do_winsock(const char *sock_addr)
+int32_t do_winsock(const char *sock_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 {
 	SOCKET cmd_sock = setup_sock("WSA socket", sock_addr, cmd_port);
     if (cmd_sock == INVALID_SOCKET) {

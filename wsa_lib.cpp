@@ -20,23 +20,28 @@
  */
 int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 {
-	struct wsa_device wsa_dev;
-	int32_t result = 0;
-	char *temp_str;
-	const char* wsa_addr;
+	struct wsa_device wsa_dev;	// the wsa device structure
+	int32_t result = 0;			// result returned from a function
+	char *temp_str;				// temporary store a string
+	const char* wsa_addr;		// store the WSA IP address
+	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 
 	// When the cmd protocol is SCPI:
 	if (strncmp(protocol, SCPI, 4) == 0) {
 		// if it's a TCPIP connection, get the address
-		if(strstr(intf_method, "TCPIP") != NULL) {
+		if (strstr(intf_method, "TCPIP") != NULL) {
 			if ((temp_str = strstr(intf_method, "::")) == NULL) {
 				printf("ERROR: Invalid TCPIP string \"%s\".\n", intf_method);
 				return -1;
 			}
 
+			//Assume right after TCPIP:: is the IP address
 			// TODO: there might be a danger here...
 			wsa_addr = strtok(temp_str, "::");
+			is_tcpip = TRUE;
 		}
+
+		// TODO: can add others method here, such as USB.
 
 		// Can't determine connection method from the interface string
 		else {
@@ -51,7 +56,8 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 		return -1;
 	}
 
-	result = start_client(wsa_addr);
+	if (is_tcpip) 
+		result = start_client(wsa_addr);
 
 	dev = &wsa_dev;
 

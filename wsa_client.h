@@ -28,6 +28,6 @@
 int32_t list_ips(char **ip_list);
 u_long verify_addr(const char *sock_addr);
 int32_t get_host_info(char *name);
-int32_t start_client(const char *wsa_addr);
+int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock);
 
 #endif
