@@ -1,6 +1,7 @@
 #include "wsa_lib.h"
 #include <string.h>
 
+//TODO create a log file method
 
 /**
  * Connect to a WSA through the specified interface method \b intf_method,
@@ -15,20 +16,40 @@
  * - With USB, use: "USB" (check if supported with the WSA version used)
  * 
  * @return 0 on success, or a negative number on error.
+ * TODO: define ERROR values with associated messages....
  */
 int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 {
 	struct wsa_device wsa_dev;
 	int32_t result = 0;
+	char *temp_str;
 	const char* wsa_addr;
-	//printf("Connect: %s %s \n", protocol, intf_method);
 
+	// When the cmd protocol is SCPI:
 	if (strncmp(protocol, SCPI, 4) == 0) {
-		//if (strchr(
-		// DO PARSE IP ADDRESS HERE
+		// if it's a TCPIP connection, get the address
+		if(strstr(intf_method, "TCPIP") != NULL) {
+			if ((temp_str = strstr(intf_method, "::")) == NULL) {
+				printf("ERROR: Invalid TCPIP string \"%s\".\n", intf_method);
+				return -1;
+			}
+
+			// TODO: there might be a danger here...
+			wsa_addr = strtok(temp_str, "::");
+		}
+
+		// Can't determine connection method from the interface string
+		else {
+			printf(" ERROR: Interface method is not recognized/valid!\n");
+			return -1;
+		}
 	}
-	else
+
+	// When the command protocol is not supported/recognized
+	else {
 		printf("Error: Command protocol not supported/recognized!");
+		return -1;
+	}
 
 	result = start_client(wsa_addr);
 
