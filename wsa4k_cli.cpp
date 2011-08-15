@@ -1,13 +1,21 @@
 /**
- * @mainpage WSA4000 CLI Documentation
+ * @mainpage WSA4000 CLI (Command Line Interface) Program Documentation
  * @par Overview:
- * Defines the entry point for the WSA4000 CLI console application.
- * @par
- * The WSA4000 CLI is designed using mixed C/C++ languages.
- *
+ * This document defines the WSA4000 CLI console program in details.
  * @author QS.
  * @version v1.0
- * @date Aug. 2, 2011
+ * @date Aug. 2, 2011 \n
+ *
+ * @section intro_sec Introduction:
+ * The CLI when executed will run in a Windows command promt console.
+ * The following diagram illustrates that the CLI incurs the \b wsa_lib,
+ * which will call the socket client functions to establish connection 
+ * and transferring/receiving commands or data to and from a WSA box.
+ * @image html wsa4000_cli.PNG
+ * @image latex wsa4000_cli.PNG "CLI program call graph" width=10cm
+ * 
+ * The WSA4000 CLI is designed using mixed C/C++ languages.
+ * ...
  */
 
 #include "wsa4k_cli.h"
@@ -73,7 +81,7 @@ int32_t do_wsa(const char *wsa_addr)
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
 	
 	// Start the WSA connection
-	if (wsa_connect(&wsa_dev, SCPI, intf_str) < 0) {
+	if ((result = wsa_connect(&wsa_dev, SCPI, intf_str)) < 0) {
 		printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
 		return -1;
 	}
@@ -90,6 +98,8 @@ int32_t do_wsa(const char *wsa_addr)
 		//print_cli_menu();
 
 	//} while (!user_quit);
+
+	wsa_close(wsa_dev);
 
 	return result;
 }
@@ -116,9 +126,9 @@ int32_t start_cli(void)
 	printf("\t\t_____ThinkRF - WSA4000 Command Line Interface Tool_____\n\n");
 
 	do {
-	//*****
-	// Ask user to enter an IP address
-	//****
+		//*****
+		// Ask user to enter an IP address
+		//*****
 		printf("\n> Enter the WSA4000's IP (or type ':l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
 
@@ -135,7 +145,7 @@ int32_t start_cli(void)
 
 		// User chose List option
 		else if (strncmp(in_str, ":L", 2) == 0) {
-			result = list_ips(ip_list);
+			result = wsa_list_ips(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
 			in_num = atoi(in_str);
@@ -151,8 +161,8 @@ int32_t start_cli(void)
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
 			wsa_addr = in_str;
-			// TODO verify & convert www type address to IP using get_host_info()
-			if ((result = verify_addr(wsa_addr)) == INADDR_NONE) {
+			// TODO verify & convert www type address to IP using wsa_get_host_info()
+			if ((result = wsa_verify_addr(wsa_addr)) == INADDR_NONE) {
 				printf("\nInvalid address. Try again or ':q' to exit.\n");
 				continue;
 			}
@@ -160,14 +170,14 @@ int32_t start_cli(void)
 		else {
 			printf("Invalid IP address (Use: #.#.#.#)\n");
 			continue;
-		}
+		}	
 
+		//*****
+		// All are good, start the connection
+		//*****
+		result = do_wsa(wsa_addr);
 	} while (!user_quit);
-	
-	//*****
-	// All are good, start the connection
-	//*****
-	result = do_wsa(wsa_addr);
+
 
 	return 0;
 }

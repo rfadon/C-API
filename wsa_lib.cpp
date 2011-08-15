@@ -57,9 +57,17 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 	}
 
 	if (is_tcpip) 
-		result = start_client(wsa_addr);
+		result = wsa_start_client(wsa_addr, &wsa_dev.sock.cmd, 
+				&wsa_dev.sock.data);
 
-	dev = &wsa_dev;
+	if (result < 0) {
+		// TODO 
+		printf("ERROR: Failed to start client sockets, closing down the "
+			"connection!\n");
+		result = wsa_close_client(wsa_dev.sock.cmd, wsa_dev.sock.data);
+	}
+	else
+		dev = &wsa_dev;
 
 	return result;
 }
@@ -75,7 +83,12 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
  */
 int32_t wsa_close(struct wsa_device dev)
 {
-	return 0;
+	int32_t result = 0;			// result returned from a function
+
+	// TODO
+	result = wsa_close_client(dev.sock.cmd, dev.sock.data);
+
+	return result;
 }
 
 

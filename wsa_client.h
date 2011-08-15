@@ -25,9 +25,15 @@
 #define TIMEOUT 1000	/* Timeout for sockets in milliseconds */
 #define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
 
-int32_t list_ips(char **ip_list);
-u_long verify_addr(const char *sock_addr);
-int32_t get_host_info(char *name);
-int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock);
+
+///////////////////////////////////////////////////////////////////////////////
+// Global Functions
+///////////////////////////////////////////////////////////////////////////////
+int32_t wsa_list_ips(char **ip_list);
+u_long wsa_verify_addr(const char *sock_addr);
+int32_t wsa_get_host_info(char *name);
+int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 
+						 SOCKET *data_sock);
+int32_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock);
 
 #endif

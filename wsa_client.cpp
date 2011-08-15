@@ -31,7 +31,6 @@ const int32_t data_port = cmd_port;//7000;
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
 ///////////////////////////////////////////////////////////////////////////////
-int32_t	do_winsock(const char* sock_addr, SOCKET *cmd_sock, SOCKET *data_sock);
 SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port);
 SOCKET establish_connection(u_long sock_addr, u_short sock_port);
 int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len);
@@ -42,15 +41,19 @@ int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
  * Call functions to initialize the sockets
  * 
  * @param wsa_addr -
+ * @param cmd_sock -
+ * @param data_sock -
  *
  * @return
  */
-int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
+int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 {
 	// Get host and (optionally) port from the command line
     //const char *wsa_addr = ip_addr;
 
+	//*****
     // Starting Winsock2
+	//*****
     WSAData ws_data;		// create an instance of Winsock data type
 	int32_t ws_err_code;	// get error code
 	int32_t result = 0;		// result returned from a function
@@ -63,13 +66,62 @@ int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
         return 255;	// random # for now
     }
 
-    // Call the main example routine.
-	result = do_winsock(wsa_addr, cmd_sock, data_sock);
 
-	//TODO: handle the result here
+	//*****
+	// Create command socket
+	//*****
+	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, cmd_port);
+    if (cmd_socket == INVALID_SOCKET) {
+        fprintf(stderr, "%s\n", 
+			WSAGetLastErrorMessage("error connecting to the server"));
+        return 3;
+    }
+    else {
+		cmd_sock = &cmd_socket;
+		
+	// TODO: remove this section
+		printf("   ...connected, socket %d.\n", cmd_socket);
+		// Send start flag to server
+		printf("Sending %s...", start);
+		if (tx_sock(*cmd_sock, start, strlen(start)) < 0)
+			return -1;
 
-    // Shut Winsock back down and take off.
-    WSACleanup();
+		int32_t words_rxed = 0;
+		char *rx_buf[MAX_BUF_SIZE];
+		// Initialized the receive buffer
+		for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
+			rx_buf[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+
+		// Receive anything from the WSA server
+		words_rxed = rx_sock(*cmd_sock, rx_buf, TIMEOUT);
+		printf("\nRxed %d words: ", words_rxed);
+		for (int i = 0; i < words_rxed; i++)
+			printf("%s ", rx_buf[i]);
+		printf("\n");
+		
+		// send stop flag to server
+		if (tx_sock(*cmd_sock, stop, strlen(stop)))
+			printf("%s flag sent...\n", stop);
+	// Remove up to here...
+	}
+
+
+	//*****
+	// Create data socket
+	//*****
+	// TODO: add data socket
+	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
+    if (data_socket == INVALID_SOCKET) {
+        fprintf(stderr, "%s\n", 
+			WSAGetLastErrorMessage("error connecting to the server"));
+        result = -1;
+    }
+    else {
+		data_sock = &data_socket;
+		// TODO: remove this section
+		printf("   ...connected, socket %d.\n", data_socket);
+	}
+
     return result;
 }
 
@@ -79,45 +131,18 @@ int32_t start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
  * The module's driver function -- we just call other functions and
  * interpret their results.
  *
- * @param sock_addr
+ * @param sock_name -
+ * @param a_sock -
+ * 
+ * @return 
  */
-int32_t do_winsock(const char *sock_addr, SOCKET *cmd_sock, SOCKET *data_sock)
+int32_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 {
-	SOCKET cmd_sock = setup_sock("WSA socket", sock_addr, cmd_port);
-    if (cmd_sock == INVALID_SOCKET) {
-        fprintf(stderr, "%s\n", 
-			WSAGetLastErrorMessage("error connecting to the server"));
-        return 3;
-    }
-    else {
-		printf("   ...connected, socket %d.\n", cmd_sock);
-		// Send start flag
-		printf("Sending %s...", start);
-		if (tx_sock(cmd_sock, start, strlen(start)) < 0)
-			return -1;
-	}
-
-	int32_t words_rxed = 0;
-	char *rx_buf[MAX_BUF_SIZE];
-	// Initialized the receive buffer
-	for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
-		rx_buf[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
-
-	words_rxed = rx_sock(cmd_sock, rx_buf, TIMEOUT);
-	printf("\nRxed %d words: ", words_rxed);
-	for (int i = 0; i < words_rxed; i++)
-		printf("%s ", rx_buf[i]);
-	printf("\n");
-	
-	// send stop flag
-	if (tx_sock(cmd_sock, stop, strlen(stop)))
-		printf("%s flag sent...\n", stop);
-
 #if defined(SHUTDOWN_DELAY)
     // Delay for a bit, so we can start other clients.  This is strictly
     // for testing purposes, so you can convince yourself that the 
     // server is handling more than one connection at a time.
-    printf("Will shut down in %d seconds... (one dot per second): ", 
+    printf("\nWill shut down sockets in %d seconds... (one dot per second): ", 
 		kShutdownDelay);
 	fflush(stdin);
 
@@ -126,22 +151,25 @@ int32_t do_winsock(const char *sock_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 		printf(".");
 		fflush(stdin);
     }
-    printf("\n");
 #endif
 
-    // Shut connection down
-    printf("Shutting server connection down... ");
+    // Shut COMMAND socket connection down
 	fflush(stdin);
-    if (ShutdownConnection(cmd_sock, "server"))
-        printf("Server connection is down.\n");
+    if (ShutdownConnection(cmd_sock, "command socket"))
+        printf("Command socket connection is down.\n");
 	else
-        fprintf(stderr, "\n%s\n", 
-			WSAGetLastErrorMessage("Shutdown server connection"));
+		fprintf(stderr, "\nERROR: %s\n", 
+			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
 
-    printf("All done!\n");
-	
-	for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
-		free(rx_buf[i]);
+	fflush(stdin);
+    if (ShutdownConnection(data_sock, "data socket"))
+        printf("Command socket connection is down.\n");
+	else
+		fprintf(stderr, "\nERROR: %s\n", 
+			WSAGetLastErrorMessage("Shutdown 'data' socket connection"));
+
+    // Shut Winsock back down and take off.
+    WSACleanup();
 
     return 0;
 }
@@ -162,7 +190,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
     printf("Looking up %s address... ", sock_name);
 	fflush(stdin);
 
-    u_long new_sock_addr = verify_addr(sock_addr);
+    u_long new_sock_addr = wsa_verify_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
@@ -197,7 +225,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
-u_long verify_addr(const char *sock_addr)
+u_long wsa_verify_addr(const char *sock_addr)
 {
 	u_long new_sock_addr = inet_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
@@ -402,7 +430,7 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
  *
  * @return
  */
-int32_t get_host_info(char *name)
+int32_t wsa_get_host_info(char *name)
 {
 
     //-----------------------------------------
@@ -490,13 +518,13 @@ int32_t get_host_info(char *name)
  *
  * @return Number of IP addresses available.
  */
-int32_t list_ips(char **ip_list) 
+int32_t wsa_list_ips(char **ip_list) 
 {
 	// TODO: detect all the IPs available to the PC...
 	// Better yet... get only IP of WSA by using a specified name.
 	// Can only verify w/in a user's ntwk using subnet mask...
 	
-	//TODO modify get_host_info() to find out if the given IP is 
+	//TODO modify wsa_get_host_info() to find out if the given IP is 
 	// IPv4 or 6 & pass that for when setup AF_NET info...
 	// & also if ip address is given instead.
 
