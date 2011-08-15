@@ -33,8 +33,6 @@ const int32_t data_port = cmd_port;//7000;
 ///////////////////////////////////////////////////////////////////////////////
 SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port);
 SOCKET establish_connection(u_long sock_addr, u_short sock_port);
-int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len);
-int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
 
 
 /**
@@ -77,13 +75,13 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
         return 3;
     }
     else {
-		cmd_sock = &cmd_socket;
+		*cmd_sock = cmd_socket;
 		
 	// TODO: remove this section
 		printf("   ...connected, socket %d.\n", cmd_socket);
 		// Send start flag to server
 		printf("Sending %s...", start);
-		if (tx_sock(*cmd_sock, start, strlen(start)) < 0)
+		if (wsa_sock_send(*cmd_sock, start, strlen(start)) < 0)
 			return -1;
 
 		int32_t words_rxed = 0;
@@ -93,14 +91,14 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 			rx_buf[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
 
 		// Receive anything from the WSA server
-		words_rxed = rx_sock(*cmd_sock, rx_buf, TIMEOUT);
+		words_rxed = wsa_sock_recv(*cmd_sock, rx_buf, TIMEOUT);
 		printf("\nRxed %d words: ", words_rxed);
 		for (int i = 0; i < words_rxed; i++)
 			printf("%s ", rx_buf[i]);
 		printf("\n");
 		
 		// send stop flag to server
-		if (tx_sock(*cmd_sock, stop, strlen(stop)))
+		if (wsa_sock_send(*cmd_sock, stop, strlen(stop)))
 			printf("%s flag sent...\n", stop);
 	// Remove up to here...
 	}
@@ -117,7 +115,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
         result = -1;
     }
     else {
-		data_sock = &data_socket;
+		*data_sock = data_socket;
 		// TODO: remove this section
 		printf("   ...connected, socket %d.\n", data_socket);
 	}
@@ -126,13 +124,11 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 }
 
 
-// TODO FIX THIS ONE UP
 /**
- * The module's driver function -- we just call other functions and
- * interpret their results.
+ * 
  *
- * @param sock_name -
- * @param a_sock -
+ * @param cmd_sock -
+ * @param data_sock -
  * 
  * @return 
  */
@@ -154,14 +150,15 @@ int32_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 #endif
 
     // Shut COMMAND socket connection down
-	fflush(stdin);
+	//fflush(stdin);
     if (ShutdownConnection(cmd_sock, "command socket"))
         printf("Command socket connection is down.\n");
 	else
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
 
-	fflush(stdin);
+	// Shut DATA socket connection down
+	//fflush(stdin);
     if (ShutdownConnection(data_sock, "data socket"))
         printf("Command socket connection is down.\n");
 	else
@@ -285,7 +282,7 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
-int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len)
+int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
     // Send the string to the server
@@ -319,7 +316,7 @@ int32_t tx_sock(SOCKET out_sock, char *out_str, int32_t len)
  * 
  * @return Number of "words" read
  */
-int32_t rx_sock(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
+int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 {
 	char *rx_buf[1]; 
 		rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
@@ -405,7 +402,7 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 
 	// Wait for client response rxed before proceeds....
 	// but time out if no resp in x seconds
-	while(rx_sock(in_sock, rx_buf, 10) < 1) {
+	while(wsa_sock_recv(in_sock, rx_buf, 10) < 1) {
 		if((time(0) - start_time) == (time_out / 1000)) 
 			break; 
 	};

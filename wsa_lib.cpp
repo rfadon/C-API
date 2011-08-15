@@ -67,7 +67,7 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 		result = wsa_close_client(wsa_dev.sock.cmd, wsa_dev.sock.data);
 	}
 	else
-		dev = &wsa_dev;
+		*dev = wsa_dev;
 
 	return result;
 }
@@ -81,12 +81,13 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_close(struct wsa_device dev)
+int32_t wsa_close(struct wsa_device *dev)
 {
 	int32_t result = 0;			// result returned from a function
 
-	// TODO
-	result = wsa_close_client(dev.sock.cmd, dev.sock.data);
+	result = wsa_close_client(dev->sock.cmd, dev->sock.data);
+
+	// TODO test if you can still send after this.
 
 	return result;
 }
@@ -123,7 +124,7 @@ int32_t wsa_help(struct wsa_device dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_send_command(struct wsa_device dev, char *command)
+int32_t wsa_send_command(struct wsa_device *dev, char *command)
 {
 	return 0;
 }
@@ -140,7 +141,7 @@ int32_t wsa_send_command(struct wsa_device dev, char *command)
  *
  * @return The result stored in a wsa_resp struct format.
  */
-struct wsa_resp wsa_send_query(struct wsa_device dev, char *command)
+struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp result;
 
@@ -156,7 +157,7 @@ struct wsa_resp wsa_send_query(struct wsa_device dev, char *command)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_query_error(struct wsa_device dev)
+int32_t wsa_query_error(struct wsa_device *dev)
 {
 	return 0;
 }

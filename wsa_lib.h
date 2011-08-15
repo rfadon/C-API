@@ -66,11 +66,11 @@ struct wsa_resp {
 //*****
 
 int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
-int32_t wsa_close(struct wsa_device dev);
+int32_t wsa_close(struct wsa_device *dev);
 int32_t wsa_help(struct wsa_device dev);
-int32_t wsa_send_command(struct wsa_device dev, char *command);
-struct wsa_resp wsa_send_query(struct wsa_device dev, char *command);
-int32_t wsa_query_error(struct wsa_device dev);
+int32_t wsa_send_command(struct wsa_device *dev, char *command);
+struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
+int32_t wsa_query_error(struct wsa_device *dev);
 int32_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 int32_t *i_buf, int32_t *q_buf, uint32_t frame_size);
 

@@ -99,7 +99,7 @@ int32_t do_wsa(const char *wsa_addr)
 
 	//} while (!user_quit);
 
-	wsa_close(wsa_dev);
+	wsa_close(&wsa_dev);
 
 	return result;
 }
