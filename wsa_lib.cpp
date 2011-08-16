@@ -2,6 +2,7 @@
 #include <string.h>
 
 //TODO create a log file method
+//TODO create proper error method
 
 /**
  * Connect to a WSA through the specified interface method \b intf_method,
@@ -122,11 +123,28 @@ int32_t wsa_help(struct wsa_device dev)
  * @param command - The control command string written in the format specified 
  * by the protocol in wsa_connect()
  *
- * @return 0 on success, or a negative number on error.
+ * @return Number of bytes sent on success, or a negative number on error.
  */
 int32_t wsa_send_command(struct wsa_device *dev, char *command)
 {
-	return 0;
+	int32_t bytes_txed = 0;
+	uint8_t resend_cnt = 0;
+	uint16_t len = strlen(command);
+
+	while (1) {
+		bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
+		if (bytes_txed < len) {
+			if (resend_cnt > 5)
+				return -1;
+
+			printf("Not all bytes sent. Resending the packet...\n");
+			resend_cnt++;
+		}
+		else 
+			break;
+	}
+
+	return bytes_txed;
 }
 
 
@@ -143,9 +161,31 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
  */
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
-	struct wsa_resp result;
+	struct wsa_resp resp;
+	int32_t bytes_rxed = 0;
+	char *rx_buf;
 
-	return result;
+	// Initialized the receive buffer
+	rx_buf = (char *) malloc(MAX_STR_LEN * sizeof(char));
+
+	// Send the query command out
+	bytes_rxed = wsa_send_command(dev, command);
+
+	// Receive query result from the WSA server
+	bytes_rxed = wsa_sock_recv(dev->sock.cmd, rx_buf, TIMEOUT);
+
+	printf("\nRxed %d bytes: ", bytes_rxed);
+	//for (int i = 0; i < bytes_rxed; i++)
+		printf("%s ", rx_buf);
+	printf("\n");
+
+	// TODO define what result should be
+	resp.result = rx_buf;
+	resp.status = bytes_rxed;
+
+	free(rx_buf);
+
+	return resp;
 }
 
 
@@ -159,6 +199,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  */
 int32_t wsa_query_error(struct wsa_device *dev)
 {
+
 	return 0;
 }
 

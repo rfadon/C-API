@@ -24,8 +24,8 @@ const int32_t IQbus_size = 32;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
 
-const int32_t cmd_port = 7000;//HISLIP;
-const int32_t data_port = cmd_port;//7000;
+const int32_t cmd_port = 7000;// swap this w/ HISLIP
+const int32_t data_port = 7000;//;
 	      
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -76,9 +76,10 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
     }
     else {
 		*cmd_sock = cmd_socket;
-		
+
+	printf("   ...connected, socket %d.\n", cmd_socket);
+/*		
 	// TODO: remove this section
-		printf("   ...connected, socket %d.\n", cmd_socket);
 		// Send start flag to server
 		printf("Sending %s...", start);
 		if (wsa_sock_send(*cmd_sock, start, strlen(start)) < 0)
@@ -96,10 +97,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 		for (int i = 0; i < words_rxed; i++)
 			printf("%s ", rx_buf[i]);
 		printf("\n");
-		
-		// send stop flag to server
-		if (wsa_sock_send(*cmd_sock, stop, strlen(stop)))
-			printf("%s flag sent...\n", stop);
+*/
 	// Remove up to here...
 	}
 
@@ -108,7 +106,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	// Create data socket
 	//*****
 	// TODO: add data socket
-	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
+/*	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
     if (data_socket == INVALID_SOCKET) {
         fprintf(stderr, "%s\n", 
 			WSAGetLastErrorMessage("error connecting to the server"));
@@ -118,7 +116,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 		*data_sock = data_socket;
 		// TODO: remove this section
 		printf("   ...connected, socket %d.\n", data_socket);
-	}
+	}*/
 
     return result;
 }
@@ -316,7 +314,51 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
  * 
  * @return Number of "words" read
  */
-int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
+int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
+{
+	//char *rx_buf; 
+		//rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
+	int32_t bytes_rxed = 0;
+	double seconds = floor(time_out / 1000.0);
+	
+	//wait x msec. timeval = {secs, microsecs}.
+	timeval timer = {seconds, (time_out - (long) seconds * 1000) * 1000}; 
+
+	// First check for read-ability to the socket
+	FD_SET Reader;
+	
+	/* FD_ZERO() clears out the fd_set called socks, so that
+	   it doesn't contain any file descriptors. */
+	FD_ZERO(&Reader);
+
+	/* FD_SET() adds the file descriptor "socket" to the fd_set,
+		so that select() will return if a connection comes in
+		on that socket (which means you have to do accept(), etc. */
+	FD_SET(in_sock, &Reader);
+
+	// Loop to get incoming command 1 byte at a time
+	do {
+		// Make reading of socket non-blocking w/ time-out of x msec
+		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
+			printf("init select() function returned with error %d\n", 
+				WSAGetLastError());
+			return 0;
+		}
+		
+		// if the socket is read-able, rx packet
+		if (FD_ISSET(in_sock, &Reader)) {
+			// read incoming strings at a time
+			bytes_rxed = recv(in_sock, rx_buf_ptr, MAX_STR_LEN, 0);
+		} 
+	} while(bytes_rxed < 0);
+	rx_buf_ptr[bytes_rxed] = '\0';
+
+	return bytes_rxed;
+}
+
+
+// this one will receive & convert to words/tokens.... don't think I'll need this
+int32_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 {
 	char *rx_buf[1]; 
 		rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
@@ -386,7 +428,7 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 
 /*****
  * Get response string from client socket and compare to the in-string
- *
+ * NEED THIS? MIGHT NOT.
  * @param time_out in millisecond
  *
  * @return true is the same, else falsed
@@ -394,8 +436,8 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 {	
 	// to rx response string from GUI
-	char *rx_buf[1]; 
-		rx_buf[0] = (char*) malloc(20 * sizeof(char));
+	char *rx_buf; 
+		rx_buf = (char *) malloc(20 * sizeof(char));
 	
 	time_t start_time;	
 	start_time = time(0);			//* time in seconds
@@ -407,14 +449,14 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 			break; 
 	};
 	
-	if(strncmp(rx_buf[0], ack_str, 7) == 0) { //strlen(success)
+	if(strncmp(rx_buf, ack_str, 7) == 0) { //strlen(success)
 		if(test_mode) printf("s");
-		free(rx_buf[0]); 
+		free(rx_buf); 
 		return TRUE; 
 	}
 	else { 
 		if(test_mode) printf("f"); 
-		free(rx_buf[0]); 
+		free(rx_buf); 
 		return FALSE; 
 	}
 }

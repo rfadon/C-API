@@ -3,23 +3,18 @@
  */
 
 /**
- * @mainpage WSA4000 LIB Documentation
- * @par Overview:
+ * @mainpage Introduction
  * The WSA4000 LIB is a library with high level interfaces to a WSA4000 
  * device. It abstracts away the actual low level interface and communication 
  * through the connection of choice, and subsequently all the controls or 
  * commands to the WSA.  It allows you to easily control the WSA4000 through 
  * standardized protocols, such as SCPI, to get WSA status, set gain, 
  * set centre frequency, etc., and perform data acquisition.
- * @par
+ * 
  * The WSA4000 LIB is designed using mixed C/C++ languages.  To use the 
  * library, you need to include the header file, wsa4k_lib.h, in files that 
  * will use any of its functions to access a WSA4000, and a link to 
  * the wsa4k_lib.lib.
- *
- * @author ThinkRF Corp.
- * @version v1.0
- * @date Aug 9. 2011
  */
  
 

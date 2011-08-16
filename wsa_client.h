@@ -36,6 +36,6 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
 						 SOCKET *data_sock);
 int32_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock);
 int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len);
-int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out);
+int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out);
 
 #endif

@@ -1,21 +1,28 @@
 /**
- * @mainpage WSA4000 CLI (Command Line Interface) Program Documentation
- * @par Overview:
- * This document defines the WSA4000 CLI console program in details.
- * @author QS.
- * @version v1.0
- * @date Aug. 2, 2011 \n
+ * @mainpage Introduction
  *
- * @section intro_sec Introduction:
- * The CLI when executed will run in a Windows command promt console.
- * The following diagram illustrates that the CLI incurs the \b wsa_lib,
- * which will call the socket client functions to establish connection 
- * and transferring/receiving commands or data to and from a WSA box.
- * @image html wsa4000_cli.PNG
- * @image latex wsa4000_cli.PNG "CLI program call graph" width=10cm
+ * This documentation, compiled using Doxygen, shows in details the code
+ * structure of the CLI (Command Line Interface) tool. \n \n
+ * The following diagram illustrates the different layers involved in 
+ * interfacing with a WSA on the PC side.  
+ *
+ * @image html wsa4000_cli_2.PNG
+ * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=15cm
+ *
+ * The wsa_lib is the main gateway to a WSA box in the application/
+ * presentation layer, in which the CLI tool would belong.  The wsa_lib has, 
+ * in brief, functions to open, close, send/receive commands, querry the WSA 
+ * box status, and gets data.  In this CLI version, wsa_lib calls the 
+ * wsa_client's functions in the transport layer to establish TCP/IP specific 
+ * connections.  Other connection methods such as USB could be added to the 
+ * transport layer.  The wsa_lib, then, abstracts away the interface 
+ * method from any application/presentation level calling it.
+ * The CLI, hence, is a direct example of how the wsa_lib library could be 
+ * used.
  * 
  * The WSA4000 CLI is designed using mixed C/C++ languages.
- * ...
+ * The CLI when executed will run in a Windows command promt console.
+ * 
  */
 
 #include "wsa4k_cli.h"
@@ -35,8 +42,8 @@ void print_cli_menu(void)
 
 
 /**
- * Get input characters/string from the console and return the string when
- * the return key is pressed.
+ * Get input characters/string from the console and return the string 
+ * all capitalized when the return key is pressed.
  *
  * @param pretext - A TRUE or FALSE flag to indicate if the default "enter a
  * command" text is to be printed.
@@ -47,13 +54,16 @@ char* get_input_cmd(uint8_t pretext)
 {
 	const int str_size = MAX_STR_LEN; // Maximum characters in an option string
 	char input_opt[str_size], ch;	// store user's option
-	int	cnt_ch=0;					// count # of chars entered	
+	int	cnt_ch = 0;					// count # of chars entered	
 
 	// Initialized the option
 	ZeroMemory(input_opt, str_size);
 
 	// Get command loop for string input terminated by "enter"
-	if(pretext) printf("\n> Enter a command (or ':h'): ");
+	if (pretext) 
+		printf("\n> Enter a command (or ':h'): ");
+
+	// Conver the command to upper case.... <- should do this?
 	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
 		input_opt[cnt_ch++] = (char)ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
@@ -86,8 +96,14 @@ int32_t do_wsa(const char *wsa_addr)
 		return -1;
 	}
 
+	//TEST send command
+	result = wsa_send_command(&wsa_dev, "Start Message\0");
+
 	// Query the WSA status to make sure it is up & running
-	//query = wsa_send_query(wsa_dev, char *command);
+	query = wsa_send_query(&wsa_dev, "QUERY:Test query\n");
+	if (query.status > 0)
+		result = query.status;
+	printf("Query: received %d bytes.\n", result);
 
 	//*****
 	// Start the control or data acquisition loop
@@ -98,6 +114,9 @@ int32_t do_wsa(const char *wsa_addr)
 		//print_cli_menu();
 
 	//} while (!user_quit);
+
+	// send stop flag to server
+	result = wsa_send_command(&wsa_dev, "STOPALL");//, strlen("STOPDATA"));
 
 	wsa_close(&wsa_dev);
 
