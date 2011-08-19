@@ -12,16 +12,17 @@
  * The wsa_lib is the main gateway to a WSA box in the application/
  * presentation layer, in which the CLI tool would belong.  The wsa_lib has, 
  * in brief, functions to open, close, send/receive commands, querry the WSA 
- * box status, and gets data.  In this CLI version, wsa_lib calls the 
+ * box status, and get data.  In this CLI version, wsa_lib calls the 
  * wsa_client's functions in the transport layer to establish TCP/IP specific 
  * connections.  Other connection methods such as USB could be added to the 
- * transport layer.  The wsa_lib, then, abstracts away the interface 
- * method from any application/presentation level calling it.
+ * transport layer later on.  The wsa_lib, thus, abstracts away the interface 
+ * method from any application/presentation program calling it.
+ *
  * The CLI, hence, is a direct example of how the wsa_lib library could be 
  * used.
  * 
  * The WSA4000 CLI is designed using mixed C/C++ languages.
- * The CLI when executed will run in a Windows command promt console.
+ * The CLI when executed will run in a Windows command prompt console.
  * 
  */
 
@@ -116,7 +117,7 @@ int32_t do_wsa(const char *wsa_addr)
 	//} while (!user_quit);
 
 	// send stop flag to server
-	result = wsa_send_command(&wsa_dev, "STOPALL");//, strlen("STOPDATA"));
+	result = wsa_send_command(&wsa_dev, "STOPALL");
 
 	wsa_close(&wsa_dev);
 

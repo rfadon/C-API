@@ -199,6 +199,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  */
 int32_t wsa_query_error(struct wsa_device *dev)
 {
+	printf("To be added later.\n");
 
 	return 0;
 }
@@ -221,5 +222,7 @@ int32_t wsa_query_error(struct wsa_device *dev)
 int32_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 int32_t *i_buf, int32_t *q_buf, uint32_t frame_size)
 {
+	printf("Slow down... To be added later.\n");
+
 	return 0;
 }

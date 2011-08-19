@@ -46,9 +46,6 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port);
  */
 int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 {
-	// Get host and (optionally) port from the command line
-    //const char *wsa_addr = ip_addr;
-
 	//*****
     // Starting Winsock2
 	//*****
@@ -76,29 +73,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
     }
     else {
 		*cmd_sock = cmd_socket;
-
-	printf("   ...connected, socket %d.\n", cmd_socket);
-/*		
-	// TODO: remove this section
-		// Send start flag to server
-		printf("Sending %s...", start);
-		if (wsa_sock_send(*cmd_sock, start, strlen(start)) < 0)
-			return -1;
-
-		int32_t words_rxed = 0;
-		char *rx_buf[MAX_BUF_SIZE];
-		// Initialized the receive buffer
-		for (int32_t i = 0; i < MAX_BUF_SIZE; i++) 
-			rx_buf[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
-
-		// Receive anything from the WSA server
-		words_rxed = wsa_sock_recv(*cmd_sock, rx_buf, TIMEOUT);
-		printf("\nRxed %d words: ", words_rxed);
-		for (int i = 0; i < words_rxed; i++)
-			printf("%s ", rx_buf[i]);
-		printf("\n");
-*/
-	// Remove up to here...
+		printf("   ...connected, socket %d.\n", cmd_socket);
 	}
 
 
@@ -471,7 +446,6 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
  */
 int32_t wsa_get_host_info(char *name)
 {
-
     //-----------------------------------------
     // Declare and initialize variables
     WSADATA wsaData;
