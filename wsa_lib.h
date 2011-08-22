@@ -3,15 +3,26 @@
 
 #include "stdint.h"
 #include "wsa_client.h"
+#include "targetver.h"
 
+
+#define FALSE	0
+#define TRUE	1
 
 // Control commands protocol supported types
 #define SCPI "SCPI"	/* SCPI control commands protocol */
 
 
-//*****
-//* List of structures
-//*****
+typedef enum wsa_gain {
+	HIGH = 1,
+	MEDIUM,
+	LOW,
+	ULOW
+};
+
+// ////////////////////////////////////////////////////////////////////////////
+// STRUCTS DEFINES                                                           //
+// ////////////////////////////////////////////////////////////////////////////
 
 struct wsa_descriptor {
 	char prod_name[50];
@@ -61,13 +72,12 @@ struct wsa_resp {
 
 
 
-//*****
-//* List of functions
-//*****
-
+// ////////////////////////////////////////////////////////////////////////////
+// List of functions                                                         //
+// ////////////////////////////////////////////////////////////////////////////
 int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
 int32_t wsa_close(struct wsa_device *dev);
-int32_t wsa_help(struct wsa_device dev);
+//int32_t wsa_help(struct wsa_device dev);
 int32_t wsa_send_command(struct wsa_device *dev, char *command);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 int32_t wsa_query_error(struct wsa_device *dev);
