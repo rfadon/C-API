@@ -127,7 +127,7 @@ int32_t do_wsa(const char *wsa_addr)
 	// send stop flag to server
 	//result = wsa_send_command(&wsa_dev, "STOPALL");
 
-	//wsa_close(&wsa_dev);
+	//wsa_disconnect(&wsa_dev);
 
 	return result;
 }

@@ -82,7 +82,7 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_close(struct wsa_device *dev)
+int32_t wsa_disconnect(struct wsa_device *dev)
 {
 	int32_t result = 0;			// result returned from a function
 
