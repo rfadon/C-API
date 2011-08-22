@@ -14,7 +14,7 @@
  *
  * @param dev - the WSA device structure to be connected/establised.
  * @param cmd_syntax - The standard for control commands communication to the
- * WSA. \n Currently supported standard syntax type is: SCPI.
+ * WSA. \n Currently supported standard command syntax type is: SCPI.
  * @param intf_method - The interface method to the WSA. \n
  * Possible methods: \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n

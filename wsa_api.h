@@ -89,9 +89,9 @@ struct wsa_trig
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_is_connected(wsa_device *dev);
-int16_t wsa_open(wsa_device *dev);
+int16_t wsa_open(wsa_device *dev, char *intf_method);
 void wsa_close(wsa_device *dev);
-void wsa_list_devs(void);
+int16_t wsa_count_devs(void);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 

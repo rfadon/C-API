@@ -66,8 +66,7 @@ char* get_input_cmd(uint8_t pretext)
 	int	cnt_ch = 0;					// count # of chars entered	
 
 	// Initialized the option
-	//ZeroMemory(input_opt, str_size);
-	*input_opt = 0;
+	strcpy(input_opt, 0);
 
 	// Get command loop for string input terminated by "enter"
 	if (pretext) 
