@@ -1,16 +1,20 @@
-#include "wsa_lib.h"
+
 #include <string.h>
+#include "wsa_client.h"
+#include "wsa_lib.h"
+#include "wsa_commons.h"
 
 //TODO create a log file method
 //TODO create proper error method
 
 /**
  * Connect to a WSA through the specified interface method \b intf_method,
- * and communicate control commands in the given \b protocol format
+ * and communicate control commands in the format of the given command 
+ * syntax.
  *
  * @param dev - the WSA device structure to be connected/establised.
- * @param protocol - The standard for control commands communication to the
- * WSA. \n Currently supported protocols are: SCPI, CLI(?).
+ * @param cmd_syntax - The standard for control commands communication to the
+ * WSA. \n Currently supported standard syntax type is: SCPI.
  * @param intf_method - The interface method to the WSA. \n
  * Possible methods: \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n
@@ -19,7 +23,7 @@
  * @return 0 on success, or a negative number on error.
  * TODO: define ERROR values with associated messages....
  */
-int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
+int32_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 {
 	struct wsa_device wsa_dev;	// the wsa device structure
 	int32_t result = 0;			// result returned from a function
@@ -27,8 +31,8 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 	const char* wsa_addr;		// store the WSA IP address
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 
-	// When the cmd protocol is SCPI:
-	if (strncmp(protocol, SCPI, 4) == 0) {
+	// When the cmd_syntax is SCPI:
+	if (strncmp(cmd_syntax, SCPI, 4) == 0) {
 		// if it's a TCPIP connection, get the address
 		if (strstr(intf_method, "TCPIP") != NULL) {
 			if ((temp_str = strstr(intf_method, "::")) == NULL) {
@@ -51,9 +55,9 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 		}
 	}
 
-	// When the command protocol is not supported/recognized
+	// When the cmd_syntax is not supported/recognized
 	else {
-		printf("Error: Command protocol not supported/recognized!");
+		printf("Error: Command syntax not supported/recognized!");
 		return -1;
 	}
 
@@ -67,8 +71,10 @@ int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method)
 			"connection!\n");
 		result = wsa_close_client(wsa_dev.sock.cmd, wsa_dev.sock.data);
 	}
-	else
+	else {
+		//TODO init all parameters in dev descriptor based on the version
 		*dev = wsa_dev;
+	}
 
 	return result;
 }
@@ -116,12 +122,12 @@ int32_t wsa_help(struct wsa_device dev)
 
 /**
  * Send the control command string to the WSA device specified by \b dev. 
- * The commands format must be written according to the specified protocol 
- * in wsa_connect().
+ * The commands format must be written according to the specified 
+ * standard syntax in wsa_connect().
  *
  * @param dev - The WSA device structure from which the command is sent to
  * @param command - The control command string written in the format specified 
- * by the protocol in wsa_connect()
+ * by the standard syntax in wsa_connect()
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
@@ -150,12 +156,12 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 
 /**
  * Send query command to the WSA device specified by \b dev. The
- * commands format must be written according to the specified protocol 
+ * commands format must be written according to the specified command syntax 
  * in wsa_connect().
  *
  * @param dev - The WSA device structure from which the query is sent to
  * @param command - The query command string written in the format specified 
- * by the protocol in wsa_connect()
+ * by the command syntax in wsa_connect()
  *
  * @return The result stored in a wsa_resp struct format.
  */

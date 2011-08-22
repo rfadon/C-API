@@ -11,7 +11,7 @@
 #define FALSE	0
 #define TRUE	1
 
-#define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
+//#define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
 
 extern uint8_t debug_mode;
 extern uint8_t test_mode;

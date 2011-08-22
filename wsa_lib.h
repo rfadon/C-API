@@ -3,14 +3,13 @@
 
 #include "stdint.h"
 #include "wsa_client.h"
-#include "targetver.h"
 
 
 #define FALSE	0
 #define TRUE	1
 
-// Control commands protocol supported types
-#define SCPI "SCPI"	/* SCPI control commands protocol */
+// Control commands syntax supported types
+#define SCPI "SCPI"	/* SCPI control commands syntax */
 
 
 typedef enum wsa_gain {
@@ -31,6 +30,9 @@ struct wsa_descriptor {
 	char rfe_name[20];
 	char rfe_version[20];
 	char fw_version[20];
+	uint64_t inst_bw;
+	uint64_t max_tune_freq;
+	uint64_t min_tune_freq;
 };
 
 
@@ -45,10 +47,8 @@ struct wsa_frame_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
 	char gain[10];
-	//bool  iq_corr;
 	uint32_t frame_size; 
 	struct wsa_time time_stamp;
-	//uint16_t trig_id;
 };
 
 
@@ -71,11 +71,10 @@ struct wsa_resp {
 };
 
 
-
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int32_t wsa_connect(struct wsa_device *dev, char *protocol, char *intf_method);
+int32_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method);
 int32_t wsa_disconnect(struct wsa_device *dev);
 //int32_t wsa_help(struct wsa_device dev);
 int32_t wsa_send_command(struct wsa_device *dev, char *command);

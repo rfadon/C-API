@@ -36,6 +36,9 @@ struct wsa_descriptor {
 	char rfe_name[20];
 	char rfe_version[20];
 	char fw_version[20];
+	uint64_t inst_bw;
+	uint64_t max_tune_freq;
+	uint64_t min_tune_freq;
 };
 
 
@@ -50,10 +53,8 @@ struct wsa_frame_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
 	char gain[10];
-	//bool  iq_corr;
 	uint32_t frame_size; 
 	struct wsa_time time_stamp;
-	//uint16_t trig_id;
 };
 
 
@@ -64,9 +65,11 @@ struct wsa_device {
 };
 
 
+
 #endif
 
 
+/*
 struct wsa_trig 
 {
 	uint16_t id;	
@@ -78,6 +81,8 @@ struct wsa_trig
 	uint32_t dwell_time;	
 	uint32_t num_pkts;	
 };
+*/
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // WSA RELATED FUNCTIONS                                                     //
@@ -103,7 +108,7 @@ float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain);
 
 int32_t wsa_read_pkt (wsa_device *dev, wsa_frame_header *header, int16_t *i_buf, 
 				 int16_t *q_buf, const uint32_t pkt_size);
-/*int16_t wsa_set_iq_corr (wsa_device *dev, bool option);*/
+int16_t wsa_set_iq_corr (wsa_device *dev, bool option);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -127,7 +132,7 @@ int16_t wsa_set_gain (wsa_device *dev, wsa_gain gain);
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
-
+/*
 int32_t wsa_add_trig (wsa_device *dev, wsa_trig *trigger);
 int16_t wsa_clear_trig_list (wsa_device *dev);
 int16_t wsa_disable_trig (wsa_device *dev, uint16_t id);
@@ -135,5 +140,5 @@ int16_t wsa_enable_trig (wsa_device *dev, uint16_t id);
 int16_t wsa_get_trig (wsa_device *dev, uint16_t id, wsa_trig *trig);
 int32_t wsa_get_trig_list_size (wsa_device *dev);
 int16_t wsa_remove_trig (wsa_device *dev, uint16_t id);
-
+*/
 #endif
