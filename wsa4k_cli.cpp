@@ -92,13 +92,13 @@ char* get_input_cmd(uint8_t pretext)
  *
  * @return
  */
-int32_t do_wsa(const char *wsa_addr)
+int16_t do_wsa(const char *wsa_addr)
 {	
 	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_resp query;		// store query results
 	char intf_str[30];			// store the interface method string
-	int result = 0;				// result returned from a function
+	int16_t result = 0;				// result returned from a function
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
@@ -110,6 +110,7 @@ int32_t do_wsa(const char *wsa_addr)
 		return WSA_ERR_OPENFAILED;
 	}
 
+// remove this section
 	//TEST send command
 	result = wsa_send_command(&wsa_dev, "Start Message\0");
 
@@ -118,6 +119,11 @@ int32_t do_wsa(const char *wsa_addr)
 	if (query.status > 0)
 		result = query.status;
 	printf("Query: received %d bytes.\n", result);
+
+
+	// send stop flag to server
+	result = wsa_send_command(&wsa_dev, "STOPALL");
+// remove upto here & then remove "wsa_lib.h"
 
 	//*****
 	// Start the control or data acquisition loop
@@ -129,10 +135,7 @@ int32_t do_wsa(const char *wsa_addr)
 
 	//} while (!user_quit);
 
-	// send stop flag to server
-	result = wsa_send_command(&wsa_dev, "STOPALL");
-
-	wsa_disconnect(&wsa_dev);
+	wsa_close(&wsa_dev);
 
 	return result;
 }
@@ -144,15 +147,15 @@ int32_t do_wsa(const char *wsa_addr)
  * 
  * @return 0 if successful
  */
-int32_t start_cli(void) 
+int16_t start_cli(void) 
 {
 	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
 	char in_str[MAX_STR_LEN];		// store user's input string
 	int16_t in_num = 0;				// store user's entered number
-	//char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
+	char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
 	const char *wsa_addr;			// store the desired WSA IP address
-	int32_t result = 0;				// result returned from a function
+	int16_t result = 0;				// result returned from a function
 
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
@@ -178,7 +181,8 @@ int32_t start_cli(void)
 
 		// User chose List option
 		else if (strncmp(in_str, ":L", 2) == 0) {
-			/*result = wsa_list_ips(ip_list);
+			// TODO: This section is to be replaced w/ list connected WSAs
+			result = wsa_count(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
 			in_num = atoi(in_str);
@@ -188,7 +192,7 @@ int32_t start_cli(void)
 			else {
 				printf("Option invalid!\n");
 				continue;
-			}*/
+			}
 		}
 
 		// User has enter an address so verify first

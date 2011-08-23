@@ -23,10 +23,10 @@
  * @return 0 on success, or a negative number on error.
  * TODO: define ERROR values with associated messages....
  */
-int32_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 {
 	struct wsa_device wsa_dev;	// the wsa device structure
-	int32_t result = 0;			// result returned from a function
+	int16_t result = 0;			// result returned from a function
 	char *temp_str;				// temporary store a string
 	const char* wsa_addr;		// store the WSA IP address
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
@@ -88,10 +88,12 @@ int32_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_disconnect(struct wsa_device *dev)
+int16_t wsa_disconnect(struct wsa_device *dev)
 {
-	int32_t result = 0;			// result returned from a function
-
+	int16_t result = 0;			// result returned from a function
+	
+	//TODO close based on connection type
+	// right now do only client
 	result = wsa_close_client(dev->sock.cmd, dev->sock.data);
 
 	// TODO test if you can still send after this.
@@ -99,6 +101,25 @@ int32_t wsa_disconnect(struct wsa_device *dev)
 	return result;
 }
 
+
+/**
+ * List (print out) the IPs of connected WSAs to the network? or the PC???
+ * For now, will list the IPs for any of the connected devices to a PC?
+ *
+ * @param wsa_list - Store (WSA???) IP addresses connected to a network???.
+ *
+ * @return Number of connected WSAs (or IPs for now) on success, or a 
+ * negative number on error.
+ */
+// TODO: This section is to be replaced w/ list connected WSAs
+int16_t wsa_list_devs(char **wsa_list) 
+{
+	int16_t result = 0;			// result returned from a function
+
+	result = wsa_list_ips(wsa_list);
+
+	return result;
+}
 
 /**
  * Open a file or print the help commands information associated with the 
@@ -109,7 +130,7 @@ int32_t wsa_disconnect(struct wsa_device *dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_help(struct wsa_device dev)
+int16_t wsa_help(struct wsa_device dev)
 {
 	// Open the generic SCPI for now
 	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
@@ -131,9 +152,9 @@ int32_t wsa_help(struct wsa_device dev)
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
-int32_t wsa_send_command(struct wsa_device *dev, char *command)
+int16_t wsa_send_command(struct wsa_device *dev, char *command)
 {
-	int32_t bytes_txed = 0;
+	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
 
@@ -168,7 +189,7 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp resp;
-	int32_t bytes_rxed = 0;
+	int16_t bytes_rxed = 0;
 	char *rx_buf;
 
 	// Initialized the receive buffer
@@ -203,7 +224,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_query_error(struct wsa_device *dev)
+int16_t wsa_query_error(struct wsa_device *dev)
 {
 	printf("To be added later.\n");
 
@@ -225,8 +246,8 @@ int32_t wsa_query_error(struct wsa_device *dev)
  *
  * @return Number of samples read on success, or a negative number on error.
  */
-int32_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint32_t frame_size)
+int64_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
+				 int32_t *i_buf, int32_t *q_buf, uint64_t frame_size)
 {
 	printf("Slow down... To be added later.\n");
 

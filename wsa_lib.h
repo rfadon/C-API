@@ -75,14 +75,15 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int32_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method);
-int32_t wsa_disconnect(struct wsa_device *dev);
-//int32_t wsa_list_devs(void);
+int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method);
+int16_t wsa_disconnect(struct wsa_device *dev);
+int16_t wsa_list_devs(char **wsa_list);
 //int32_t wsa_help(struct wsa_device dev);
-int32_t wsa_send_command(struct wsa_device *dev, char *command);
+
+int16_t wsa_send_command(struct wsa_device *dev, char *command);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
-int32_t wsa_query_error(struct wsa_device *dev);
-int32_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint32_t frame_size);
+int16_t wsa_query_error(struct wsa_device *dev);
+int64_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
+				 int32_t *i_buf, int32_t *q_buf, uint64_t frame_size);
 
 #endif

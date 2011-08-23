@@ -114,3 +114,35 @@ int16_t wsa_open(wsa_device *dev, char *intf_method)
 	return 0;
 }
 
+
+/**
+ * Closes the device handle if one is opened and stops any existing data 
+ * capture.
+ *
+ * @param dev - a WSA device structure
+ * @return none
+ */
+void wsa_close(wsa_device *dev)
+{
+	wsa_disconnect(dev);
+}
+
+
+/**
+ * Count and print out the IPs of connected WSAs to the network? or the PC???
+ * For now, will list the IPs for any of the connected devices to a PC?
+ *
+ * @param wsa_list - Store (WSA???) IP addresses connected to a network???.
+ *
+ * @return Number of connected WSAs (or IPs for now) on success, or a 
+ * negative number on error.
+ */
+// TODO: This section is to be replaced w/ list connected WSAs
+int16_t wsa_count(char **wsa_list) 
+{
+	int16_t result = 0;			// result returned from a function
+
+	result = wsa_list_devs(wsa_list);
+
+	return result;
+}

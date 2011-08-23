@@ -92,7 +92,7 @@ struct wsa_trig
 int16_t wsa_is_connected(wsa_device *dev);
 int16_t wsa_open(wsa_device *dev, char *intf_method);
 void wsa_close(wsa_device *dev);
-int16_t wsa_count_devs(void);
+int16_t wsa_count(char **wsa_list);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 
@@ -107,8 +107,8 @@ float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain);
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int32_t wsa_read_pkt (wsa_device *dev, wsa_frame_header *header, int16_t *i_buf, 
-				 int16_t *q_buf, const uint32_t pkt_size);
+int64_t wsa_read_pkt (wsa_device *dev, wsa_frame_header *header, int16_t *i_buf, 
+				 int16_t *q_buf, const uint64_t pkt_size);
 int16_t wsa_set_iq_corr (wsa_device *dev, bool option);
 
 

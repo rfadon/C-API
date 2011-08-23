@@ -19,8 +19,8 @@ using namespace std;
 uint8_t debug_mode = FALSE;
 uint8_t test_mode = FALSE;
 
-const int32_t fileSize = 1024;
-const int32_t IQbus_size = 32;
+//const int32_t fileSize = 1024;
+//const int32_t IQbus_size = 32;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
 
@@ -44,14 +44,14 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port);
  *
  * @return
  */
-int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
+int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
 {
 	//*****
     // Starting Winsock2
 	//*****
     WSAData ws_data;		// create an instance of Winsock data type
 	int32_t ws_err_code;	// get error code
-	int32_t result = 0;		// result returned from a function
+	int16_t result = 0;		// result returned from a function
 
 	// MAKEWORD(2, 2) - request for version 2.2 of Winsock on the system
     if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
@@ -105,7 +105,7 @@ int32_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
  * 
  * @return 
  */
-int32_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
+int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 {
 #if defined(SHUTDOWN_DELAY)
     // Delay for a bit, so we can start other clients.  This is strictly
@@ -255,11 +255,11 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
-int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
+int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
     // Send the string to the server
-	int32_t bytes_txed = send(out_sock, out_str, len, 0);
+	int16_t bytes_txed = send(out_sock, out_str, len, 0);
     if (bytes_txed > 0) {
         printf("Sent %d bytes to server.\n", bytes_txed);
     }
@@ -289,11 +289,11 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
  * 
  * @return Number of "words" read
  */
-int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
+int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 {
 	//char *rx_buf; 
 		//rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
-	int32_t bytes_rxed = 0;
+	int64_t bytes_rxed = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -333,12 +333,12 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 
 
 // this one will receive & convert to words/tokens.... don't think I'll need this
-int32_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
+int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
 {
 	char *rx_buf[1]; 
 		rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
-	int32_t bytes_rxed = 0, count = 0;
-	int32_t w = 0, c = 0; // word & char indexes
+	int16_t bytes_rxed = 0, count = 0;
+	int16_t w = 0, c = 0; // word & char indexes
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -408,7 +408,7 @@ int32_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_ou
  *
  * @return true is the same, else falsed
  */
-bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
+uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 {	
 	// to rx response string from GUI
 	char *rx_buf; 
@@ -444,7 +444,7 @@ bool get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
  *
  * @return
  */
-int32_t wsa_get_host_info(char *name)
+int16_t wsa_get_host_info(char *name)
 {
     //-----------------------------------------
     // Declare and initialize variables
@@ -531,7 +531,7 @@ int32_t wsa_get_host_info(char *name)
  *
  * @return Number of IP addresses available.
  */
-int32_t wsa_list_ips(char **ip_list) 
+int16_t wsa_list_ips(char **ip_list) 
 {
 	// TODO: detect all the IPs available to the PC...
 	// Better yet... get only IP of WSA by using a specified name.
