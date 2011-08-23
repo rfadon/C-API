@@ -9,7 +9,7 @@
 //*****************************************************************************
 
 // A large 16-bit negative number
-#define LNEG_NUM -32768
+#define LNEG_NUM -10000
 
 
 // ///////////////////////////////
@@ -30,7 +30,7 @@
 #define WSA_ERR_USBOPENFAILED	(LNEG_NUM + 13)
 #define WSA_ERR_USBINITFAILED	(LNEG_NUM + 14)
 #define WSA_ERR_ETHERNETNOTAV	(LNEG_NUM + 15)
-#define WSA_ERR_ETHERNETOPENFAILED	(LNEG_NUM + 16)
+#define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM + 16)
 #define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM + 17)
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM + 18)
 #define WSA_ERR_INVADCCORRVALUE	(LNEG_NUM + 19)
@@ -158,7 +158,7 @@ static struct wsa_err_item {
 		"Unable to open the WSA's USB connection"),
 	wsa_err_item(WSA_ERR_USBINITFAILED,
 		"Unable to initialize the WSA's USB component"),
-	wsa_err_item(WSA_ERR_ETHERNETOPENFAILED,
+	wsa_err_item(WSA_ERR_ETHERNETCONNECTFAILED,
 		"Unable to open the WSA's Ethernet connection"),
 	wsa_err_item(WSA_ERR_ETHERNETINITFAILED,
 		"Unable to initialize the WSA's Ethernet component"),

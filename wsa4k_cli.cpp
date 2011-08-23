@@ -25,7 +25,7 @@
  * The CLI when executed will run in a Windows command prompt console.
  * 
  */
-//#include <fstream>
+#include <fstream>
 #include <iostream>
 //#include <ctype.h>
 #include <stdio.h>
@@ -35,6 +35,9 @@
 #include <time.h>
 
 #include "wsa4k_cli.h"
+#include "wsa_lib.h"
+#include "wsa_api.h"
+#include "wsa_error.h"
 
 
 /**
@@ -66,7 +69,8 @@ char* get_input_cmd(uint8_t pretext)
 	int	cnt_ch = 0;					// count # of chars entered	
 
 	// Initialized the option
-	strcpy(input_opt, 0);
+	//ZeroMemory(input_opt, str_size);
+	strcpy(input_opt, "");
 
 	// Get command loop for string input terminated by "enter"
 	if (pretext) 
@@ -92,27 +96,28 @@ int32_t do_wsa(const char *wsa_addr)
 {	
 	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	struct wsa_device wsa_dev;	// the wsa device structure
-	//struct wsa_resp query;		// store query results
+	struct wsa_resp query;		// store query results
 	char intf_str[30];			// store the interface method string
 	int result = 0;				// result returned from a function
 
 	// Create the TCPIP interface method string
-	//sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
+	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
 	
 	// Start the WSA connection
-	/*if ((result = wsa_connect(&wsa_dev, SCPI, intf_str)) < 0) {
+	if ((result = wsa_open(&wsa_dev, intf_str)) < 0) {
 		printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
-		return -1;
-	}*/
+		doutf(1, "%s", wsa_get_err_msg(WSA_ERR_OPENFAILED));
+		return WSA_ERR_OPENFAILED;
+	}
 
 	//TEST send command
-	//result = wsa_send_command(&wsa_dev, "Start Message\0");
+	result = wsa_send_command(&wsa_dev, "Start Message\0");
 
 	// Query the WSA status to make sure it is up & running
-	//query = wsa_send_query(&wsa_dev, "QUERY:Test query\n");
-	//if (query.status > 0)
-	//	result = query.status;
-	//printf("Query: received %d bytes.\n", result);
+	query = wsa_send_query(&wsa_dev, "QUERY:Test query\n");
+	if (query.status > 0)
+		result = query.status;
+	printf("Query: received %d bytes.\n", result);
 
 	//*****
 	// Start the control or data acquisition loop
@@ -125,9 +130,9 @@ int32_t do_wsa(const char *wsa_addr)
 	//} while (!user_quit);
 
 	// send stop flag to server
-	//result = wsa_send_command(&wsa_dev, "STOPALL");
+	result = wsa_send_command(&wsa_dev, "STOPALL");
 
-	//wsa_disconnect(&wsa_dev);
+	wsa_disconnect(&wsa_dev);
 
 	return result;
 }
@@ -145,7 +150,7 @@ int32_t start_cli(void)
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
 	char in_str[MAX_STR_LEN];		// store user's input string
 	int16_t in_num = 0;				// store user's entered number
-	char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
+	//char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
 	const char *wsa_addr;			// store the desired WSA IP address
 	int32_t result = 0;				// result returned from a function
 
