@@ -120,10 +120,8 @@ int16_t do_wsa(const char *wsa_addr)
 		result = query.status;
 	printf("Query: received %d bytes.\n", result);
 
-
-	// send stop flag to server
-	result = wsa_send_command(&wsa_dev, "STOPALL");
 // remove upto here & then remove "wsa_lib.h"
+
 
 	//*****
 	// Start the control or data acquisition loop

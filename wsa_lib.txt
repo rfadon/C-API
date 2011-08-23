@@ -68,7 +68,7 @@
 
 /** @struct wsa_frame_header
  * @brief This structure contains header information related to each frame read
- * by wsa_read_data().
+ * by wsa_get_frame().
  */ 
 	/** @var uint64_t wsa_frame_header::freq
 	 * The center frequency (Hz) to which the RF PLL is tuned.

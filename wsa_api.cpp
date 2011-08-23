@@ -94,8 +94,8 @@ int16_t wsa_open(wsa_device *dev, char *intf_method)
 		strcpy(dev->descr.fw_version, "v1.0");
 	}
 	else {
-		doutf(1, "Error WSA_ERR_INVCONNTYPE: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_INVCONNTYPE));
+		doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
 		return WSA_ERR_OPENFAILED;
 	}
 
@@ -145,4 +145,69 @@ int16_t wsa_count(char **wsa_list)
 	result = wsa_list_devs(wsa_list);
 
 	return result;
+}
+
+
+
+/**
+ * Indicates if the WSA is still connected to the PC.
+ *
+ * @param dev - a WSA device structure
+ * @return 1 if it is connected, 0 if not connected, or a negative number 
+ * if errors.
+ */
+int16_t wsa_is_connected(wsa_device *dev) 
+{
+	struct wsa_resp query;		// store query results
+
+	// TODO check version & then do query
+	query = wsa_send_query(dev, "*STB?"); // ???
+
+	//TODO Handle the response here
+	
+	return 0;
+}
+
+
+/**
+ * Gets the absolute maximum RF input level (dBm) for the WSA at 
+ * the given gain setting.\n
+ * Operating the unit at the absolute maximum may cause damage to the device.
+ *
+ * @param dev - a WSA device structure
+ * @param gain - the gain setting at which the absolute maximum amplitude 
+ * input level is to be retrieved
+ *
+ * @return The absolute maximum RF input level in dBm.
+ */
+float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain)
+{
+	// TODO Check version of WSA & return the correct info here
+	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
+		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
+			switch (gain) {
+			case (HIGH):
+				return WSA_RFE0560_ABS_AMP_HIGH;
+				break;
+			case (MEDIUM):
+				return WSA_RFE0560_ABS_AMP_MEDIUM;
+				break;
+			case (LOW):
+				return WSA_RFE0560_ABS_AMP_LOW;
+				break;
+			case (ULOW):
+				return WSA_RFE0560_ABS_AMP_ULOW;
+				break;
+			default:
+				return WSA_ERR_INVGAIN;
+				break;
+			}
+		}
+		else
+			return WSA_ERR_UNKNOWNRFEVSN;
+	}
+	else {
+		// Should never reach here
+		return WSA_ERR_UNKNOWNPRODVSN;
+	}
 }

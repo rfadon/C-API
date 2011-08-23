@@ -89,10 +89,10 @@ struct wsa_trig
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_is_connected(wsa_device *dev);
 int16_t wsa_open(wsa_device *dev, char *intf_method);
 void wsa_close(wsa_device *dev);
 int16_t wsa_count(char **wsa_list);
+int16_t wsa_is_connected(wsa_device *dev);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 

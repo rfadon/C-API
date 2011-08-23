@@ -17,13 +17,14 @@
 // ///////////////////////////////
 #define WSA_ERR_NOWSA			(LNEG_NUM + 1)
 #define WSA_ERR_WSANOTRDY		(LNEG_NUM + 2)
-#define WSA_ERR_NOCTRLBUS		(LNEG_NUM + 3)
+#define WSA_ERR_NOCTRLPIPE		(LNEG_NUM + 3)
 #define WSA_ERR_SETFAILED		(LNEG_NUM + 4)
-#define WSA_ERR_UNKNOWN_PSER	(LNEG_NUM + 5)
-#define WSA_ERR_UNKNOWN_PVSN	(LNEG_NUM + 6)
-#define WSA_ERR_UNKNOWN_FWVSN	(LNEG_NUM + 7)
+#define WSA_ERR_UNKNOWNPRODSER	(LNEG_NUM + 5)
+#define WSA_ERR_UNKNOWNPRODVSN	(LNEG_NUM + 6)
+#define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM + 7)
+#define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM + 20)
 #define WSA_ERR_WSAINUSE		(LNEG_NUM + 8)
-#define WSA_ERR_INVCONNTYPE		(LNEG_NUM + 9)
+#define WSA_ERR_INVINTFMETHOD	(LNEG_NUM + 9)
 #define WSA_ERR_OPENFAILED		(LNEG_NUM + 10)
 #define WSA_ERR_INITFAILED		(LNEG_NUM + 11)
 #define WSA_ERR_USBNOTAV		(LNEG_NUM + 12)
@@ -130,15 +131,17 @@ static struct wsa_err_item {
 		"No WSA detected. Check the power or the connection"),
 	wsa_err_item(WSA_ERR_WSANOTRDY, 
 		"WSA does not seem to be ready"),
-	wsa_err_item(WSA_ERR_NOCTRLBUS, 
+	wsa_err_item(WSA_ERR_NOCTRLPIPE, 
 		"No USB control channel detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_NODATABUS, 
 		"No USB data channel detected. Possible firmware error"),
-	wsa_err_item(WSA_ERR_UNKNOWN_PSER, 
+	wsa_err_item(WSA_ERR_UNKNOWNPRODSER, 
 		"Unknown WSA product serial number detected"),
-	wsa_err_item(WSA_ERR_UNKNOWN_PVSN, 
+	wsa_err_item(WSA_ERR_UNKNOWNPRODVSN, 
 		"Unknown WSA product version detected"),
-	wsa_err_item(WSA_ERR_UNKNOWN_FWVSN, 
+	wsa_err_item(WSA_ERR_UNKNOWNRFEVSN, 
+		"Unknown WSA RFE version detected"),
+	wsa_err_item(WSA_ERR_UNKNOWNFWRVSN, 
 		"Unknown WSA firmware version detected"),
 	wsa_err_item(WSA_ERR_USBNOTAV, 
 		"USB connection is not available with this WSA"),
@@ -148,7 +151,7 @@ static struct wsa_err_item {
 		"WSA is in use at the moment"),
 	wsa_err_item(WSA_ERR_SETFAILED, 
 		"Failed to set the WSA"),
-	wsa_err_item(WSA_ERR_INVCONNTYPE, 
+	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
 		"Invalid connection type"),
 	wsa_err_item(WSA_ERR_OPENFAILED,
 		"Unable to open the WSA"),

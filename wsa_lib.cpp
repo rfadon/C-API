@@ -91,6 +91,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 int16_t wsa_disconnect(struct wsa_device *dev)
 {
 	int16_t result = 0;			// result returned from a function
+
+//TODO Remove this line
+wsa_send_command(dev, "STOPALL");
 	
 	//TODO close based on connection type
 	// right now do only client
@@ -246,7 +249,7 @@ int16_t wsa_query_error(struct wsa_device *dev)
  *
  * @return Number of samples read on success, or a negative number on error.
  */
-int64_t wsa_read_data(struct wsa_device *dev, struct wsa_frame_header *header, 
+int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 int32_t *i_buf, int32_t *q_buf, uint64_t frame_size)
 {
 	printf("Slow down... To be added later.\n");
