@@ -6,24 +6,26 @@
 #include <time.h>
 
 #include "stdint.h"
-#include "wsa_lib.h"
 #include "wsa_commons.h"
-#include "wsa_api.h"
 #include "wsa_error.h"
+#include "wsa_lib.h"
+#include "wsa_api.h"
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_verify_freq(wsa_device *dev, uint64_t freq);
+int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
 
 
 /**
  * Initialized the the wsa_device structure
  *
  * @param dev - a wsa device structure.
+ *
+ * @return None
  */
-int16_t wsa_dev_init(wsa_device *dev)
+int16_t wsa_dev_init(struct wsa_device *dev)
 {
 	dev->descr.inst_bw = 0;
 	dev->descr.max_pkt_size = 0;
@@ -62,7 +64,7 @@ int16_t wsa_dev_init(wsa_device *dev)
  * - the WSA is not detected (has not been connected or powered up)
  * -
  */
-int16_t wsa_open(wsa_device *dev, char *intf_method)
+int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 {
 	int16_t result = 0;		// result returned from a function
 
@@ -116,7 +118,7 @@ int16_t wsa_open(wsa_device *dev, char *intf_method)
 		dev->descr.inst_bw = WSA4000_INST_BW;
 		
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 		}
 	}
@@ -132,7 +134,7 @@ int16_t wsa_open(wsa_device *dev, char *intf_method)
  * @param dev - a WSA device structure
  * @return none
  */
-void wsa_close(wsa_device *dev)
+void wsa_close(struct wsa_device *dev)
 {
 	wsa_disconnect(dev);
 }
@@ -190,7 +192,7 @@ int16_t wsa_list(char **wsa_list)
  * @return 1 if it is connected, 0 if not connected, or a negative number 
  * if errors.
  */
-int16_t wsa_is_connected(wsa_device *dev) 
+int16_t wsa_is_connected(struct wsa_device *dev) 
 {
 	struct wsa_resp query;		// store query results
 
@@ -214,7 +216,7 @@ int16_t wsa_is_connected(wsa_device *dev)
  *
  * @return The absolute maximum RF input level in dBm.
  */
-float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain)
+float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 {
 	// TODO Check version of WSA & return the correct info here
 	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
@@ -260,7 +262,7 @@ float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain)
  * @param dev - a WSA device structure
  * @return The frequency in Hz, or a negative number on error
  */
-int64_t wsa_get_freq(wsa_device *dev)
+int64_t wsa_get_freq(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
@@ -287,7 +289,7 @@ int64_t wsa_get_freq(wsa_device *dev)
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_freq(wsa_device *dev, uint64_t cfreq) // get vco version?
+int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco version?
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -310,7 +312,7 @@ int16_t wsa_set_freq(wsa_device *dev, uint64_t cfreq) // get vco version?
 
 // A Local function:
 // Verify if the frequency is valid (within allowed range)
-int16_t wsa_verify_freq(wsa_device *dev, uint64_t freq)
+int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 {
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)

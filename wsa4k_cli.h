@@ -5,6 +5,8 @@
 
 #define MAX_STR_LEN 200
 #define MAX_BUF_SIZE 20
+#define MAX_FS 1000
+#define MHZ 1000000
 
 #define FALSE	0
 #define TRUE	1

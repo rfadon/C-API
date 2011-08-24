@@ -89,11 +89,11 @@ struct wsa_trig
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_open(wsa_device *dev, char *intf_method);
-void wsa_close(wsa_device *dev);
+int16_t wsa_open(struct wsa_device *dev, char *intf_method);
+void wsa_close(struct wsa_device *dev);
 int16_t wsa_check_addr(char *intf_method);
 int16_t wsa_list(char **wsa_list);
-int16_t wsa_is_connected(wsa_device *dev);
+int16_t wsa_is_connected(struct wsa_device *dev);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 
@@ -101,46 +101,47 @@ int16_t wsa_is_connected(wsa_device *dev);
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain);
+float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int64_t wsa_read_pkt (wsa_device *dev, wsa_frame_header *header, int16_t *i_buf, 
-				 int16_t *q_buf, const uint64_t pkt_size);
-int16_t wsa_set_iq_corr (wsa_device *dev, bool option);
+int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
+			int16_t *i_buf, int16_t *q_buf, const uint64_t pkt_size);
+int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-int64_t wsa_get_freq (wsa_device *dev);
-int16_t wsa_set_freq (wsa_device *dev, uint64_t cfreq);
+int64_t wsa_get_freq (struct wsa_device *dev);
+int16_t wsa_set_freq (struct wsa_device *dev, uint64_t cfreq);
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
-wsa_gain wsa_get_gain (wsa_device *dev);
-/*int16_t wsa_get_gain_cal (wsa_device *dev, wsa_gain gain, uint64_t freq, 
-						  double *cal_value);*/
-int16_t wsa_set_gain (wsa_device *dev, wsa_gain gain);
+wsa_gain wsa_get_gain (struct wsa_device *dev);
+/*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
+			uint64_t freq, double *cal_value);*/
+int16_t wsa_set_gain (struct wsa_device *dev, wsa_gain gain);
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 /*
-int32_t wsa_add_trig (wsa_device *dev, wsa_trig *trigger);
-int16_t wsa_clear_trig_list (wsa_device *dev);
-int16_t wsa_disable_trig (wsa_device *dev, uint16_t id);
-int16_t wsa_enable_trig (wsa_device *dev, uint16_t id);
-int16_t wsa_get_trig (wsa_device *dev, uint16_t id, wsa_trig *trig);
-int32_t wsa_get_trig_list_size (wsa_device *dev);
-int16_t wsa_remove_trig (wsa_device *dev, uint16_t id);
+int32_t wsa_add_trig (struct wsa_device *dev, struct wsa_trig *trigger);
+int16_t wsa_clear_trig_list (struct wsa_device *dev);
+int16_t wsa_disable_trig (struct wsa_device *dev, uint16_t id);
+int16_t wsa_enable_trig (struct wsa_device *dev, uint16_t id);
+int16_t wsa_get_trig (struct wsa_device *dev, uint16_t id, 
+			struct wsa_trig *trig);
+int32_t wsa_get_trig_list_size (struct wsa_device *dev);
+int16_t wsa_remove_trig (struct wsa_device *dev, uint16_t id);
 */
 #endif

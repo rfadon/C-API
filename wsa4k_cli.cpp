@@ -41,13 +41,41 @@
 /**
  * Print out the CLI options menu
  *
+ * @param dev - a wsa device structure.
+ *
  * @return None
  */
-void print_cli_menu(void)
+void print_cli_menu(struct wsa_device *dev)
 {
-	// Call to display SCPI menu or any other customized CLI menu
-	// ex:
-	//print_scpi_menu();
+	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
+	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
+	uint64_t MAX_SS = dev->descr.max_pkt_size;
+
+	printf("---------------------------\n");
+	printf("\nCommand Options Available (case insensitive):\n\n");
+	printf(" fp            - List the captured file path.\n");
+	printf(" d             - Save 'D'ata to a file.\n");
+	printf(" get cf        - 'Get' the current running 'C'entre "
+							"'F'requency (in MHz).\n");
+	printf(" get fs        - 'Get' the current 'F'rame 'S'ize per file.\n");
+	printf(" get gl        - 'Get' the current 'G'ain 'L'evel.\n");
+	printf(" get ss        - 'Get' the current 'S'ample 'S'ize per frame.\n");
+	printf(" h             - 'H'elp or show the list of available options.\n");
+	printf(" o             - 'O'pen the folder of captured file(s).\n");
+	printf(" set cf <freq> - 'Set' the 'C'entre 'F'requency in MHz "
+							 "(ex: set cf 2441.5).\n");
+	printf("                 Range: %.2f - %.2f MHz inclusively. "
+							 "Resolution 10 kHz.\n", 
+							 (double) MIN_FREQ / MHZ, (double) MAX_FREQ / MHZ);
+	printf(" set fs <size> - 'Set' the 'F'rames 'S'ize per file "
+							 "(ex: set fs 1000).\n");
+	printf("                 Maximum allows: %d.\n", MAX_FS);
+	printf(" set gl <level>- 'Set' 'G'ain 'L'evel.\n");
+	printf("                 Options: HIGH, MEDIUM, LOW, ULTRALOW.\n");
+	printf(" set ss <size> - 'Set' the 'S'ize of 'S'amples to be captured "
+							 "per frame\n(ex: set ss 2000).\n");
+	printf("                 Maximum allows: %llu; Minimum: 1.\n\n", MAX_SS);
+	printf(" Q             - 'Q'uit or exit this console.\n\n");
 }
 
 
@@ -120,12 +148,12 @@ int16_t do_wsa(const char *wsa_addr)
 	//*****
 	// Start the control or data acquisition loop
 	//*****
-	//do {
+	do {
 
 		//TODO do help option printing
-		//print_cli_menu();
-
-	//} while (!user_quit);
+		print_cli_menu(&wsa_dev);
+		break;
+	} while (!user_quit);
 
 	wsa_close(&wsa_dev);
 
