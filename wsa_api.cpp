@@ -12,6 +12,12 @@
 #include "wsa_error.h"
 
 
+// ////////////////////////////////////////////////////////////////////////////
+// Local functions                                                           //
+// ////////////////////////////////////////////////////////////////////////////
+int16_t wsa_verify_freq(wsa_device *dev, uint64_t freq);
+
+
 /**
  * Initialized the the wsa_device structure
  *
@@ -129,6 +135,30 @@ void wsa_close(wsa_device *dev)
 
 
 /**
+ * Verify if the IP address or host name given is valid for the WSA.
+ * 
+ * @param ip_addr - The IP address or host name to be verified.
+ * 
+ * @return 1 if the IP is valid, 0 if invalid (?), or a negative number 
+ * on error.
+ */
+int16_t wsa_check_addr(char *ip_addr) 
+{
+	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
+		doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS));
+		return WSA_ERR_INVIPHOSTADDRESS;
+	}
+
+	// TODO add hook to check then if the address is actually for the WSA
+	// such as some handshaking
+	// do this in the client level?
+	else
+		return 1;
+}
+
+
+/**
  * Count and print out the IPs of connected WSAs to the network? or the PC???
  * For now, will list the IPs for any of the connected devices to a PC?
  *
@@ -138,7 +168,7 @@ void wsa_close(wsa_device *dev)
  * negative number on error.
  */
 // TODO: This section is to be replaced w/ list connected WSAs
-int16_t wsa_count(char **wsa_list) 
+int16_t wsa_list(char **wsa_list) 
 {
 	int16_t result = 0;			// result returned from a function
 
@@ -210,4 +240,89 @@ float wsa_get_abs_max_amp(wsa_device *dev, wsa_gain gain)
 		// Should never reach here
 		return WSA_ERR_UNKNOWNPRODVSN;
 	}
+}
+
+
+//TODO Check with Jacob how to distinct between onboard vs real time data 
+// capture ????
+
+///////////////////////////////////////////////////////////////////////////////
+// FREQUENCY SECTION                                                         //
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Retrieves the center frequency that the WSA is running at.
+ *
+ * @param dev - a WSA device structure
+ * @return The frequency in Hz, or a negative number on error
+ */
+int64_t wsa_get_freq(wsa_device *dev)
+{
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, ":INPUT:CENTER?\n");
+
+	// TODO Handle the query output here 
+	//if (query.status > 0)
+	//	return atof(query.result);
+	return 0;
+}
+
+
+// TODO Mentioned here that to do onboard capture will need to call
+// start_onbard_capture()
+/**
+ * Sets the WSA to the desired center frequency, \b cfreq.
+ * @remarks \b wsa_set_freq() will return error if trigger mode is already
+ * running.  Use wsa_set_run_mode() with FREERUN to change.
+ *
+ * @param dev - a WSA device structure
+ * @param cfreq - the center frequency to set, in Hz
+ * @return 0 on success, or a negative number on error.
+ * @par Errors:
+ * - Set frequency when WSA is in trigger mode.
+ * - Incorrect frequency resolution (check with data sheet).
+ */
+int16_t wsa_set_freq(wsa_device *dev, uint64_t cfreq) // get vco version?
+{
+	int16_t result = 0;
+	char temp_str[30];
+
+	if ((result = wsa_verify_freq(dev, cfreq)) < 0)
+		return result;
+
+	sprintf(temp_str, ":INPUT:CENTER <%llu>\n", cfreq);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_ETHERNETNOTAV: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_ETHERNETNOTAV));
+		return WSA_ERR_ETHERNETNOTAV;
+	}
+
+	return result;
+}
+
+
+// A Local function:
+// Verify if the frequency is valid (within allowed range)
+int16_t wsa_verify_freq(wsa_device *dev, uint64_t freq)
+{
+	// verify the frequency value
+	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)
+	{
+		doutf(1, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_FREQOUTOFBOUND));
+		return WSA_ERR_FREQOUTOFBOUND;
+	}
+	
+	// TODO resolution for different WSA!
+	else if ((freq - ((freq / WSA_RFE0560_FREQRES) * WSA_RFE0560_FREQRES)) > 0)
+	{
+		doutf(1, "Error WSA_ERR_INVFREQRES: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_INVFREQRES));
+		return WSA_ERR_INVFREQRES;
+	}
+
+	return 0;
 }

@@ -9,111 +9,116 @@
 //*****************************************************************************
 
 // A large 16-bit negative number
-#define LNEG_NUM -10000
+#define LNEG_NUM (-10000)
 
 
 // ///////////////////////////////
-// WSA RELATED ErrorS			//
+// WSA RELATED ERRORS			//
 // ///////////////////////////////
-#define WSA_ERR_NOWSA			(LNEG_NUM + 1)
-#define WSA_ERR_WSANOTRDY		(LNEG_NUM + 2)
-#define WSA_ERR_NOCTRLPIPE		(LNEG_NUM + 3)
-#define WSA_ERR_SETFAILED		(LNEG_NUM + 4)
-#define WSA_ERR_UNKNOWNPRODSER	(LNEG_NUM + 5)
-#define WSA_ERR_UNKNOWNPRODVSN	(LNEG_NUM + 6)
-#define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM + 7)
-#define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM + 20)
-#define WSA_ERR_WSAINUSE		(LNEG_NUM + 8)
-#define WSA_ERR_INVINTFMETHOD	(LNEG_NUM + 9)
-#define WSA_ERR_OPENFAILED		(LNEG_NUM + 10)
-#define WSA_ERR_INITFAILED		(LNEG_NUM + 11)
-#define WSA_ERR_USBNOTAV		(LNEG_NUM + 12)
-#define WSA_ERR_USBOPENFAILED	(LNEG_NUM + 13)
-#define WSA_ERR_USBINITFAILED	(LNEG_NUM + 14)
-#define WSA_ERR_ETHERNETNOTAV	(LNEG_NUM + 15)
-#define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM + 16)
-#define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM + 17)
-#define WSA_ERR_PRODOBSOLETE	(LNEG_NUM + 18)
-#define WSA_ERR_INVADCCORRVALUE	(LNEG_NUM + 19)
-//#define WSA_ERR_	(LNEG_NUM + 18)
-
+#define WSA_ERR_NOWSA			(LNEG_NUM - 1)
+#define WSA_ERR_INVIPADDRESS	(LNEG_NUM - 2)
+#define WSA_ERR_NOCTRLPIPE		(LNEG_NUM - 3)
+#define WSA_ERR_UNKNOWNPRODSER	(LNEG_NUM - 4)
+#define WSA_ERR_UNKNOWNPRODVSN	(LNEG_NUM - 5)
+#define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM - 6)
+#define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 7)
+#define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 8)
+//#define WSA_ERR_	(LNEG_NUM - 18)
 
 
 // ///////////////////////////////
-// AMPLITUDE ErrorS				//
+// WSA SETUP ERRORS				//
 // ///////////////////////////////
-#define WSA_ERR_INVAMP	(LNEG_NUM + 201)
-//#define WSA_ERR_	(LNEG_NUM + 202)
-//#define WSA_ERR_	(LNEG_NUM + 203)
-//#define WSA_ERR_	(LNEG_NUM + 204)
-//#define WSA_ERR_	(LNEG_NUM + 205)
+#define WSA_ERR_WSANOTRDY		(LNEG_NUM - 101)
+#define WSA_ERR_WSAINUSE		(LNEG_NUM - 102)
+#define WSA_ERR_SETFAILED		(LNEG_NUM - 103)
+#define WSA_ERR_OPENFAILED		(LNEG_NUM - 104)
+#define WSA_ERR_INITFAILED		(LNEG_NUM - 105)
+#define WSA_ERR_INVADCCORRVALUE	(LNEG_NUM - 106)
 
 
 
 // ///////////////////////////////
-// DATA ACQUISITION ErrorS		//
+// INTERFACE/CONNECTION ERRORS  //
 // ///////////////////////////////
-#define WSA_ERR_NODATABUS		(LNEG_NUM + 401)
-#define WSA_ERR_READPKTFAILED	(LNEG_NUM + 402)
-#define WSA_ERR_INVPKTSIZE		(LNEG_NUM + 403)
-//#define WSA_ERR_	(LNEG_NUM + 404)
-//#define WSA_ERR_	(LNEG_NUM + 405)
+#define WSA_ERR_INVINTFMETHOD	(LNEG_NUM - 201)
+#define WSA_ERR_INVIPHOSTADDRESS	(LNEG_NUM - 202)
+#define WSA_ERR_USBNOTAV		(LNEG_NUM - 203)
+#define WSA_ERR_USBOPENFAILED	(LNEG_NUM - 204)
+#define WSA_ERR_USBINITFAILED	(LNEG_NUM - 205)
+#define WSA_ERR_ETHERNETNOTAV	(LNEG_NUM - 206)
+#define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM - 207)
+#define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM - 209)
+//#define WSA_ERR_	(LNEG_NUM - 202)
 
 
 // ///////////////////////////////
-// FREQUENCY ErrorS				//
+// AMPLITUDE ERRORS				//
 // ///////////////////////////////
-#define WSA_ERR_FREQOUTOFBOUND	(LNEG_NUM + 601)
-#define WSA_ERR_INVFREQRES		(LNEG_NUM + 602)
-#define WSA_ERR_FREQSETFAILED	(LNEG_NUM + 603)
-#define WSA_ERR_PLLLOCKFAILED	(LNEG_NUM + 604)
-//#define WSA_ERR_	(LNEG_NUM + 605)
-//#define WSA_ERR_	(LNEG_NUM + 606)
-//#define WSA_ERR_	(LNEG_NUM + 607)
+#define WSA_ERR_INVAMP	(LNEG_NUM - 301)
 
 
 // ///////////////////////////////
-// GAIN ErrorS					//
+// DATA ACQUISITION ERRORS		//
 // ///////////////////////////////
-#define WSA_ERR_INVGAIN	(LNEG_NUM + 801)
-//#define WSA_ERR_	(LNEG_NUM + 802)
-//#define WSA_ERR_	(LNEG_NUM + 803)
-//#define WSA_ERR_	(LNEG_NUM + 804)
+#define WSA_ERR_NODATABUS		(LNEG_NUM - 401)
+#define WSA_ERR_READPKTFAILED	(LNEG_NUM - 402)
+#define WSA_ERR_INVPKTSIZE		(LNEG_NUM - 403)
+//#define WSA_ERR_	(LNEG_NUM - 404)
 
 
 // ///////////////////////////////
-// RUNMODE ErrorS				//
+// FREQUENCY ERRORS				//
 // ///////////////////////////////
-#define WSA_ERR_INVRUNMODE	(LNEG_NUM + 1001)
-//#define WSA_ERR_	(LNEG_NUM + 1002)
-//#define WSA_ERR_	(LNEG_NUM + 1003)
-//#define WSA_ERR_	(LNEG_NUM + 1004)
+#define WSA_ERR_FREQOUTOFBOUND	(LNEG_NUM - 601)
+#define WSA_ERR_INVFREQRES		(LNEG_NUM - 602)
+#define WSA_ERR_FREQSETFAILED	(LNEG_NUM - 603)
+#define WSA_ERR_PLLLOCKFAILED	(LNEG_NUM - 604)
+//#define WSA_ERR_	(LNEG_NUM - 605)
 
 
 // ///////////////////////////////
-// TRIGGER ErrorS				//
+// GAIN ERRORS					//
 // ///////////////////////////////
-#define WSA_ERR_INVTRIGID		(LNEG_NUM + 1201)
-#define WSA_ERR_INVSTOPFREQ		(LNEG_NUM + 1202)
-#define WSA_ERR_STARTOOB		(LNEG_NUM + 1203)
-#define WSA_ERR_STOPOOB			(LNEG_NUM + 1204)
-#define WSA_ERR_INVSTARTRES		(LNEG_NUM + 1205)
-#define WSA_ERR_INVSTOPRES		(LNEG_NUM + 1206)
-#define WSA_ERR_INVTRIGRANGE	(LNEG_NUM + 1207)
-#define WSA_ERR_INVDWELL		(LNEG_NUM + 1208)
-#define WSA_ERR_INVNUMPKTS		(LNEG_NUM + 1209)
-//#define WSA_ERR_	(LNEG_NUM + 1210)
+#define WSA_ERR_INVGAIN	(LNEG_NUM - 801)
+//#define WSA_ERR_	(LNEG_NUM - 802)
 
 
 // ///////////////////////////////
-// OTHERS ErrorS				//
+// RUNMODE ERRORS				//
 // ///////////////////////////////
-#define WSA_ERR_INVNUMBER		(LNEG_NUM + 2000)
-#define WSA_ERR_INVREGADDR		(LNEG_NUM + 2001)
-#define WSA_ERR_MALLOCFAILED	(LNEG_NUM + 2002)
-#define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM + 2003)
-//#define WSA_ERR_	(LNEG_NUM + 20)
-//#define WSA_ERR_	(LNEG_NUM + 20)
+#define WSA_ERR_INVRUNMODE	(LNEG_NUM - 1001)
+//#define WSA_ERR_	(LNEG_NUM - 1002)
+
+
+// ///////////////////////////////
+// TRIGGER ERRORS				//
+// ///////////////////////////////
+#define WSA_ERR_INVTRIGID		(LNEG_NUM - 1201)
+#define WSA_ERR_INVSTOPFREQ		(LNEG_NUM - 1202)
+#define WSA_ERR_STARTOOB		(LNEG_NUM - 1203)
+#define WSA_ERR_STOPOOB			(LNEG_NUM - 1204)
+#define WSA_ERR_INVSTARTRES		(LNEG_NUM - 1205)
+#define WSA_ERR_INVSTOPRES		(LNEG_NUM - 1206)
+#define WSA_ERR_INVTRIGRANGE	(LNEG_NUM - 1207)
+#define WSA_ERR_INVDWELL		(LNEG_NUM - 1208)
+#define WSA_ERR_INVNUMPKTS		(LNEG_NUM - 1209)
+//#define WSA_ERR_	(LNEG_NUM - 1210)
+
+
+// ///////////////////////////////
+// SOCKET ERRORS				//
+// ///////////////////////////////
+#define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
+
+// ///////////////////////////////
+// OTHERS ERRORS				//
+// ///////////////////////////////
+#define WSA_ERR_INVNUMBER		(LNEG_NUM - 2000)
+#define WSA_ERR_INVREGADDR		(LNEG_NUM - 2001)
+#define WSA_ERR_MALLOCFAILED	(LNEG_NUM - 2002)
+#define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
+
 
 
 static struct wsa_err_item {
@@ -129,12 +134,10 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_NOWSA, 
 		"No WSA detected. Check the power or the connection"),
-	wsa_err_item(WSA_ERR_WSANOTRDY, 
-		"WSA does not seem to be ready"),
 	wsa_err_item(WSA_ERR_NOCTRLPIPE, 
-		"No USB control channel detected. Possible firmware error"),
+		"No control channel detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_NODATABUS, 
-		"No USB data channel detected. Possible firmware error"),
+		"No data channel detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_UNKNOWNPRODSER, 
 		"Unknown WSA product serial number detected"),
 	wsa_err_item(WSA_ERR_UNKNOWNPRODVSN, 
@@ -143,20 +146,33 @@ static struct wsa_err_item {
 		"Unknown WSA RFE version detected"),
 	wsa_err_item(WSA_ERR_UNKNOWNFWRVSN, 
 		"Unknown WSA firmware version detected"),
-	wsa_err_item(WSA_ERR_USBNOTAV, 
-		"USB connection is not available with this WSA"),
-	wsa_err_item(WSA_ERR_ETHERNETNOTAV,
-		"Ethernet connection is not available with this WSA"),
+	wsa_err_item(WSA_ERR_PRODOBSOLETE,
+		"Product is obsolete and not supported"),
+
+	//*****
+	// WSA Setup Related
+	//*****
+	wsa_err_item(WSA_ERR_WSANOTRDY, 
+		"WSA does not seem to be ready"),
 	wsa_err_item(WSA_ERR_WSAINUSE, 
 		"WSA is in use at the moment"),
 	wsa_err_item(WSA_ERR_SETFAILED, 
 		"Failed to set the WSA"),
-	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
-		"Invalid connection type"),
 	wsa_err_item(WSA_ERR_OPENFAILED,
 		"Unable to open the WSA"),
 	wsa_err_item(WSA_ERR_INITFAILED,
 		"Unable to initialize the WSA"),
+	wsa_err_item(WSA_ERR_INVADCCORRVALUE,
+		"Invalid ADC correction value (use -1, 0 to 13)"),
+
+
+	//*****
+	// WSA Interface/Connection Related
+	//*****
+	wsa_err_item(WSA_ERR_USBNOTAV, 
+		"USB connection is not available with this WSA"),
+	wsa_err_item(WSA_ERR_ETHERNETNOTAV,
+		"Ethernet connection is not available with this WSA"),
 	wsa_err_item(WSA_ERR_USBOPENFAILED,
 		"Unable to open the WSA's USB connection"),
 	wsa_err_item(WSA_ERR_USBINITFAILED,
@@ -165,10 +181,10 @@ static struct wsa_err_item {
 		"Unable to open the WSA's Ethernet connection"),
 	wsa_err_item(WSA_ERR_ETHERNETINITFAILED,
 		"Unable to initialize the WSA's Ethernet component"),
-	wsa_err_item(WSA_ERR_PRODOBSOLETE,
-		"Product is obsolete and not supported"),
-	wsa_err_item(WSA_ERR_INVADCCORRVALUE,
-		"Invalid ADC correction value (use -1, 0 to 13)"),
+	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
+		"Invalid connection type"),
+	wsa_err_item(WSA_ERR_INVIPHOSTADDRESS,
+		"Invalid IP or Host Name given"),
 
 	//*****
 	// Amplitude related
@@ -233,6 +249,11 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_INVNUMPKTS, 
 		"Invalid number of packets to capture"),
 
+	//*****
+	// SOCKET ERRORS
+	//*****
+	wsa_err_item(WSA_ERR_CMDSENDFAILED,
+		"Sending of the command failed"),
 
 	//*****
 	// Others

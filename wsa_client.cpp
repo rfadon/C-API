@@ -438,7 +438,8 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 
 //* @param net_type -
 /**
- * Get host information based on the name given either as IP or WWW format
+ * Get host information based on the name given either as IP or host name 
+ * format
  *
  * @param name -
  *

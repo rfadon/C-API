@@ -1,8 +1,9 @@
 
 #include <string.h>
-#include "wsa_client.h"
-#include "wsa_lib.h"
 #include "wsa_commons.h"
+#include "wsa_client.h"
+#include "wsa_error.h"
+#include "wsa_lib.h"
 
 //TODO create a log file method
 //TODO create proper error method
@@ -165,7 +166,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
 		if (bytes_txed < len) {
 			if (resend_cnt > 5)
-				return -1;
+				return WSA_ERR_CMDSENDFAILED;
 
 			printf("Not all bytes sent. Resending the packet...\n");
 			resend_cnt++;
@@ -204,10 +205,12 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	// Receive query result from the WSA server
 	bytes_rxed = wsa_sock_recv(dev->sock.cmd, rx_buf, TIMEOUT);
 
+//TODO Remove these
 	printf("\nRxed %d bytes: ", bytes_rxed);
 	//for (int i = 0; i < bytes_rxed; i++)
 		printf("%s ", rx_buf);
 	printf("\n");
+// til here
 
 	// TODO define what result should be
 	resp.result = rx_buf;

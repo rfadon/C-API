@@ -35,7 +35,6 @@
 #include <time.h>
 
 #include "wsa4k_cli.h"
-#include "wsa_lib.h"
 #include "wsa_api.h"
 #include "wsa_error.h"
 
@@ -96,7 +95,6 @@ int16_t do_wsa(const char *wsa_addr)
 {	
 	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	struct wsa_device wsa_dev;	// the wsa device structure
-	struct wsa_resp query;		// store query results
 	char intf_str[30];			// store the interface method string
 	int16_t result = 0;				// result returned from a function
 
@@ -111,16 +109,13 @@ int16_t do_wsa(const char *wsa_addr)
 	}
 
 // remove this section
-	//TEST send command
-	result = wsa_send_command(&wsa_dev, "Start Message\0");
+	//TEST commands
+	result = wsa_set_freq(&wsa_dev, 2440000000);
 
 	// Query the WSA status to make sure it is up & running
-	query = wsa_send_query(&wsa_dev, "QUERY:Test query\n");
-	if (query.status > 0)
-		result = query.status;
-	printf("Query: received %d bytes.\n", result);
+	result = wsa_get_freq(&wsa_dev);
 
-// remove upto here & then remove "wsa_lib.h"
+// remove upto here
 
 
 	//*****
@@ -172,15 +167,15 @@ int16_t start_cli(void)
 
 		// User asked for help
 		if (strncmp(in_str, ":H", 2) == 0) {
-			printf("Enter an IP address in the format #.#.#.# or a WWW ");
-			printf("address string.\nElse type :l for a list to select from");
+			printf("Enter an IP address in the format #.#.#.# or host name ");
+			printf("string.\nElse type: :l for a list to select "
+				"from, :q to quit.\n");
 			continue;
 		}
 
 		// User chose List option
 		else if (strncmp(in_str, ":L", 2) == 0) {
-			// TODO: This section is to be replaced w/ list connected WSAs
-			result = wsa_count(ip_list);
+			result = wsa_list(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
 			in_num = atoi(in_str);
@@ -195,15 +190,16 @@ int16_t start_cli(void)
 
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
-			wsa_addr = in_str;
 			// TODO verify & convert www type address to IP using wsa_get_host_info()
-			/*if ((result = wsa_verify_addr(wsa_addr)) == INADDR_NONE) {
-				printf("\nInvalid address. Try again or ':q' to exit.\n");
+			if (wsa_check_addr(in_str))
+				wsa_addr = in_str;
+			else {
+				printf("\nInvalid address. Try again or ':h'.\n");
 				continue;
-			}*/
+			}
 		}
 		else {
-			printf("Invalid IP address (Use: #.#.#.#)\n");
+			printf("Invalid IP address (Use: #.#.#.# or host name format)\n");
 			continue;
 		}	
 
