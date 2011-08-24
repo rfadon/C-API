@@ -27,7 +27,6 @@
  */
 #include <fstream>
 #include <iostream>
-//#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -130,7 +129,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 	wsa_close(&wsa_dev);
 
-	return result;
+	return 0;
 }
 
 
@@ -190,7 +189,8 @@ int16_t start_cli(void)
 
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
-			// TODO verify & convert www type address to IP using wsa_get_host_info()
+			// TODO verify & convert host type address to IP using 
+			// wsa_get_host_info() -> needed?
 			if (wsa_check_addr(in_str))
 				wsa_addr = in_str;
 			else {
@@ -206,9 +206,9 @@ int16_t start_cli(void)
 		//*****
 		// All are good, start the connection
 		//*****
-		result = do_wsa(wsa_addr);
+		if(do_wsa(wsa_addr) == 0)
+			break;
 	} while (!user_quit);
-
 
 	return 0;
 }

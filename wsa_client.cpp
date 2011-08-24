@@ -9,7 +9,7 @@ using namespace std;
 	// How long to wait after we do the echo before shutting the connection
 	// down, to give the user time to start other clients, for testing 
 	// multiple simultaneous connections.
-	const int8_t kShutdownDelay = 3;
+	const int8_t kShutdownDelay = 1;
 #endif
 
 
@@ -130,6 +130,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
 
+/*
 	// Shut DATA socket connection down
 	//fflush(stdin);
     if (ShutdownConnection(data_sock, "data socket"))
@@ -137,7 +138,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 	else
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'data' socket connection"));
-
+*/
     // Shut Winsock back down and take off.
     WSACleanup();
 

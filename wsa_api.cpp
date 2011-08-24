@@ -66,14 +66,18 @@ int16_t wsa_open(wsa_device *dev, char *intf_method)
 {
 	int16_t result = 0;		// result returned from a function
 
+	//*****
 	// Initialize wsa_device structure
+	//*****
 	if (wsa_dev_init(dev) < 0) {
 		doutf(1, "Error WSA_ERR_USBINITFAILED: "
 			"%s.\n", wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
 
+	//*****
 	// Connect base on the interface type
+	//*****
 	if (strncmp(intf_method, "USB", 3) == 0) {
 		// TODO: add to this section if ever use USB.
 		doutf(1, "Error WSA_ERR_USBNOTAV: %s.\n", 

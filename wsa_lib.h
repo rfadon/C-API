@@ -75,7 +75,8 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method);
+int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
+					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_list_devs(char **wsa_list);
 //int16_t wsa_help(struct wsa_device dev);
