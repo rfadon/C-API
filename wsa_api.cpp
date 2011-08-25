@@ -19,33 +19,6 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
 
 
 /**
- * Initialized the the wsa_device structure
- *
- * @param dev - a wsa device structure.
- *
- * @return None
- */
-int16_t wsa_dev_init(struct wsa_device *dev)
-{
-	dev->descr.inst_bw = 0;
-	dev->descr.max_pkt_size = 0;
-	dev->descr.max_tune_freq = 0;
-	dev->descr.min_tune_freq = 0;
-	strcpy(dev->descr.prod_name, "");
-	strcpy(dev->descr.prod_serial, ""); 
-	strcpy(dev->descr.prod_version, "");
-	strcpy(dev->descr.rfe_name, "");
-	strcpy(dev->descr.rfe_version, "");
-	strcpy(dev->descr.fw_version, "");
-
-	//dev->run_mode = (wsa_run_mode) 0;
-	//dev->trig_list = (wsa_trig *) malloc(sizeof(wsa_trig));
-
-	return 0;
-}
-
-
-/**
  * Establishes a connection of choice specified by the interface method to 
  * the WSA.\n At success, the handle remains open for future access by other 
  * library methods until wsa_close() is called. When unsuccessful, the WSA 
@@ -68,59 +41,13 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 {
 	int16_t result = 0;		// result returned from a function
 
-	//*****
-	// Initialize wsa_device structure
-	//*****
-	if (wsa_dev_init(dev) < 0) {
-		doutf(1, "Error WSA_ERR_USBINITFAILED: "
-			"%s.\n", wsa_get_err_msg(WSA_ERR_INITFAILED));
-		return WSA_ERR_OPENFAILED;
-	}
-
-	//*****
-	// Connect base on the interface type
-	//*****
-	if (strncmp(intf_method, "USB", 3) == 0) {
-		// TODO: add to this section if ever use USB.
-		doutf(1, "Error WSA_ERR_USBNOTAV: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_USBNOTAV));
-		return WSA_ERR_OPENFAILED;	
-	}
-
-	else if (strncmp(intf_method, "TCPIP", 5) == 0) {	
-		// Start the WSA connection
-		if ((result = wsa_connect(dev, SCPI, intf_method)) < 0) {
-			//printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
-			doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-				wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
-			return WSA_ERR_ETHERNETCONNECTFAILED;
-		}
-
-		// TODO: get & update the versions & wsa model
-		// TODO will need to replace with reading from reg or eeprom?
-		sprintf(dev->descr.prod_name, "%s", WSA4000);
-		strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
-		sprintf(dev->descr.prod_version, "v1.0"); // temp value
-		sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560);
-		sprintf(dev->descr.rfe_version, "v1.0"); // temp
-		strcpy(dev->descr.fw_version, "v1.0");
-	}
-	else {
-		doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
-		return WSA_ERR_OPENFAILED;
-	}
-
-	// 3rd, set some values base on the model
-	// TODO read from regs/eeprom instead???
-	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
-		dev->descr.max_pkt_size = WSA4000_MAX_PKT_SIZE;
-		dev->descr.inst_bw = WSA4000_INST_BW;
-		
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
-			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
-		}
+	// Start the WSA connection
+	// NOTE: API will always assume SCPI syntax
+	if ((result = wsa_connect(dev, SCPI, intf_method)) < 0) {
+		//printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
+		doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
+		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 
 	return 0;
@@ -301,9 +228,9 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco version?
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
-		doutf(1, "Error WSA_ERR_ETHERNETNOTAV: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_ETHERNETNOTAV));
-		return WSA_ERR_ETHERNETNOTAV;
+		doutf(1, "Error WSA_ERR_ETHERNETNOTAVBL: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_ETHERNETNOTAVBL));
+		return WSA_ERR_ETHERNETNOTAVBL;
 	}
 
 	return result;

@@ -6,7 +6,59 @@
 #include "wsa_lib.h"
 
 //TODO create a log file method
-//TODO create proper error method
+//TODO add proper error method
+
+
+/**
+ * Initialized the the wsa_device structure
+ *
+ * @param dev - a wsa device structure.
+ *
+ * @return None
+ */
+int16_t wsa_dev_init(struct wsa_device *dev)
+{
+	dev->descr.inst_bw = 0;
+	dev->descr.max_pkt_size = 0;
+	dev->descr.max_tune_freq = 0;
+	dev->descr.min_tune_freq = 0;
+	strcpy(dev->descr.prod_name, "");
+	strcpy(dev->descr.prod_serial, ""); 
+	strcpy(dev->descr.prod_version, "");
+	strcpy(dev->descr.rfe_name, "");
+	strcpy(dev->descr.rfe_version, "");
+	strcpy(dev->descr.fw_version, "");
+
+//TODO Move this section to a separate fn?
+		
+	// TODO: get & update the versions & wsa model
+	// TODO will need to replace with reading from reg or eeprom?
+	sprintf(dev->descr.prod_name, "%s", WSA4000);
+	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
+	sprintf(dev->descr.prod_version, "v1.0"); // temp value
+	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560);
+	sprintf(dev->descr.rfe_version, "v1.0"); // temp
+	strcpy(dev->descr.fw_version, "v1.0");
+
+	
+	// 3rd, set some values base on the model
+	// TODO read from regs/eeprom instead???
+	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
+		dev->descr.max_pkt_size = WSA4000_MAX_PKT_SIZE;
+		dev->descr.inst_bw = WSA4000_INST_BW;
+		
+		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
+			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
+			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
+		}
+	}
+
+	//dev->run_mode = (wsa_run_mode) 0;
+	//dev->trig_list = (wsa_trig *) malloc(sizeof(wsa_trig));
+
+	return 0;
+}
+
 
 /**
  * Connect to a WSA through the specified interface method \b intf_method,
@@ -24,7 +76,8 @@
  * @return 0 on success, or a negative number on error.
  * TODO: define ERROR values with associated messages....
  */
-int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
+					char *intf_method)
 {
 	struct wsa_device wsa_dev;	// the wsa device structure
 	int16_t result = 0;			// result returned from a function
@@ -32,13 +85,18 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 	const char* wsa_addr;		// store the WSA IP address
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 
+	//*****
+	// Check the syntax type & interface method & connect base on those info
+	//*****
 	// When the cmd_syntax is SCPI:
 	if (strncmp(cmd_syntax, SCPI, 4) == 0) {
-		// if it's a TCPIP connection, get the address
+		// If it's a TCPIP connection, get the address
 		if (strstr(intf_method, "TCPIP") != NULL) {
 			if ((temp_str = strstr(intf_method, "::")) == NULL) {
 				printf("ERROR: Invalid TCPIP string \"%s\".\n", intf_method);
-				return -1;
+				doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s.\n", 
+					wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS));
+				return WSA_ERR_INVIPHOSTADDRESS;
 			}
 
 			//Assume right after TCPIP:: is the IP address
@@ -46,8 +104,14 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 			wsa_addr = strtok(temp_str, "::");
 			is_tcpip = TRUE;
 		}
-
-		// TODO: can add others method here, such as USB.
+		
+		// If it's USB
+		else if (strstr(intf_method, "USB") != NULL) {
+			// TODO: add to this section if ever use USB.
+			doutf(1, "Error WSA_ERR_USBNOTAVBL: %s.\n", 
+				wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+			return WSA_ERR_USBNOTAVBL;	
+		}
 
 		// Can't determine connection method from the interface string
 		else {
@@ -58,23 +122,39 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 
 	// When the cmd_syntax is not supported/recognized
 	else {
-		printf("Error: Command syntax not supported/recognized!");
-		return -1;
+		doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
+		return WSA_ERR_INVINTFMETHOD;
 	}
+	
 
-	if (is_tcpip) 
+	//*****
+	// Do the connection
+	//*****
+	if (is_tcpip) {
 		result = wsa_start_client(wsa_addr, &wsa_dev.sock.cmd, 
 				&wsa_dev.sock.data);
 
-	if (result < 0) {
-		// TODO 
-		printf("ERROR: Failed to start client sockets, closing down the "
-			"connection!\n");
-		result = wsa_close_client(wsa_dev.sock.cmd, wsa_dev.sock.data);
+		strcpy(wsa_dev.descr.intf_type, "TCPIP");
+
+		if (result < 0) {
+			printf("ERROR: Failed to start client sockets, closing down the "
+				"connection!\n");
+			doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
+					wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
+			return WSA_ERR_ETHERNETCONNECTFAILED;
+		}
 	}
-	else {
-		//TODO init all parameters in dev descriptor based on the version
-		*dev = wsa_dev;
+	
+	// TODO Add other methods here
+	
+	*dev = wsa_dev;
+
+	// Initialize wsa_device structure with the proper values
+	if (wsa_dev_init(dev) < 0) {
+		doutf(1, "Error WSA_ERR_USBINITFAILED: "
+			"%s.\n", wsa_get_err_msg(WSA_ERR_INITFAILED));
+		return WSA_ERR_INITFAILED;
 	}
 
 	return result;

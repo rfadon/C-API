@@ -198,11 +198,19 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
  */
 u_long wsa_verify_addr(const char *sock_addr)
 {
+	WSADATA wsaData;
+	int iResult;
+	// Initialize Winsock
+    if ((iResult = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
+        printf("WSAStartup failed: %d\n", iResult);
+        return -1;
+    }
+
 	u_long new_sock_addr = inet_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         // sock_addr isn't a dotted IP, so resolve it through DNS
-        hostent *pHE = gethostbyname(sock_addr);
-        if (pHE == 0) {
+        hostent *pHE = gethostbyname(sock_addr);//wsa_get_host_info
+        if (pHE == NULL) {
             return INADDR_NONE;
         }
         new_sock_addr = *((u_long*)pHE->h_addr_list[0]);
@@ -466,7 +474,7 @@ int16_t wsa_get_host_info(char *name)
     iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0) {
         printf("WSAStartup failed: %d\n", iResult);
-        return 1;
+        return -1;
     }
 
     host_name = name;
@@ -479,13 +487,13 @@ int16_t wsa_get_host_info(char *name)
         if (dwError != 0) {
             if (dwError == WSAHOST_NOT_FOUND) {
                 printf("Host not found\n");
-                return 1;
+                return -1;
             } else if (dwError == WSANO_DATA) {
                 printf("No data record found\n");
-                return 1;
+                return -1;
             } else {
                 printf("Function failed with error: %ld\n", dwError);
-                return 1;
+                return -1;
             }
         }
     } else {

@@ -27,9 +27,10 @@ struct wsa_descriptor {
 	char prod_name[50];
 	char prod_serial[20];
 	char prod_version[20];
-	char rfe_name[20];
+	char rfe_name[50];
 	char rfe_version[20];
 	char fw_version[20];
+	char intf_type[20];
 	uint64_t inst_bw;
 	uint64_t max_pkt_size;
 	uint64_t max_tune_freq;

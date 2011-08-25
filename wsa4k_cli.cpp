@@ -152,7 +152,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 		//TODO do help option printing
 		print_cli_menu(&wsa_dev);
-		break;
+		break;//.......................................! :(
 	} while (!user_quit);
 
 	wsa_close(&wsa_dev);
@@ -219,7 +219,7 @@ int16_t start_cli(void)
 		else if (strchr(in_str, '.') != 0) {
 			// TODO verify & convert host type address to IP using 
 			// wsa_get_host_info() -> needed?
-			if (wsa_check_addr(in_str))
+			if (wsa_check_addr(in_str) > 0)
 				wsa_addr = in_str;
 			else {
 				printf("\nInvalid address. Try again or ':h'.\n");

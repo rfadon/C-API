@@ -43,10 +43,10 @@
 // ///////////////////////////////
 #define WSA_ERR_INVINTFMETHOD	(LNEG_NUM - 201)
 #define WSA_ERR_INVIPHOSTADDRESS	(LNEG_NUM - 202)
-#define WSA_ERR_USBNOTAV		(LNEG_NUM - 203)
+#define WSA_ERR_USBNOTAVBL		(LNEG_NUM - 203)
 #define WSA_ERR_USBOPENFAILED	(LNEG_NUM - 204)
 #define WSA_ERR_USBINITFAILED	(LNEG_NUM - 205)
-#define WSA_ERR_ETHERNETNOTAV	(LNEG_NUM - 206)
+#define WSA_ERR_ETHERNETNOTAVBL	(LNEG_NUM - 206)
 #define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM - 207)
 #define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM - 209)
 //#define WSA_ERR_	(LNEG_NUM - 202)
@@ -169,9 +169,9 @@ static struct wsa_err_item {
 	//*****
 	// WSA Interface/Connection Related
 	//*****
-	wsa_err_item(WSA_ERR_USBNOTAV, 
+	wsa_err_item(WSA_ERR_USBNOTAVBL, 
 		"USB connection is not available with this WSA"),
-	wsa_err_item(WSA_ERR_ETHERNETNOTAV,
+	wsa_err_item(WSA_ERR_ETHERNETNOTAVBL,
 		"Ethernet connection is not available with this WSA"),
 	wsa_err_item(WSA_ERR_USBOPENFAILED,
 		"Unable to open the WSA's USB connection"),
