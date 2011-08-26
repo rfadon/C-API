@@ -104,7 +104,7 @@
  * @brief This structure contains header information related to each frame read
  * by wsa_get_frame().
  */
-	/** @var char wsa_frame_header::prod_version
+	/** @var char wsa_frame_header::prod_serial
 	 * WSA product version number.
 	 */
 	/** @var uint64_t wsa_frame_header::freq
