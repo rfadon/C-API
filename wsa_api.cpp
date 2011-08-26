@@ -18,15 +18,19 @@
 int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
 
 
+// ////////////////////////////////////////////////////////////////////////////
+// WSA RELATED FUNCTIONS                                                     //
+// ////////////////////////////////////////////////////////////////////////////
+
 /**
  * Establishes a connection of choice specified by the interface method to 
  * the WSA.\n At success, the handle remains open for future access by other 
  * library methods until wsa_close() is called. When unsuccessful, the WSA 
  * will be closed automatically and an error is returned.
  *
- * @param dev - a WSA device structure to be opened.
- * @param intf_method - The interface method to the WSA. \n
- * Possible methods: \n
+ * @param dev - A pointer to the WSA device structure to be opened.
+ * @param intf_method - A char pointer to store the interface method to the 
+ * WSA. \n Possible methods: \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n
  * - With USB, use: "USB" (check if supported with the WSA version used). \n
  *
@@ -34,7 +38,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
  * @par Errors:
  * Situations that will generate an error are:
  * - the selected connection type does not exist for the WSA product version.
- * - the WSA is not detected (has not been connected or powered up)
+ * - the WSA is not detected (has not been connected or powered up).
  * -
  */
 int16_t wsa_open(struct wsa_device *dev, char *intf_method)
@@ -58,7 +62,8 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
  * Closes the device handle if one is opened and stops any existing data 
  * capture.
  *
- * @param dev - a WSA device structure
+ * @param dev - A pointer to a WSA device structure to be closed.
+ *
  * @return none
  */
 void wsa_close(struct wsa_device *dev)
@@ -70,7 +75,8 @@ void wsa_close(struct wsa_device *dev)
 /**
  * Verify if the IP address or host name given is valid for the WSA.
  * 
- * @param ip_addr - The IP address or host name to be verified.
+ * @param ip_addr - A char pointer to the IP address or host name to be 
+ * verified.
  * 
  * @return 1 if the IP is valid, 0 if invalid (?), or a negative number 
  * on error.
@@ -95,7 +101,8 @@ int16_t wsa_check_addr(char *ip_addr)
  * Count and print out the IPs of connected WSAs to the network? or the PC???
  * For now, will list the IPs for any of the connected devices to a PC?
  *
- * @param wsa_list - Store (WSA???) IP addresses connected to a network???.
+ * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
+ * connected to a network???.
  *
  * @return Number of connected WSAs (or IPs for now) on success, or a 
  * negative number on error.
@@ -115,7 +122,8 @@ int16_t wsa_list(char **wsa_list)
 /**
  * Indicates if the WSA is still connected to the PC.
  *
- * @param dev - a WSA device structure
+ * @param dev - A pointer to the WSA device structure to be verified for 
+ * the connection.
  * @return 1 if it is connected, 0 if not connected, or a negative number 
  * if errors.
  */
@@ -132,49 +140,6 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 }
 
 
-/**
- * Gets the absolute maximum RF input level (dBm) for the WSA at 
- * the given gain setting.\n
- * Operating the unit at the absolute maximum may cause damage to the device.
- *
- * @param dev - a WSA device structure
- * @param gain - the gain setting at which the absolute maximum amplitude 
- * input level is to be retrieved
- *
- * @return The absolute maximum RF input level in dBm.
- */
-float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
-{
-	// TODO Check version of WSA & return the correct info here
-	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			switch (gain) {
-			case (HIGH):
-				return WSA_RFE0560_ABS_AMP_HIGH;
-				break;
-			case (MEDIUM):
-				return WSA_RFE0560_ABS_AMP_MEDIUM;
-				break;
-			case (LOW):
-				return WSA_RFE0560_ABS_AMP_LOW;
-				break;
-			case (ULOW):
-				return WSA_RFE0560_ABS_AMP_ULOW;
-				break;
-			default:
-				return WSA_ERR_INVGAIN;
-				break;
-			}
-		}
-		else
-			return WSA_ERR_UNKNOWNRFEVSN;
-	}
-	else {
-		// Should never reach here
-		return WSA_ERR_UNKNOWNPRODVSN;
-	}
-}
-
 
 //TODO Check with Jacob how to distinct between onboard vs real time data 
 // capture ????
@@ -186,8 +151,8 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 /**
  * Retrieves the center frequency that the WSA is running at.
  *
- * @param dev - a WSA device structure
- * @return The frequency in Hz, or a negative number on error
+ * @param dev - A pointer to the WSA device structure.
+ * @return The frequency in Hz, or a negative number on error.
  */
 int64_t wsa_get_freq(struct wsa_device *dev)
 {
@@ -209,14 +174,14 @@ int64_t wsa_get_freq(struct wsa_device *dev)
  * @remarks \b wsa_set_freq() will return error if trigger mode is already
  * running.  Use wsa_set_run_mode() with FREERUN to change.
  *
- * @param dev - a WSA device structure
- * @param cfreq - the center frequency to set, in Hz
+ * @param dev - A pointer to the WSA device structure.
+ * @param cfreq - The center frequency to set, in Hz
  * @return 0 on success, or a negative number on error.
  * @par Errors:
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco version?
+int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -257,5 +222,236 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 		return WSA_ERR_INVFREQRES;
 	}
 
+	return 0;
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// AMPLITUDE SECTION                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the absolute maximum RF input level (dBm) for the WSA at 
+ * the given gain setting.\n
+ * Operating the unit at the absolute maximum may cause damage to the device.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gain - The gain setting of \b wsa_gain type at which the absolute 
+ * maximum amplitude input level is to be retrieved.
+ *
+ * @return The absolute maximum RF input level in dBm or negative error number.
+ */
+float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
+{
+	// TODO Check version of WSA & return the correct info here
+	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
+		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
+			switch (gain) {
+			case (HIGH):
+				return WSA_RFE0560_ABS_AMP_HIGH;
+				break;
+			case (MEDIUM):
+				return WSA_RFE0560_ABS_AMP_MEDIUM;
+				break;
+			case (LOW):
+				return WSA_RFE0560_ABS_AMP_LOW;
+				break;
+			case (ULOW):
+				return WSA_RFE0560_ABS_AMP_ULOW;
+				break;
+			default:
+				return WSA_ERR_INVGAIN;
+				break;
+			}
+		}
+		else
+			return WSA_ERR_UNKNOWNRFEVSN;
+	}
+	else {
+		// Should never reach here
+		return WSA_ERR_UNKNOWNPRODVSN;
+	}
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// DATA ACQUISITION SECTION                                                  //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Reads a frame of data. \e Each frame consists of a header, and I and Q 
+ * buffers of data of length determine by the \b sample_size parameter.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ * information for the frame.
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * Q data buffer with size specified by the sample_size.
+ * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * sample pairs) per data frame to be captured. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return The number of data samples read upon success, or a negative 
+ * number on error.
+ */
+int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
+			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size)
+{
+	return 0;
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// GAIN SECTION                                                              //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the current gain setting of the WSA.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @return The gain setting of wsa_gain type, or a negative number on error.
+ */
+wsa_gain wsa_get_gain (struct wsa_device *dev)
+{
+	wsa_gain gain = LOW;
+
+	return gain;
+}
+
+/**
+ * Sets the \b gain (sensitivity) level for the radio front end of the WSA.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gain - The gain setting of type wsa_gain to set for WSA. \n
+ * Valid gain settings are HIGH, MEDIUM, LOW, ULOW.
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_gain (struct wsa_device *dev, wsa_gain gain)
+{
+	return 0;
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// RFE CONTROL SECTION                                                       //
+// ////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Gets which antenna port is currently in used with the RFE board.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return The antenna port number on success, or a negative number on error.
+ */
+int16_t wsa_get_antenna(struct wsa_device *dev)
+{
+	return 0;
+}
+
+
+/**
+ * Sets the antenna port to be used for the RFE board.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param port_num - An integer port number to used. \n
+ * Available ports: 1, 2, 3.
+ * \b Note: When calibration mode is enabled through wsa_run_cal_mode(), these 
+ * antenna ports will not be available.  The seletected port will resume when 
+ * the calibration mode is set to off.
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
+{
+	return 0;
+}
+
+
+/**
+ * Gets the current mode of the RFE's internal BPF.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 1 (on), 0 (off), or a negative number on error.
+ */
+int16_t wsa_get_bpf(struct wsa_device *dev)
+{
+	return 0;
+}
+
+
+/**
+ * Sets the RFE's internal band pass filter (BPF) on or off (bypassing).
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer mode of selection: 0 - Off, 1 - On.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
+{
+	return 0;
+}
+
+
+/**
+ * Gets the current mode of the RFE's internal LPF.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 1 (on), 0 (off), or a negative number on error.
+ */
+int16_t wsa_get_lpf(struct wsa_device *dev)
+{
+	return 0;
+}
+
+
+/**
+ * Sets the internal low pass filter (LPF) on or off (bypassing).
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer mode of selection: 0 - Off, 1 - On.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t option)
+{
+	return 0;
+}
+
+
+/**
+ * Checks if the RFE's internal calibration has finished or not.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 1 if the calibration is still running or 0 if completed, 
+ * or a negative number on error.
+ */
+int16_t wsa_check_cal_mode(struct wsa_device *dev)
+{
+	return 0;
+}
+
+
+/**
+ * Runs the RFE'S internal calibration mode or cancel it. \n
+ * While the calibration mode is running, no other commands should be 
+ * running until the calibration is finished by using wsa_query_cal_mode(), 
+ * or could be cancelled
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer mode of selection: 1 - Run, 0 - Cancel.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode)
+{
 	return 0;
 }

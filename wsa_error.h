@@ -197,10 +197,10 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_NODATABUS, 
 		"No data bus detected. Possible firmware error"),
-	wsa_err_item(WSA_ERR_READPKTFAILED, 
-		"Failed reading a WSA packet"),
-	wsa_err_item(WSA_ERR_INVPKTSIZE, 
-		"Invalid packet size"),	// TODO: could add version maximum pkt here
+	wsa_err_item(WSA_ERR_READFRAMEFAILED, 
+		"Failed reading a WSA frame"),
+	wsa_err_item(WSA_ERR_INVFRAMESIZE, 
+		"Invalid frame size"),	// TODO: could add version maximum pkt here
 
 	//*****
 	// Frequency related
@@ -246,8 +246,8 @@ static struct wsa_err_item {
 		"Invalid trigger range between the start & stop frequencies"),
 	wsa_err_item(WSA_ERR_INVDWELL, 
 		"Invalid trigger dwell time"),
-	wsa_err_item(WSA_ERR_INVNUMPKTS, 
-		"Invalid number of packets to capture"),
+	wsa_err_item(WSA_ERR_INVNUMFRAMES, 
+		"Invalid number of frames to capture"),
 
 	//*****
 	// SOCKET ERRORS

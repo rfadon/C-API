@@ -33,6 +33,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "stdint.h"
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
 #include "wsa_error.h"
@@ -49,34 +50,44 @@ void print_cli_menu(struct wsa_device *dev)
 {
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
-	uint64_t MAX_SS = dev->descr.max_pkt_size;
+	uint64_t MAX_SS = dev->descr.max_sample_size;
 
 	printf("---------------------------\n");
 	printf("\nCommand Options Available (case insensitive):\n\n");
-	printf(" fp            - List the captured file path.\n");
-	printf(" d             - Save 'D'ata to a file.\n");
-	printf(" get cf        - 'Get' the current running 'C'entre "
-							"'F'requency (in MHz).\n");
-	printf(" get fs        - 'Get' the current 'F'rame 'S'ize per file.\n");
-	printf(" get gl        - 'Get' the current 'G'ain 'L'evel.\n");
-	printf(" get ss        - 'Get' the current 'S'ample 'S'ize per frame.\n");
-	printf(" h             - 'H'elp or show the list of available options.\n");
-	printf(" o             - 'O'pen the folder of captured file(s).\n");
-	printf(" set cf <freq> - 'Set' the 'C'entre 'F'requency in MHz "
-							 "(ex: set cf 2441.5).\n");
-	printf("                 Range: %.2f - %.2f MHz inclusively. "
-							 "Resolution 10 kHz.\n", 
-							 (double) MIN_FREQ / MHZ, (double) MAX_FREQ / MHZ);
-	printf(" set fs <size> - 'Set' the 'F'rames 'S'ize per file "
-							 "(ex: set fs 1000).\n");
-	printf("                 Maximum allows: %d.\n", MAX_FS);
-	printf(" set gl <level>- 'Set' 'G'ain 'L'evel.\n");
+	printf(" fp             - List the captured file path.\n");
+	printf(" d              - Save data to a file.\n");
+	printf(" h              - Show the list of available options.\n");
+	printf(" o              - Open the folder of captured file(s).\n\n");
+
+	printf(" get ant        - Show the current antenna port in used.\n");
+	printf(" get bpf        - Show the current internal BPF state.\n");
+	printf(" get cal        - Show the current calibration mode.\n");
+	printf(" get cf         - Show the current running 'C'entre 'F'requency "
+							 "(in MHz).\n");
+	printf(" get fs         - Show the current 'F'rame 'S'ize per file.\n");
+	printf(" get gl         - Show the current 'G'ain 'L'evel.\n");
+	printf(" get lpf        - Show the current state of the anti-aliasing LPF.\n");
+	printf(" get ss         - Show the current 'S'ample 'S'ize per frame.\n\n");
+
+	printf(" set ant <#>    - Select the antenna switch 1 to 3.\n");
+	printf(" set bpf <1/0>  - Turn the internal BPF on (1) or off (0).\n");
+	printf(" set cal <1/0>  - Turn the calibration mode on (1) or off (0).\n");
+	printf(" set cf <freq>  - Set the 'C'entre 'F'requency in MHz (ex: set "
+							 "cf 2441.5).\nRange: %.2f - %.2f MHz inclusively."
+							 "Resolution 10 kHz.\n", (double) MIN_FREQ / MHZ, 
+							 (double) MAX_FREQ / MHZ);
+	printf(" set fs <size>  - Set the 'F'rames 'S'ize per file (ex: set fs "
+							 "1000). \nMaximum allows: %d.\n", MAX_FS);
+	printf(" set gl <level> - Set 'G'ain 'L'evel.\n");
 	printf("                 Options: HIGH, MEDIUM, LOW, ULTRALOW.\n");
-	printf(" set ss <size> - 'Set' the 'S'ize of 'S'amples to be captured "
+	printf(" set lpf <1/0>  - Turn the anti-aliasing LPF on (1) or off (0).\n");
+	printf(" set ss <size>  - Set the 'S'ize of 'S'amples to be captured "
 							 "per frame\n(ex: set ss 2000).\n");
 	printf("                 Maximum allows: %llu; Minimum: 1.\n\n", MAX_SS);
-	printf(" Q             - 'Q'uit or exit this console.\n\n");
+	printf(" Q              - 'Q'uit or exit this console.\n\n");
 }
+// NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
+// maybe except for fs & ss????
 
 
 /**
@@ -121,26 +132,31 @@ char* get_input_cmd(uint8_t pretext)
 int16_t do_wsa(const char *wsa_addr)
 {	
 	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
-	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_device wsa_dev;		// the wsa device structure
+	struct wsa_device *dev;
 	char intf_str[30];			// store the interface method string
-	int16_t result = 0;				// result returned from a function
+	int16_t result = 0;			// result returned from a function
+	uint64_t freq = 0;
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
-	
+
 	// Start the WSA connection
-	if ((result = wsa_open(&wsa_dev, intf_str)) < 0) {
+	dev = &wsa_dev;
+	if ((result = wsa_open(dev, intf_str)) < 0) {
 		printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
 		doutf(1, "%s", wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
+	
+	printf("Name: %s %llu\n", dev->descr.rfe_name, dev->descr.max_tune_freq);
 
 // remove this section
 	//TEST commands
-	result = wsa_set_freq(&wsa_dev, 2440000000);
+	result = wsa_set_freq(dev, 2440000000);
 
 	// Query the WSA status to make sure it is up & running
-	result = wsa_get_freq(&wsa_dev);
+	freq = wsa_get_freq(dev);
 
 // remove upto here
 
@@ -149,13 +165,11 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the control or data acquisition loop
 	//*****
 	do {
-
-		//TODO do help option printing
-		print_cli_menu(&wsa_dev);
-		break;//.......................................! :(
+		print_cli_menu(dev);
+		break;
 	} while (!user_quit);
 
-	wsa_close(&wsa_dev);
+	wsa_close(dev);
 
 	return 0;
 }

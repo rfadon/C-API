@@ -209,7 +209,7 @@ u_long wsa_verify_addr(const char *sock_addr)
 	u_long new_sock_addr = inet_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         // sock_addr isn't a dotted IP, so resolve it through DNS
-        hostent *pHE = gethostbyname(sock_addr);//wsa_get_host_info
+        hostent *pHE = gethostbyname(sock_addr);
         if (pHE == NULL) {
             return INADDR_NONE;
         }

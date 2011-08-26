@@ -1,7 +1,8 @@
 #ifndef __WSA_API_H__
 #define __WSA_API_H__
 
-#include "stdint.h"
+
+#include "wsa_lib.h"
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -36,8 +37,9 @@ struct wsa_descriptor {
 	char rfe_name[20];
 	char rfe_version[20];
 	char fw_version[20];
+	char intf_type[20];
 	uint64_t inst_bw;
-	uint64_t max_pkt_size;
+	uint64_t max_sample_size;
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
 };
@@ -58,13 +60,16 @@ struct wsa_frame_header {
 	struct wsa_time time_stamp;
 };
 
+struct wsa_socket {
+	SOCKET cmd;
+	SOCKET data;
+};
 
 struct wsa_device {
 	struct wsa_descriptor descr;
-//	struct wsa_socket sock;
+	struct wsa_socket sock;
 	//struct wsa_trig *trig_list; ??? might not belong here ???
 };
-
 
 
 #endif
@@ -109,8 +114,10 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 // ////////////////////////////////////////////////////////////////////////////
 
 int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint64_t pkt_size);
-int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
+			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size);
+//int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
+//int16_t wsa_set_sample_size(struct wsa_device *dev, int64_t sample_size); //???
+//int64_t wsa_get_sample_size(struct wsa_device *dev);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -129,6 +136,23 @@ wsa_gain wsa_get_gain (struct wsa_device *dev);
 /*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
 			uint64_t freq, double *cal_value);*/
 int16_t wsa_set_gain (struct wsa_device *dev, wsa_gain gain);
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// RFE CONTROL SECTION                                                       //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_antenna(struct wsa_device *dev);
+int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num);
+
+int16_t wsa_get_bpf(struct wsa_device *dev);
+int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode);
+
+int16_t wsa_get_lpf(struct wsa_device *dev);
+int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t option);
+
+int16_t wsa_check_cal_mode(struct wsa_device *dev);
+int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode);
 
 
 // ////////////////////////////////////////////////////////////////////////////

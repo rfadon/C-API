@@ -1,7 +1,6 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
-#include "stdint.h"
 #include "wsa_client.h"
 
 
@@ -32,7 +31,7 @@ struct wsa_descriptor {
 	char fw_version[20];
 	char intf_type[20];
 	uint64_t inst_bw;
-	uint64_t max_pkt_size;
+	uint64_t max_sample_size;
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
 };
@@ -68,7 +67,7 @@ struct wsa_device {
 
 
 struct wsa_resp {
-	int32_t status;
+	int64_t status;
 	char *result;
 };
 

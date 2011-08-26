@@ -12,14 +12,14 @@
 /**
  * Initialized the the wsa_device structure
  *
- * @param dev - a wsa device structure.
+ * @param dev - A pointer to the WSA device structure.
  *
  * @return None
  */
 int16_t wsa_dev_init(struct wsa_device *dev)
 {
 	dev->descr.inst_bw = 0;
-	dev->descr.max_pkt_size = 0;
+	dev->descr.max_sample_size = 0;
 	dev->descr.max_tune_freq = 0;
 	dev->descr.min_tune_freq = 0;
 	strcpy(dev->descr.prod_name, "");
@@ -44,17 +44,14 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	// 3rd, set some values base on the model
 	// TODO read from regs/eeprom instead???
 	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
-		dev->descr.max_pkt_size = WSA4000_MAX_PKT_SIZE;
-		dev->descr.inst_bw = WSA4000_INST_BW;
+		dev->descr.max_sample_size = WSA4000_MAX_PKT_SIZE;
+		dev->descr.inst_bw = (uint64_t) WSA4000_INST_BW;
 		
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
+			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 		}
 	}
-
-	//dev->run_mode = (wsa_run_mode) 0;
-	//dev->trig_list = (wsa_trig *) malloc(sizeof(wsa_trig));
 
 	return 0;
 }
@@ -65,11 +62,13 @@ int16_t wsa_dev_init(struct wsa_device *dev)
  * and communicate control commands in the format of the given command 
  * syntax.
  *
- * @param dev - the WSA device structure to be connected/establised.
- * @param cmd_syntax - The standard for control commands communication to the
- * WSA. \n Currently supported standard command syntax type is: SCPI.
- * @param intf_method - The interface method to the WSA. \n
- * Possible methods: \n
+ * @param dev - A pointer to the WSA device structure to be 
+ * connected/establised.
+ * @param cmd_syntax - A char pointer to store standard for control 
+ * commands communication to the WSA. \n 
+ * Currently supported standard command syntax type is: SCPI.
+ * @param intf_method - A char pointer to store the interface method to the 
+ * WSA. \n Possible methods: \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n
  * - With USB, use: "USB" (check if supported with the WSA version used)
  * 
@@ -79,7 +78,6 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method)
 {
-	struct wsa_device wsa_dev;	// the wsa device structure
 	int16_t result = 0;			// result returned from a function
 	char *temp_str;				// temporary store a string
 	const char* wsa_addr;		// store the WSA IP address
@@ -115,27 +113,27 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 
 		// Can't determine connection method from the interface string
 		else {
-			printf(" ERROR: Interface method is not recognized/valid!\n");
-			return -1;
+			doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
+				wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
+			return WSA_ERR_INVINTFMETHOD;
 		}
 	}
 
 	// When the cmd_syntax is not supported/recognized
 	else {
-		doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
-		return WSA_ERR_INVINTFMETHOD;
+		printf(" ERROR: Command syntax is not recognized/valid!\n");
+		return -1;
 	}
 	
-
+	
 	//*****
 	// Do the connection
 	//*****
 	if (is_tcpip) {
-		result = wsa_start_client(wsa_addr, &wsa_dev.sock.cmd, 
-				&wsa_dev.sock.data);
+		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
+				&(dev->sock).data);
 
-		strcpy(wsa_dev.descr.intf_type, "TCPIP");
+		strcpy(dev->descr.intf_type, "TCPIP");
 
 		if (result < 0) {
 			printf("ERROR: Failed to start client sockets, closing down the "
@@ -147,8 +145,6 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	}
 	
 	// TODO Add other methods here
-	
-	*dev = wsa_dev;
 
 	// Initialize wsa_device structure with the proper values
 	if (wsa_dev_init(dev) < 0) {
@@ -165,22 +161,18 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
  * Close the device connection if one is started, stop any existing data 
  * capture, and perform any necessary clean ups.
  *
- * @param dev - The WSA device structure to be closed.
+ * @param dev - A pointer to the WSA device structure to be closed.
  *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_disconnect(struct wsa_device *dev)
 {
 	int16_t result = 0;			// result returned from a function
-
-//TODO Remove this line
-wsa_send_command(dev, "STOPALL");
 	
 	//TODO close based on connection type
 	// right now do only client
-	result = wsa_close_client(dev->sock.cmd, dev->sock.data);
-
-	// TODO test if you can still send after this.
+	if (strcmp(dev->descr.intf_type, "TCPIP") == 0)
+		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
 
 	return result;
 }
@@ -190,7 +182,8 @@ wsa_send_command(dev, "STOPALL");
  * List (print out) the IPs of connected WSAs to the network? or the PC???
  * For now, will list the IPs for any of the connected devices to a PC?
  *
- * @param wsa_list - Store (WSA???) IP addresses connected to a network???.
+ * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
+ * connected to a network???.
  *
  * @return Number of connected WSAs (or IPs for now) on success, or a 
  * negative number on error.
@@ -205,24 +198,25 @@ int16_t wsa_list_devs(char **wsa_list)
 	return result;
 }
 
-/**
- * Open a file or print the help commands information associated with the 
- * WSA used.
- *
- * @param dev - The WSA device structure from which the help information 
- * will be provided.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_help(struct wsa_device dev)
-{
-	// Open the generic SCPI for now
-	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
-		printf("ERROR: Failed to opent the SCPI file.\n");
-		return -1;
-	}
-	return 0;
-}
+
+///**
+// * Open a file or print the help commands information associated with the 
+// * WSA used.
+// *
+// * @param dev - The WSA device structure from which the help information 
+// * will be provided.
+// *
+// * @return 0 on success, or a negative number on error.
+// */
+//int16_t wsa_help(struct wsa_device dev)
+//{
+//	// Open the generic SCPI for now
+//	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
+//		printf("ERROR: Failed to opent the SCPI file.\n");
+//		return -1;
+//	}
+//	return 0;
+//}
 
 
 /**
@@ -230,9 +224,9 @@ int16_t wsa_help(struct wsa_device dev)
  * The commands format must be written according to the specified 
  * standard syntax in wsa_connect().
  *
- * @param dev - The WSA device structure from which the command is sent to
- * @param command - The control command string written in the format specified 
- * by the standard syntax in wsa_connect()
+ * @param dev - A pointer to the WSA device structure.
+ * @param command - A char pointer to the control command string written 
+ * in the format specified by the syntax standard in wsa_connect()
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
@@ -260,20 +254,20 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 
 
 /**
- * Send query command to the WSA device specified by \b dev. The
- * commands format must be written according to the specified command syntax 
+ * Send query command to the WSA device specified by \b dev. The commands 
+ * format must be written according to the specified command syntax 
  * in wsa_connect().
  *
- * @param dev - The WSA device structure from which the query is sent to
- * @param command - The query command string written in the format specified 
- * by the command syntax in wsa_connect()
+ * @param dev - A pointer to the WSA device structure.
+ * @param command - A char pointer to the query command string written in 
+ * the format specified by the command syntax in wsa_connect().
  *
  * @return The result stored in a wsa_resp struct format.
  */
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp resp;
-	int16_t bytes_rxed = 0;
+	int64_t bytes_rxed = 0;
 	char *rx_buf;
 
 	// Initialized the receive buffer
@@ -304,9 +298,9 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 
 //TODO: Determine if string should be returned instead.
 /**
- * Querry the WSA for any error
+ * Querry the WSA for any error.
  *
- * @param dev - The WSA device structure from which the error query is sent to
+ * @param dev - A pointer to the WSA device structure.
  *
  * @return 0 on success, or a negative number on error.
  */
@@ -320,15 +314,19 @@ int16_t wsa_query_error(struct wsa_device *dev)
 
 // this one need better design base on SCPI?
 /**
+ * Reads a frame of data. \e Each frame consists of a header, and I and Q 
+ * buffers of data of length determine by the \b sample_size parameter.
  *
- * @param dev - The WSA device structure from which the command is sent to.
- * @param header - A wsa_frame_header structure of information for the frame.
- * @param i_buf - The unscaled, signed integer I data buffer with size 
- * specified by the frame_size.
- * @param q_buf - The unscaled, signed integer Q data buffer with size 
- * specified by the frame_size.
- * @param frame_size - The number of samples (i.e. {I, Q} sample pairs) to be 
- * captured per frame.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ * information for the frame.
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * Q data buffer with size specified by the sample_size.
+ * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * sample pairs) per data frame to be captured. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
  *
  * @return Number of samples read on success, or a negative number on error.
  */
@@ -339,3 +337,5 @@ int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	return 0;
 }
+
+

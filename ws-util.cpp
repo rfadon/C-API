@@ -170,7 +170,9 @@ bool ShutdownConnection(SOCKET sd, char *sock_name)
         }
         else if (nNewBytes != 0) {
             cerr << endl << "FYI, received " << nNewBytes <<
-                    " unexpected bytes during "<< sock_name <<" connection shutdown." << endl;
+                    " unexpected bytes during "<< sock_name 
+					<<" connection shutdown." << endl;
+			break;
         }
         else {
             // Okay, we're done!
