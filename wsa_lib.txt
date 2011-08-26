@@ -39,6 +39,22 @@
 	/** @var char wsa_descriptor::fw_version
 	 * The firmware version currently in the WSA.
 	 */
+	/** @var char wsa_descriptor::intf_type
+	 * The interface method to a WSA.  Available: "TCPIP" ("USB" TBD).
+	 */
+	/** @var uint64_t wsa_descriptor::inst_bw
+	 * The WSA instantaneous bandwidth in Hz. 
+	 */
+	/** @var uint64_t wsa_descriptor::max_sample_size
+	 * The maximum number of continuous I and Q data samples the WSA 
+	 * can capture per frame.
+	 */
+	/** @var uint64_t wsa_descriptor::max_tune_freq
+	 * The maximum frequency in Hz that a WSA's RFE can be tuned to.
+	 */
+	/** @var uint64_t wsa_descriptor::min_tune_freq
+	 * The minimum frequency in Hz that a WSA's RFE can be tuned to.
+	 */
  
 
 /** @struct wsa_socket 
