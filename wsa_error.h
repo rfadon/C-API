@@ -62,8 +62,8 @@
 // DATA ACQUISITION ERRORS		//
 // ///////////////////////////////
 #define WSA_ERR_NODATABUS		(LNEG_NUM - 401)
-#define WSA_ERR_READPKTFAILED	(LNEG_NUM - 402)
-#define WSA_ERR_INVPKTSIZE		(LNEG_NUM - 403)
+#define WSA_ERR_READFRAMEFAILED	(LNEG_NUM - 402)
+#define WSA_ERR_INVSAMPLESIZE	(LNEG_NUM - 403)
 //#define WSA_ERR_	(LNEG_NUM - 404)
 
 
@@ -102,7 +102,7 @@
 #define WSA_ERR_INVSTOPRES		(LNEG_NUM - 1206)
 #define WSA_ERR_INVTRIGRANGE	(LNEG_NUM - 1207)
 #define WSA_ERR_INVDWELL		(LNEG_NUM - 1208)
-#define WSA_ERR_INVNUMPKTS		(LNEG_NUM - 1209)
+#define WSA_ERR_INVNUMFRAMES	(LNEG_NUM - 1209)
 //#define WSA_ERR_	(LNEG_NUM - 1210)
 
 
@@ -199,7 +199,7 @@ static struct wsa_err_item {
 		"No data bus detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_READFRAMEFAILED, 
 		"Failed reading a WSA frame"),
-	wsa_err_item(WSA_ERR_INVFRAMESIZE, 
+	wsa_err_item(WSA_ERR_INVSAMPLESIZE, 
 		"Invalid frame size"),	// TODO: could add version maximum pkt here
 
 	//*****

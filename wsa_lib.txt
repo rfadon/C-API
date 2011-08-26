@@ -18,6 +18,24 @@
  */
  
 
+/** @enum wsa_gain
+ * Defines the amplification available in the radio front end (RFE) of the WSA.
+ * \n If an incorrect setting is specified, an error will be returned
+ */
+	/** @var wsa_gain::HIGH
+	 * High RFE amplification. Value 1.
+	 */
+	/** @var wsa_gain::MEDIUM
+	 * Medium RFE amplification.
+	 */
+	/** @var wsa_gain::LOW
+	 * Low RFE amplification.
+	 */
+	/** @var wsa_gain::ULOW
+	 * Ultralow RFE amplification.
+	 */
+	 
+
 /** @struct wsa_descriptor
  * @brief This structure stores WSA information. 
  */
@@ -85,7 +103,10 @@
 /** @struct wsa_frame_header
  * @brief This structure contains header information related to each frame read
  * by wsa_get_frame().
- */ 
+ */
+	/** @var char wsa_frame_header::prod_version
+	 * WSA product version number.
+	 */
 	/** @var uint64_t wsa_frame_header::freq
 	 * The center frequency (Hz) to which the RF PLL is tuned.
 	 */
@@ -120,6 +141,6 @@
 	 * The status of the query. Positive number when success, negative when 
 	 * failed.
 	 */
-	 /** @char wsa_resp::result
+	 /** @var char wsa_resp::result
 	  * The resulted string responded to a query.
 	  */
