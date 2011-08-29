@@ -556,5 +556,7 @@ int16_t wsa_list_ips(char **ip_list)
 	ip_list[0] = "192.168.215.107";
 	printf("\t1. %s\n", ip_list[0]);
 
+	printf("This function is not yet available for this software version.\n";
+
 	return 1;
 }

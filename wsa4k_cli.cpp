@@ -2,29 +2,48 @@
  * @mainpage Introduction
  *
  * This documentation, compiled using Doxygen, shows in details the code
- * structure of the CLI (Command Line Interface) tool. \n \n
- * The following diagram illustrates the different layers involved in 
- * interfacing with a WSA on the PC side.  
+ * structure of the CLI (Command Line Interface) tool. It provides information 
+ * on all the libraries involved. \n \n
+ * The following diagram illustrates the different layers and libraries 
+ * involved in interfacing with a WSA on the PC side.  
  *
  * @image html wsa4000_cli_2.PNG
- * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=15cm
+ * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=10cm
  *
- * The wsa_lib is the main gateway to a WSA box in the application/
- * presentation layer, in which the CLI tool would belong.  The wsa_lib has, 
- * in brief, functions to open, close, send/receive commands, querry the WSA 
- * box status, and get data.  In this CLI version, wsa_lib calls the 
- * wsa_client's functions in the transport layer to establish TCP/IP specific 
- * connections.  Other connection methods such as USB could be added to the 
- * transport layer later on.  The wsa_lib, thus, abstracts away the interface 
- * method from any application/presentation program calling it.
+ * The CLI interfaces to a WSA through the wsa_api library, which provides
+ * functions to set/get particular settings or data from the WSA.  The wsa_api
+ * encodes the commands into SCPI syntax scripts, which are sent to a WSA 
+ * through the wsa_lib library.  Subsequently decodes any responses or packet
+ * coming back from the WSA through the wsa_lib. \n \n
  *
- * The CLI, hence, is a direct example of how the wsa_lib library could be 
- * used.
- * 
+ * The wsa_lib, thus, is the main gateway to a WSA box from a PC.  The 
+ * wsa_lib has functions to open, close, send/receive commands, 
+ * querry the WSA box status, and get data.  In this CLI version, wsa_lib 
+ * calls the wsa_client's functions in the transport layer to establish TCP/IP 
+ * specific connections.  Other connection methods such as USB could be 
+ * added to the transport layer later on.  The wsa_lib, thus, abstracts 
+ * away the interface method from any application/presentation program 
+ * calling it.
+ *
+ * The CLI, hence, is a direct example of how the wsa_api library could be 
+ * used.  VRT data packet will be decoded before saving into a file.
+ *  
  * The WSA4000 CLI is designed using mixed C/C++ languages.
- * The CLI when executed will run in a Windows command prompt console.
- * 
+ * The CLI when executed will run in a Windows command prompt console. List 
+ * of commands available with the CLI is listed in the print_cli_menu() 
+ * function. \n \n
+ *
+ * @section limitation Limitations in v1.0:
+ * The following features are not yet supported with the CLI:
+ *  - DC correction.  Need Nikhil to clarify on that.
+ *  - IQ correction.  Same as above.
+ *  - Automatic finding of a WSA box(s) on a network.
+ *  - Set sample sizes. 1024 size for now.
+ *  - Triggers.
+ *  - Gain calibrarion. TBD with triggers.
+ *  - USB interface method - might never be available.
  */
+
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
