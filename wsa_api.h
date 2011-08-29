@@ -56,7 +56,7 @@ struct wsa_frame_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
 	char gain[10];
-	uint32_t frame_size; 
+	uint32_t sample_size; 
 	struct wsa_time time_stamp;
 };
 

@@ -1,3 +1,36 @@
+/**
+ * @mainpage Introduction
+ *
+ * This documentation, compiled using Doxygen, describes in details the 
+ * wsa_api library.  The wsa_api provides
+ * functions to set/get particular settings or acquire data from the WSA.  
+ * The wsa_api encodes the commands into SCPI syntax scripts, which 
+ * are sent to a WSA through the wsa_lib library.  Subsequently, it decodes 
+ * any responses or packet coming back from the WSA through the wsa_lib.
+ * Thus, the API helps to abstract away SCPI syntax from the user.
+ *
+ * Data frames passing back from the wsa_lib are in VRT format.  This 
+ * API will extract the information and the actual data frames within
+ * the VRT packet and makes them available in structures and buffers 
+ * for users.
+ *
+ * @section limitation Limitations in v1.0:
+ * The following features are not yet supported with the CLI:
+ *  - DC correction.  Need Nikhil to clarify on that.
+ *  - IQ correction.  Same as above.
+ *  - Automatic finding of a WSA box(s) on a network.
+ *  - Set sample sizes. 1024 size for now.
+ *  - Triggers.
+ *  - Gain calibrarion. TBD with triggers.
+ *  - USB interface method - might never be available.
+ *
+ * @section usage How to use the library
+ * The wsa_api is designed using mixed C/C++ languages.  To use the 
+ * library, you need to include the header file, wsa_api.h, in files that 
+ * will use any of its functions to access a WSA, and a link to 
+ * the wsa_api.lib.
+ */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -416,7 +449,7 @@ int16_t wsa_get_lpf(struct wsa_device *dev)
  * Sets the internal low pass filter (LPF) on or off (bypassing).
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer mode of selection: 0 - Off, 1 - On.
+ * @param option - An integer mode of selection: 0 - Off, 1 - On.
  *
  * @return 0 on success, or a negative number on error.
  */

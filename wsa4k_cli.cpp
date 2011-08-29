@@ -8,7 +8,7 @@
  * involved in interfacing with a WSA on the PC side.  
  *
  * @image html wsa4000_cli_2.PNG
- * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=10cm
+ * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=11cm
  *
  * The CLI interfaces to a WSA through the wsa_api library, which provides
  * functions to set/get particular settings or data from the WSA.  The wsa_api

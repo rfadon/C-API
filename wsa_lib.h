@@ -48,7 +48,7 @@ struct wsa_frame_header {
 	char prod_serial[20];  //???
 	uint64_t freq;
 	char gain[10];
-	uint32_t frame_size; 
+	uint32_t sample_size; 
 	struct wsa_time time_stamp;
 };
 
@@ -86,6 +86,6 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 int16_t wsa_query_error(struct wsa_device *dev);
 int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint64_t frame_size);
+				 int32_t *i_buf, int32_t *q_buf, uint64_t sample_size);
 
 #endif

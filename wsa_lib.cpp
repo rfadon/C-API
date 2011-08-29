@@ -317,6 +317,7 @@ int16_t wsa_query_error(struct wsa_device *dev)
  * Reads a frame of data. \e Each frame consists of a header, and I and Q 
  * buffers of data of length determine by the \b sample_size parameter.
  *
+ * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
  * information for the frame.
  * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
@@ -331,7 +332,7 @@ int16_t wsa_query_error(struct wsa_device *dev)
  * @return Number of samples read on success, or a negative number on error.
  */
 int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint64_t frame_size)
+				 int32_t *i_buf, int32_t *q_buf, uint64_t sample_size)
 {
 	printf("Slow down... To be added later.\n");
 

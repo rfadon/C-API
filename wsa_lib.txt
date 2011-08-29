@@ -14,10 +14,11 @@
  *
  * The wsa_lib supports SCPI for control command syntax and VRT for packet.
  * 
+ * @section usage How to use the library
  * The wsa_lib is designed using mixed C/C++ languages.  To use the 
- * library, you need to include the header file, wsa4k_lib.h, in files that 
- * will use any of its functions to access a WSA4000, and a link to 
- * the wsa4k_lib.lib.
+ * library, you need to include the header file, wsa_lib.h, in files that 
+ * will use any of its functions to access a WSA, and a link to 
+ * the wsa_lib.lib.
  */
  
 
@@ -117,7 +118,7 @@
 	 * The amplification in the radio front end at the time a WSA data 
 	 * frame is captured.
 	 */
-	/** @var uint32_t wsa_frame_header::frame_size
+	/** @var uint32_t wsa_frame_header::sample_size
 	 * Number of {I, Q} samples pairs per WSA data frame.
 	 */
 	/** @var struct wsa_time wsa_frame_header::time_stamp
