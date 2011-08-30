@@ -224,6 +224,8 @@ u_long wsa_verify_addr(const char *sock_addr)
         }
         new_sock_addr = *((u_long*)pHE->h_addr_list[0]);
     }
+	
+	WSACleanup();
 
     return new_sock_addr;
 }
@@ -550,6 +552,8 @@ int16_t wsa_get_host_info(char *name)
             printf("NETBIOS address was returned\n");
         }   
     }
+
+	WSACleanup();
 
     return 0;
 }
