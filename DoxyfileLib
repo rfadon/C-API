@@ -696,7 +696,9 @@ EXCLUDE                = main.cpp \
                          .git \
                          Debug \
                          wsa_commons.h \
-                         wsa_commons.cpp
+                         wsa_commons.cpp \
+                         DoxygenCli \
+                         DoxygenApi
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or 
 # directories that are symbolic links (a Unix file system feature) are excluded 

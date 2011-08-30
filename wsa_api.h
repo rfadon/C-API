@@ -169,3 +169,4 @@ int32_t wsa_get_trig_list_size (struct wsa_device *dev);
 int16_t wsa_remove_trig (struct wsa_device *dev, uint16_t id);
 */
 #endif
+

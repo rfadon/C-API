@@ -25,7 +25,7 @@ DOXYFILE_ENCODING      = UTF-8
 # The PROJECT_NAME tag is a single word (or a sequence of words surrounded 
 # by quotes) that should identify the project.
 
-PROJECT_NAME           = "Standard WSA Library"
+PROJECT_NAME           = "Standard WSA API Library"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. 
 # This could be handy for archiving the generated documentation or 
@@ -51,7 +51,7 @@ PROJECT_LOGO           =
 # If a relative path is entered, it will be relative to the location 
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = E:/ThinkRF_Work/PROJECTS/WSA4000/wsa4000_cli/DoxygenLib
+OUTPUT_DIRECTORY       = E:/ThinkRF_Work/PROJECTS/WSA4000/wsa4000_cli/DoxygenApi
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 
 # 4096 sub-directories (in 2 levels) under the output directory of each output 
@@ -689,14 +689,16 @@ EXCLUDE                = main.cpp \
                          ws-util.h \
                          wsa_client.cpp \
                          wsa_client.h \
-                         wsa_api.cpp \
-                         wsa_api.h \
                          wsa_debug.h \
                          wsa_debug.cpp \
                          .git \
                          Debug \
                          wsa_commons.h \
-                         wsa_commons.cpp
+                         wsa_commons.cpp \
+                         wsa_lib.h \
+                         wsa_lib.cpp \
+                         DoxygenCli \
+                         DoxygenLib
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or 
 # directories that are symbolic links (a Unix file system feature) are excluded 

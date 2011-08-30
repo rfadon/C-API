@@ -14,7 +14,7 @@
  * the VRT packet and makes them available in structures and buffers 
  * for users.
  *
- * @section limitation Limitations in v1.0:
+ * @section limitation Limitations in v1.0
  * The following features are not yet supported with the CLI:
  *  - DC correction.  Need Nikhil to clarify on that.
  *  - IQ correction.  Same as above.
