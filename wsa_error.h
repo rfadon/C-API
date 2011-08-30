@@ -49,6 +49,8 @@
 #define WSA_ERR_ETHERNETNOTAVBL	(LNEG_NUM - 206)
 #define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM - 207)
 #define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM - 209)
+#define WSA_ERR_WINSOCKSTARTUPFAILED (LNEG_NUM - 210)
+#define WSA_ERR_SOCKETSETFUPFAILED	(LNEG_NUM - 211)
 //#define WSA_ERR_	(LNEG_NUM - 202)
 
 
@@ -169,6 +171,10 @@ static struct wsa_err_item {
 	//*****
 	// WSA Interface/Connection Related
 	//*****
+	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
+		"Invalid connection type"),
+	wsa_err_item(WSA_ERR_INVIPHOSTADDRESS,
+		"Invalid IP or Host Name given"),
 	wsa_err_item(WSA_ERR_USBNOTAVBL, 
 		"USB connection is not available with this WSA"),
 	wsa_err_item(WSA_ERR_ETHERNETNOTAVBL,
@@ -181,10 +187,10 @@ static struct wsa_err_item {
 		"Unable to open the WSA's Ethernet connection"),
 	wsa_err_item(WSA_ERR_ETHERNETINITFAILED,
 		"Unable to initialize the WSA's Ethernet component"),
-	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
-		"Invalid connection type"),
-	wsa_err_item(WSA_ERR_INVIPHOSTADDRESS,
-		"Invalid IP or Host Name given"),
+	wsa_err_item(WSA_ERR_WINSOCKSTARTUPFAILED,
+		"Unable to start up Windows Socket with this system"),
+	wsa_err_item(WSA_ERR_SOCKETSETFUPFAILED,
+		"Socket setup failed"),
 
 	//*****
 	// Amplitude related

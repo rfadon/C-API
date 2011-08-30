@@ -1,13 +1,6 @@
 #ifndef __WSA_CLIENT_H__
 #define __WSA_CLIENT_H__
 
-#include <iostream>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-
 #include "stdint.h"
 #include "ws-util.h"
 

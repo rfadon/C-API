@@ -164,8 +164,8 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the WSA connection
 	dev = &wsa_dev;
 	if ((result = wsa_open(dev, intf_str)) < 0) {
-		printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
-		doutf(1, "%s", wsa_get_err_msg(WSA_ERR_OPENFAILED));
+		doutf(1, "Error WSA_ERR_OPENFAILED: %s.", 
+			wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
 	

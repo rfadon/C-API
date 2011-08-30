@@ -1,5 +1,13 @@
+#include <iostream>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+
 #include "wsa_client.h"
-//#include "ws-util.h"
+#include "ws-util.h"
+#include "wsa_error.h"
 
 using namespace std;
 
@@ -55,10 +63,10 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 
 	// MAKEWORD(2, 2) - request for version 2.2 of Winsock on the system
     if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
-		printf("WSAStartup() returned error code %d. ", ws_err_code);
-		printf("%s\n", WSAGetLastErrorMessage(
+		doutf(1, "WSAStartup() returned error code %d. ", ws_err_code);
+		doutf(1, "%s\n", WSAGetLastErrorMessage(
 			"Error creating an instance of Winsock in Windows!\n"));
-        return 255;	// random # for now
+        return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
     }
 
 
@@ -67,13 +75,13 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	//*****
 	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, cmd_port);
     if (cmd_socket == INVALID_SOCKET) {
-        fprintf(stderr, "%s\n", 
-			WSAGetLastErrorMessage("error connecting to the server"));
-        return 3;
+        doutf(1, "%s\n", 
+			WSAGetLastErrorMessage("Error connecting to the server"));
+        return WSA_ERR_SOCKETSETFUPFAILED;
     }
     else {
 		*cmd_sock = cmd_socket;
-		printf("   ...connected, socket %d.\n", cmd_socket);
+		printf("connected.\n");
 	}
 
 
@@ -84,13 +92,13 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 /*	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
     if (data_socket == INVALID_SOCKET) {
         fprintf(stderr, "%s\n", 
-			WSAGetLastErrorMessage("error connecting to the server"));
-        result = -1;
+			WSAGetLastErrorMessage("Error connecting to the server"));
+        result = WSA_ERR_SOCKETSETFUPFAILED;
     }
     else {
 		*data_sock = data_socket;
 		// TODO: remove this section
-		printf("   ...connected, socket %d.\n", data_socket);
+		printf("connected.\n");
 	}*/
 
     return result;
@@ -111,7 +119,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
     // Delay for a bit, so we can start other clients.  This is strictly
     // for testing purposes, so you can convince yourself that the 
     // server is handling more than one connection at a time.
-    printf("\nWill shut down sockets in %d seconds... (one dot per second): ", 
+	printf("\nWill shut down sockets in %d seconds: ", 
 		kShutdownDelay);
 	fflush(stdin);
 
@@ -159,14 +167,14 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 {
 	// Find the server's address
-    printf("Looking up %s address... ", sock_name);
+	printf("Looking up %s address: ", sock_name);
 	fflush(stdin);
 
     u_long new_sock_addr = wsa_verify_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
         fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
-        return 3;
+        return -1;	// random number
     }
 
 	// Keep record of the socket's address & port
@@ -174,14 +182,14 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
     memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
 	printf("%s:%d\n", inet_ntoa(socAdrIn), sock_port); 
 
-    printf("Connecting to %s ...", sock_name);
-	//fflush(stdin);
+	printf("Connecting to %s (%s:%d)... ", sock_name, inet_ntoa(socAdrIn), 
+		sock_port);
 
 	// The htons function converts a u_short from host to TCP/IP 
 	// network byte order (which is big-endian)
     SOCKET sd = establish_connection(new_sock_addr, htons(sock_port));
-	if (sd == INVALID_SOCKET) 
-		printf("%s socket setup failed!\n", sock_name);
+	//if (sd == INVALID_SOCKET) 
+	//	printf("%s socket setup failed!\n", sock_name);
 
 	return sd;
 }
@@ -325,8 +333,8 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 	do {
 		// Make reading of socket non-blocking w/ time-out of x msec
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
-			printf("init select() function returned with error %d\n", 
-				WSAGetLastError());
+			//printf("winsock init select() function returned with error %d\n", 
+			//	WSAGetLastError());
 			//return 0;
 			break;
 		}
@@ -336,12 +344,19 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 			// read incoming strings at a time
 			bytes_rxed = recv(in_sock, rx_buf_ptr, MAX_STR_LEN, 0);
 			if (bytes_rxed > 0) {
+				// TODO verify here
+				// Danger: will keep receive until sock is empty
+				// might ended up getting others data here
+				// change while to < 0 for one socket at a time,
+				// & uncomment printf error above.
 				rx_buf_ptr += bytes_rxed;
 				total_bytes += bytes_rxed;
 			}
 		} 
 	} while(bytes_rxed > 0);
-	rx_buf_ptr[total_bytes] = '\0';
+	
+	//Terminate the last string in buff to 0.
+	rx_buf_ptr[0] = '\0';
 
 	return total_bytes;
 }

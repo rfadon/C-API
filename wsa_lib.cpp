@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <string.h>
 #include "wsa_commons.h"
 #include "wsa_client.h"
@@ -91,10 +92,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		// If it's a TCPIP connection, get the address
 		if (strstr(intf_method, "TCPIP") != NULL) {
 			if ((temp_str = strstr(intf_method, "::")) == NULL) {
-				printf("ERROR: Invalid TCPIP string \"%s\".\n", intf_method);
-				doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s.\n", 
-					wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS));
-				return WSA_ERR_INVIPHOSTADDRESS;
+				doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s \"%s\".\n", 
+					wsa_get_err_msg(WSA_ERR_INVINTFMETHOD), intf_method);
+				return WSA_ERR_INVINTFMETHOD;
 			}
 
 			//Assume right after TCPIP:: is the IP address
@@ -117,7 +117,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 				wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
 			return WSA_ERR_INVINTFMETHOD;
 		}
-	}
+	} // end if SCPI section
 
 	// When the cmd_syntax is not supported/recognized
 	else {
@@ -133,22 +133,20 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
 				&(dev->sock).data);
 
-		strcpy(dev->descr.intf_type, "TCPIP");
-
 		if (result < 0) {
-			printf("ERROR: Failed to start client sockets, closing down the "
-				"connection!\n");
 			doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
 					wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
 			return WSA_ERR_ETHERNETCONNECTFAILED;
 		}
+
+		strcpy(dev->descr.intf_type, "TCPIP");
 	}
 	
 	// TODO Add other methods here
 
 	// Initialize wsa_device structure with the proper values
 	if (wsa_dev_init(dev) < 0) {
-		doutf(1, "Error WSA_ERR_USBINITFAILED: "
+		doutf(1, "Error WSA_ERR_INITFAILED: "
 			"%s.\n", wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_INITFAILED;
 	}
@@ -267,33 +265,20 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp resp;
-	int64_t bytes_rxed = 0;
-	char *rx_buf;
-	
-	//resp.result = 0;
-	//resp.status = 0;
-
-	// Initialized the receive buffer
-	rx_buf = (char *) malloc(MAX_STR_LEN * sizeof(char));
+	int64_t bytes_got = 0;
 
 	// Send the query command out
-	bytes_rxed = wsa_send_command(dev, command);
+	bytes_got = wsa_send_command(dev, command);
 
 	// Receive query result from the WSA server
-	bytes_rxed = wsa_sock_recv(dev->sock.cmd, rx_buf, TIMEOUT);
-
-//TODO Remove these
-	printf("\nRxed %d bytes: ", bytes_rxed);
-	//for (int i = 0; i < bytes_rxed; i++)
-		printf("%s ", rx_buf);
-	printf("\n");
-// til here
+	if (bytes_got > 0)
+		bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, TIMEOUT);
 
 	// TODO define what result should be
-	resp.result = rx_buf;
-	resp.status = bytes_rxed;
-
-	free(rx_buf);
+	resp.status = bytes_got;
+	if (bytes_got < 0) {
+		resp.result[0] = 0;
+	}
 
 	return resp;
 }

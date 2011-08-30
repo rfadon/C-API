@@ -81,10 +81,7 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
 	if ((result = wsa_connect(dev, SCPI, intf_method)) < 0) {
-		//printf("ERROR: Failed to connect to the WSA at %s.\n", wsa_addr);
-		doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
-		return WSA_ERR_ETHERNETCONNECTFAILED;
+		return result;
 	}
 
 	return 0;
@@ -117,8 +114,8 @@ void wsa_close(struct wsa_device *dev)
 int16_t wsa_check_addr(char *ip_addr) 
 {
 	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
-		doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS));
+		doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
+			wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -194,8 +191,12 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	query = wsa_send_query(dev, ":INPUT:CENTER?\n");
 
 	// TODO Handle the query output here 
-	//if (query.status > 0)
-	//	return atof(query.result);
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+
 	return 0;
 }
 
