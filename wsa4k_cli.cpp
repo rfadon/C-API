@@ -51,6 +51,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
+#include <direct.h>
 
 #include "stdint.h"
 #include "wsa4k_cli.h"
@@ -58,6 +59,7 @@
 #include "wsa_error.h"
 
 
+#define MAX_CMD_WORDS 4
 /**
  * Print out the CLI options menu
  *
@@ -82,7 +84,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get bpf        - Show the current internal BPF state.\n");
 	printf(" get cal        - Show the current calibration mode.\n");
 	printf(" get cf         - Show the current running 'C'entre 'F'requency "
-							 "(in MHz).\n");
+							  "(in MHz).\n");
 	printf(" get fs         - Show the current 'F'rame 'S'ize per file.\n");
 	printf(" get gl         - Show the current 'G'ain 'L'evel.\n");
 	printf(" get lpf        - Show the current state of the anti-aliasing LPF.\n");
@@ -92,17 +94,20 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set bpf <1/0>  - Turn the internal BPF on (1) or off (0).\n");
 	printf(" set cal <1/0>  - Turn the calibration mode on (1) or off (0).\n");
 	printf(" set cf <freq>  - Set the 'C'entre 'F'requency in MHz (ex: set "
-							 "cf 2441.5).\nRange: %.2f - %.2f MHz inclusively."
-							 "Resolution 10 kHz.\n", (double) MIN_FREQ / MHZ, 
-							 (double) MAX_FREQ / MHZ);
+							  "cf 2441.5).\n"
+		   "                  Range: %.2f - %.2f MHz inclusively."
+							  "Resolution 10 kHz.\n", (double) MIN_FREQ / MHZ, 
+							  (double) MAX_FREQ / MHZ);
 	printf(" set fs <size>  - Set the 'F'rames 'S'ize per file (ex: set fs "
-							 "1000). \nMaximum allows: %d.\n", MAX_FS);
+							  "1000). \n"
+		   "                  Maximum allows: %d.\n", MAX_FS);
 	printf(" set gl <level> - Set 'G'ain 'L'evel.\n");
-	printf("                 Options: HIGH, MEDIUM, LOW, ULTRALOW.\n");
+	printf("                  Options: HIGH, MEDIUM, LOW, ULTRALOW.\n");
 	printf(" set lpf <1/0>  - Turn the anti-aliasing LPF on (1) or off (0).\n");
 	printf(" set ss <size>  - Set the 'S'ize of 'S'amples to be captured "
-							 "per frame\n(ex: set ss 2000).\n");
-	printf("                 Maximum allows: %llu; Minimum: 1.\n\n", MAX_SS);
+							  "per frame\n"
+		   "                  (ex: set ss 2000).\n");
+	printf("                  Maximum allows: %llu; Minimum: 1.\n\n", MAX_SS);
 	printf(" Q              - 'Q'uit or exit this console.\n\n");
 }
 // NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
@@ -130,7 +135,7 @@ char* get_input_cmd(uint8_t pretext)
 
 	// Get command loop for string input terminated by "enter"
 	if (pretext) 
-		printf("\n> Enter a command (or ':h'): ");
+		printf("\n> Enter a command (or 'h'): ");
 
 	// Conver the command to upper case.... <- should do this?
 	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
@@ -153,10 +158,15 @@ int16_t do_wsa(const char *wsa_addr)
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
 	char intf_str[30];			// store the interface method string
-	char in_str[MAX_STR_LEN];	// store user's input string
-	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	int16_t result = 0;			// result returned from a function
 	uint64_t freq = 0;
+
+	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
+	char *temp_ptr, temp[MAX_STR_LEN];
+	char *in_str[MAX_CMD_WORDS];	// store user's input string
+		for (int i = 0; i < MAX_CMD_WORDS; i++) 
+			in_str[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
@@ -168,33 +178,121 @@ int16_t do_wsa(const char *wsa_addr)
 			wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
-	
-// remove this section
-	//TEST commands
-	result = wsa_set_freq(dev, 2440000000);
-
-	// Query the WSA status to make sure it is up & running
-	freq = wsa_get_freq(dev);
-
-// remove upto here
-
 
 	//*****
 	// Start the control or data acquisition loop
 	//*****
 	do {
-		strcpy(in_str, get_input_cmd(TRUE));
-
-		if (strncmp(in_str, ":H", 2) == 0) {
-			print_cli_menu(dev);
+		// Get input string command and tokenize the words to eliminate ' '
+		int a = 0;
+		strcpy(temp, get_input_cmd(TRUE));
+		temp_ptr = strtok(temp, " \r\n");
+		while (temp_ptr != NULL) {
+			strcpy(in_str[a], temp_ptr);
+			//printf("%s\n", in_str[a]);
+			temp_ptr = strtok(NULL, " \r\n");
+			a++;
 		}
 
-		// User wants to run away...
-		else if(strncmp(in_str, ":Q", 2) == 0) 
-			break;
+
+		// Handle SET commands
+		if (strcmp(in_str[0], "SET") == 0) {
+			if(strcmp(in_str[1], "ANT") == 0) {
+				printf("ant");
+			}
+			else if(strcmp(in_str[1], "BPF") == 0) {
+				printf("bpf");
+			}
+			else if(strcmp(in_str[1], "CAL") == 0) {
+				printf("cal");
+			}
+			else if(strcmp(in_str[1], "CF") == 0) {
+				printf("cf");
+			}
+			else if(strcmp(in_str[1], "FS") == 0) {
+				printf("fs");
+			}
+			else if(strcmp(in_str[1], "GL") == 0) {
+				printf("gl");
+			}
+			else if(strcmp(in_str[1], "LPF") == 0) {
+				printf("lpf");
+			}
+			else if(strcmp(in_str[1], "SS") == 0) {
+				printf("Not supporting various sample sizes yet! "
+					"Default to 1024.\n");
+			}
+			else {
+				printf("Invalid 'set'. Try 'h'.\n");
+			}
+		}
+
+		// Handle GET commands
+		else if (strcmp(in_str[0], "GET") == 0) {
+			if(strcmp(in_str[1], "ANT") == 0) {
+				printf("ant");
+			}
+			else if(strcmp(in_str[1], "BPF") == 0) {
+				printf("bpf");
+			}
+			else if(strcmp(in_str[1], "CAL") == 0) {
+				printf("cal");
+			}
+			else if(strcmp(in_str[1], "CF") == 0) {
+				printf("cf");
+			}
+			else if(strcmp(in_str[1], "FS") == 0) {
+				printf("fs");
+			}
+			else if(strcmp(in_str[1], "GL") == 0) {
+				printf("gl");
+			}
+			else if(strcmp(in_str[1], "LPF") == 0) {
+				printf("lpf");
+			}
+			else if(strcmp(in_str[1], "SS") == 0) {
+				printf("Not supporting various sample sizes yet! "
+					"Default to 1024.\n");
+			}
+			else {
+				printf("Invalid 'get'. Try 'h'.\n");
+			}
+		}
+
+		// Handle non-get/set commands
+		else {
+			if(strcmp(in_str[0], "D") == 0) {
+				printf("File directory: \"%s\\CAPTURES\\\"\n", 
+					_getcwd(NULL, 0));
+			}
+			else if (strcmp(in_str[0], "fp") == 0) {
+				char dir[200];
+				sprintf(dir, "explorer %s\\CAPTURES", _getcwd(NULL, 0));
+				
+				if (system(dir)!= NULL)
+					printf("Open the folder of captured file(s)...\n");
+				else 
+					printf("Open failed!\n");
+			}
+			else if (strlen(in_str[0]) == 1 && strspn(in_str[0], "H?") > 0) {
+				print_cli_menu(dev);
+			}
+
+			// User wants to run away...
+			else if(strcmp(in_str[0], "Q") == 0) {
+				break;
+			}
+			else {
+				printf("Command '%s' not recognized.  See 'h'.\n", temp);
+			}
+
+		} // End handling non get/set cmds.
 	} while (!user_quit);
 
 	wsa_close(dev);
+
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		free(in_str[i]);
 
 	return 0;
 }
@@ -224,23 +322,25 @@ int16_t start_cli(void)
 		//*****
 		// Ask user to enter an IP address
 		//*****
-		printf("\n> Enter the WSA4000's IP (or type ':l'): ");
+		printf("\n> Enter the WSA4000's IP (or type 'l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
+		strcpy(in_str, strtok(in_str, " ")); // Removed spaces before a string
 
 		// User wants to run away...
-		if(strncmp(in_str, ":Q", 2) == 0) 
+		if(strcmp(in_str, "Q") == 0) 
 			return 0; // break;
 
 		// User asked for help
-		if (strncmp(in_str, ":H", 2) == 0) {
+		//if (strspn(in_str, "H?") > 0) {
+		if (strcmp(in_str, "H") == 0 || strcmp(in_str, "?") == 0) {
 			printf("Enter an IP address in the format #.#.#.# or host name ");
-			printf("string.\nElse type: :l for a list to select "
-				"from, :q to quit.\n");
+			printf("string.\nElse type: 'l' for a list to select "
+				"from, 'q' to quit.\n");
 			continue;
 		}
 
 		// User chose List option
-		else if (strncmp(in_str, ":L", 2) == 0) {
+		else if (strcmp(in_str, "L") == 0) {
 			result = wsa_list(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
@@ -261,7 +361,7 @@ int16_t start_cli(void)
 			if (wsa_check_addr(in_str) > 0)
 				wsa_addr = in_str;
 			else {
-				printf("\nInvalid address. Try again or ':h'.\n");
+				printf("\nInvalid address. Try again or 'h'.\n");
 				continue;
 			}
 		}
