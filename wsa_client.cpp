@@ -120,6 +120,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 		printf(".");
 		fflush(stdin);
     }
+	printf("\n");
 #endif
 
     // Shut COMMAND socket connection down
@@ -302,7 +303,7 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 {
 	//char *rx_buf; 
 		//rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
-	int64_t bytes_rxed = 0;
+	int64_t bytes_rxed = 0, total_bytes = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -326,18 +327,23 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			printf("init select() function returned with error %d\n", 
 				WSAGetLastError());
-			return 0;
+			//return 0;
+			break;
 		}
 		
 		// if the socket is read-able, rx packet
 		if (FD_ISSET(in_sock, &Reader)) {
 			// read incoming strings at a time
 			bytes_rxed = recv(in_sock, rx_buf_ptr, MAX_STR_LEN, 0);
+			if (bytes_rxed > 0) {
+				rx_buf_ptr += bytes_rxed;
+				total_bytes += bytes_rxed;
+			}
 		} 
-	} while(bytes_rxed < 0);
-	rx_buf_ptr[bytes_rxed] = '\0';
+	} while(bytes_rxed > 0);
+	rx_buf_ptr[total_bytes] = '\0';
 
-	return bytes_rxed;
+	return total_bytes;
 }
 
 
@@ -556,7 +562,7 @@ int16_t wsa_list_ips(char **ip_list)
 	ip_list[0] = "192.168.215.107";
 	printf("\t1. %s\n", ip_list[0]);
 
-	printf("This function is not yet available for this software version.\n";
+	printf("This function is not yet available for this software version.\n");
 
 	return 1;
 }

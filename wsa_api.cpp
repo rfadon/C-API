@@ -226,9 +226,9 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
-		doutf(1, "Error WSA_ERR_ETHERNETNOTAVBL: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_ETHERNETNOTAVBL));
-		return WSA_ERR_ETHERNETNOTAVBL;
+		doutf(1, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_FREQSETFAILED));
+		return WSA_ERR_FREQSETFAILED;
 	}
 
 	return result;
@@ -239,17 +239,17 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 // Verify if the frequency is valid (within allowed range)
 int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 {
+	int64_t residue; 
 	// verify the frequency value
-	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)
-	{
+	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)	{
 		doutf(1, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_FREQOUTOFBOUND));
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 	
 	// TODO resolution for different WSA!
-	else if ((freq - ((freq / WSA_RFE0560_FREQRES) * WSA_RFE0560_FREQRES)) > 0)
-	{
+	residue = freq - ((freq / WSA_RFE0560_FREQRES) * WSA_RFE0560_FREQRES);
+	if (residue > 0) {
 		doutf(1, "Error WSA_ERR_INVFREQRES: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_INVFREQRES));
 		return WSA_ERR_INVFREQRES;

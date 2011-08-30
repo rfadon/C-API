@@ -150,10 +150,11 @@ char* get_input_cmd(uint8_t pretext)
  */
 int16_t do_wsa(const char *wsa_addr)
 {	
-	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
-	struct wsa_device wsa_dev;		// the wsa device structure
+	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
 	char intf_str[30];			// store the interface method string
+	char in_str[MAX_STR_LEN];	// store user's input string
+	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	int16_t result = 0;			// result returned from a function
 	uint64_t freq = 0;
 
@@ -168,8 +169,6 @@ int16_t do_wsa(const char *wsa_addr)
 		return WSA_ERR_OPENFAILED;
 	}
 	
-	printf("Name: %s %llu\n", dev->descr.rfe_name, dev->descr.max_tune_freq);
-
 // remove this section
 	//TEST commands
 	result = wsa_set_freq(dev, 2440000000);
@@ -184,8 +183,15 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the control or data acquisition loop
 	//*****
 	do {
-		print_cli_menu(dev);
-		break;
+		strcpy(in_str, get_input_cmd(TRUE));
+
+		if (strncmp(in_str, ":H", 2) == 0) {
+			print_cli_menu(dev);
+		}
+
+		// User wants to run away...
+		else if(strncmp(in_str, ":Q", 2) == 0) 
+			break;
 	} while (!user_quit);
 
 	wsa_close(dev);
@@ -223,7 +229,7 @@ int16_t start_cli(void)
 
 		// User wants to run away...
 		if(strncmp(in_str, ":Q", 2) == 0) 
-			break;
+			return 0; // break;
 
 		// User asked for help
 		if (strncmp(in_str, ":H", 2) == 0) {

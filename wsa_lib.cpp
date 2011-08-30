@@ -269,6 +269,9 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	struct wsa_resp resp;
 	int64_t bytes_rxed = 0;
 	char *rx_buf;
+	
+	//resp.result = 0;
+	//resp.status = 0;
 
 	// Initialized the receive buffer
 	rx_buf = (char *) malloc(MAX_STR_LEN * sizeof(char));
