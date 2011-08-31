@@ -12,10 +12,10 @@
 
 
 typedef enum wsa_gain {
-	HIGH = 1,
-	MEDIUM,
-	LOW,
-	ULOW
+	WSA_GAIN_HIGH = 1,
+	WSA_GAIN_MEDIUM,
+	WSA_GAIN_LOW,
+	WSA_GAIN_VLOW
 };
 
 // ////////////////////////////////////////////////////////////////////////////

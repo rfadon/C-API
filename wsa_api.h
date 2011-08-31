@@ -16,12 +16,11 @@
 // TYPEDEFs                                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-// TODO: add prefix to enum parameters, ex WSA_HIGH....
 typedef enum wsa_gain {
-	HIGH = 1,
-	MEDIUM,
-	LOW,
-	ULOW
+	WSA_GAIN_HIGH = 1,
+	WSA_GAIN_MEDIUM,
+	WSA_GAIN_LOW,
+	WSA_GAIN_VLOW
 };
 
 
@@ -116,7 +115,7 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
 			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size);
 //int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
-//int16_t wsa_set_sample_size(struct wsa_device *dev, int64_t sample_size); //???
+//int16_t wsa_set_sample_size(struct wsa_device *dev, int64_t sample_size); //?
 //int64_t wsa_get_sample_size(struct wsa_device *dev);
 
 
@@ -132,11 +131,13 @@ int16_t wsa_set_freq (struct wsa_device *dev, uint64_t cfreq);
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
-wsa_gain wsa_get_gain (struct wsa_device *dev);
+wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
 /*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
 			uint64_t freq, double *cal_value);*/
-int16_t wsa_set_gain (struct wsa_device *dev, wsa_gain gain);
+int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
 
+float wsa_get_gain_if (struct wsa_device *dev);
+int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
 
 // ////////////////////////////////////////////////////////////////////////////
 // RFE CONTROL SECTION                                                       //

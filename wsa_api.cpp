@@ -108,8 +108,7 @@ void wsa_close(struct wsa_device *dev)
  * @param ip_addr - A char pointer to the IP address or host name to be 
  * verified.
  * 
- * @return 1 if the IP is valid, 0 if invalid (?), or a negative number 
- * on error.
+ * @return 1 if the IP is valid, or a negative number on error.
  */
 int16_t wsa_check_addr(char *ip_addr) 
 {
@@ -166,6 +165,86 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 
 	//TODO Handle the response here
 	
+	return 0;
+}
+
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// AMPLITUDE SECTION                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the absolute maximum RF input level (dBm) for the WSA at 
+ * the given gain setting.\n
+ * Operating the unit at the absolute maximum may cause damage to the device.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gain - The gain setting of \b wsa_gain type at which the absolute 
+ * maximum amplitude input level is to be retrieved.
+ *
+ * @return The absolute maximum RF input level in dBm or negative error number.
+ */
+float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
+{
+	// TODO Check version of WSA & return the correct info here
+	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
+		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
+			switch (gain) {
+			case (WSA_GAIN_HIGH):
+				return WSA_RFE0560_ABS_AMP_HIGH;
+				break;
+			case (WSA_GAIN_MEDIUM):
+				return WSA_RFE0560_ABS_AMP_MEDIUM;
+				break;
+			case (WSA_GAIN_LOW):
+				return WSA_RFE0560_ABS_AMP_LOW;
+				break;
+			case (WSA_GAIN_VLOW):
+				return WSA_RFE0560_ABS_AMP_VLOW;
+				break;
+			default:
+				return WSA_ERR_INVGAIN;
+				break;
+			}
+		}
+		else
+			return WSA_ERR_UNKNOWNRFEVSN;
+	}
+	else {
+		// Should never reach here
+		return WSA_ERR_UNKNOWNPRODVSN;
+	}
+}
+
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// DATA ACQUISITION SECTION                                                  //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Reads a frame of data. \e Each frame consists of a header, and I and Q 
+ * buffers of data of length determine by the \b sample_size parameter.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ * information for the frame.
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * Q data buffer with size specified by the sample_size.
+ * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * sample pairs) per data frame to be captured. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return The number of data samples read upon success, or a negative 
+ * number on error.
+ */
+int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
+			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size)
+{
 	return 0;
 }
 
@@ -261,84 +340,6 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// AMPLITUDE SECTION                                                         //
-// ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Gets the absolute maximum RF input level (dBm) for the WSA at 
- * the given gain setting.\n
- * Operating the unit at the absolute maximum may cause damage to the device.
- *
- * @param dev - A pointer to the WSA device structure.
- * @param gain - The gain setting of \b wsa_gain type at which the absolute 
- * maximum amplitude input level is to be retrieved.
- *
- * @return The absolute maximum RF input level in dBm or negative error number.
- */
-float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
-{
-	// TODO Check version of WSA & return the correct info here
-	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			switch (gain) {
-			case (HIGH):
-				return WSA_RFE0560_ABS_AMP_HIGH;
-				break;
-			case (MEDIUM):
-				return WSA_RFE0560_ABS_AMP_MEDIUM;
-				break;
-			case (LOW):
-				return WSA_RFE0560_ABS_AMP_LOW;
-				break;
-			case (ULOW):
-				return WSA_RFE0560_ABS_AMP_ULOW;
-				break;
-			default:
-				return WSA_ERR_INVGAIN;
-				break;
-			}
-		}
-		else
-			return WSA_ERR_UNKNOWNRFEVSN;
-	}
-	else {
-		// Should never reach here
-		return WSA_ERR_UNKNOWNPRODVSN;
-	}
-}
-
-
-// ////////////////////////////////////////////////////////////////////////////
-// DATA ACQUISITION SECTION                                                  //
-// ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Reads a frame of data. \e Each frame consists of a header, and I and Q 
- * buffers of data of length determine by the \b sample_size parameter.
- *
- * @param dev - A pointer to the WSA device structure.
- * @param header - A pointer to \b wsa_frame_header structure to store 
- * information for the frame.
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled 
- * Q data buffer with size specified by the sample_size.
- * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
- * sample pairs) per data frame to be captured. \n
- * The frame size is limited to a maximum number, \b max_sample_size, listed 
- * in the \b wsa_descriptor structure.
- *
- * @return The number of data samples read upon success, or a negative 
- * number on error.
- */
-int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size)
-{
-	return 0;
-}
-
-
-// ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
@@ -348,9 +349,41 @@ int64_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header,
  * @param dev - A pointer to the WSA device structure.
  * @return The gain setting of wsa_gain type, or a negative number on error.
  */
-wsa_gain wsa_get_gain (struct wsa_device *dev)
+wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 {
-	wsa_gain gain = LOW;
+	wsa_gain gain = (wsa_gain) NULL;
+	struct wsa_resp query;		// store query results
+
+	// TODO: check WSA version/model # ?
+	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+		gain = (wsa_gain) NULL;
+	}
+	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+		query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
+
+		// TODO Handle the query output here 
+		if (query.status > 0)
+			//return atof(query.result);
+			printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		else
+			printf("No query response received.\n");
+		
+	}
+	
+	if (strstr(query.result, "HIGH") != NULL) {
+		gain = WSA_GAIN_HIGH;
+	}
+	else if (strstr(query.result, "MEDIUM") != NULL) {
+		gain = WSA_GAIN_MEDIUM;
+	}
+	else if (strstr(query.result, "LOW") != NULL) {
+		gain = WSA_GAIN_LOW;
+	}
+	else if (strstr(query.result, "VLOW") != NULL) {
+		gain = WSA_GAIN_VLOW;
+	}
+	else
+		gain = (wsa_gain) NULL;
 
 	return gain;
 }
@@ -360,11 +393,15 @@ wsa_gain wsa_get_gain (struct wsa_device *dev)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - The gain setting of type wsa_gain to set for WSA. \n
- * Valid gain settings are HIGH, MEDIUM, LOW, ULOW.
+ * Valid gain settings are:
+ * - WSA_GAIN_HIGH
+ * - WSA_GAIN_MEDIUM
+ * - WSA_GAIN_LOW 
+ * - WSA_GAIN_VLOW
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_gain (struct wsa_device *dev, wsa_gain gain)
+int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 {
 	return 0;
 }

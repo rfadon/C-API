@@ -72,43 +72,54 @@ void print_cli_menu(struct wsa_device *dev)
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
 	uint64_t MAX_SS = dev->descr.max_sample_size;
+	float MAX_IF_GAIN = 0;	//TODO use this wsa_get_max_if_gain() ?
+	float MIN_IF_GAIN = -39.0;		//TODO wsa_get_min_if_gain()
+	uint32_t FREQ_RES = 10000;	//TODO
 
 	printf("---------------------------\n");
 	printf("\nCommand Options Available (case insensitive):\n\n");
-	printf(" fp             - List the captured file path.\n");
-	printf(" d              - Save data to a file.\n");
-	printf(" h              - Show the list of available options.\n");
-	printf(" o              - Open the folder of captured file(s).\n\n");
+	printf(" d                     Save data to a file.\n");
+	printf(" fp                    List the captured file path.\n");
+	printf(" h                     Show the list of available options.\n");
+	printf(" o                     Open the folder of captured file(s).\n");
+	printf(" q                     Quit or exit this console.\n\n");
 
-	printf(" get ant        - Show the current antenna port in used.\n");
-	printf(" get bpf        - Show the current internal BPF state.\n");
-	printf(" get cal        - Show the current calibration mode.\n");
-	printf(" get cf         - Show the current running 'C'entre 'F'requency "
-							  "(in MHz).\n");
-	printf(" get fs         - Show the current 'F'rame 'S'ize per file.\n");
-	printf(" get gl         - Show the current 'G'ain 'L'evel.\n");
-	printf(" get lpf        - Show the current state of the anti-aliasing LPF.\n");
-	printf(" get ss         - Show the current 'S'ample 'S'ize per frame.\n\n");
+	printf(" get ant               Show the current antenna port in use.\n");
+	printf(" get bpf               Show the current internal BPF state.\n");
+	printf(" get cal               Show the current calibration mode.\n");
+	printf(" get cf                Show the current running centre frequency "
+									"(in MHz).\n");
+	printf(" get fs                Show the current frame size per file.\n");
+	printf(" get gl <rf/if>        Show the current RF front end or IF gain "
+									"level.\n");
+	printf(" get lpf               Show the current state of the anti-aliasing"
+									" LPF.\n");
+	printf(" get ss                Show the current sample size per frame."
+									"\n\n");
 
-	printf(" set ant <#>    - Select the antenna switch 1 to 3.\n");
-	printf(" set bpf <1/0>  - Turn the internal BPF on (1) or off (0).\n");
-	printf(" set cal <1/0>  - Turn the calibration mode on (1) or off (0).\n");
-	printf(" set cf <freq>  - Set the 'C'entre 'F'requency in MHz (ex: set "
-							  "cf 2441.5).\n"
-		   "                  Range: %.2f - %.2f MHz inclusively."
-							  "Resolution 10 kHz.\n", (double) MIN_FREQ / MHZ, 
-							  (double) MAX_FREQ / MHZ);
-	printf(" set fs <size>  - Set the 'F'rames 'S'ize per file (ex: set fs "
-							  "1000). \n"
-		   "                  Maximum allows: %d.\n", MAX_FS);
-	printf(" set gl <level> - Set 'G'ain 'L'evel.\n");
-	printf("                  Options: HIGH, MEDIUM, LOW, ULTRALOW.\n");
-	printf(" set lpf <1/0>  - Turn the anti-aliasing LPF on (1) or off (0).\n");
-	printf(" set ss <size>  - Set the 'S'ize of 'S'amples to be captured "
-							  "per frame\n"
-		   "                  (ex: set ss 2000).\n");
-	printf("                  Maximum allows: %llu; Minimum: 1.\n\n", MAX_SS);
-	printf(" Q              - 'Q'uit or exit this console.\n\n");
+	printf(" set ant <1/2/3>       Select the antenna switch 1 to 3.\n");
+	printf(" set bpf <on/off>      Turn the internal BPF on or off.\n");
+	printf(" set cal <on/off>      Turn the calibration mode on or off.\n");
+	printf(" set cf <freq>         Set the centre frequency in MHz (ex: set "
+									"cf 2441.5).\n"
+		   "                       - Range: %.2f - %.2f MHz inclusively.\n"
+		   "                       - Resolution %.2f MHz.\n", 
+								   (float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
+								   (float) FREQ_RES/MHZ);
+	printf(" set fs <size>         Set the frames size per file (ex: set fs "
+									"1000). \n"
+		   "                       - Maximum allows: %d.\n", MAX_FS);
+	printf(" set gl <rf/if> <val>  Set gain level for RF front end or IF\n"
+		   "                       (ex: set gl rf HIGH, set gl if -20.0).\n"
+		   "                       - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
+		   "                       - IF range: %0.2lf to %0.2lf dB, inclusive."
+									"\n", MIN_IF_GAIN, MAX_IF_GAIN);
+	printf(" set lpf <on/off>      Turn the anti-aliasing LPF on or off.\n");
+	printf(" set ss <size>         Set the number of samples per frame to be "
+									"captured\n"
+		   "                       (ex: set ss 2000).\n"
+		   "                       - Maximum allows: %llu; Minimum: 1.\n\n", 
+									MAX_SS);
 }
 // NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
 // maybe except for fs & ss????
@@ -186,11 +197,11 @@ int16_t do_wsa(const char *wsa_addr)
 		// Get input string command and tokenize the words to eliminate ' '
 		int a = 0;
 		strcpy(temp, get_input_cmd(TRUE));
-		temp_ptr = strtok(temp, " \r\n");
+		temp_ptr = strtok(temp, " \t\r\n");
 		while (temp_ptr != NULL) {
 			strcpy(in_str[a], temp_ptr);
 			//printf("%s\n", in_str[a]);
-			temp_ptr = strtok(NULL, " \r\n");
+			temp_ptr = strtok(NULL, " \t\r\n");
 			a++;
 		}
 
@@ -214,6 +225,12 @@ int16_t do_wsa(const char *wsa_addr)
 			}
 			else if(strcmp(in_str[1], "GL") == 0) {
 				printf("gl");
+				if(strcmp(in_str[2], "RF") == 0) {
+					printf("rf");
+				}
+				else if(strcmp(in_str[2], "IF") == 0) {
+					printf("if");
+				}
 			}
 			else if(strcmp(in_str[1], "LPF") == 0) {
 				printf("lpf");
@@ -246,6 +263,13 @@ int16_t do_wsa(const char *wsa_addr)
 			}
 			else if(strcmp(in_str[1], "GL") == 0) {
 				printf("gl");
+				printf("gl");
+				if(strcmp(in_str[2], "RF") == 0) {
+					printf("rf");
+				}
+				else if(strcmp(in_str[2], "IF") == 0) {
+					printf("if");
+				}
 			}
 			else if(strcmp(in_str[1], "LPF") == 0) {
 				printf("lpf");
@@ -324,7 +348,7 @@ int16_t start_cli(void)
 		//*****
 		printf("\n> Enter the WSA4000's IP (or type 'l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
-		strcpy(in_str, strtok(in_str, " ")); // Removed spaces before a string
+		strcpy(in_str, strtok(in_str, " \t")); // rm spaces or tabs in string
 
 		// User wants to run away...
 		if(strcmp(in_str, "Q") == 0) 
