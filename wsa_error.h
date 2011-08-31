@@ -82,7 +82,10 @@
 // ///////////////////////////////
 // GAIN ERRORS					//
 // ///////////////////////////////
-#define WSA_ERR_INVGAIN	(LNEG_NUM - 801)
+#define WSA_ERR_INVRFGAIN	(LNEG_NUM - 801)
+#define WSA_ERR_INVIFGAIN	(LNEG_NUM - 802)
+#define WSA_ERR_IFGAINSETFAILED (LNEG_NUM - 803)
+#define WSA_ERR_RFGAINSETFAILED (LNEG_NUM - 804)
 //#define WSA_ERR_	(LNEG_NUM - 802)
 
 
@@ -214,7 +217,7 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_FREQOUTOFBOUND, 
 		"The frequency input is out of bound"),
 	wsa_err_item(WSA_ERR_INVFREQRES, 
-		"Invalid frequency resolution used"),
+		"Invalid frequency resolution"),
 	wsa_err_item(WSA_ERR_FREQSETFAILED, 
 		"Failed tuning the frequency in the WSA"),
 	wsa_err_item(WSA_ERR_PLLLOCKFAILED, 
@@ -223,14 +226,20 @@ static struct wsa_err_item {
 	//*****
 	// Gain related
 	//*****
-	wsa_err_item(WSA_ERR_INVGAIN, 
-		"Invalid gain setting used"),
+	wsa_err_item(WSA_ERR_INVRFGAIN, 
+		"Invalid RF gain setting"),
+	wsa_err_item(WSA_ERR_INVIFGAIN, 
+		"IF gain value out of range or invalid"),
+	wsa_err_item(WSA_ERR_IFGAINSETFAILED,
+		"Failed setting the IF gain setting to WSA"),
+	wsa_err_item(WSA_ERR_RFGAINSETFAILED,
+		"Failed setting the RF gain value to WSA"),
 
 	//*****
 	// Run mode related
 	//*****
 	wsa_err_item(WSA_ERR_INVRUNMODE, 
-		"Invalide run mode used"),
+		"Invalide run mode"),
 
 	//*****
 	// Trigger related

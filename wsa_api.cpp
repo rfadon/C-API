@@ -204,7 +204,7 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 				return WSA_RFE0560_ABS_AMP_VLOW;
 				break;
 			default:
-				return WSA_ERR_INVGAIN;
+				return WSA_ERR_INVRFGAIN;
 				break;
 			}
 		}
@@ -405,7 +405,22 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
  */
 int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 {
-	return 0;
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH)
+		return WSA_ERR_INVRFGAIN;
+
+	sprintf(temp_str, ":INPUT:GAIN:RF <%d>\n", gain);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_RFGAINSETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_RFGAINSETFAILED));
+		return WSA_ERR_RFGAINSETFAILED;
+	}
+
+	return result;
 }
 
 
@@ -429,9 +444,7 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	else
 		printf("No query response received.\n");
 		
-
-	//return (float) atof(query.result);
-	return 0;
+	return (float) atof(query.result);
 }
 
 
@@ -448,7 +461,25 @@ float wsa_get_gain_if (struct wsa_device *dev)
  * @par Errors:
  * - Gain level out of range.
  */
-int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
+int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
+{
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (gain < WSA_RFE0560_MIN_IF_GAIN || gain > WSA_RFE0560_MAX_IF_GAIN)
+		return WSA_ERR_INVIFGAIN;
+
+	sprintf(temp_str, ":INPUT:GAIN:VAR <%f>\n", gain);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_IFGAINSETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_IFGAINSETFAILED));
+		return WSA_ERR_IFGAINSETFAILED;
+	}
+
+	return result;
+}
 
 
 // ////////////////////////////////////////////////////////////////////////////
