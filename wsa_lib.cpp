@@ -234,17 +234,23 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
 
-	while (1) {
-		bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
-		if (bytes_txed < len) {
-			if (resend_cnt > 5)
-				return WSA_ERR_CMDSENDFAILED;
+	// TODO: check WSA version/model # ?
+	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+		return WSA_ERR_USBNOTAVBL;
+	}
+	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+		while (1) {
+			bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
+			if (bytes_txed < len) {
+				if (resend_cnt > 5)
+					return WSA_ERR_CMDSENDFAILED;
 
-			printf("Not all bytes sent. Resending the packet...\n");
-			resend_cnt++;
+				printf("Not all bytes sent. Resending the packet...\n");
+				resend_cnt++;
+			}
+			else 
+				break;
 		}
-		else 
-			break;
 	}
 
 	return bytes_txed;
@@ -271,11 +277,19 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	bytes_got = wsa_send_command(dev, command);
 
 	// Receive query result from the WSA server
-	if (bytes_got > 0)
-		bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, TIMEOUT);
+	if (bytes_got > 0) {
+		// TODO: check WSA version/model # ?
+		if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+			resp.status = WSA_ERR_USBNOTAVBL;
+		}
+		else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, TIMEOUT);
+		}
+	}
 
 	// TODO define what result should be
 	resp.status = bytes_got;
+
 	if (bytes_got < 0) {
 		resp.result[0] = 0;
 	}

@@ -23,20 +23,20 @@
  
 
 /** @enum wsa_gain
- * Defines the amplification available in the radio front end (RFE) of the WSA.
- * \n If an incorrect setting is specified, an error will be returned
+ * Defines the RF quantized gain settings available for the radio front end 
+ * (RFE) of the WSA.
  */
 	/** @var wsa_gain::WSA_GAIN_HIGH
-	 * High RFE amplification. Value 1.
+	 * High RF amplification. Value 1.
 	 */
 	/** @var wsa_gain::WSA_GAIN_MEDIUM
-	 * Medium RFE amplification.
+	 * Medium RF amplification.
 	 */
 	/** @var wsa_gain::WSA_GAIN_LOW
-	 * Low RFE amplification.
+	 * Low RF amplification.
 	 */
 	/** @var wsa_gain::WSA_GAIN_VLOW
-	 * Very low RFE amplification.
+	 * Very low RF amplification.
 	 */
 	 
 

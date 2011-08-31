@@ -70,7 +70,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
  * @return 0 on success, or a negative number on error.
  * @par Errors:
  * Situations that will generate an error are:
- * - the selected connection type does not exist for the WSA product version.
+ * - the interface method does not exist for the WSA product version.
  * - the WSA is not detected (has not been connected or powered up).
  * -
  */
@@ -276,6 +276,7 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	else
 		printf("No query response received.\n");
 
+	//return (int64_t) atol(query.result);
 	return 0;
 }
 
@@ -285,12 +286,15 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 /**
  * Sets the WSA to the desired center frequency, \b cfreq.
  * @remarks \b wsa_set_freq() will return error if trigger mode is already
- * running.  Use wsa_set_run_mode() with FREERUN to change.
+ * running.
+ * See the \b descr component of \b wsa_dev structure for maximum/minimum
+ * frequency values.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param cfreq - The center frequency to set, in Hz
  * @return 0 on success, or a negative number on error.
  * @par Errors:
+ * - Frequency out of range.
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
@@ -344,7 +348,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
- * Gets the current gain setting of the WSA.
+ * Gets the current quantized RF front end gain setting of the RFE.
  *
  * @param dev - A pointer to the WSA device structure.
  * @return The gain setting of wsa_gain type, or a negative number on error.
@@ -354,33 +358,29 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
 
-	// TODO: check WSA version/model # ?
-	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-		gain = (wsa_gain) NULL;
-	}
-	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-		query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
-
-		// TODO Handle the query output here 
-		if (query.status > 0)
-			//return atof(query.result);
-			printf("Got %llu bytes: \"%s\"", query.status, query.result);
-		else
-			printf("No query response received.\n");
-		
-	}
 	
+	query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+
+	
+	// Convert to wsa_gain type
 	if (strstr(query.result, "HIGH") != NULL) {
 		gain = WSA_GAIN_HIGH;
 	}
 	else if (strstr(query.result, "MEDIUM") != NULL) {
 		gain = WSA_GAIN_MEDIUM;
 	}
-	else if (strstr(query.result, "LOW") != NULL) {
-		gain = WSA_GAIN_LOW;
-	}
 	else if (strstr(query.result, "VLOW") != NULL) {
 		gain = WSA_GAIN_VLOW;
+	}
+	else if (strstr(query.result, "LOW") != NULL) {
+		gain = WSA_GAIN_LOW;
 	}
 	else
 		gain = (wsa_gain) NULL;
@@ -389,7 +389,7 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 }
 
 /**
- * Sets the \b gain (sensitivity) level for the radio front end of the WSA.
+ * Sets the quantized \b gain (sensitivity) level for the RFE of the WSA.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - The gain setting of type wsa_gain to set for WSA. \n
@@ -400,11 +400,55 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
  * - WSA_GAIN_VLOW
  * 
  * @return 0 on success, or a negative number on error.
+  * @par Errors:
+ * - Gain setting not allow.
  */
 int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 {
 	return 0;
 }
+
+
+/**
+ * Gets the current IF gain value of the RFE in dB.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @return The gain value in dB, or a large negative number on error.
+ */
+float wsa_get_gain_if (struct wsa_device *dev)
+{
+	wsa_gain gain = (wsa_gain) NULL;
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, ":INPUT:GAIN:IF?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+		
+
+	//return (float) atof(query.result);
+	return 0;
+}
+
+
+/**
+ * Sets the gain value in dB for the variable IF gain stages of the RFE, which 
+ * is additive to the primary RF quantized gain stages (wsa_set_gain_rf()).
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gain - The gain level in dB.
+ * @remarks See the \b descr component of \b wsa_dev structure for 
+ * maximum/minimum IF gain values. ???
+ *
+ * @return 0 on success, or a negative number on error.
+ * @par Errors:
+ * - Gain level out of range.
+ */
+int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
 
 
 // ////////////////////////////////////////////////////////////////////////////
