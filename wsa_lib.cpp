@@ -23,6 +23,12 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	dev->descr.max_sample_size = 0;
 	dev->descr.max_tune_freq = 0;
 	dev->descr.min_tune_freq = 0;
+	dev->descr.freq_resolution = 0;
+	dev->descr.max_if_gain = -1000;	// some impossible #
+	dev->descr.min_if_gain = -1000;	// some impossible #
+	for (int i = 0; i < NUM_RF_GAINS; i++)
+		dev->descr.abs_max_rf_gain[i] = -1000;	// some impossible #
+
 	strcpy(dev->descr.prod_name, "");
 	strcpy(dev->descr.prod_serial, ""); 
 	strcpy(dev->descr.prod_version, "");
@@ -51,6 +57,17 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
 			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
+			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
+			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;
+			dev->descr.min_if_gain = WSA_RFE0560_MIN_IF_GAIN;
+			dev->descr.abs_max_rf_gain[WSA_GAIN_HIGH] = 
+				WSA_RFE0560_ABS_AMP_HIGH;
+			dev->descr.abs_max_rf_gain[WSA_GAIN_MEDIUM] = 
+				WSA_RFE0560_ABS_AMP_MEDIUM;
+			dev->descr.abs_max_rf_gain[WSA_GAIN_LOW] = 
+				WSA_RFE0560_ABS_AMP_LOW;
+			dev->descr.abs_max_rf_gain[WSA_GAIN_VLOW] = 
+				WSA_RFE0560_ABS_AMP_VLOW;
 		}
 	}
 

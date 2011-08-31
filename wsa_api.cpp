@@ -39,7 +39,6 @@
 #include <time.h>
 
 #include "stdint.h"
-#include "wsa_commons.h"
 #include "wsa_error.h"
 #include "wsa_lib.h"
 #include "wsa_api.h"
@@ -188,32 +187,12 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 {
 	// TODO Check version of WSA & return the correct info here
-	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {		
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			switch (gain) {
-			case (WSA_GAIN_HIGH):
-				return WSA_RFE0560_ABS_AMP_HIGH;
-				break;
-			case (WSA_GAIN_MEDIUM):
-				return WSA_RFE0560_ABS_AMP_MEDIUM;
-				break;
-			case (WSA_GAIN_LOW):
-				return WSA_RFE0560_ABS_AMP_LOW;
-				break;
-			case (WSA_GAIN_VLOW):
-				return WSA_RFE0560_ABS_AMP_VLOW;
-				break;
-			default:
-				return WSA_ERR_INVRFGAIN;
-				break;
-			}
-		}
-		else
-			return WSA_ERR_UNKNOWNRFEVSN;
+	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
+		return WSA_ERR_INVRFGAIN;
 	}
 	else {
 		// Should never reach here
-		return WSA_ERR_UNKNOWNPRODVSN;
+		return dev->descr.abs_max_rf_gain[gain];
 	}
 }
 
@@ -332,7 +311,8 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	}
 	
 	// TODO resolution for different WSA!
-	residue = freq - ((freq / WSA_RFE0560_FREQRES) * WSA_RFE0560_FREQRES);
+	residue = freq - ((freq / dev->descr.freq_resolution) * 
+		dev->descr.freq_resolution);
 	if (residue > 0) {
 		doutf(1, "Error WSA_ERR_INVFREQRES: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_INVFREQRES));
@@ -466,7 +446,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	int16_t result = 0;
 	char temp_str[30];
 
-	if (gain < WSA_RFE0560_MIN_IF_GAIN || gain > WSA_RFE0560_MAX_IF_GAIN)
+	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 
 	sprintf(temp_str, ":INPUT:GAIN:VAR <%f>\n", gain);

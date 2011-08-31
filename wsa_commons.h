@@ -5,6 +5,7 @@
 #define FALSE	0
 #define TRUE	1
 
+#define NUM_RF_GAINS 5	// including 0 but not use
 #define MHZ 1000000
 
 //*****

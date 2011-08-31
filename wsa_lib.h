@@ -7,6 +7,8 @@
 #define FALSE	0
 #define TRUE	1
 
+#define NUM_RF_GAINS 5	// including 0 but not use
+
 // Control commands syntax supported types
 #define SCPI "SCPI"	/* SCPI control commands syntax */
 
@@ -34,6 +36,10 @@ struct wsa_descriptor {
 	uint64_t max_sample_size;
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
+	uint64_t freq_resolution;
+	float max_if_gain;
+	float min_if_gain;
+	float abs_max_rf_gain[NUM_RF_GAINS];
 };
 
 
