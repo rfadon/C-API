@@ -176,7 +176,8 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 /**
  * Gets the absolute maximum RF input level (dBm) for the WSA at 
  * the given gain setting.\n
- * Operating the unit at the absolute maximum may cause damage to the device.
+ * Operating the WSA device at the absolute maximum may cause damage to the 
+ * device.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - The gain setting of \b wsa_gain type at which the absolute 
@@ -192,7 +193,7 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 	}
 	else {
 		// Should never reach here
-		return dev->descr.abs_max_rf_gain[gain];
+		return dev->descr.abs_max_amp[gain];
 	}
 }
 

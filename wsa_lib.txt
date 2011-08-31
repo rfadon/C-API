@@ -77,6 +77,21 @@
 	/** @var uint64_t wsa_descriptor::min_tune_freq
 	 * The minimum frequency in Hz that a WSA's RFE can be tuned to.
 	 */
+	/** @var uint64_t wsa_descriptor::freq_resolution
+	 * The frequency resolution in Hz that a WSA's centre frequency can be 
+	 * incremented.
+	 */
+	/** @var float wsa_descriptor::max_if_gain
+	 * The maximum IF gain in dB that a WSA's RFE can be set.
+	 */
+	/** @var float wsa_descriptor::min_if_gain
+	 * The minimum IF gain in dB that a WSA's RFE can be set.
+	 */
+	/** @var float wsa_descriptor::abs_max_amp
+	 * An array storing the absolute maximum RF input level in dBm for each 
+	 * RF gain setting of the RFE use. Operating a WSA device at these absolute 
+	 * maximums may cause damage to the device.
+	 */
  
 
 /** @struct wsa_socket 

@@ -28,12 +28,11 @@ typedef enum wsa_gain {
 // STRUCTS DEFINES                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
-
 struct wsa_descriptor {
 	char prod_name[50];
 	char prod_serial[20];
 	char prod_version[20];
-	char rfe_name[20];
+	char rfe_name[50];
 	char rfe_version[20];
 	char fw_version[20];
 	char intf_type[20];
@@ -41,6 +40,10 @@ struct wsa_descriptor {
 	uint64_t max_sample_size;
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
+	uint64_t freq_resolution;
+	float max_if_gain;
+	float min_if_gain;
+	float abs_max_amp[NUM_RF_GAINS];
 };
 
 
