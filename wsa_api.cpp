@@ -283,7 +283,7 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[50];
 
 	if ((result = wsa_verify_freq(dev, cfreq)) < 0)
 		return result;
@@ -394,9 +394,8 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH)
 		return WSA_ERR_INVRFGAIN;
 
-	sprintf(temp_str, ":INPUT:GAIN:RF ");
-	switch(gain)
-	{
+	strcpy(temp_str, ":INPUT:GAIN:RF ");
+	switch(gain) {
 		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
 		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MEDIUM"); break;
 		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
@@ -454,7 +453,7 @@ float wsa_get_gain_if (struct wsa_device *dev)
 int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[50];
 
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
@@ -569,7 +568,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[50];
 
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
@@ -622,7 +621,7 @@ int16_t wsa_get_lpf(struct wsa_device *dev)
 int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[50];
 
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
