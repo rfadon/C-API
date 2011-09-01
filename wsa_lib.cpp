@@ -226,7 +226,7 @@ int16_t wsa_list_devs(char **wsa_list)
 //int16_t wsa_help(struct wsa_device dev)
 //{
 //	// Open the generic SCPI for now
-//	if(_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
+//	if (_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
 //		printf("ERROR: Failed to opent the SCPI file.\n");
 //		return -1;
 //	}

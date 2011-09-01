@@ -116,6 +116,18 @@
 // ///////////////////////////////
 #define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
 
+
+// ///////////////////////////////
+// RFE ERRORS				    //
+// ///////////////////////////////
+#define WSA_ERR_INVANTENNAPORT (LNEG_NUM - 1601)
+#define WSA_ERR_ANTENNASETFAILED (LNEG_NUM - 1602)
+#define WSA_ERR_INVFILTERMODE (LNEG_NUM - 1603)
+#define WSA_ERR_FILTERSETFAILED (LNEG_NUM - 1604)
+#define WSA_ERR_INVCALIBRATEMODE (LNEG_NUM - 1605)
+#define WSA_ERR_CALIBRATESETFAILED (LNEG_NUM - 1606)
+
+
 // ///////////////////////////////
 // OTHERS ERRORS				//
 // ///////////////////////////////
@@ -269,6 +281,24 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_CMDSENDFAILED,
 		"Sending of the command failed"),
+
+
+	//*****
+	// RFE SECTION
+	//*****
+	wsa_err_item(WSA_ERR_INVANTENNAPORT,
+		"Invalid antenna switch port"),
+	wsa_err_item(WSA_ERR_ANTENNASETFAILED,
+		"Failed to set the antenna port"),
+	wsa_err_item(WSA_ERR_INVFILTERMODE,
+		"Invalid filter mode"),
+	wsa_err_item(WSA_ERR_FILTERSETFAILED,
+		"Failed to set the filter mode"),
+	wsa_err_item(WSA_ERR_INVCALIBRATEMODE,
+		"Invalid calibration mode"),
+	wsa_err_item(WSA_ERR_CALIBRATESETFAILED,
+		"Failed to set the calibration mode"),
+
 
 	//*****
 	// Others

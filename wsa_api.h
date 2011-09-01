@@ -135,9 +135,9 @@ int16_t wsa_set_freq (struct wsa_device *dev, uint64_t cfreq);
 // ////////////////////////////////////////////////////////////////////////////
 
 wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
+int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
 /*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
 			uint64_t freq, double *cal_value);*/
-int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
 
 float wsa_get_gain_if (struct wsa_device *dev);
 int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
@@ -153,9 +153,9 @@ int16_t wsa_get_bpf(struct wsa_device *dev);
 int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode);
 
 int16_t wsa_get_lpf(struct wsa_device *dev);
-int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t option);
+int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode);
 
-int16_t wsa_check_cal_mode(struct wsa_device *dev);
+int16_t wsa_query_cal_mode(struct wsa_device *dev);
 int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode);
 
 

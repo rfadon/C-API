@@ -43,6 +43,8 @@
 #include "wsa_lib.h"
 #include "wsa_api.h"
 
+#define MAX_ANT_PORT 3
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -286,7 +288,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 	if ((result = wsa_verify_freq(dev, cfreq)) < 0)
 		return result;
 
-	sprintf(temp_str, ":INPUT:CENTER <%llu>\n", cfreq);
+	sprintf(temp_str, ":INPUT:CENTER %llu Hz\n", cfreq);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
@@ -392,7 +394,15 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH)
 		return WSA_ERR_INVRFGAIN;
 
-	sprintf(temp_str, ":INPUT:GAIN:RF <%d>\n", gain);
+	sprintf(temp_str, ":INPUT:GAIN:RF ");
+	switch(gain)
+	{
+		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
+		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MEDIUM"); break;
+		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
+		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
+		default:		strcat(temp_str, "ERROR"); break;
+	}
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
@@ -413,7 +423,6 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
  */
 float wsa_get_gain_if (struct wsa_device *dev)
 {
-	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
 
 	query = wsa_send_query(dev, ":INPUT:GAIN:IF?\n");
@@ -450,7 +459,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 
-	sprintf(temp_str, ":INPUT:GAIN:VAR <%f>\n", gain);
+	sprintf(temp_str, ":INPUT:GAIN:IF %f dB\n", gain);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
@@ -477,6 +486,17 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
  */
 int16_t wsa_get_antenna(struct wsa_device *dev)
 {
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, ":INPUT:ANTENNA?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+		
 	return 0;
 }
 
@@ -486,7 +506,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param port_num - An integer port number to used. \n
- * Available ports: 1, 2, 3.
+ * Available ports: 1, 2.  Or see product datasheet for ports availability.
  * \b Note: When calibration mode is enabled through wsa_run_cal_mode(), these 
  * antenna ports will not be available.  The seletected port will resume when 
  * the calibration mode is set to off.
@@ -495,12 +515,27 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
  */
 int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 {
-	return 0;
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (port_num < 1 || port_num > MAX_ANT_PORT)
+		return WSA_ERR_INVANTENNAPORT;
+
+	sprintf(temp_str, ":INPUT:ANTENNA %d\n", port_num);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_ANTENNASETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_ANTENNASETFAILED));
+		return WSA_ERR_ANTENNASETFAILED;
+	}
+
+	return result;
 }
 
 
 /**
- * Gets the current mode of the RFE's internal BPF.
+ * Gets the current mode of the RFE's preselect BPF stage.
  * 
  * @param dev - A pointer to the WSA device structure.
  *
@@ -508,12 +543,23 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
  */
 int16_t wsa_get_bpf(struct wsa_device *dev)
 {
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, ":INPUT:FILTER:PRESELECT:STATE?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+		
 	return 0;
 }
 
 
 /**
- * Sets the RFE's internal band pass filter (BPF) on or off (bypassing).
+ * Sets the RFE's preselect band pass filter (BPF) stage on or off (bypassing).
  * 
  * @param dev - A pointer to the WSA device structure.
  * @param mode - An integer mode of selection: 0 - Off, 1 - On.
@@ -522,12 +568,27 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
  */
 int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 {
-	return 0;
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (mode < 0 || mode > 1)
+		return WSA_ERR_INVFILTERMODE;
+
+	sprintf(temp_str, ":INPUT:FILTER:PRESELECT:STATE %d\n", mode);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
+		return WSA_ERR_FILTERSETFAILED;
+	}
+
+	return result;
 }
 
 
 /**
- * Gets the current mode of the RFE's internal LPF.
+ * Gets the current mode of the RFE's internal anti-aliasing LPF.
  * 
  * @param dev - A pointer to the WSA device structure.
  *
@@ -535,21 +596,47 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
  */
 int16_t wsa_get_lpf(struct wsa_device *dev)
 {
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, ":INPUT:FILTER:ANTIALIAS:STATE?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+
 	return 0;
 }
 
 
 /**
- * Sets the internal low pass filter (LPF) on or off (bypassing).
+ * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
  * 
  * @param dev - A pointer to the WSA device structure.
  * @param option - An integer mode of selection: 0 - Off, 1 - On.
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t option)
+int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode)
 {
-	return 0;
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (mode < 0 || mode > 1)
+		return WSA_ERR_INVFILTERMODE;
+
+	sprintf(temp_str, ":INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
+		return WSA_ERR_FILTERSETFAILED;
+	}
+
+	return result;
 }
 
 
@@ -561,8 +648,19 @@ int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t option)
  * @return 1 if the calibration is still running or 0 if completed, 
  * or a negative number on error.
  */
-int16_t wsa_check_cal_mode(struct wsa_device *dev)
+int16_t wsa_query_cal_mode(struct wsa_device *dev)
 {
+	struct wsa_resp query;		// store query results
+
+	query = wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n");
+
+	// TODO Handle the query output here 
+	if (query.status > 0)
+		//return atof(query.result);
+		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	else
+		printf("No query response received.\n");
+
 	return 0;
 }
 
@@ -580,5 +678,20 @@ int16_t wsa_check_cal_mode(struct wsa_device *dev)
  */
 int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode)
 {
-	return 0;
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (mode < 0 || mode > 1)
+		return WSA_ERR_INVCALIBRATEMODE;
+
+	sprintf(temp_str, "CALIBRATE:RFE:STATE %d\n", mode);
+
+	// set the freq using the selected connect type
+	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+		doutf(1, "Error WSA_ERR_CALIBRATESETFAILED: %s.\n", 
+			wsa_get_err_msg(WSA_ERR_CALIBRATESETFAILED));
+		return WSA_ERR_CALIBRATESETFAILED;
+	}
+
+	return result;
 }

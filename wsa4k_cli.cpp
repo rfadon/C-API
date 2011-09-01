@@ -85,20 +85,22 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" q                     Quit or exit this console.\n\n");
 
 	printf(" get ant               Show the current antenna port in use.\n");
-	printf(" get bpf               Show the current internal BPF state.\n");
-	printf(" get cal               Show the current calibration mode.\n");
+	printf(" get bpf               Show the current RFE's preselect BPF "
+									"state.\n");
+	printf(" get cal               Show the current RFE calibration mode.\n");
 	printf(" get cf                Show the current running centre frequency "
 									"(in MHz).\n");
 	printf(" get fs                Show the current frame size per file.\n");
 	printf(" get gl <rf/if>        Show the current RF front end or IF gain "
 									"level.\n");
-	printf(" get lpf               Show the current state of the anti-aliasing"
-									" LPF.\n");
+	printf(" get lpf               Show the current RFE's anti-aliasing"
+									" LPF state.\n");
 	printf(" get ss                Show the current sample size per frame."
 									"\n\n");
 
 	printf(" set ant <1/2/3>       Select the antenna switch 1 to 3.\n");
-	printf(" set bpf <on/off>      Turn the internal BPF on or off.\n");
+	printf(" set bpf <on/off>      Turn the RFE's preselect BPF stage on "
+									"or off.\n");
 	printf(" set cal <on/off>      Turn the calibration mode on or off.\n");
 	printf(" set cf <freq>         Set the centre frequency in MHz (ex: set "
 									"cf 2441.5).\n"
@@ -114,7 +116,8 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                       - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
 		   "                       - IF range: %0.2lf to %0.2lf dB, inclusive."
 									"\n", MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set lpf <on/off>      Turn the anti-aliasing LPF on or off.\n");
+	printf(" set lpf <on/off>      Turn the RFE's anti-aliasing LPF stage "
+									"on or off.\n");
 	printf(" set ss <size>         Set the number of samples per frame to be "
 									"captured\n"
 		   "                       (ex: set ss 2000).\n"
@@ -206,36 +209,61 @@ int16_t do_wsa(const char *wsa_addr)
 		}
 
 
-		// Handle SET commands
-		if (strcmp(in_str[0], "SET") == 0) {
-			if(strcmp(in_str[1], "ANT") == 0) {
-				printf("ant");
+		// Handle GET commands
+		if (strcmp(in_str[0], "GET") == 0) {
+			if (strcmp(in_str[1], "ANT") == 0) {
+				result = wsa_get_antenna(dev);
+				if (result < 0)
+					printf("ERROR: %s\n", wsa_get_err_msg(result));
+				else
+					printf("Currently using antenna port: %d\n", result);
 			}
-			else if(strcmp(in_str[1], "BPF") == 0) {
-				printf("bpf");
+			else if (strcmp(in_str[1], "BPF") == 0) {
+				result = wsa_get_bpf(dev);
+				if (result < 0)
+					printf("ERROR: %s\n", wsa_get_err_msg(result));
+				else {
+					printf("RFE's preselect BPF state: \n");
+					if (result) printf("On\n");
+					else printf("Off\n");
+				}
 			}
-			else if(strcmp(in_str[1], "CAL") == 0) {
-				printf("cal");
+			else if (strcmp(in_str[1], "CAL") == 0) {
+				result = wsa_query_cal_mode(dev);
+				if (result < 0)
+					printf("ERROR: %s\n", wsa_get_err_msg(result));
+				else {
+					printf("RFE's calibration state: ");
+					if (result) printf("On\n");
+					else printf("Off\n");
+				}
 			}
-			else if(strcmp(in_str[1], "CF") == 0) {
+			else if (strcmp(in_str[1], "CF") == 0) {
 				printf("cf");
 			}
-			else if(strcmp(in_str[1], "FS") == 0) {
+			else if (strcmp(in_str[1], "FS") == 0) {
 				printf("fs");
 			}
-			else if(strcmp(in_str[1], "GL") == 0) {
+			else if (strcmp(in_str[1], "GL") == 0) {
 				printf("gl");
-				if(strcmp(in_str[2], "RF") == 0) {
+				if (strcmp(in_str[2], "RF") == 0) {
 					printf("rf");
 				}
-				else if(strcmp(in_str[2], "IF") == 0) {
+				else if (strcmp(in_str[2], "IF") == 0) {
 					printf("if");
 				}
 			}
-			else if(strcmp(in_str[1], "LPF") == 0) {
-				printf("lpf");
+			else if (strcmp(in_str[1], "LPF") == 0) {
+				result = wsa_get_lpf(dev);
+				if (result < 0)
+					printf("ERROR: %s\n", wsa_get_err_msg(result));
+				else {
+					printf("RFE's anti-aliasing LPF state: ");	
+					if (result) printf("On\n");
+					else printf("Off\n");
+				}
 			}
-			else if(strcmp(in_str[1], "SS") == 0) {
+			else if (strcmp(in_str[1], "SS") == 0) {
 				printf("Not supporting various sample sizes yet! "
 					"Default to 1024.\n");
 			}
@@ -244,37 +272,37 @@ int16_t do_wsa(const char *wsa_addr)
 			}
 		}
 
-		// Handle GET commands
-		else if (strcmp(in_str[0], "GET") == 0) {
-			if(strcmp(in_str[1], "ANT") == 0) {
+		// Handle SET commands
+		else if (strcmp(in_str[0], "SET") == 0) {
+			if (strcmp(in_str[1], "ANT") == 0) {
 				printf("ant");
 			}
-			else if(strcmp(in_str[1], "BPF") == 0) {
-				printf("bpf");
+			else if (strcmp(in_str[1], "BPF") == 0) {
+				printf("BPF");
 			}
-			else if(strcmp(in_str[1], "CAL") == 0) {
+			else if (strcmp(in_str[1], "CAL") == 0) {
 				printf("cal");
 			}
-			else if(strcmp(in_str[1], "CF") == 0) {
+			else if (strcmp(in_str[1], "CF") == 0) {
 				printf("cf");
 			}
-			else if(strcmp(in_str[1], "FS") == 0) {
+			else if (strcmp(in_str[1], "FS") == 0) {
 				printf("fs");
 			}
-			else if(strcmp(in_str[1], "GL") == 0) {
+			else if (strcmp(in_str[1], "GL") == 0) {
 				printf("gl");
 				printf("gl");
-				if(strcmp(in_str[2], "RF") == 0) {
+				if (strcmp(in_str[2], "RF") == 0) {
 					printf("rf");
 				}
-				else if(strcmp(in_str[2], "IF") == 0) {
+				else if (strcmp(in_str[2], "IF") == 0) {
 					printf("if");
 				}
 			}
-			else if(strcmp(in_str[1], "LPF") == 0) {
+			else if (strcmp(in_str[1], "LPF") == 0) {
 				printf("lpf");
 			}
-			else if(strcmp(in_str[1], "SS") == 0) {
+			else if (strcmp(in_str[1], "SS") == 0) {
 				printf("Not supporting various sample sizes yet! "
 					"Default to 1024.\n");
 			}
@@ -285,7 +313,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 		// Handle non-get/set commands
 		else {
-			if(strcmp(in_str[0], "D") == 0) {
+			if (strcmp(in_str[0], "D") == 0) {
 				printf("File directory: \"%s\\CAPTURES\\\"\n", 
 					_getcwd(NULL, 0));
 			}
@@ -303,7 +331,7 @@ int16_t do_wsa(const char *wsa_addr)
 			}
 
 			// User wants to run away...
-			else if(strcmp(in_str[0], "Q") == 0) {
+			else if (strcmp(in_str[0], "Q") == 0) {
 				break;
 			}
 			else {
@@ -351,7 +379,7 @@ int16_t start_cli(void)
 		strcpy(in_str, strtok(in_str, " \t")); // rm spaces or tabs in string
 
 		// User wants to run away...
-		if(strcmp(in_str, "Q") == 0) 
+		if (strcmp(in_str, "Q") == 0) 
 			return 0; // break;
 
 		// User asked for help
@@ -370,7 +398,7 @@ int16_t start_cli(void)
 			strcpy(in_str, get_input_cmd(FALSE));
 			in_num = atoi(in_str);
 
-			if(in_num <= result && in_num > 0)
+			if (in_num <= result && in_num > 0)
 				wsa_addr = ip_list[in_num - 1];
 			else {
 				printf("Option invalid!\n");
@@ -397,7 +425,7 @@ int16_t start_cli(void)
 		//*****
 		// All are good, start the connection
 		//*****
-		if(do_wsa(wsa_addr) == 0)
+		if (do_wsa(wsa_addr) == 0)
 			break;
 	} while (!user_quit);
 

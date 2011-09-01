@@ -409,7 +409,7 @@ int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_ou
 					strncmp("\r", &(rx_buf[0][count]), 1) == 0 || 
 					strncmp("\n", &(rx_buf[0][count]), 1) == 0) {		
 					// add null termination for end of each string
-					if(w > 0 && c > 0) 
+					if (w > 0 && c > 0) 
 						rx_buf_ptr[w-1][c] = '\0';  
 					c = 0;	// reset char index
 				}
@@ -452,17 +452,17 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	// Wait for client response rxed before proceeds....
 	// but time out if no resp in x seconds
 	while(wsa_sock_recv(in_sock, rx_buf, 10) < 1) {
-		if((time(0) - start_time) == (time_out / 1000)) 
+		if ((time(0) - start_time) == (time_out / 1000)) 
 			break; 
 	};
 	
-	if(strncmp(rx_buf, ack_str, 7) == 0) { //strlen(success)
-		if(test_mode) printf("s");
+	if (strncmp(rx_buf, ack_str, 7) == 0) { //strlen(success)
+		if (test_mode) printf("s");
 		free(rx_buf); 
 		return TRUE; 
 	}
 	else { 
-		if(test_mode) printf("f"); 
+		if (test_mode) printf("f"); 
 		free(rx_buf); 
 		return FALSE; 
 	}
