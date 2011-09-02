@@ -43,7 +43,7 @@
 #include "wsa_lib.h"
 #include "wsa_api.h"
 
-#define MAX_ANT_PORT 3
+#define MAX_ANT_PORT 2
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -391,7 +391,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	int16_t result = 0;
 	char temp_str[30];
 
-	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH)
+	if (gain > WSA_GAIN_VLOW || gain < WSA_GAIN_HIGH)
 		return WSA_ERR_INVRFGAIN;
 
 	strcpy(temp_str, ":INPUT:GAIN:RF ");
@@ -402,6 +402,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
 		default:		strcat(temp_str, "ERROR"); break;
 	}
+	printf("gain: %s\n", temp_str);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
@@ -458,7 +459,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 
-	sprintf(temp_str, ":INPUT:GAIN:IF %f dB\n", gain);
+	sprintf(temp_str, ":INPUT:GAIN:IF %.02f dB\n", gain);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {

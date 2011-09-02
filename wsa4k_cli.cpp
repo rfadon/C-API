@@ -174,12 +174,12 @@ int16_t do_wsa(const char *wsa_addr)
 	struct wsa_device *dev;
 	char intf_str[30];			// store the interface method string
 	int16_t result = 0;			// result returned from a function
-	uint64_t freq = 0;
+	int64_t freq = 0;
 	float fl_result = 0;
 
 	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
 	char *temp_ptr, temp[MAX_STR_LEN];
-	char *in_str[MAX_CMD_WORDS];	// store user's input string
+	char *in_str[MAX_CMD_WORDS];	// store user's input string & allocate
 		for (int i = 0; i < MAX_CMD_WORDS; i++) 
 			in_str[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
 
@@ -199,6 +199,10 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the control or data acquisition loop
 	//*****
 	do {
+		// Clear up in_str first
+		for (int i = 0; i < MAX_CMD_WORDS; i++)
+			strcpy(in_str[i], "");
+
 		// Get input string command and tokenize the words to eliminate ' '
 		int a = 0;
 		strcpy(temp, get_input_cmd(TRUE));
@@ -209,6 +213,8 @@ int16_t do_wsa(const char *wsa_addr)
 			temp_ptr = strtok(NULL, " \t\r\n");
 			a++;
 		}
+		// reset result
+		result = 0;
 
 
 		//*****
@@ -217,17 +223,13 @@ int16_t do_wsa(const char *wsa_addr)
 		if (strcmp(in_str[0], "GET") == 0) {
 			if (strcmp(in_str[1], "ANT") == 0) {
 				result = wsa_get_antenna(dev);
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-				else
+				if (result > 0)
 					printf("Currently using antenna port: %d\n", result);
 			} // end get ANT 
 
 			else if (strcmp(in_str[1], "BPF") == 0) {
 				result = wsa_get_bpf(dev);
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-				else {
+				if (result >= 0) {
 					printf("RFE's preselect BPF state: ");
 					if (result) printf("On\n");
 					else if (!result) printf("Off\n");
@@ -237,9 +239,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 			else if (strcmp(in_str[1], "CAL") == 0) {
 				result = wsa_query_cal_mode(dev);
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-				else {
+				if (result >= 0) {
 					printf("RFE's calibration state: ");
 					if (result) printf("On\n");
 					else if (!result) printf("Off\n");
@@ -250,7 +250,7 @@ int16_t do_wsa(const char *wsa_addr)
 			else if (strcmp(in_str[1], "CF") == 0) {
 				freq = wsa_get_freq(dev);
 				if (freq < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
+						result = (int16_t) freq;
 				else
 					printf("Current centre frequency: %0.2f MHz\n", 
 						(float) freq / MHZ);
@@ -263,9 +263,7 @@ int16_t do_wsa(const char *wsa_addr)
 			else if (strcmp(in_str[1], "GL") == 0) {
 				if (strcmp(in_str[2], "RF") == 0) {
 					result = wsa_get_gain_rf(dev);
-					if (result < 0)
-						printf("ERROR: %s\n", wsa_get_err_msg(result));
-					else {
+					if (result >= 0) {
 						printf("Current RF gain: ");
 						switch(result) {
 							case(WSA_GAIN_HIGH):	printf("HIGH"); break;
@@ -280,19 +278,20 @@ int16_t do_wsa(const char *wsa_addr)
 
 				else if (strcmp(in_str[2], "IF") == 0) {
 					fl_result = wsa_get_gain_if(dev);
-					if (fl_result < 0)
-						printf("ERROR: %s\n", wsa_get_err_msg((int16_t) 
-							fl_result));
+					// Here assume that there will be no gain less than -200 dB
+					if (fl_result < -200)
+						result = (int16_t) fl_result;
 					else
 						printf("Current IF gain: %0.2f dB\n", fl_result);
 				} // end get GL IF
+
+				else 
+					printf("Incorrect get GL. Specify RF or IF or see 'h'.\n");
 			} // end get GL
 
 			else if (strcmp(in_str[1], "LPF") == 0) {
 				result = wsa_get_lpf(dev);
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-				else {
+				if (result >= 0) {
 					printf("RFE's anti-aliasing LPF state: ");
 					if (result) printf("On\n");
 					else if (!result) printf("Off\n");
@@ -315,59 +314,83 @@ int16_t do_wsa(const char *wsa_addr)
 		// Handle SET commands
 		//*****
 		else if (strcmp(in_str[0], "SET") == 0) {
-			if(in_str[2] == NULL)
-				printf("ERROR: Missing the 3rd parameter.\n");
-
-			else if (strcmp(in_str[1], "ANT") == 0) {
-				result = wsa_set_antenna(dev, atoi(in_str[2]));
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-			}
+			if (strcmp(in_str[1], "ANT") == 0) {
+				if (strcmp(in_str[2], "") == 0) 
+					printf("Missing the antenna port value. See 'h'.\n");
+				else
+					result = wsa_set_antenna(dev, atoi(in_str[2]));
+			} // end set ANT
 
 			else if (strcmp(in_str[1], "BPF") == 0) {
 				if (strcmp(in_str[2], "ON") == 0)
 					result = wsa_set_bpf(dev, 1);
 				else if (strcmp(in_str[2], "OFF") == 0)
 					result = wsa_set_bpf(dev, 0);
-				else { 
-					printf("Use 'on' or 'off'\n");
-					continue;
-				}
-
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-			}
+				else 
+					printf("Use 'on' or 'off' mode.\n");
+			} // end set BPF
 
 			else if (strcmp(in_str[1], "CAL") == 0) {
 				if (strcmp(in_str[2], "ON") == 0)
 					result = wsa_run_cal_mode(dev, 1);
 				else if (strcmp(in_str[2], "OFF") == 0)
 					result = wsa_run_cal_mode(dev, 0);
-				else { 
-					printf("Use 'on' or 'off'\n");
-					continue;
-				}
-
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
-			}
+				else 
+					printf("Use 'on' or 'off' mode.\n");
+			} // end set CAL
 
 			else if (strcmp(in_str[1], "CF") == 0) {
-				printf("cf");
-			}
+				if (strcmp(in_str[2], "") == 0) {
+					printf("Missing the frequency value. See 'h'.\n");
+					continue;
+				}
+				freq = (int64_t) (atof(in_str[2]) * MHZ);
+				result = wsa_set_freq(dev, freq);
+			} // end set CF
 
 			else if (strcmp(in_str[1], "FS") == 0) {
 				printf("TO BE IMPLIMENTED\n");
-			}
+				//if (strcmp(in_str[2], "") == 0) 
+				//	printf("Missing the frame size value. See 'h'.\n");
+			} // end set FS
 
 			else if (strcmp(in_str[1], "GL") == 0) {
 				if (strcmp(in_str[2], "RF") == 0) {
-					printf("rf");
+					wsa_gain gain = (wsa_gain) NULL;
+
+					// Convert to wsa_gain type
+					if (strstr(in_str[3], "HIGH") != NULL)
+						gain = WSA_GAIN_HIGH;
+					else if (strstr(in_str[3], "MEDIUM") != NULL)
+						gain = WSA_GAIN_MEDIUM;
+					else if (strstr(in_str[3], "VLOW") != NULL)
+						gain = WSA_GAIN_VLOW;
+					else if (strstr(in_str[3], "LOW") != NULL)
+						gain = WSA_GAIN_LOW;
+					else if (strcmp(in_str[3], "") == 0) {
+						printf("Missing the gain paramter. See 'h'.\n");
+						continue;
+					}
+					else {
+						printf("Invalid RF gain setting. See 'h'.\n");
+						continue;
+					}
+
+					result = wsa_set_gain_rf(dev, gain);
 				} // end set GL RF
 
 				else if (strcmp(in_str[2], "IF") == 0) {
-					printf("if");
+					if (strcmp(in_str[3], "") == 0) {
+						printf("Missing the gain dB value. See 'h'.\n");
+						continue;
+					}
+
+					result = wsa_set_gain_if(dev, (float) atof(in_str[3]));
 				} // end set GL IF
+				
+				else {
+					printf("Incorrect set GL. Specify RF or IF. See 'h'.\n");
+				}
 			} // end set GL
 
 			else if (strcmp(in_str[1], "LPF") == 0) {
@@ -375,23 +398,19 @@ int16_t do_wsa(const char *wsa_addr)
 					result = wsa_set_lpf(dev, 1);
 				else if (strcmp(in_str[2], "OFF") == 0)
 					result = wsa_set_lpf(dev, 0);
-				else { 
-					printf("Use 'on' or 'off'\n");
-					continue;
-				}
-
-				if (result < 0)
-					printf("ERROR: %s\n", wsa_get_err_msg(result));
+				else 
+					printf("Use 'on' or 'off' mode.\n");
 			} // end set LPF
 
 			else if (strcmp(in_str[1], "SS") == 0) {
 				printf("Not supporting various sample sizes yet! "
 					"Default to 1024.\n");
-			}
+				//if (strcmp(in_str[2], "") == 0) 
+				//	printf("Missing the sample size value. See 'h'.\n");
+			} // end set SS
 
-			else {
-				printf("Invalid 'set'. Try 'h'.\n");
-			}
+			else 
+				printf("Invalid 'set'. See 'h'.\n");
 		} // end SET
 
 		//*****
@@ -399,11 +418,19 @@ int16_t do_wsa(const char *wsa_addr)
 		//*****
 		else {
 			if (strcmp(in_str[0], "D") == 0) {
-				printf("File directory: \"%s\\CAPTURES\\\"\n", 
+				printf("TO BE IMPLEMENTED.\n");
+			}
+
+			else if (strcmp(in_str[0], "FP") == 0) {
+				printf("File directory is: \"%s\\CAPTURES\\\"\n", 
 					_getcwd(NULL, 0));
 			}
 
-			else if (strcmp(in_str[0], "fp") == 0) {
+			else if (strlen(in_str[0]) == 1 && strspn(in_str[0], "H?") > 0) {
+				print_cli_menu(dev);
+			} // end print help
+
+			else if (strcmp(in_str[0], "O") == 0) {
 				char dir[200];
 				sprintf(dir, "explorer %s\\CAPTURES", _getcwd(NULL, 0));
 				
@@ -411,28 +438,25 @@ int16_t do_wsa(const char *wsa_addr)
 					printf("Open the folder of captured file(s)...\n");
 				else 
 					printf("Open failed!\n");
-			}
-
-			else if (strlen(in_str[0]) == 1 && strspn(in_str[0], "H?") > 0) {
-				print_cli_menu(dev);
-			}
+			}  // end Open directory
 
 			// User wants to run away...
 			else if (strcmp(in_str[0], "Q") == 0) {
 				break;
-			}
+			} // end quit
 
-			else if (strcmp(in_str[0], "")) {
+			// Keep going if nothing is entered
+			else if (strcmp(in_str[0], "") == 0) {
 				continue;
 			}
-			else {
-				printf("Command '%s' not recognized.  See 'h'.\n", temp);
-			}
 
+			else 
+				printf("Command '%s' not recognized.  See 'h'.\n", temp);
 		} // End handling non get/set cmds.
 
-		for (int i = 0; i < MAX_CMD_WORDS; i++)
-			strcpy(in_str[i], "");
+		// Print out the errors
+		if (result < 0)
+			printf("ERROR: %s\n", wsa_get_err_msg(result));
 	} while (!user_quit);
 
 	wsa_close(dev);
@@ -470,7 +494,16 @@ int16_t start_cli(void)
 		//*****
 		printf("\n> Enter the WSA4000's IP (or type 'l'): ");
 		strcpy(in_str, get_input_cmd(FALSE));
-		strcpy(in_str, strtok(in_str, " \t")); // rm spaces or tabs in string
+
+		// prevent crashing b/c of strtok in the next line
+		if(strcmp(in_str, "") == 0)	continue;
+		
+		// remove spaces or tabs in string
+		strcpy(in_str, strtok(in_str, " \t\r\n")); 
+
+		// do nothing
+		if(strcmp(in_str, "") == 0)
+			continue;
 
 		// User wants to run away...
 		if (strcmp(in_str, "Q") == 0) 
@@ -517,7 +550,7 @@ int16_t start_cli(void)
 		}	
 
 		//*****
-		// All are good, start the connection
+		// All are good, start the connection & command part
 		//*****
 		if (do_wsa(wsa_addr) == 0)
 			break;
