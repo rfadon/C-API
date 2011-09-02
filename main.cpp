@@ -19,15 +19,26 @@ int32_t main(int32_t argc, char *argv[])
 	// Check user commands for mode parameters
 	if (argc > 1) {
 		while (1) {
-			// Copy the first command string arg to a constant string
+			// Copy the each command word arg to a constant string
 			for (i = 0; i < ((int32_t)strlen(argv[count_arg])); i++) 
 				in_str[i] = toupper(argv[count_arg][i]);	
 			in_str[i] = 0;
 
-			if (strncmp("-T", in_str, 2) == 0) 
-				test_mode = TRUE;
-			else if (strncmp("-D", in_str, 2) == 0) 
+			if (strncmp("-H", in_str, 2) == 0) {
+				printf("Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
+					"[{h}] [{<cmd1>}] [{<cmd2>}] ... \n\n[ ]: optional "
+					"parameter \n< >: required parameter \n-m: show "
+					"command options menu\n\n", argv[0]);
+				if(!call_mode) return 0;
+			}
+			else if (strncmp("-C", in_str, 2) == 0) {
+				call_mode = TRUE;
+				mode_argc += 1;
+			}
+			else if (strncmp("-D", in_str, 2) == 0) {
 				debug_mode = TRUE;
+				mode_argc += 1;
+			}
 
 			// up counter to the next argv positn
 			if (count_arg < (argc - 1)) 
@@ -36,16 +47,25 @@ int32_t main(int32_t argc, char *argv[])
 				break;
 		}
 	}
-	if (test_mode || debug_mode) mode_argc = 1;
 	
-	// Do we have enough command line arguments?
-    if ((argc - mode_argc) < 0) {
-		fprintf(stderr, "usage: %s <server-address>\n\n", argv[0]);
-        return 1;
-    }
+
+	if(call_mode) {
+		// Do we have enough command line arguments?
+		if ((argc - mode_argc) <= 1) {
+			fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
+				"[{h}] [{<cmd1>}] [{<cmd2>}] ... \n\n[ ]: optional "
+				"parameter \n< >: required parameter \n-m: show command "
+				"options menu\n\n", argv[0]);
+			return 0;
+		}
+
+		result = process_call_mode_words(argc, argv);
+		if (result < 0)
+			printf("ERROR: %s\n", wsa_get_err_msg(result));
+	}
 
 	// Start the CLI program
-	if (start_cli() < 0)
+	else if (start_cli() < 0)
 		printf("ERROR: Unable to start the CLI program!\n");
 
 	return 0;

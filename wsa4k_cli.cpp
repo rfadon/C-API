@@ -58,8 +58,13 @@
 #include "wsa_api.h"
 #include "wsa_error.h"
 
+//*****
+// Local functions
+//
+int8_t process_cmds(struct wsa_device *dev, char **cmd_words);
+void print_cli_menu(struct wsa_device *dev);
+char* get_input_cmd(uint8_t pretext);
 
-#define MAX_CMD_WORDS 4
 /**
  * Print out the CLI options menu
  *
@@ -160,48 +165,32 @@ char* get_input_cmd(uint8_t pretext)
 	return input_opt;
 }
 
-
-// Local function:
-// Process any command (only) string
-// Return 1 if 'q'uit is set, 0 for no error.
-uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
+/**
+ * Process any command (only) string.
+ *
+ * @param dev -
+ * @param cmd_str - 
+ *
+ * @return 1 if 'q'uit is set, 0 for no error.
+ */
+int8_t process_cmds(struct wsa_device *dev, char **cmd_words)
 {
 	int16_t result = 0;			// result returned from a function
 	int64_t freq = 0;
 	float fl_result = 0;
-	uint8_t a = 0;
-
-	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
-	char *temp_ptr;
-	char *in_str[MAX_CMD_WORDS]; // store user's input words
-
-	// Allocate mem & clear up in_str first
-	for (int i = 0; i < MAX_CMD_WORDS; i++) {
-		in_str[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
-		strcpy(in_str[i], "");
-	}
-
-	//*****
-	// Tokenized the string into words
-	//*****
-	temp_ptr = strtok(cmd_str, " \t\r\n");
-	while (temp_ptr != NULL) {
-		strcpy(in_str[a], temp_ptr);
-		temp_ptr = strtok(NULL, " \t\r\n");
-		a++;
-	}
+	uint8_t user_quit = FALSE;	// determine if user has entered 'q' command
 
 	//*****
 	// Handle GET commands
 	//*****
-	if (strcmp(in_str[0], "GET") == 0) {
-		if (strcmp(in_str[1], "ANT") == 0) {
+	if (strcmp(cmd_words[0], "GET") == 0) {
+		if (strcmp(cmd_words[1], "ANT") == 0) {
 			result = wsa_get_antenna(dev);
 			if (result > 0)
 				printf("Currently using antenna port: %d\n", result);
 		} // end get ANT 
 
-		else if (strcmp(in_str[1], "BPF") == 0) {
+		else if (strcmp(cmd_words[1], "BPF") == 0) {
 			result = wsa_get_bpf(dev);
 			if (result >= 0) {
 				printf("RFE's preselect BPF state: ");
@@ -211,7 +200,7 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 			}
 		} // end get BPF
 
-		else if (strcmp(in_str[1], "CAL") == 0) {
+		else if (strcmp(cmd_words[1], "CAL") == 0) {
 			result = wsa_query_cal_mode(dev);
 			if (result >= 0) {
 				printf("RFE's calibration state: ");
@@ -221,7 +210,7 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 			}
 		} // end get CAL
 
-		else if (strcmp(in_str[1], "CF") == 0) {
+		else if (strcmp(cmd_words[1], "CF") == 0) {
 			freq = wsa_get_freq(dev);
 			if (freq < 0)
 					result = (int16_t) freq;
@@ -230,12 +219,12 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 					(float) freq / MHZ);
 		} // end get CF
 
-		else if (strcmp(in_str[1], "FS") == 0) {
+		else if (strcmp(cmd_words[1], "FS") == 0) {
 			printf("TO BE IMPLEMENTED!");
 		} // end get FS
 
-		else if (strcmp(in_str[1], "GL") == 0) {
-			if (strcmp(in_str[2], "RF") == 0) {
+		else if (strcmp(cmd_words[1], "GL") == 0) {
+			if (strcmp(cmd_words[2], "RF") == 0) {
 				result = wsa_get_gain_rf(dev);
 				if (result >= 0) {
 					printf("Current RF gain: ");
@@ -250,7 +239,7 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 				}
 			}  // end get GL RF
 
-			else if (strcmp(in_str[2], "IF") == 0) {
+			else if (strcmp(cmd_words[2], "IF") == 0) {
 				fl_result = wsa_get_gain_if(dev);
 				// Here assume that there will be no gain less than -200 dB
 				if (fl_result < -200)
@@ -263,7 +252,7 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 				printf("Incorrect get GL. Specify RF or IF or see 'h'.\n");
 		} // end get GL
 
-		else if (strcmp(in_str[1], "LPF") == 0) {
+		else if (strcmp(cmd_words[1], "LPF") == 0) {
 			result = wsa_get_lpf(dev);
 			if (result >= 0) {
 				printf("RFE's anti-aliasing LPF state: ");
@@ -273,7 +262,7 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 			}
 		} // end get LPF
 
-		else if (strcmp(in_str[1], "SS") == 0) {
+		else if (strcmp(cmd_words[1], "SS") == 0) {
 			printf("Not supporting various sample sizes yet! "
 				"Default to 1024.\n");
 		} // end get SS
@@ -287,63 +276,63 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 	//*****
 	// Handle SET commands
 	//*****
-	else if (strcmp(in_str[0], "SET") == 0) {
-		if (strcmp(in_str[1], "ANT") == 0) {
-			if (strcmp(in_str[2], "") == 0) 
+	else if (strcmp(cmd_words[0], "SET") == 0) {
+		if (strcmp(cmd_words[1], "ANT") == 0) {
+			if (strcmp(cmd_words[2], "") == 0) 
 				printf("Missing the antenna port value. See 'h'.\n");
 			else
-				result = wsa_set_antenna(dev, atoi(in_str[2]));
+				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
 		} // end set ANT
 
-		else if (strcmp(in_str[1], "BPF") == 0) {
-			if (strcmp(in_str[2], "ON") == 0)
+		else if (strcmp(cmd_words[1], "BPF") == 0) {
+			if (strcmp(cmd_words[2], "ON") == 0)
 				result = wsa_set_bpf(dev, 1);
-			else if (strcmp(in_str[2], "OFF") == 0)
+			else if (strcmp(cmd_words[2], "OFF") == 0)
 				result = wsa_set_bpf(dev, 0);
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set BPF
 
-		else if (strcmp(in_str[1], "CAL") == 0) {
-			if (strcmp(in_str[2], "ON") == 0)
+		else if (strcmp(cmd_words[1], "CAL") == 0) {
+			if (strcmp(cmd_words[2], "ON") == 0)
 				result = wsa_run_cal_mode(dev, 1);
-			else if (strcmp(in_str[2], "OFF") == 0)
+			else if (strcmp(cmd_words[2], "OFF") == 0)
 				result = wsa_run_cal_mode(dev, 0);
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set CAL
 
-		else if (strcmp(in_str[1], "CF") == 0) {
-			if (strcmp(in_str[2], "") == 0) {
+		else if (strcmp(cmd_words[1], "CF") == 0) {
+			if (strcmp(cmd_words[2], "") == 0) {
 				printf("Missing the frequency value. See 'h'.\n");
 			}
 			else {
-				freq = (int64_t) (atof(in_str[2]) * MHZ);
+				freq = (int64_t) (atof(cmd_words[2]) * MHZ);
 				result = wsa_set_freq(dev, freq);
 			}
 		} // end set CF
 
-		else if (strcmp(in_str[1], "FS") == 0) {
+		else if (strcmp(cmd_words[1], "FS") == 0) {
 			printf("TO BE IMPLIMENTED\n");
-			//if (strcmp(in_str[2], "") == 0) 
+			//if (strcmp(cmd_words[2], "") == 0) 
 			//	printf("Missing the frame size value. See 'h'.\n");
 		} // end set FS
 
-		else if (strcmp(in_str[1], "GL") == 0) {
-			if (strcmp(in_str[2], "RF") == 0) {
+		else if (strcmp(cmd_words[1], "GL") == 0) {
+			if (strcmp(cmd_words[2], "RF") == 0) {
 				wsa_gain gain = (wsa_gain) NULL;
 				uint8_t valid = TRUE;
 
 				// Convert to wsa_gain type
-				if (strstr(in_str[3], "HIGH") != NULL)
+				if (strstr(cmd_words[3], "HIGH") != NULL)
 					gain = WSA_GAIN_HIGH;
-				else if (strstr(in_str[3], "MEDIUM") != NULL)
+				else if (strstr(cmd_words[3], "MEDIUM") != NULL)
 					gain = WSA_GAIN_MEDIUM;
-				else if (strstr(in_str[3], "VLOW") != NULL)
+				else if (strstr(cmd_words[3], "VLOW") != NULL)
 					gain = WSA_GAIN_VLOW;
-				else if (strstr(in_str[3], "LOW") != NULL)
+				else if (strstr(cmd_words[3], "LOW") != NULL)
 					gain = WSA_GAIN_LOW;
-				else if (strcmp(in_str[3], "") == 0) {
+				else if (strcmp(cmd_words[3], "") == 0) {
 					printf("Missing the gain paramter. See 'h'.\n");
 					valid = FALSE;
 				}
@@ -356,12 +345,12 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 					result = wsa_set_gain_rf(dev, gain);
 			} // end set GL RF
 
-			else if (strcmp(in_str[2], "IF") == 0) {
-				if (strcmp(in_str[3], "") == 0) {
+			else if (strcmp(cmd_words[2], "IF") == 0) {
+				if (strcmp(cmd_words[3], "") == 0) {
 					printf("Missing the gain dB value. See 'h'.\n");
 				}
 				else
-					result = wsa_set_gain_if(dev, (float) atof(in_str[3]));
+					result = wsa_set_gain_if(dev, (float) atof(cmd_words[3]));
 			} // end set GL IF
 			
 			else {
@@ -369,19 +358,19 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 			}
 		} // end set GL
 
-		else if (strcmp(in_str[1], "LPF") == 0) {
-			if (strcmp(in_str[2], "ON") == 0)
+		else if (strcmp(cmd_words[1], "LPF") == 0) {
+			if (strcmp(cmd_words[2], "ON") == 0)
 				result = wsa_set_lpf(dev, 1);
-			else if (strcmp(in_str[2], "OFF") == 0)
+			else if (strcmp(cmd_words[2], "OFF") == 0)
 				result = wsa_set_lpf(dev, 0);
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set LPF
 
-		else if (strcmp(in_str[1], "SS") == 0) {
+		else if (strcmp(cmd_words[1], "SS") == 0) {
 			printf("Not supporting various sample sizes yet! "
 				"Default to 1024.\n");
-			//if (strcmp(in_str[2], "") == 0) 
+			//if (strcmp(cmd_words[2], "") == 0) 
 			//	printf("Missing the sample size value. See 'h'.\n");
 		} // end set SS
 
@@ -394,20 +383,20 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 	// Handle non-get/set commands
 	//*****
 	else {
-		if (strcmp(in_str[0], "D") == 0) {
+		if (strcmp(cmd_words[0], "D") == 0) {
 			printf("TO BE IMPLEMENTED.\n");
 		}
 
-		else if (strcmp(in_str[0], "FP") == 0) {
+		else if (strcmp(cmd_words[0], "FP") == 0) {
 			printf("File directory is: \"%s\\CAPTURES\\\"\n", 
 				_getcwd(NULL, 0));
 		}
 
-		else if (strlen(in_str[0]) == 1 && strspn(in_str[0], "H?") > 0) {
+		else if (strlen(cmd_words[0]) == 1 && strspn(cmd_words[0], "H?") > 0) {
 			print_cli_menu(dev);
 		} // end print help
 
-		else if (strcmp(in_str[0], "O") == 0) {
+		else if (strcmp(cmd_words[0], "O") == 0) {
 			char dir[200];
 			sprintf(dir, "explorer %s\\CAPTURES", _getcwd(NULL, 0));
 			
@@ -418,26 +407,22 @@ uint8_t process_cmd_str(struct wsa_device *dev, char *cmd_str)
 		}  // end Open directory
 
 		// User wants to run away...
-		else if (strcmp(in_str[0], "Q") == 0) {
+		else if (strcmp(cmd_words[0], "Q") == 0) {
 			user_quit = TRUE;
 		} // end quit
 
 		// Keep going if nothing is entered
-		else if (strcmp(in_str[0], "") == 0) {
+		else if (strcmp(cmd_words[0], "") == 0) {
 			// Do nothing
 		}
 
 		else 
-			printf("Command '%s' not recognized.  See 'h'.\n", cmd_str);
+			user_quit = -1;
 	} // End handling non get/set cmds.
 
 	// Print out the errors
 	if (result < 0)
 		printf("ERROR: %s\n", wsa_get_err_msg(result));
-
-	// Free the allocation
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
-		free(in_str[i]);
 
 	return user_quit;
 }
@@ -453,11 +438,17 @@ int16_t do_wsa(const char *wsa_addr)
 {	
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
-	char intf_str[30];			// store the interface method string
+	char intf_str[50];			// store the interface method string
 	int16_t result = 0;			// result returned from a function
-	uint8_t user_quit = FALSE;	// determine if user exits the CLI tool
-	char in_str[MAX_STR_LEN];
+	
+	uint8_t a = 0;	// an index
+	char temp_str[MAX_STR_LEN];
+	char *temp_ptr;
+	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
 
+	// Allocate memory
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
@@ -472,12 +463,33 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Start the control loop
 	do {
-		// Get input string command
-		strcpy(in_str, get_input_cmd(TRUE));
+		// reset variables
+		a = 0;
+
+		// clear up the words first
+		for (int i = 0; i < MAX_CMD_WORDS; i++)
+			strcpy(cmd_words[i], "");
 		
-		user_quit = process_cmd_str(dev, in_str);
-		// if (user_quit < 0) print something? but this won't happen
-	} while (!user_quit);
+		// Get input string command
+		strcpy(temp_str, get_input_cmd(TRUE));
+
+		// Tokenized the string into words
+		temp_ptr = strtok(temp_str, " \t\r\n");
+		while (temp_ptr != NULL) {
+			strcpy(cmd_words[a], temp_ptr);
+			temp_ptr = strtok(NULL, " \t\r\n");
+			a++;
+		}
+		
+		// send cmd words to be processed
+		result = process_cmds(dev, cmd_words);
+		if (result < 0) 
+			printf("Command '%s' not recognized.  See 'h'.\n", temp_str);
+	} while (result != 1);
+
+	// Free the allocation
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		free(cmd_words[i]);
 
 	// finish so close the connection
 	wsa_close(dev);
@@ -498,7 +510,7 @@ int16_t start_cli(void)
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
 	char in_str[MAX_STR_LEN];		// store user's input string
 	int16_t in_num = 0;				// store user's entered number
-	char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
+	//char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
 	const char *wsa_addr;			// store the desired WSA IP address
 	int16_t result = 0;				// result returned from a function
 
@@ -538,6 +550,9 @@ int16_t start_cli(void)
 
 		// User chose List option
 		else if (strcmp(in_str, "L") == 0) {
+			printf("No list option for now. Pls enter IP address instead.\n");
+			continue;
+			/*
 			result = wsa_list(ip_list);
 			printf("> ");
 			strcpy(in_str, get_input_cmd(FALSE));
@@ -548,13 +563,11 @@ int16_t start_cli(void)
 			else {
 				printf("Option invalid!\n");
 				continue;
-			}
+			}*/
 		}
 
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
-			// TODO verify & convert host type address to IP using 
-			// wsa_get_host_info() -> needed?
 			if (wsa_check_addr(in_str) > 0)
 				wsa_addr = in_str;
 			else {
@@ -573,6 +586,113 @@ int16_t start_cli(void)
 		if (do_wsa(wsa_addr) == 0)
 			break;
 	} while (!user_quit);
+
+	return 0;
+}
+
+int16_t process_call_mode_words(int32_t argc, char **argv)
+{
+	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
+	int16_t w = 0;					// keep track of the words processed
+	char intf_str[50];				// store the interface method string
+	char temp_str[50];
+	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_device *dev;
+	int16_t result = 0;
+	uint8_t cmd_end = FALSE;
+
+	// Allocate memory
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+
+
+	// ignore -c & -h command
+	if(strcmp(argv[w], "-c") == 0 || strcmp(argv[w], "-h") == 0) {
+		w++;
+		continue;
+	}
+
+	// Get the ip address and establish the connection if success
+	if(strncmp(argv[w], "-ip=", 4) == 0) {
+		if(strlen(argv[w]) < 4)
+			result = WSA_ERR_INVIPADDRESS;
+
+		strcpy(temp_str, strchr(argv[w], '='));
+		strcpy(temp_str, temp_str++);
+		printf("IP: %s\n", temp_str);
+
+		// Create the TCPIP interface method string
+		sprintf(intf_str, "TCPIP::%s::%d", temp_str, HISLIP);
+
+		// Start the WSA connection
+		dev = &wsa_dev;
+		if ((result = wsa_open(dev, intf_str)) < 0) {
+			doutf(1, "Error WSA_ERR_OPENFAILED: %s.", 
+				wsa_get_err_msg(WSA_ERR_OPENFAILED));
+			return WSA_ERR_OPENFAILED;
+		}
+
+		w++;
+	}
+
+	// start process the command words
+	do {
+		// clear up the words first
+		for (int i = 0; i < MAX_CMD_WORDS; i++)
+			strcpy(cmd_words[i], "");
+
+
+		// case {
+		if (argv[w][0] == '{') && strlen(argv[w]) == 1)
+				w++;
+// SOLVE THIS CASE w}{w
+		// case {w
+		if (strchr(argv[w], '{') != NULL) {
+			strcpy(cmd_words[a], strtok(argv[w], "{");
+			if (strchr(argv[w], '}') == NULL) {
+				w++;
+				a++;
+			}
+		}
+		
+		// case }
+		if (strlen(argv[w]) == 1 && strlen(argv[w]) == 1) {
+			w++;
+			cmd_end = TRUE;
+		}
+
+		// case w}
+		if (strchr(argv[w], '}') != NULL) {
+			cmd_end = TRUE;	
+			strcpy(cmd_words[a], strtok(argv[w], "}"));	
+			a = 0;
+
+			// not case w}{
+			if (strstr(argv[w], '}{') == NULL) {
+				w++;
+			}
+		}
+
+		if (cmd_end) {
+...
+		}
+		else {
+			strcpy(cmd_words[a], argv[w]);
+			a++;
+		}
+		
+		while (strchr(argv[w], '}') == NULL) {
+
+		}
+
+
+		break;
+		w++;
+	} while(w < argc);
+
+	// Free the allocation
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		free(cmd_words[i]);
 
 	return 0;
 }

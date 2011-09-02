@@ -25,7 +25,7 @@ using namespace std;
 // Constants
 ///////////////////////////////////////////////////////////////////////////////	
 uint8_t debug_mode = FALSE;
-uint8_t test_mode = FALSE;
+uint8_t call_mode = FALSE;
 
 //const int32_t fileSize = 1024;
 //const int32_t IQbus_size = 32;
@@ -457,12 +457,12 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	};
 	
 	if (strncmp(rx_buf, ack_str, 7) == 0) { //strlen(success)
-		if (test_mode) printf("s");
+		if (call_mode) printf("s");
 		free(rx_buf); 
 		return TRUE; 
 	}
 	else { 
-		if (test_mode) printf("f"); 
+		if (call_mode) printf("f"); 
 		free(rx_buf); 
 		return FALSE; 
 	}
