@@ -14,6 +14,7 @@ int32_t main(int32_t argc, char *argv[])
 	char in_str[200];			// Store the converted parameter string
 	int32_t count_arg = 1;
 	int32_t i, mode_argc = 0;
+	int16_t result = 0;
 	
 
 	// Check user commands for mode parameters
@@ -61,7 +62,7 @@ int32_t main(int32_t argc, char *argv[])
 
 		result = process_call_mode_words(argc, argv);
 		if (result < 0)
-			printf("ERROR: %s\n", wsa_get_err_msg(result));
+			printf("Run failed!\n");
 	}
 
 	// Start the CLI program

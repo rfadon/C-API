@@ -593,101 +593,137 @@ int16_t start_cli(void)
 int16_t process_call_mode_words(int32_t argc, char **argv)
 {
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
-	int16_t w = 0;					// keep track of the words processed
-	char intf_str[50];				// store the interface method string
+	int16_t w = 1;				// skip the executable arg, start at next word
+	int16_t c = 0;				// keep track of the words processed
+	char intf_str[50];			// store the interface method string
 	char temp_str[50];
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
 	int16_t result = 0;
-	uint8_t cmd_end = FALSE;
+	uint8_t cmd_end = FALSE, is_cmd = FALSE;	// some cmd words related flags
 
 	// Allocate memory
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
+	for (int i = 0; i < MAX_CMD_WORDS; i++) {
 		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
-
-
-	// ignore -c & -h command
-	if(strcmp(argv[w], "-c") == 0 || strcmp(argv[w], "-h") == 0) {
-		w++;
-		continue;
+		strcpy(cmd_words[i], "");
 	}
 
-	// Get the ip address and establish the connection if success
-	if(strncmp(argv[w], "-ip=", 4) == 0) {
-		if(strlen(argv[w]) < 4)
-			result = WSA_ERR_INVIPADDRESS;
+	do {
+	//*****
+	// Process non-cmd words
+	//*****
+		if (!is_cmd && !cmd_end) {
+			// ignore -c & -h command
+			if(strcmp(argv[w], "-c") == 0 || strcmp(argv[w], "-h") == 0) {
+				w++;
+			}
 
-		strcpy(temp_str, strchr(argv[w], '='));
-		strcpy(temp_str, temp_str++);
-		printf("IP: %s\n", temp_str);
+			// Get the ip address and establish the connection if success
+			if(strncmp(argv[w], "-ip=", 4) == 0) {
+				if(strlen(argv[w]) <= 4) {
+					printf("\nERROR: Invalid IP address or host name.\n");
+					return WSA_ERR_INVIPADDRESS;
+				}
 
-		// Create the TCPIP interface method string
-		sprintf(intf_str, "TCPIP::%s::%d", temp_str, HISLIP);
+				strcpy(temp_str, strchr(argv[w], '='));
+				strcpy(temp_str, strtok(temp_str, "="));
+				printf("IP: %s\n", temp_str);
 
-		// Start the WSA connection
-		dev = &wsa_dev;
-		if ((result = wsa_open(dev, intf_str)) < 0) {
-			doutf(1, "Error WSA_ERR_OPENFAILED: %s.", 
-				wsa_get_err_msg(WSA_ERR_OPENFAILED));
-			return WSA_ERR_OPENFAILED;
+				// Create the TCPIP interface method string
+				sprintf(intf_str, "TCPIP::%s::%d", temp_str, HISLIP);
+
+				// Start the WSA connection
+				dev = &wsa_dev;
+				if ((result = wsa_open(dev, intf_str)) < 0) {
+					doutf(1, "Error WSA_ERR_OPENFAILED: %s.", 
+						wsa_get_err_msg(WSA_ERR_OPENFAILED));
+					return WSA_ERR_OPENFAILED;
+				}
+
+				w++;
+			}
+		} // end !is_cmd
+
+
+	//*****
+	// get the command words
+	//*****
+		// clear up the cmd words array before storing new cmds
+		if (cmd_end) {
+			for (int i = 0; i < MAX_CMD_WORDS; i++)
+				strcpy(cmd_words[i], "");
 		}
 
-		w++;
-	}
-
-	// start process the command words
-	do {
-		// clear up the words first
-		for (int i = 0; i < MAX_CMD_WORDS; i++)
-			strcpy(cmd_words[i], "");
-
-
 		// case {
-		if (argv[w][0] == '{') && strlen(argv[w]) == 1)
-				w++;
-// SOLVE THIS CASE w}{w
-		// case {w
-		if (strchr(argv[w], '{') != NULL) {
-			strcpy(cmd_words[a], strtok(argv[w], "{");
-			if (strchr(argv[w], '}') == NULL) {
-				w++;
-				a++;
-			}
+		if (argv[w][0] == '{' && strlen(argv[w]) == 1) {
+			is_cmd = TRUE;
+			w++;
+		}
+
+		// case {}
+		else if (argv[w][0] == '{' && strlen(argv[w]) == 2) {
+			is_cmd = TRUE;
+			w++;
+		}
+
+		// case {w only
+		else if (strchr(argv[w], '{') != NULL && strchr(argv[w], '}') == NULL){
+			strcpy(cmd_words[c], strtok(argv[w], "{"));
+			printf("%s, cmd: %s\n", argv[w], cmd_words[c]);
+			is_cmd = TRUE;
+			w++;
+			c++;
 		}
 		
 		// case }
-		if (strlen(argv[w]) == 1 && strlen(argv[w]) == 1) {
-			w++;
+		else if (strlen(argv[w]) == 1 && strchr(argv[w], '}') != NULL) {
+			is_cmd = FALSE;
 			cmd_end = TRUE;
+			w++;
 		}
 
 		// case w}
-		if (strchr(argv[w], '}') != NULL) {
-			cmd_end = TRUE;	
-			strcpy(cmd_words[a], strtok(argv[w], "}"));	
-			a = 0;
-
-			// not case w}{
-			if (strstr(argv[w], '}{') == NULL) {
-				w++;
-			}
+		else if (strchr(argv[w], '}') != NULL && strchr(argv[w], '{') == NULL){
+			strcpy(cmd_words[c], strtok(argv[w], "}"));	
+			printf("%s, cmd: %s\n", argv[w], cmd_words[c]);
+			is_cmd = FALSE;
+			cmd_end = TRUE;
+			w++;
 		}
 
+		// case contains }{
+		else if (strstr(argv[w], "}{") != NULL) {
+			// case w}{ or w}{w
+			if (argv[w][0] != '}')
+				strcpy(cmd_words[c], strtok(argv[w], "}")); // get the front w
+			
+			// remove the front part } or w} & does not increment w so 
+			// { or {w gets processed at the next loop
+			argv[w] = strchr(argv[w], '{');	
+			printf("%s, cmd: %s\n", argv[w], cmd_words[c]);
+			is_cmd = FALSE;
+			cmd_end = TRUE;
+		}
+
+		// case within { w }
+		else if (is_cmd) {
+			strcpy(cmd_words[c], argv[w]);
+			w++;
+			c++;
+		}
+
+	//*****
+	// Send the cmd to be processed & tx
+	//*****
 		if (cmd_end) {
-...
-		}
-		else {
-			strcpy(cmd_words[a], argv[w]);
-			a++;
-		}
-		
-		while (strchr(argv[w], '}') == NULL) {
+			//result = process_cmds(dev, cmd_words);
+			if (result < 0) 
+				printf("Command '%s' not recognized.  See 'h'.\n", temp_str);
 
+			// restart the flag
+			cmd_end = FALSE;
+			c = 0;
 		}
-
-
-		break;
-		w++;
 	} while(w < argc);
 
 	// Free the allocation
