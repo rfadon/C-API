@@ -75,8 +75,6 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	//*****
 	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, cmd_port);
     if (cmd_socket == INVALID_SOCKET) {
-        doutf(1, "%s\n", 
-			WSAGetLastErrorMessage("Error connecting to the server"));
         return WSA_ERR_SOCKETSETFUPFAILED;
     }
     else {
@@ -91,8 +89,6 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	// TODO: add data socket
 /*	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
     if (data_socket == INVALID_SOCKET) {
-        fprintf(stderr, "%s\n", 
-			WSAGetLastErrorMessage("Error connecting to the server"));
         result = WSA_ERR_SOCKETSETFUPFAILED;
     }
     else {
@@ -281,7 +277,7 @@ int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
     // Send the string to the server
 	int16_t bytes_txed = send(out_sock, out_str, len, 0);
     if (bytes_txed > 0) {
-        printf("Sent %d bytes to server.\n", bytes_txed);
+        doutf(2, "Sent %d bytes to server.\n", bytes_txed);
     }
     else if (bytes_txed == SOCKET_ERROR) {
         printf("Sent failed.  Socket error/closed! Error: %ld\n", 

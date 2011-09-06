@@ -151,8 +151,8 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 				&(dev->sock).data);
 
 		if (result < 0) {
-			doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-					wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
+			//doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
+			//		wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
 			return WSA_ERR_ETHERNETCONNECTFAILED;
 		}
 
