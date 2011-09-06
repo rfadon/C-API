@@ -60,7 +60,7 @@ int32_t main(int32_t argc, char *argv[])
 			return 0;
 		}
 
-		result = process_call_mode_words(argc, argv);
+		result = process_call_mode(argc, argv);
 		if (result < 0)
 			printf("Run failed!\n");
 	}

@@ -402,7 +402,6 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
 		default:		strcat(temp_str, "ERROR"); break;
 	}
-	printf("gain: %s\n", temp_str);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
