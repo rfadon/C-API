@@ -84,11 +84,13 @@ void print_cli_menu(struct wsa_device *dev)
 
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive):\n\n");
-	printf(" d                     Save data to a file.\n");
-	printf(" fp                    List the captured file path.\n");
 	printf(" h                     Show the list of available options.\n");
 	printf(" o                     Open the folder of captured file(s).\n");
-	printf(" q                     Quit or exit this console.\n\n");
+	printf(" q                     Quit or exit this console.\n");
+	printf(" sd [prefix]           Save data to a file with optional prefix "
+									"string.\n"
+		   "                       Output: [prefix] YYYY-MM-DD_HH:MM:SS.dat\n"); // TODO: millisec???
+	printf("\n");
 
 	printf(" get ant               Show the current antenna port in use.\n");
 	printf(" get bpf               Show the current RFE's preselect BPF "
@@ -96,16 +98,22 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get cal               Show the current RFE calibration mode.\n");
 	printf(" get cf                Show the current running centre frequency "
 									"(in MHz).\n");
+	printf(" get dir               List the captured file path.\n");
 	printf(" get fs                Show the current frame size per file.\n");
 	printf(" get gl <rf/if>        Show the current RF front end or IF gain "
 									"level.\n");
 	printf(" get lpf               Show the current RFE's anti-aliasing"
 									" LPF state.\n");
-	printf(" get ss                Show the current sample size per frame."
-									"\n\n");
+	printf(" get ss                Show the current sample size per frame.\n"
+									"\n");
+	printf("\n");
 
-	printf(" set ant <1/2>         Select the antenna switch 1 to %d.\n",
-									MAX_ANT_PORT);
+	printf(" run cmdf <file name>  Run commands stored in a text file.\n"
+		   "                       Note: Process only set or get commands.\n");
+	printf("\n");
+
+	printf(" set ant <1/2>         Select the antenna port, available 1 to "
+									"%d.\n", MAX_ANT_PORT);
 	printf(" set bpf <on/off>      Turn the RFE's preselect BPF stage on "
 									"or off.\n");
 	printf(" set cal <on/off>      Turn the calibration mode on or off.\n");
@@ -222,6 +230,12 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 					(float) freq / MHZ);
 		} // end get CF
 
+		
+		else if (strcmp(cmd_words[1], "DIR") == 0) {
+			printf("File directory is: \"%s\\CAPTURES\\\"\n", 
+				_getcwd(NULL, 0));
+		}
+
 		else if (strcmp(cmd_words[1], "FS") == 0) {
 			printf("TO BE IMPLEMENTED!");
 		} // end get FS
@@ -243,7 +257,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 			}  // end get GL RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
-				fl_result = wsa_get_gain_if(dev);
+				fl_result = wsa_get_gain_if (dev);
 				// Here assume that there will be no gain less than -200 dB
 				if (fl_result < -200)
 					result = (int16_t) fl_result;
@@ -275,6 +289,23 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 		}
 	} // end GET
 
+	else if (strcmp(cmd_words[0], "RUN") == 0) {
+		if (strcmp(cmd_words[1], "CMDF") == 0) {
+			if (strcmp(cmd_words[2], "") == 0) 
+				printf("Missing the file name.\n");
+			else {
+				char *file_name = cmd_words[2];
+				if (num_words > 2) {
+					for (int i = 3; i < num_words; i++) {
+						strcat(file_name, " ");
+						strcat(file_name, cmd_words[i]);
+					}
+				}
+
+				result = wsa_set_command_file(dev, cmd_words[2]);
+			}
+		} // end run CMDF
+	} // end RUN
 
 	//*****
 	// Handle SET commands
@@ -344,7 +375,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 					valid = FALSE;
 				}
 
-				if(valid)
+				if (valid)
 					result = wsa_set_gain_rf(dev, gain);
 			} // end set GL RF
 
@@ -353,7 +384,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 					printf("Missing the gain dB value. See 'h'.\n");
 				}
 				else
-					result = wsa_set_gain_if(dev, (float) atof(cmd_words[3]));
+					result = wsa_set_gain_if (dev, (float) atof(cmd_words[3]));
 			} // end set GL IF
 			
 			else {
@@ -386,16 +417,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 	// Handle non-get/set commands
 	//*****
 	else {
-		if (strcmp(cmd_words[0], "D") == 0) {
-			printf("TO BE IMPLEMENTED.\n");
-		}
-
-		else if (strcmp(cmd_words[0], "FP") == 0) {
-			printf("File directory is: \"%s\\CAPTURES\\\"\n", 
-				_getcwd(NULL, 0));
-		}
-
-		else if (strlen(cmd_words[0]) == 1 && strspn(cmd_words[0], "H?") > 0) {
+		if (strlen(cmd_words[0]) == 1 && strspn(cmd_words[0], "H?") > 0) {
 			print_cli_menu(dev);
 		} // end print help
 
@@ -408,6 +430,10 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 			else 
 				printf("Open failed!\n");
 		}  // end Open directory
+
+		else if (strcmp(cmd_words[0], "SD") == 0) {
+			printf("TO BE IMPLEMENTED.\n");
+		} // end save data
 
 		// User wants to run away...
 		else if (strcmp(cmd_words[0], "Q") == 0) {
@@ -425,7 +451,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 
 	// Print out the errors
 	if (result < 0)
-		printf("ERROR: %s\n", wsa_get_err_msg(result));
+		printf("ERROR: %s.\n", wsa_get_err_msg(result));
 
 	return user_quit;
 }
@@ -529,14 +555,14 @@ int16_t start_cli(void)
 		strcpy(in_str, get_input_cmd(FALSE));
 
 		// prevent crashing b/c of strtok in the next line
-		//if(strcmp(in_str, "") == 0)	continue;
-		if(strtok(in_str, " \t\r\n") == NULL) continue;
+		//if (strcmp(in_str, "") == 0)	continue;
+		if (strtok(in_str, " \t\r\n") == NULL) continue;
 		
 		// remove spaces or tabs in string
 		strcpy(in_str, strtok(in_str, " \t\r\n")); 
 
 		// do nothing if nothing is entered
-		if(strcmp(in_str, "") == 0) continue;
+		if (strcmp(in_str, "") == 0) continue;
 
 		// User wants to run away...
 		if (strcmp(in_str, "Q") == 0) 
@@ -632,13 +658,13 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	//*****
 		if (!is_cmd && !cmd_end) {
 			// ignore -c & -h command
-			if(strcmp(argv[w], "-c") == 0 || strcmp(argv[w], "-h") == 0) {
+			if (strcmp(argv[w], "-c") == 0 || strcmp(argv[w], "-h") == 0) {
 				w++;
 			}
 
 			// Get the ip address
-			if(strncmp(argv[w], "-ip=", 4) == 0) {
-				if(strlen(argv[w]) <= 4) {
+			if (strncmp(argv[w], "-ip=", 4) == 0) {
+				if (strlen(argv[w]) <= 4) {
 					printf("\nERROR: Invalid IP address or host name.\n");
 					result = WSA_ERR_INVIPADDRESS;
 					break;

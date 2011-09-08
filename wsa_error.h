@@ -115,6 +115,7 @@
 // SOCKET ERRORS				//
 // ///////////////////////////////
 #define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
+#define WSA_ERR_CMDINVALID	(LNEG_NUM - 1502)
 
 
 // ///////////////////////////////
@@ -126,6 +127,17 @@
 #define WSA_ERR_FILTERSETFAILED (LNEG_NUM - 1604)
 #define WSA_ERR_INVCALIBRATEMODE (LNEG_NUM - 1605)
 #define WSA_ERR_CALIBRATESETFAILED (LNEG_NUM - 1606)
+
+
+
+// ///////////////////////////////
+// FILE RELATED ERRORS			//
+// ///////////////////////////////
+#define WSA_ERR_FILECREATEFAILED (LNEG_NUM - 1900)
+#define WSA_ERR_FILEOPENFAILED (LNEG_NUM - 1901)
+#define WSA_ERR_FILEREADFAILED (LNEG_NUM - 1902)
+#define WSA_ERR_FILEWRITEFAILED (LNEG_NUM - 1903)
+
 
 
 // ///////////////////////////////
@@ -281,6 +293,8 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_CMDSENDFAILED,
 		"Sending of the command failed"),
+	wsa_err_item(WSA_ERR_CMDINVALID,
+		"Command is not valid or incorrectly written"),
 
 
 	//*****
@@ -299,6 +313,18 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_CALIBRATESETFAILED,
 		"Failed to set the calibration mode"),
 
+
+	//*****
+	// File related
+	//*****
+	wsa_err_item(WSA_ERR_FILECREATEFAILED,
+		"Unable to open the file"),
+	wsa_err_item(WSA_ERR_FILEOPENFAILED,
+		"Unable to open the file"),
+	wsa_err_item(WSA_ERR_FILEREADFAILED,
+		"Unable to read the file"),
+	wsa_err_item(WSA_ERR_FILEWRITEFAILED,
+		"Unable to write to the file"),
 
 	//*****
 	// Others

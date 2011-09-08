@@ -1,10 +1,20 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "wsa_commons.h"
 #include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_lib.h"
+
+
+//*****
+// LOCAL DEFINES
+//*****
+#define MAX_FILE_LINES 300
+#define SEP_CHARS "\n\r"
+
+int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
 
 //TODO create a log file method
 //TODO add proper error method
@@ -271,6 +281,118 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 
 	return bytes_txed;
+}
+
+
+//*****
+// Local function
+// Tokenized all the words/strings in a file
+// Return pointer to the tokens
+//*****
+int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
+{
+	long fSize;
+	char *buffer;
+	char *fToken;
+	int16_t next = 0;
+
+	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end ??
+	fSize = ftell(fptr);		// obtain file size
+	rewind(fptr);
+	
+	// allocate memory to contain the whole file:
+	buffer = (char*) malloc (sizeof(char) * fSize);
+	if (buffer == NULL) {
+		fputs("Memory error", stderr); 	
+		return WSA_ERR_MALLOCFAILED;
+	}
+	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
+	//doutf(1, "\nFile content: \n%s\n", buffer);
+	
+	for (int i = 0; i < MAX_FILE_LINES; i++) 
+		strcpy(cmd_strs[i], "");
+
+	fToken = strtok(buffer, SEP_CHARS);
+	while (fToken != NULL)	{
+		//printf("%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
+		// Avoid taking any empty line
+		if (strpbrk(fToken, ":*?") != NULL) {
+			strcpy(cmd_strs[next], fToken);
+			next++;
+		}
+		fToken = strtok(NULL, SEP_CHARS);
+	}
+
+	free(buffer);
+
+	return next;
+}
+
+
+/**
+ * Read command line(s) stored in the given \b file_name and send each line
+ * to the WSA.
+ *
+ * @remarks 
+ * - Assuming each command line is for a single function followed by
+ * a new line.
+ * - Currently read only SCPI commands. Other types of commands, TBD.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param file_name - A pointer to the file name
+ *
+ * @return Number of command lines at success, or a negative error number.
+ */
+int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
+{
+	int16_t result = 0;
+	int16_t lines = 0;
+	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
+	FILE *cmd_fptr;
+
+	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
+		result = WSA_ERR_FILEREADFAILED;
+		printf("ERROR %d: %s '%s'.\n", result, wsa_get_err_msg(result), 
+			file_name);
+		return result;
+	}
+
+	// Allocate memory
+	for (int i = 0; i < MAX_FILE_LINES; i++)
+		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
+
+	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
+	
+	fclose(cmd_fptr);
+
+	if (result < 0) {
+		// free memory
+		for (int i = 0; i < MAX_FILE_LINES; i++)
+			free(cmd_strs[i]);
+		return result;
+	}
+
+	// Send each command line to WSA
+	lines = result;
+	for (int i = 0; i < lines; i++) {
+		result = wsa_send_command(dev, cmd_strs[i]);
+		Sleep(1); // delay the send a little bit
+		
+		// If a bad command is detected, continue? Prefer not.
+		if (result < 0) {
+			result = WSA_ERR_CMDINVALID;
+			printf("ERROR %d: %s.\n", result, wsa_get_err_msg(result));
+			printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
+			break;
+		}
+	}
+	result = lines;
+
+	// Free memory
+	for (int i = 0; i < MAX_FILE_LINES; i++)
+		free(cmd_strs[i]);
+
+	return result;
 }
 
 

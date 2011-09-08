@@ -30,7 +30,7 @@ int32_t main(int32_t argc, char *argv[])
 					"[{h}] [{<cmd1>}] [{<cmd2>}] ... \n\n[ ]: optional "
 					"parameter \n< >: required parameter \n-m: show "
 					"command options menu\n\n", argv[0]);
-				if(!call_mode) return 0;
+				if (!call_mode) return 0;
 			}
 			else if (strncmp("-C", in_str, 2) == 0) {
 				call_mode = TRUE;
@@ -50,7 +50,7 @@ int32_t main(int32_t argc, char *argv[])
 	}
 	
 
-	if(call_mode) {
+	if (call_mode) {
 		// Do we have enough command line arguments?
 		if ((argc - mode_argc) <= 1) {
 			fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "

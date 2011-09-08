@@ -101,6 +101,7 @@ void wsa_close(struct wsa_device *dev);
 int16_t wsa_check_addr(char *intf_method);
 int16_t wsa_list(char **wsa_list);
 int16_t wsa_is_connected(struct wsa_device *dev);
+int16_t wsa_set_command_file(struct wsa_device *dev, char *filename);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 
@@ -134,13 +135,14 @@ int16_t wsa_set_freq (struct wsa_device *dev, uint64_t cfreq);
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
+float wsa_get_gain_if (struct wsa_device *dev);
+int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
+
 wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
 int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
 /*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
 			uint64_t freq, double *cal_value);*/
 
-float wsa_get_gain_if (struct wsa_device *dev);
-int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
 
 // ////////////////////////////////////////////////////////////////////////////
 // RFE CONTROL SECTION                                                       //
