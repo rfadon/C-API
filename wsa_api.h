@@ -101,7 +101,7 @@ void wsa_close(struct wsa_device *dev);
 int16_t wsa_check_addr(char *intf_method);
 int16_t wsa_list(char **wsa_list);
 int16_t wsa_is_connected(struct wsa_device *dev);
-int16_t wsa_set_command_file(struct wsa_device *dev, char *filename);
+int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 

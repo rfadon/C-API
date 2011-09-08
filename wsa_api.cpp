@@ -184,10 +184,10 @@ int16_t wsa_is_connected(struct wsa_device *dev)
  *
  * @return Number of command lines at success, or a negative error number.
  */
-int16_t wsa_set_command_file(struct wsa_device *dev, char *filename)
+int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
 {
 	int16_t result = 0;
-	result = wsa_send_command_file(dev, filename);
+	result = wsa_send_command_file(dev, file_name);
 	
 	return result;
 }
@@ -636,7 +636,7 @@ int16_t wsa_get_lpf(struct wsa_device *dev)
  * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param option - An integer mode of selection: 0 - Off, 1 - On.
+ * @param mode - An integer mode of selection: 0 - Off, 1 - On.
  *
  * @return 0 on success, or a negative number on error.
  */

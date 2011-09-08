@@ -177,8 +177,9 @@ char* get_input_cmd(uint8_t pretext)
 /**
  * Process any command (only) string.
  *
- * @param dev -
- * @param cmd_str - 
+ * @param dev - A pointer to the WSA device structure.
+ * @param cmd_words - A pointer to pointers of char for storing command words.
+ * @param num_words - Number of words within the command.
  *
  * @return 1 if 'q'uit is set, 0 for no error.
  */
@@ -459,7 +460,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 /**
  * Setup WSA device variables, start the WSA connection and 
  *
- * @param wsa_addr
+ * @param wsa_addr - A char pointer to the IP address of the WSA
  *
  * @return
  */
