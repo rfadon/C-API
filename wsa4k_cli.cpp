@@ -423,7 +423,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 		} // end print help
 
 		else if (strcmp(cmd_words[0], "O") == 0) {
-			char dir[200];
+			char dir[500];	// be generous b/c overflow will kill ur program.
 			sprintf(dir, "explorer %s\\CAPTURES", _getcwd(NULL, 0));
 			
 			if (system(dir)!= NULL)
@@ -468,7 +468,7 @@ int16_t do_wsa(const char *wsa_addr)
 {	
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
-	char intf_str[50];			// store the interface method string
+	char intf_str[200];			// store the interface method string
 	int16_t result = 0;			// result returned from a function
 	
 	uint8_t w = 0;	// an index
@@ -637,7 +637,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	int16_t w = 1;				// skip the executable at index 0
 	int16_t c = 0;				// keep track of the words processed
 	char temp_str[200];
-	char intf_str[100];			// store the interface method string
+	char intf_str[200];			// store the interface method string
 	uint8_t cmd_end = FALSE, is_cmd = FALSE;	// some cmd words related flags
 	uint8_t do_once = TRUE;
 

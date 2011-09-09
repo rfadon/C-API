@@ -4,7 +4,7 @@
 #include "stdint.h"
 
 #define MAX_CMD_WORDS 5
-#define MAX_STR_LEN 300
+#define MAX_STR_LEN 200
 #define MAX_BUF_SIZE 20
 #define MAX_ANT_PORT 2
 #define MAX_FS 1000
