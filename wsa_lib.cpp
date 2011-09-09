@@ -376,7 +376,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	lines = result;
 	for (int i = 0; i < lines; i++) {
 		result = wsa_send_command(dev, cmd_strs[i]);
-		Sleep(1); // delay the send a little bit
+		Sleep(20); // delay the send a little bit
 		
 		// If a bad command is detected, continue? Prefer not.
 		if (result < 0) {

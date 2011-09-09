@@ -636,8 +636,8 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
 	int16_t w = 1;				// skip the executable at index 0
 	int16_t c = 0;				// keep track of the words processed
-	char intf_str[50];			// store the interface method string
-	char temp_str[50];
+	char temp_str[200];
+	char intf_str[100];			// store the interface method string
 	uint8_t cmd_end = FALSE, is_cmd = FALSE;	// some cmd words related flags
 	uint8_t do_once = TRUE;
 
@@ -763,6 +763,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 		if (cmd_end) {
 			strcpy(temp_str, "");
 			for (int i = 0; i <= c; i++) {
+				// Copy the words into one complete cmd string for display
 				if (strcmp(cmd_words[i], "") != 0)
 					strcat(temp_str, cmd_words[i]);
 				if (i < c)
