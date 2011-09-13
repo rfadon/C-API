@@ -723,7 +723,7 @@ int16_t start_cli(void)
 /**
  * Process the standalone call '-c' method
  * Takes argument string in the form of:
- * <executable name> -c [-h] -ip=<...> [{h}] {...}
+ * <executable name> -c [-h] -ip=<...> [{h}] [{cmd1}] [{cmd2}] [{...}]
  *
  * @param argc - Integer number of argument words
  * @param argv - Pointer to pointer of characters
