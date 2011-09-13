@@ -608,57 +608,57 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 }
 
 
-/**
- * Gets the current mode of the RFE's internal anti-aliasing LPF.
- * 
- * @param dev - A pointer to the WSA device structure.
- *
- * @return 1 (on), 0 (off), or a negative number on error.
- */
-int16_t wsa_get_lpf(struct wsa_device *dev)
-{
-	struct wsa_resp query;		// store query results
+// /**
+// * Gets the current mode of the RFE's internal anti-aliasing LPF.
+// * 
+// * @param dev - A pointer to the WSA device structure.
+// *
+// * @return 1 (on), 0 (off), or a negative number on error.
+// */
+//int16_t wsa_get_lpf(struct wsa_device *dev)
+//{
+//	struct wsa_resp query;		// store query results
+//
+//	query = wsa_send_query(dev, ":INPUT:FILTER:ANTIALIAS:STATE?\n");
+//
+//	// TODO Handle the query output here 
+//	if (query.status > 0)
+//		//return atof(query.result);
+//		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+//	else
+//		printf("No query response received.\n");
+//
+//	return 0;
+//}
 
-	query = wsa_send_query(dev, ":INPUT:FILTER:ANTIALIAS:STATE?\n");
 
-	// TODO Handle the query output here 
-	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
-	else
-		printf("No query response received.\n");
-
-	return 0;
-}
-
-
-/**
- * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer mode of selection: 0 - Off, 1 - On.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode)
-{
-	int16_t result = 0;
-	char temp_str[50];
-
-	if (mode < 0 || mode > 1)
-		return WSA_ERR_INVFILTERMODE;
-
-	sprintf(temp_str, ":INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
-
-	// set the freq using the selected connect type
-	if ((result = wsa_send_command(dev, temp_str)) < 0) {
-		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
-		return WSA_ERR_FILTERSETFAILED;
-	}
-
-	return result;
-}
+// /**
+// * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
+// * 
+// * @param dev - A pointer to the WSA device structure.
+// * @param mode - An integer mode of selection: 0 - Off, 1 - On.
+// *
+// * @return 0 on success, or a negative number on error.
+// */
+//int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode)
+//{
+//	int16_t result = 0;
+//	char temp_str[50];
+//
+//	if (mode < 0 || mode > 1)
+//		return WSA_ERR_INVFILTERMODE;
+//
+//	sprintf(temp_str, ":INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
+//
+//	// set the freq using the selected connect type
+//	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+//		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
+//			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
+//		return WSA_ERR_FILTERSETFAILED;
+//	}
+//
+//	return result;
+//}
 
 
 /**

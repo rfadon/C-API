@@ -154,8 +154,8 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num);
 int16_t wsa_get_bpf(struct wsa_device *dev);
 int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode);
 
-int16_t wsa_get_lpf(struct wsa_device *dev);
-int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode);
+//int16_t wsa_get_lpf(struct wsa_device *dev);
+//int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode);
 
 int16_t wsa_query_cal_mode(struct wsa_device *dev);
 int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode);

@@ -11,10 +11,7 @@
 //*****
 // LOCAL DEFINES
 //*****
-#define MAX_FILE_LINES 300
-#define SEP_CHARS "\n\r"
 
-int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
 
 //TODO create a log file method
 //TODO add proper error method
@@ -281,51 +278,6 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 
 	return bytes_txed;
-}
-
-
-//*****
-// Local function
-// Tokenized all the words/strings in a file
-// Return pointer to the tokens
-//*****
-int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
-{
-	long fSize;
-	char *buffer;
-	char *fToken;
-	int16_t next = 0;
-
-	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end ??
-	fSize = ftell(fptr);		// obtain file size
-	rewind(fptr);
-	
-	// allocate memory to contain the whole file:
-	buffer = (char*) malloc (sizeof(char) * fSize);
-	if (buffer == NULL) {
-		fputs("Memory error", stderr); 	
-		return WSA_ERR_MALLOCFAILED;
-	}
-	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
-	//doutf(1, "\nFile content: \n%s\n", buffer);
-	
-	for (int i = 0; i < MAX_FILE_LINES; i++) 
-		strcpy(cmd_strs[i], "");
-
-	fToken = strtok(buffer, SEP_CHARS);
-	while (fToken != NULL)	{
-		//printf("%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
-		// Avoid taking any empty line
-		if (strpbrk(fToken, ":*?") != NULL) {
-			strcpy(cmd_strs[next], fToken);
-			next++;
-		}
-		fToken = strtok(NULL, SEP_CHARS);
-	}
-
-	free(buffer);
-
-	return next;
 }
 
 

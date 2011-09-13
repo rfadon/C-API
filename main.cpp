@@ -28,8 +28,7 @@ int32_t main(int32_t argc, char *argv[])
 			if (strncmp("-H", in_str, 2) == 0) {
 				printf("Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
 					"[{h}] [{<cmd1>}] [{<cmd2>}] ... \n\n[ ]: optional "
-					"parameter \n< >: required parameter \n-m: show "
-					"command options menu\n\n", argv[0]);
+					"parameter \n< >: required parameter \n\n", argv[0]);
 				if (!call_mode) return 0;
 			}
 			else if (strncmp("-C", in_str, 2) == 0) {
@@ -55,8 +54,7 @@ int32_t main(int32_t argc, char *argv[])
 		if ((argc - mode_argc) <= 1) {
 			fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
 				"[{h}] [{<cmd1>}] [{<cmd2>}] ... \n\n[ ]: optional "
-				"parameter \n< >: required parameter \n-m: show command "
-				"options menu\n\n", argv[0]);
+				"parameter \n< >: required parameter \n\n", argv[0]);
 			return 0;
 		}
 

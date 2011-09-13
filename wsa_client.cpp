@@ -163,8 +163,8 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 {
 	// Find the server's address
-	printf("Looking up %s address: ", sock_name);
-	fflush(stdin);
+	//printf("Looking up %s address: ", sock_name);
+	//fflush(stdin);
 
     u_long new_sock_addr = wsa_verify_addr(sock_addr);
     if (new_sock_addr == INADDR_NONE) {
@@ -176,10 +176,11 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 	// Keep record of the socket's address & port
 	in_addr socAdrIn;
     memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
-	printf("%s:%d\n", inet_ntoa(socAdrIn), sock_port); 
+	//printf("%s:%d\n", inet_ntoa(socAdrIn), sock_port); 
 
-	printf("Connecting to %s (%s:%d)... ", sock_name, inet_ntoa(socAdrIn), 
-		sock_port);
+	//printf("Connecting to %s (%s:%d)... ", sock_name, inet_ntoa(socAdrIn), 
+	//	sock_port);
+	printf("Connecting to WSA @ %s... ", inet_ntoa(socAdrIn));
 
 	// The htons function converts a u_short from host to TCP/IP 
 	// network byte order (which is big-endian)

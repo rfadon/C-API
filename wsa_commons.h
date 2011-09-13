@@ -2,6 +2,8 @@
 #define __WSA_COMMONS_H__
 
 
+#include "stdint.h"
+
 #define FALSE	0
 #define TRUE	1
 
@@ -27,5 +29,10 @@
 #define WSA_RFE0560_ABS_AMP_MEDIUM 0
 #define WSA_RFE0560_ABS_AMP_LOW 13
 #define WSA_RFE0560_ABS_AMP_VLOW 20
+
+#define MAX_FILE_LINES 300
+#define SEP_CHARS "\n\r"
+
+int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
 
 #endif

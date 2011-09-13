@@ -53,18 +53,21 @@
 #include <time.h>
 #include <direct.h>
 
-#include "stdint.h"
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
 #include "wsa_error.h"
+#include "wsa_commons.h"
 
 //*****
 // Local functions
-//
-int8_t process_cmds(struct wsa_device *dev, char *cmd_words[], 
+//*****
+int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str);
+int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 					int16_t num_words);
 void print_cli_menu(struct wsa_device *dev);
 char* get_input_cmd(uint8_t pretext);
+int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
+
 
 /**
  * Print out the CLI options menu
@@ -84,59 +87,61 @@ void print_cli_menu(struct wsa_device *dev)
 
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive):\n\n");
-	printf(" h                     Show the list of available options.\n");
-	printf(" o                     Open the folder of captured file(s).\n");
-	printf(" q                     Quit or exit this console.\n");
-	printf(" sd [prefix]           Save data to a file with optional prefix "
+	printf(" h                      Show the list of available options.\n");
+	printf(" o                      Open the folder of captured file(s).\n");
+	printf(" q                      Quit or exit this console.\n");
+	printf(" sd [prefix] [ext]      Save data to a file with optional prefix "
 									"string.\n"
-		   "                       Output: [prefix] YYYY-MM-DD_HH:MM:SS.dat\n"); // TODO: millisec???
+		   "                        Output: [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]\n"
+		   "                        [ext] type such as: csv, xsl, dat (default)\n");
 	printf("\n");
 
-	printf(" get ant               Show the current antenna port in use.\n");
-	printf(" get bpf               Show the current RFE's preselect BPF "
+	printf(" get ant                Show the current antenna port in use.\n");
+	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
-	printf(" get cal               Show the current RFE calibration mode.\n");
-	printf(" get cf                Show the current running centre frequency "
+	printf(" get cal                Show the current RFE calibration mode.\n");
+	printf(" get freq               Show the current running centre frequency "
 									"(in MHz).\n");
-	printf(" get dir               List the captured file path.\n");
-	printf(" get fs                Show the current frame size per file.\n");
-	printf(" get gl <rf/if>        Show the current RF front end or IF gain "
+	printf(" get dir                List the captured file path.\n");
+	printf(" get fs                 Show the current frame size per file.\n");
+	printf(" get gl <rf | if>       Show the current RF front end or IF gain "
 									"level.\n");
-	printf(" get lpf               Show the current RFE's anti-aliasing"
-									" LPF state.\n");
-	printf(" get ss                Show the current sample size per frame.\n"
+	//printf(" get lpf                Show the current RFE's anti-aliasing"
+	//								" LPF state.\n");
+	printf(" get ss                 Show the current sample size per frame.\n"
 									"\n");
 	printf("\n");
 
-	printf(" run cmdf <file name>  Run commands stored in a text file.\n"
-		   "                       Note: Process only set or get commands.\n");
+	printf(" run cmdf <scpi | cli> <file name> \n"
+		   "                        Run commands stored in a text file.\n"
+		   "                        Note: Process only set or get commands.\n");
 	printf("\n");
 
-	printf(" set ant <1/2>         Select the antenna port, available 1 to "
+	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", MAX_ANT_PORT);
-	printf(" set bpf <on/off>      Turn the RFE's preselect BPF stage on "
+	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
 									"or off.\n");
-	printf(" set cal <on/off>      Turn the calibration mode on or off.\n");
-	printf(" set cf <freq>         Set the centre frequency in MHz (ex: set "
-									"cf 2441.5).\n"
-		   "                       - Range: %.2f - %.2f MHz inclusively.\n"
-		   "                       - Resolution %.2f MHz.\n", 
-								   (float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
-								   (float) FREQ_RES/MHZ);
-	printf(" set fs <size>         Set the frames size per file (ex: set fs "
+	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
+	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
+									"freq 2441.5).\n"
+		   "                        - Range: %.2f - %.2f MHz inclusively.\n"
+		   "                        - Resolution %.2f MHz.\n", 
+									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
+									(float) FREQ_RES/MHZ);
+	printf(" set fs <size>          Set the frames size per file (ex: set fs "
 									"1000). \n"
-		   "                       - Maximum allows: %d.\n", MAX_FS);
-	printf(" set gl <rf/if> <val>  Set gain level for RF front end or IF\n"
-		   "                       (ex: set gl rf HIGH, set gl if -20.0).\n"
-		   "                       - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
-		   "                       - IF range: %0.2lf to %0.2lf dB, inclusive."
+		   "                        - Maximum allows: %d.\n", MAX_FS);
+	printf(" set gl <rf | if> <val> Set gain level for RF front end or IF\n"
+		   "                        (ex: set gl rf HIGH, set gl if -20.0).\n"
+		   "                        - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
+		   "                        - IF range: %0.2lf to %0.2lf dB, inclusive."
 									"\n", MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set lpf <on/off>      Turn the RFE's anti-aliasing LPF stage "
-									"on or off.\n");
-	printf(" set ss <size>         Set the number of samples per frame to be "
+	//printf(" set lpf <on | off>     Turn the RFE's anti-aliasing LPF stage "
+	//								"on or off.\n");
+	printf(" set ss <size>          Set the number of samples per frame to be "
 									"captured\n"
-		   "                       (ex: set ss 2000).\n"
-		   "                       - Maximum allows: %llu; Minimum: 1.\n\n", 
+		   "                        (ex: set ss 2000).\n"
+		   "                        - Maximum allows: %llu; Minimum: 1.\n\n", 
 									MAX_SS);
 }
 // NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
@@ -174,16 +179,121 @@ char* get_input_cmd(uint8_t pretext)
 	return input_opt;
 }
 
+
+/**
+ * Process CLI (only) commands in a text file.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param file_name - A char pointer for storing the file name string.
+ *
+ * @return Number of lines processed or negative number if failed.
+ */
+// TODO fix error code here
+int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name) 
+{
+	int16_t result = 0;
+	int16_t lines = 0;
+	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
+	FILE *cmd_fptr;
+
+	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
+		printf("Error opening '%s'.\n", file_name);
+		return -1;
+	}
+
+	// Allocate memory
+	for (int i = 0; i < MAX_FILE_LINES; i++)
+		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
+
+	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
+	
+	fclose(cmd_fptr);
+
+	if (result < 0) {
+		// free memory
+		for (int i = 0; i < MAX_FILE_LINES; i++)
+			free(cmd_strs[i]);
+		return -1;
+	}
+
+	// Send each command line to WSA
+	lines = result;
+	for (int i = 0; i < lines; i++) {
+		result = process_cmd_string(dev, cmd_strs[i]);
+		Sleep(20); // delay the send a little bit
+		
+		// If a bad command is detected, continue? Prefer not.
+		if (result < 0) {
+			printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
+			break;
+		}
+	}
+	result = lines;
+
+	// Free memory
+	for (int i = 0; i < MAX_FILE_LINES; i++)
+		free(cmd_strs[i]);
+
+	return result;
+}
+
+
 /**
  * Process any command (only) string.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param cmd_words - A pointer to pointers of char for storing command words.
+ * @param cmd_S - A char pointer for a command string.
+ *
+ * @return 1 for quit, 0 for no error or negative number if failed
+ */
+//TODO must catch/return some errors...
+int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str) 
+{
+	int16_t result = 0;
+	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
+	char temp_str[MAX_STR_LEN];
+	char *temp_ptr;
+	uint8_t w = 0;	// an index
+
+	// Allocate memory
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+
+	// clear up the words first
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		strcpy(cmd_words[i], "");
+	
+	// Get string command
+	strcpy(temp_str, cmd_str);
+
+	// Tokenized the string into words
+	temp_ptr = strtok(temp_str, " \t\r\n");
+	while (temp_ptr != NULL) {
+		strcpy(cmd_words[w], temp_ptr);
+		temp_ptr = strtok(NULL, " \t\r\n");
+		w++;
+	}
+	
+	// send cmd words to be processed
+	result = process_cmd_words(dev, cmd_words, w);
+
+	// Free the allocation
+	for (int i = 0; i < MAX_CMD_WORDS; i++)
+		free(cmd_words[i]);
+
+	return result;
+}
+
+/**
+ * Process command words.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param cmd_words - A char pointer to char array for storing command words.
  * @param num_words - Number of words within the command.
  *
  * @return 1 if 'q'uit is set, 0 for no error.
  */
-int8_t process_cmds(struct wsa_device *dev, char **cmd_words, 
+int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 					int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
@@ -222,14 +332,14 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 			}
 		} // end get CAL
 
-		else if (strcmp(cmd_words[1], "CF") == 0) {
+		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			freq = wsa_get_freq(dev);
 			if (freq < 0)
 					result = (int16_t) freq;
 			else
 				printf("Current centre frequency: %0.2f MHz\n", 
 					(float) freq / MHZ);
-		} // end get CF
+		} // end get FREQ
 
 		
 		else if (strcmp(cmd_words[1], "DIR") == 0) {
@@ -270,15 +380,15 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 				printf("Incorrect get GL. Specify RF or IF or see 'h'.\n");
 		} // end get GL
 
-		else if (strcmp(cmd_words[1], "LPF") == 0) {
-			result = wsa_get_lpf(dev);
-			if (result >= 0) {
-				printf("RFE's anti-aliasing LPF state: ");
-				if (result) printf("On\n");
-				else if (!result) printf("Off\n");
-				else printf("Unknown state\n");
-			}
-		} // end get LPF
+		//else if (strcmp(cmd_words[1], "LPF") == 0) {
+		//	result = wsa_get_lpf(dev);
+		//	if (result >= 0) {
+		//		printf("RFE's anti-aliasing LPF state: ");
+		//		if (result) printf("On\n");
+		//		else if (!result) printf("Off\n");
+		//		else printf("Unknown state\n");
+		//	}
+		//} // end get LPF
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			printf("Not supporting various sample sizes yet! "
@@ -293,19 +403,32 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 	else if (strcmp(cmd_words[0], "RUN") == 0) {
 		if (strcmp(cmd_words[1], "CMDF") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) 
-				printf("Missing the file name.\n");
+				printf("Missing the syntax type and file name.\n");
 			else {
-				char *file_name = cmd_words[2];
-				if (num_words > 2) {
-					for (int i = 3; i < num_words; i++) {
-						strcat(file_name, " ");
-						strcat(file_name, cmd_words[i]);
+				if (strcmp(cmd_words[3], "") == 0) 
+					printf("Missing the file name.\n");
+				else {
+					char *file_name = cmd_words[3];
+					if (num_words > 3) {
+						for (int i = 4; i < num_words; i++) {
+							strcat(file_name, " ");
+							strcat(file_name, cmd_words[i]);
+						}
 					}
-				}
+				
 
-				result = wsa_set_command_file(dev, cmd_words[2]);
+					if (strcmp(cmd_words[2], "CLI") == 0) 
+						result = wsa_set_cli_command_file(dev, file_name);
+					else if (strcmp(cmd_words[2], "SCPI") == 0) 
+						result = wsa_set_command_file(dev, file_name);
+					else
+						printf("Use 'cli' or scpi' for syntax type.\n");
+				}
 			}
 		} // end run CMDF
+		else {
+			printf("'run cmdf <scpi | cli> <file name>'?");
+		}
 	} // end RUN
 
 	//*****
@@ -337,7 +460,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set CAL
 
-		else if (strcmp(cmd_words[1], "CF") == 0) {
+		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) {
 				printf("Missing the frequency value. See 'h'.\n");
 			}
@@ -345,7 +468,7 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 				freq = (int64_t) (atof(cmd_words[2]) * MHZ);
 				result = wsa_set_freq(dev, freq);
 			}
-		} // end set CF
+		} // end set FREQ
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
 			printf("TO BE IMPLIMENTED\n");
@@ -393,16 +516,17 @@ int8_t process_cmds(struct wsa_device *dev, char **cmd_words,
 			}
 		} // end set GL
 
-		else if (strcmp(cmd_words[1], "LPF") == 0) {
-			if (strcmp(cmd_words[2], "ON") == 0)
-				result = wsa_set_lpf(dev, 1);
-			else if (strcmp(cmd_words[2], "OFF") == 0)
-				result = wsa_set_lpf(dev, 0);
-			else 
-				printf("Use 'on' or 'off' mode.\n");
-		} // end set LPF
+		//else if (strcmp(cmd_words[1], "LPF") == 0) {
+		//	if (strcmp(cmd_words[2], "ON") == 0)
+		//		result = wsa_set_lpf(dev, 1);
+		//	else if (strcmp(cmd_words[2], "OFF") == 0)
+		//		result = wsa_set_lpf(dev, 0);
+		//	else 
+		//		printf("Use 'on' or 'off' mode.\n");
+		//} // end set LPF
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
+			// TODO HERE
 			printf("Not supporting various sample sizes yet! "
 				"Default to 1024.\n");
 			//if (strcmp(cmd_words[2], "") == 0) 
@@ -470,15 +594,8 @@ int16_t do_wsa(const char *wsa_addr)
 	struct wsa_device *dev;
 	char intf_str[200];			// store the interface method string
 	int16_t result = 0;			// result returned from a function
-	
-	uint8_t w = 0;	// an index
 	char temp_str[MAX_STR_LEN];
-	char *temp_ptr;
-	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
 
-	// Allocate memory
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
-		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
@@ -491,35 +608,17 @@ int16_t do_wsa(const char *wsa_addr)
 		return WSA_ERR_OPENFAILED;
 	}
 
+
 	// Start the control loop
 	do {
-		// reset variables
-		w = 0;
-
-		// clear up the words first
-		for (int i = 0; i < MAX_CMD_WORDS; i++)
-			strcpy(cmd_words[i], "");
-		
 		// Get input string command
 		strcpy(temp_str, get_input_cmd(TRUE));
-
-		// Tokenized the string into words
-		temp_ptr = strtok(temp_str, " \t\r\n");
-		while (temp_ptr != NULL) {
-			strcpy(cmd_words[w], temp_ptr);
-			temp_ptr = strtok(NULL, " \t\r\n");
-			w++;
-		}
 		
-		// send cmd words to be processed
-		result = process_cmds(dev, cmd_words, w);
+		// send cmd string to be processed
+		result = process_cmd_string(dev, temp_str);
 		if (result < 0) 
 			printf("Command '%s' not recognized.  See 'h'.\n", temp_str);
 	} while (result != 1);
-
-	// Free the allocation
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
-		free(cmd_words[i]);
 
 	// finish so close the connection
 	wsa_close(dev);
@@ -546,7 +645,7 @@ int16_t start_cli(void)
 
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
-	printf("\t\t_____ThinkRF - WSA4000 Command Line Interface Tool_____\n\n");
+	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n\n");
 
 	do {
 		//*****
@@ -786,7 +885,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 					do_once = FALSE;
 				}
 
-				result = process_cmds(dev, cmd_words, c + 1);
+				result = process_cmd_words(dev, cmd_words, c + 1);
 				if (result < 0)
 					printf("Command '%s' not recognized.  See {h}.\n", 
 					temp_str);
