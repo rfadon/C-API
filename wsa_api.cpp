@@ -274,7 +274,7 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	query = wsa_send_query(dev, "FREQ:CENT?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0) {
+	if (query.result > 0) {
 		//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.result, 
 		//	(int64_t) atof(query.result));
 		return (int64_t) atof(query.result);
@@ -311,7 +311,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 	if ((result = wsa_verify_freq(dev, cfreq)) < 0)
 		return result;
 
-	sprintf(temp_str, "FREQ:CENT %llu Hz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {

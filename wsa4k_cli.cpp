@@ -96,19 +96,20 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        [ext] type such as: csv, xsl, dat (default)\n");
 	printf("\n");
 
-	printf(" get ant                Show the current antenna port in use.\n");
+	printf(" get ant               Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
 	printf(" get cal                Show the current RFE calibration mode.\n");
-	printf(" get freq               Show the current running centre frequency "
+	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
 	printf(" get fs                 Show the current frame size per file.\n");
-	printf(" get gain <rf | if>     Show the current RF front end or IF gain "
+	printf(" get gain <rf | if [max | min]> \n"
+		   "                        Show the current RF front end or IF gain "
 									"level.\n");
 	//printf(" get lpf                Show the current RFE's anti-aliasing"
 	//								" LPF state.\n");
-	printf(" get ss                 Show the current sample size per frame.\n"
+	printf(" get ss [max | min]     Show the current sample size per frame.\n"
 									"\n");
 	printf("\n");
 
@@ -333,7 +334,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get CAL
 
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum frequency: %0.2f MHz\n", 
+						(float) dev->descr.max_tune_freq / MHZ);
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum frequency: %0.2f MHz\n", 
+						(float) dev->descr.min_tune_freq / MHZ);
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+
 			freq = wsa_get_freq(dev);
+
 			if (freq < 0)
 					result = (int16_t) freq;
 			else
@@ -368,6 +385,20 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}  // end get GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
+				if (strcmp(cmd_words[2], "") != 0) {
+					if (strcmp(cmd_words[2], "MAX") == 0) {
+						printf("Maximum IF gain: %0.2f dB\n", 
+							dev->descr.max_if_gain);
+						return 0;
+					}
+					else if (strcmp(cmd_words[2], "MIN") == 0) {
+						printf("Minimum IF gain: %0.2f dB\n", 
+							dev->descr.min_if_gain);
+						return 0;
+					}
+					else
+						printf("Did you mean \"min\" or \"max\"?\n");
+				}
 				fl_result = wsa_get_gain_if (dev);
 				// Here assume that there will be no gain less than -200 dB
 				if (fl_result < -200)
@@ -393,6 +424,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			printf("Not supporting various sample sizes yet! "
 				"Default to 1024.\n");
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum sample size: %lld\n", 
+						dev->descr.max_sample_size);
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum sample size: 1\n");
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
 		} // end get SS
 
 		else {
