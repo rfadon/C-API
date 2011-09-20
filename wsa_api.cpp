@@ -282,7 +282,7 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	else
 		printf("No query response received.\n");
 
-	return -1;
+	return WSA_ERR_QUERYNORESP;
 }
 
 

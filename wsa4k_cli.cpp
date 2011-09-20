@@ -104,7 +104,7 @@ void print_cli_menu(struct wsa_device *dev)
 									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
 	printf(" get fs                 Show the current frame size per file.\n");
-	printf(" get gl <rf | if>       Show the current RF front end or IF gain "
+	printf(" get gain <rf | if>     Show the current RF front end or IF gain "
 									"level.\n");
 	//printf(" get lpf                Show the current RFE's anti-aliasing"
 	//								" LPF state.\n");
@@ -131,8 +131,8 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set fs <size>          Set the frames size per file (ex: set fs "
 									"1000). \n"
 		   "                        - Maximum allows: %d.\n", MAX_FS);
-	printf(" set gl <rf | if> <val> Set gain level for RF front end or IF\n"
-		   "                        (ex: set gl rf HIGH, set gl if -20.0).\n"
+	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
+		   "                        (ex: set gain rf HIGH, set gain if -20.0).\n"
 		   "                        - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
 		   "                        - IF range: %0.2lf to %0.2lf dB, inclusive."
 									"\n", MIN_IF_GAIN, MAX_IF_GAIN);
@@ -351,7 +351,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			printf("TO BE IMPLEMENTED!");
 		} // end get FS
 
-		else if (strcmp(cmd_words[1], "GL") == 0) {
+		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				result = wsa_get_gain_rf(dev);
 				if (result >= 0) {
@@ -365,7 +365,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					printf("\n");
 				}
-			}  // end get GL RF
+			}  // end get GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
 				fl_result = wsa_get_gain_if (dev);
@@ -374,11 +374,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = (int16_t) fl_result;
 				else
 					printf("Current IF gain: %0.2f dB\n", fl_result);
-			} // end get GL IF
+			} // end get GAIN IF
 
 			else 
-				printf("Incorrect get GL. Specify RF or IF or see 'h'.\n");
-		} // end get GL
+				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
+		} // end get GAIN
 
 		//else if (strcmp(cmd_words[1], "LPF") == 0) {
 		//	result = wsa_get_lpf(dev);
@@ -476,7 +476,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			//	printf("Missing the frame size value. See 'h'.\n");
 		} // end set FS
 
-		else if (strcmp(cmd_words[1], "GL") == 0) {
+		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				wsa_gain gain = (wsa_gain) NULL;
 				uint8_t valid = TRUE;
@@ -501,7 +501,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				if (valid)
 					result = wsa_set_gain_rf(dev, gain);
-			} // end set GL RF
+			} // end set GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
 				if (strcmp(cmd_words[3], "") == 0) {
@@ -509,12 +509,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else
 					result = wsa_set_gain_if (dev, (float) atof(cmd_words[3]));
-			} // end set GL IF
+			} // end set GAIN IF
 			
 			else {
-				printf("Incorrect set GL. Specify RF or IF. See 'h'.\n");
+				printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
 			}
-		} // end set GL
+		} // end set GAIN
 
 		//else if (strcmp(cmd_words[1], "LPF") == 0) {
 		//	if (strcmp(cmd_words[2], "ON") == 0)
