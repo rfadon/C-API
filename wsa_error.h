@@ -23,6 +23,7 @@
 #define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM - 6)
 #define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 7)
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 8)
+#define WSA_ERR_QUERYNORESP	(LNEG_NUM - 9)
 //#define WSA_ERR_	(LNEG_NUM - 18)
 
 
@@ -177,6 +178,8 @@ static struct wsa_err_item {
 		"Unknown WSA firmware version detected"),
 	wsa_err_item(WSA_ERR_PRODOBSOLETE,
 		"Product is obsolete and not supported"),
+	wsa_err_item(WSA_ERR_QUERYNORESP,
+		"Query returns no response"),
 
 	//*****
 	// WSA Setup Related

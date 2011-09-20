@@ -271,17 +271,18 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
-	query = wsa_send_query(dev, ":SENSE:FREQ:CENTER?\n");
+	query = wsa_send_query(dev, "FREQ:CENT?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+	if (query.status > 0) {
+		//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.result, 
+		//	(int64_t) atof(query.result));
+		return (int64_t) atof(query.result);
+	}
 	else
 		printf("No query response received.\n");
 
-	//return (int64_t) atol(query.result);
-	return 0;
+	return -1;
 }
 
 
@@ -310,7 +311,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 	if ((result = wsa_verify_freq(dev, cfreq)) < 0)
 		return result;
 
-	sprintf(temp_str, ":SENSE:FREQ:CENTER %llu Hz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %llu Hz\n", cfreq);
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
@@ -367,7 +368,7 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 	else
 		printf("No query response received.\n");
 		
@@ -426,7 +427,7 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 	else
 		printf("No query response received.\n");
 
@@ -514,7 +515,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 	else
 		printf("No query response received.\n");
 		
@@ -571,7 +572,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 	else
 		printf("No query response received.\n");
 		
@@ -624,7 +625,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //	// TODO Handle the query output here 
 //	if (query.status > 0)
 //		//return atof(query.result);
-//		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+//		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 //	else
 //		printf("No query response received.\n");
 //
@@ -678,7 +679,7 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %llu bytes: \"%s\"", query.status, query.result);
+		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
 	else
 		printf("No query response received.\n");
 
