@@ -45,6 +45,14 @@
 
 #define MAX_ANT_PORT 2
 
+#define SCPI_OSR_CALI 0x0001
+#define SCPI_OSR_SETT 0x0002
+#define SCPI_OSR_SWE  0x0008
+#define SCPI_OSR_MEAS 0x0010
+#define SCPI_OSR_TRIG 0x0020
+#define SCPI_OSR_CORR 0x0080
+#define SCPI_OSR_DATA 0x0100 //?
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -279,8 +287,10 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 		//	(int64_t) atof(query.result));
 		return (int64_t) atof(query.result);
 	}
-	else
+	else if (query.status <= 0) {
 		printf("No query response received.\n");
+		return WSA_ERR_QUERYNORESP;
+	}
 
 	return WSA_ERR_QUERYNORESP;
 }
@@ -366,11 +376,14 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	query = wsa_send_query(dev, ":INPUT:GAIN:IF?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0)
+	//if (query.status > 0)
 		//return atof(query.result);
-		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	else
+		//printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
+	//else 
+	if (query.status <= 0) {
 		printf("No query response received.\n");
+		return WSA_ERR_QUERYNORESP;
+	}
 		
 	return (float) atof(query.result);
 }
@@ -425,18 +438,20 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	else
+	//if (query.status > 0)
+	//	printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
+	//else 
+	if (query.status <= 0) {
 		printf("No query response received.\n");
+		return (wsa_gain) WSA_ERR_QUERYNORESP;
+	}
 
 	
 	// Convert to wsa_gain type
 	if (strstr(query.result, "HIGH") != NULL) {
 		gain = WSA_GAIN_HIGH;
 	}
-	else if (strstr(query.result, "MEDIUM") != NULL) {
+	else if (strstr(query.result, "MED") != NULL) {
 		gain = WSA_GAIN_MEDIUM;
 	}
 	else if (strstr(query.result, "VLOW") != NULL) {
@@ -477,7 +492,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	strcpy(temp_str, ":INPUT:GAIN:RF ");
 	switch(gain) {
 		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
-		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MEDIUM"); break;
+		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MED"); break;
 		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
 		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
 		default:		strcat(temp_str, "ERROR"); break;
@@ -514,10 +529,11 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 
 	// TODO Handle the query output here 
 	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	else
+		return atoi(query.result);
+	else if (query.status <= 0) {
 		printf("No query response received.\n");
+		return WSA_ERR_QUERYNORESP;
+	}
 		
 	return 0;
 }
@@ -566,17 +582,23 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 int16_t wsa_get_bpf(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	int temp = 0;
 
+	// TODO: Handle any other bits info in the OSR also... 
+	// as this is a destructive read
 	query = wsa_send_query(dev, ":INPUT:FILTER:PRESELECT:STATE?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	else
+	if (query.status > 0) {
+		temp = atoi(query.result);
+		return temp;
+	}
+	else if (query.status <= 0) {
 		printf("No query response received.\n");
+		return WSA_ERR_QUERYNORESP;
+	}
 		
-	return 0;
+	return WSA_ERR_QUERYNORESP;
 }
 
 
@@ -673,15 +695,22 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 int16_t wsa_query_cal_mode(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	int16_t temp = 0;
 
-	query = wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n");
+	// TODO: create a read OSR register w/ the bit you want to check
+	// TODO: Handle any other bits info in the OSR also... 
+	// as this is a destructive read
+	query = wsa_send_query(dev, ":STAT:OPER?\n");
 
 	// TODO Handle the query output here 
-	if (query.status > 0)
-		//return atof(query.result);
-		printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	else
+	if (query.status > 0) {
+		temp = atoi(query.result);
+		return (temp & SCPI_OSR_CALI);
+	}
+	else if (query.status <= 0) {
 		printf("No query response received.\n");
+		return WSA_ERR_QUERYNORESP;
+	}
 
 	return 0;
 }

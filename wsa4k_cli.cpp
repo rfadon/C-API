@@ -86,7 +86,8 @@ void print_cli_menu(struct wsa_device *dev)
 	uint32_t FREQ_RES = 10000;	//TODO
 
 	printf("\n---------------------------\n");
-	printf("\nCommand Options Available (case insensitive):\n\n");
+	printf("\nCommand Options Available (case insensitive, < > required, "
+		"[ ] optional):\n\n");
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
@@ -96,7 +97,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        [ext] type such as: csv, xsl, dat (default)\n");
 	printf("\n");
 
-	printf(" get ant               Show the current antenna port in use.\n");
+	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
 	printf(" get cal                Show the current RFE calibration mode.\n");
@@ -311,6 +312,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			result = wsa_get_antenna(dev);
 			if (result > 0)
 				printf("Currently using antenna port: %d\n", result);
+			else
+				printf("Unknown port. Check setup for any error.\n");
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
@@ -385,13 +388,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}  // end get GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
-				if (strcmp(cmd_words[2], "") != 0) {
-					if (strcmp(cmd_words[2], "MAX") == 0) {
+				if (strcmp(cmd_words[3], "") != 0) {
+					if (strcmp(cmd_words[3], "MAX") == 0) {
 						printf("Maximum IF gain: %0.2f dB\n", 
 							dev->descr.max_if_gain);
 						return 0;
 					}
-					else if (strcmp(cmd_words[2], "MIN") == 0) {
+					else if (strcmp(cmd_words[3], "MIN") == 0) {
 						printf("Minimum IF gain: %0.2f dB\n", 
 							dev->descr.min_if_gain);
 						return 0;
@@ -401,7 +404,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				fl_result = wsa_get_gain_if (dev);
 				// Here assume that there will be no gain less than -200 dB
-				if (fl_result < -200)
+				if (fl_result == WSA_ERR_QUERYNORESP || fl_result < -200)
 					result = (int16_t) fl_result;
 				else
 					printf("Current IF gain: %0.2f dB\n", fl_result);
