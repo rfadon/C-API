@@ -67,6 +67,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 void print_cli_menu(struct wsa_device *dev);
 char* get_input_cmd(uint8_t pretext);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
+int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 
 
 /**
@@ -91,10 +92,11 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
-	printf(" sd [prefix] [ext]      Save data to a file with optional prefix "
-									"string.\n"
+	printf(" sd [prefix] [ext:<type>] Save data to a file with optional "
+									"sprefix tring.\n"
 		   "                        Output: [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]\n"
-		   "                        [ext] type such as: csv, xsl, dat (default)\n");
+		   "                        [ext] type such as: csv (default), xsl, dat\n"
+		   "						ex: 'sd Test trial ext:xsl' or 'sd'\n");
 	printf("\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
@@ -287,6 +289,53 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 }
 
 /**
+ * Save data to a file with the file name format as:
+ * [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext] if the prefix string and extension is
+ * given.
+ *
+ * @param prefix - A char pointer to a prefix string.
+ * @param ext - A char pointer an extension string.
+ *
+ * @return 0 if successful, else a negative value.
+ */
+int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
+{
+	// *****
+	// Verify sample size
+	// *****
+	int64_t size = wsa_get_sample_size(dev);
+	if (size < 1) {
+		printf("Warning: bad sample size detected. Defaulting it to "
+			"1024.\n");
+		wsa_set_sample_size(dev, 1024);
+		size = 1024;
+	}
+
+	// *****
+	// Create parameters and buffers to store the data
+	// *****
+	int16_t *i_buf;
+	int16_t *q_buf;
+	struct wsa_frame_header header; 
+
+	// Allocate buffer space
+	i_buf = (int16_t *) malloc(sizeof(int16_t) * size);
+	q_buf = (int16_t *) malloc(sizeof(int16_t) * size);
+
+	wsa_read_pkt(dev, &header, i_buf, q_buf, size);
+
+	/*for (int i = 0; i < size; i++) {
+		if ((i % 4) == 0) printf("\n");
+		printf("%04x,%04x ", i_buf[i], q_buf[i]);
+	}*/
+
+	free(i_buf);
+	free(q_buf);
+
+	return 0;
+}
+
+/**
  * Process command words.
  *
  * @param dev - A pointer to the WSA device structure.
@@ -403,6 +452,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Did you mean \"min\" or \"max\"?\n");
 				}
 				fl_result = wsa_get_gain_if (dev);
+
 				// Here assume that there will be no gain less than -200 dB
 				if (fl_result == WSA_ERR_QUERYNORESP || fl_result < -200)
 					result = (int16_t) fl_result;
@@ -425,8 +475,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		//} // end get LPF
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
-			printf("Not supporting various sample sizes yet! "
-				"Default to 1024.\n");
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
 					printf("Maximum sample size: %lld\n", 
@@ -439,6 +487,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+			else {
+				int64_t size = 0;
+				size = wsa_get_sample_size(dev);
+				if (size < 1)
+					result = (int16_t) size;
+				else
+					printf("The current sample size: %lld\n", size);
 			}
 		} // end get SS
 
@@ -574,10 +630,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			// TODO HERE
-			printf("Not supporting various sample sizes yet! "
-				"Default to 1024.\n");
-			//if (strcmp(cmd_words[2], "") == 0) 
-			//	printf("Missing the sample size value. See 'h'.\n");
+			if (strcmp(cmd_words[2], "") == 0) 
+				printf("Missing the sample size value. See 'h'.\n");
+			
+			int64_t sample_size = (int64_t) atof(cmd_words[2]);
+
+			if (sample_size != 1024) {
+				printf("Not supporting various sample sizes yet! "
+					"Default to 1024.\n");
+				sample_size = 1024;
+			}
+			result = wsa_set_sample_size(dev, sample_size);
 		} // end set SS
 
 		else 
@@ -604,7 +667,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}  // end Open directory
 
 		else if (strcmp(cmd_words[0], "SD") == 0) {
-			printf("TO BE IMPLEMENTED.\n");
+			// todo: extract file name & ext:<type>
+
+			save_data_to_file(dev, NULL, NULL);
 		} // end save data
 
 		// User wants to run away...

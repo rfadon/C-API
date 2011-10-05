@@ -32,8 +32,8 @@ uint8_t call_mode = FALSE;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
 
-const int32_t cmd_port = 7000;// swap this w/ HISLIP
-const int32_t data_port = 7000;//;
+const int32_t ctrl_port = HISLIP;
+const int32_t data_port = 7000;
 	      
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,12 +73,13 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	//*****
 	// Create command socket
 	//*****
-	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, cmd_port);
+	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, ctrl_port);
     if (cmd_socket == INVALID_SOCKET) {
         return WSA_ERR_SOCKETSETFUPFAILED;
     }
     else {
 		*cmd_sock = cmd_socket;
+		// TODO: remove this section
 		printf("connected.\n");
 	}
 
@@ -87,7 +88,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	// Create data socket
 	//*****
 	// TODO: add data socket
-/*	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
+	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
     if (data_socket == INVALID_SOCKET) {
         result = WSA_ERR_SOCKETSETFUPFAILED;
     }
@@ -95,7 +96,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 		*data_sock = data_socket;
 		// TODO: remove this section
 		printf("connected.\n");
-	}*/
+	}
 
     return result;
 }
@@ -135,7 +136,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
 
-/*
+
 	// Shut DATA socket connection down
 	//fflush(stdin);
     if (ShutdownConnection(data_sock, "data socket"))
@@ -143,7 +144,7 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 	else
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'data' socket connection"));
-*/
+
     // Shut Winsock back down and take off.
     WSACleanup();
 
@@ -300,17 +301,17 @@ int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 /**
  * Gets incoming strings from the server socket ? bytes at a time
  *
- * @param in_sock -
- * @param rx_buf_ptr -
- * @param time_out - Time out in milliseconds
+ * @param in_sock - The socket at which the data will be received.
+ * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param buf_size - The size of the buffer in bytes.
+ * @param time_out - Time out in milliseconds.
  * 
  * @return Number of "words" read
  */
-int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
+int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
+					  uint32_t time_out)
 {
-	//char *rx_buf; 
-		//rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
-	int64_t bytes_rxed = 0, total_bytes = 0;
+	int32_t bytes_rxed = 0, total_bytes = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -319,13 +320,13 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 	// First check for read-ability to the socket
 	FD_SET Reader;
 	
-	/* FD_ZERO() clears out the fd_set called socks, so that
-	   it doesn't contain any file descriptors. */
+	// FD_ZERO() clears out the fd_set called socks, so that
+	//   it doesn't contain any file descriptors. 
 	FD_ZERO(&Reader);
 
-	/* FD_SET() adds the file descriptor "socket" to the fd_set,
-		so that select() will return if a connection comes in
-		on that socket (which means you have to do accept(), etc. */
+	// FD_SET() adds the file descriptor "socket" to the fd_set,
+	//	so that select() will return if a connection comes in
+	//	on that socket (which means you have to do accept(), etc. 
 	FD_SET(in_sock, &Reader);
 
 	// Loop to get incoming command 1 byte at a time
@@ -341,7 +342,7 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 		// if the socket is read-able, rx packet
 		if (FD_ISSET(in_sock, &Reader)) {
 			// read incoming strings at a time
-			bytes_rxed = recv(in_sock, rx_buf_ptr, MAX_STR_LEN, 0);
+			bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size, 0);
 			if (bytes_rxed > 0) {
 				// TODO verify here
 				// Danger: will keep receive until sock is empty
@@ -354,8 +355,8 @@ int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t time_out)
 		} 
 	} while(bytes_rxed > 0);
 	
-	//Terminate the last string in buff to 0.
-	rx_buf_ptr[0] = '\0';
+	// Terminate the last string in buff to 0.
+	//rx_buf_ptr[0] = '\0'; // why need this?
 
 	return total_bytes;
 }
@@ -448,7 +449,7 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 
 	// Wait for client response rxed before proceeds....
 	// but time out if no resp in x seconds
-	while(wsa_sock_recv(in_sock, rx_buf, 10) < 1) {
+	while(wsa_sock_recv(in_sock, rx_buf, MAX_STR_LEN, 10) < 1) {
 		if ((time(0) - start_time) == (time_out / 1000)) 
 			break; 
 	};

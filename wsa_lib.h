@@ -93,6 +93,6 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 //int16_t wsa_clear_query_resp(struct wsa_device *dev);
 int16_t wsa_query_error(struct wsa_device *dev);
 int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint64_t sample_size);
+				 int16_t *i_buf, int16_t *q_buf, uint64_t sample_size);
 
 #endif

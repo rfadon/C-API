@@ -67,6 +67,7 @@
 #define WSA_ERR_NODATABUS		(LNEG_NUM - 401)
 #define WSA_ERR_READFRAMEFAILED	(LNEG_NUM - 402)
 #define WSA_ERR_INVSAMPLESIZE	(LNEG_NUM - 403)
+#define WSA_ERR_SIZESETFAILED	(LNEG_NUM - 404)
 //#define WSA_ERR_	(LNEG_NUM - 404)
 
 
@@ -237,6 +238,8 @@ static struct wsa_err_item {
 		"Failed reading a WSA frame"),
 	wsa_err_item(WSA_ERR_INVSAMPLESIZE, 
 		"Invalid frame size"),	// TODO: could add version maximum pkt here
+	wsa_err_item(WSA_ERR_SIZESETFAILED,
+		"Failed to set the sample size"),
 
 	//*****
 	// Frequency related

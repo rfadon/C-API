@@ -221,7 +221,7 @@ int16_t wsa_list_devs(char **wsa_list)
 }
 
 
-///**
+//**
 // * Open a file or print the help commands information associated with the 
 // * WSA used.
 // *
@@ -374,7 +374,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			resp.status = WSA_ERR_USBNOTAVBL;
 		}
 		else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, TIMEOUT);
+				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+					MAX_STR_LEN, TIMEOUT);
 		}
 	}
 
@@ -425,11 +426,55 @@ int16_t wsa_query_error(struct wsa_device *dev)
  * @return Number of samples read on success, or a negative number on error.
  */
 int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int32_t *i_buf, int32_t *q_buf, uint64_t sample_size)
+				 int16_t *i_buf, int16_t *q_buf, uint64_t sample_size)
 {
-	printf("Slow down... To be added later.\n");
+	int64_t result = 0;
+	uint32_t i;
+	int j = 0;
+	char *dbuf;
+	uint32_t bytes = (uint32_t) ((sample_size + 5) * 4); // 64 to 32???
+	
+	// allocate the data buffer
+	dbuf = (char *) malloc(bytes * sizeof(char));
 
-	return 0;
+	result = wsa_sock_recv(dev->sock.data, dbuf, bytes, 1000);
+
+	if (result > 0) {
+		for (i = 0; i < bytes; i += 4) {
+			//// print a space every 4 bytes & a new line ever 8 words
+			//if ((i % 4) == 0) printf(" ");
+			//if ((i % 32) == 0) printf("\n");
+			//printf("%02x%02x%02x%02x", (unsigned char) dbuf[i + 3], 
+			//	(unsigned char) dbuf[i + 2], (unsigned char) dbuf[i + 1], 
+			//	(unsigned char) dbuf[i]);
+
+			// TODO: Handle the 4 header words
+			if (i < 16) {
+			}
+
+			// Gets the payload
+			// each word = I2I1Q2Q1 bytes
+			else if (i >= 16 && i < (bytes - 4)){
+				i_buf[j] = (((unsigned char) dbuf[i + 3]) * 0x100) +
+							((unsigned char) dbuf[i + 2]); 
+				q_buf[j] = (((unsigned char) dbuf[i + 1]) * 0x100) + 
+							(unsigned char) dbuf[i];
+				
+				//if ((j % 4) == 0) printf("\n");
+				//printf("%04x,%04x ", i_buf[j], q_buf[j]);
+				
+				j++;
+			}
+
+			// TODO: Handle the trailer word
+			else {
+			}
+		}
+	}
+
+	free(dbuf);
+
+	return result;
 }
 
 
