@@ -70,6 +70,11 @@ struct wsa_device {
 	//struct wsa_trig *trig_list; ??? might not belong here ???
 };
 
+struct wsa_resp {
+	int64_t status;
+	char result[MAX_STR_LEN];
+};
+
 
 #endif
 

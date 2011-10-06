@@ -58,7 +58,7 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	// 3rd, set some values base on the model
 	// TODO read from regs/eeprom instead???
 	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
-		dev->descr.max_sample_size = WSA4000_MAX_PKT_SIZE;
+		dev->descr.max_sample_size = WSA4000_MAX_SAMPLE_SIZE;
 		dev->descr.inst_bw = (uint64_t) WSA4000_INST_BW;
 		
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {

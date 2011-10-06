@@ -58,6 +58,8 @@
 #include "wsa_error.h"
 #include "wsa_commons.h"
 
+static int _frame_size = DEFAULT_FS;
+
 //*****
 // Local functions
 //*****
@@ -67,7 +69,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 void print_cli_menu(struct wsa_device *dev);
 char* get_input_cmd(uint8_t pretext);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
-int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
+int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 
 
 /**
@@ -92,11 +94,11 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
-	printf(" sd [prefix] [ext:<type>] Save data to a file with optional "
-									"sprefix tring.\n"
-		   "                        Output: [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]\n"
-		   "                        [ext] type such as: csv (default), xsl, dat\n"
-		   "						ex: 'sd Test trial ext:xsl' or 'sd'\n");
+	printf(" sd [name] [ext:<type>] Save data to a file with optional "
+									"prefix string.\n"
+		   "                        Output: [name] YYYY-MM-DD_HH:MM:SS:mmm.[ext]\n"
+		   "                        - ext type: csv (default), xsl, dat, ...\n"
+		   "                        ex: 'sd Test trial ext:xsl' or 'sd'\n");
 	printf("\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
@@ -145,7 +147,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set ss <size>          Set the number of samples per frame to be "
 									"captured\n"
 		   "                        (ex: set ss 2000).\n"
-		   "                        - Maximum allows: %llu; Minimum: 1.\n\n", 
+		   "                        - Maximum allows: %d; Minimum: 1.\n\n", 
 									MAX_SS);
 }
 // NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
@@ -246,7 +248,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
  * Process any command (only) string.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param cmd_S - A char pointer for a command string.
+ * @param cmd_str - A char pointer for a command string.
  *
  * @return 1 for quit, 0 for no error or negative number if failed
  */
@@ -293,23 +295,40 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  * [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext] if the prefix string and extension is
  * given.
  *
+ * @param dev - A pointer to the WSA device structure.
  * @param prefix - A char pointer to a prefix string.
  * @param ext - A char pointer an extension string.
  *
  * @return 0 if successful, else a negative value.
  */
-int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
+int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
+	int16_t result;
+
 	// *****
+	// Get parameters to stored in the file
+	// TODO smarter way of saving header is to allow users to enable
+	// which header info to include...
+	// *****
+
 	// Verify sample size
-	// *****
 	int32_t size = wsa_get_sample_size(dev);
+	// TODO change this when set various ss is allowed
 	if (size < 1) {
 		printf("Warning: bad sample size detected. Defaulting it to "
 			"1024.\n");
-		wsa_set_sample_size(dev, 1024);
 		size = 1024;
+		result = wsa_set_sample_size(dev, size);
+		if (result < 0)
+			return result;
 	}
+
+	// Get the centre frequency
+	int64_t freq = wsa_get_freq(dev);
+	if (freq < 0)
+		return (int16_t) freq;
+
+	// Get
 
 	// *****
 	// Create parameters and buffers to store the data
@@ -321,6 +340,9 @@ int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Allocate buffer space
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * size);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * size);
+
+	while(0) {
+	}
 
 	wsa_read_pkt(dev, &header, i_buf, q_buf, size);
 
@@ -417,7 +439,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
-			printf("TO BE IMPLEMENTED!");
+			printf("Current # of frames per file: %d\n", _frame_size);
 		} // end get FS
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
@@ -574,9 +596,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end set FREQ
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
-			printf("TO BE IMPLIMENTED\n");
-			//if (strcmp(cmd_words[2], "") == 0) 
-			//	printf("Missing the frame size value. See 'h'.\n");
+			int temp_fs;
+			if (strcmp(cmd_words[2], "") == 0) 
+				printf("Missing the frame size value. See 'h'.\n");
+			else {
+				temp_fs = atoi(cmd_words[2]);
+				if (temp_fs < 1)
+					printf("Invalid number for the frame size.\n");
+				else 
+					_frame_size = temp_fs;
+			}
 		} // end set FS
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
@@ -667,9 +696,30 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}  // end Open directory
 
 		else if (strcmp(cmd_words[0], "SD") == 0) {
-			// todo: extract file name & ext:<type>
+			char prefix[200];
+			char ext[10];
+			int i = 1;
+			char *temp;
 
-			save_data_to_file(dev, NULL, NULL);
+			strcpy(prefix, "");
+			strcpy(ext, "csv");
+
+			// Get the [name] &/or [ext:<type>] string if there exists one
+			while (strcmp(cmd_words[i], "") != 0) {
+				if (strstr(cmd_words[i], "EXT:") != NULL) {
+					temp = strchr(cmd_words[i], ':');
+					strcpy(ext, strtok(temp, ":"));
+					//break; // break when reached the ext: line?			
+				}
+				else {
+					strcat(prefix, cmd_words[i]);
+					strcat(prefix, " ");
+				}
+
+				i++;
+			}
+
+			result = save_data_to_file(dev, prefix, ext);
 		} // end save data
 
 		// User wants to run away...
@@ -767,7 +817,6 @@ int16_t start_cli(void)
 		strcpy(in_str, get_input_cmd(FALSE));
 
 		// prevent crashing b/c of strtok in the next line
-		//if (strcmp(in_str, "") == 0)	continue;
 		if (strtok(in_str, " \t\r\n") == NULL) continue;
 		
 		// remove spaces or tabs in string

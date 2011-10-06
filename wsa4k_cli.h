@@ -3,10 +3,11 @@
 
 #include "stdint.h"
 
-#define MAX_CMD_WORDS 5
-#define MAX_STR_LEN 200
+#define MAX_CMD_WORDS 50
+#define MAX_STR_LEN 500
 #define MAX_FILE_LINES 300
 #define SEP_CHARS "\n\r"
+#define DEFAULT_FS 100
 
 #define MAX_BUF_SIZE 20
 #define MAX_ANT_PORT 2

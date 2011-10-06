@@ -747,7 +747,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //}
 
 
-// /**
+////**
 // * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
 // * 
 // * @param dev - A pointer to the WSA device structure.
