@@ -311,7 +311,7 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
-	int32_t bytes_rxed = 0, total_bytes = 0;
+	uint32_t bytes_rxed = 0, total_bytes = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -352,8 +352,8 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 				rx_buf_ptr += bytes_rxed;
 				total_bytes += bytes_rxed;
 			}
-		} 
-	} while(bytes_rxed > 0);
+		}
+	} while (total_bytes < buf_size);
 	
 	// Terminate the last string in buff to 0.
 	//rx_buf_ptr[0] = '\0'; // why need this?

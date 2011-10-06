@@ -238,6 +238,9 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 /**
  * Reads a frame of data. \e Each frame consists of a header, and I and Q 
  * buffers of data of length determine by the \b sample_size parameter.
+ * This function also checks for the continuity of the packets coming from the
+ * WSA.  Warning will be issued if the packet count (tracked local to the 
+ * function) is not continuous from the previous read.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
@@ -254,10 +257,11 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
  * @return The number of data samples read upon success, or a negative 
  * number on error.
  */
+static uint16_t pkt_count;
 int32_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header, 
 			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
 {	
-	int32_t result = 0;
+	int16_t result = 0;
 	char temp_str[50];
 
 	sprintf(temp_str, ":TRACE:IQ?\n");
@@ -271,9 +275,28 @@ int32_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	result = wsa_get_frame(dev, header, i_buf, q_buf, sample_size);
 	if (result < 0)
-		return (int32_t) WSA_ERR_READFRAMEFAILED;
+		return WSA_ERR_READFRAMEFAILED;
+	
+	// TODO: Verify continuity of pkt count. use global variable?
+	//if (result != pkt_count) {
+	//	printf("Warning: The packet count does not seem continuous. Some"
+	//	" packets might have been dropped.\n");
+	
+	//// TODO Removed this next line once verified:
+	// printf("Previous packet count was %d, current count is %d", 
+	//	pkt_count, result);
+	//	
+	//	// reset to the new # here
+	//	pkt_count = result;
+	//}
 
-	return result;
+	// Increment the count for the next in coming pkt
+	if (pkt_count == 15)
+		pkt_count = 0;
+	else 
+		pkt_count++;
+
+	return sample_size;
 }
 
 /**

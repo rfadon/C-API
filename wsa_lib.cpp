@@ -406,7 +406,6 @@ int32_t wsa_query_error(struct wsa_device *dev)
 }
 
 
-// this one need better design base on SCPI?
 /**
  * Reads a frame of data. \e Each frame consists of a header, and I and Q 
  * buffers of data of length determine by the \b sample_size parameter.
@@ -423,17 +422,18 @@ int32_t wsa_query_error(struct wsa_device *dev)
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
- * @return Number of samples read on success, or a negative number on error.
+ * @return A 4-bit packet count number that starts at 0, or a 16-bit negative 
+ * number on error.
  */
-int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
+int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size)
 {
 	int32_t result = 0;
 	uint32_t i;
 	int j = 0;
+	int16_t pkt_count, pkt_size;
 	char *dbuf;
-	uint32_t bytes = (uint32_t) ((sample_size + VRT_HEADER_SIZE + 
-		VRT_TRAILER_SIZE) * 4); // 64 to 32???
+	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
 	
 	// allocate the data buffer
 	dbuf = (char *) malloc(bytes * sizeof(char));
@@ -444,17 +444,44 @@ int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// set sample size to the header
 		header->sample_size = sample_size;
 
-		// TODO: Verify continuity of pkt count. use global variable?
-		// TODO: Handle the 4 header words
+		// *****
+		// Handle the 5 header words
+		// *****
 
-		// Get the second time stamp at the 3rd words
+		// 1. Check the Pkt type & get the Stream identifier word
+		//if ((dbuf[3] & 0xF0) == 1) {
+		//	memcpy(&result, (dbuf + 4), 4);
+		//	if (result != 0x90000003)
+		//		return WSA_ERR_NOTIQFRAME;
+		//}
+		//else what?
+
+		// 2. Get the 4-bit packet count number
+		pkt_count = dbuf[2] & 0x0F;
+		//printf("Packet #: %d %02x\n", pkt_count, dbuf[2]);
+
+		// 3. Get the 16-bit packet size
+		memcpy(&pkt_size, dbuf, 2);
+		//printf("Packet size: %d %04x\n", pkt_size, pkt_size);
+		// TODO: compare the sample size w/ this pkt_size, less hdr & trailer
+
+		// TODO: how to handle TSI field?
+		// 4. Get the second time stamp at the 3rd words
 		memcpy(&(header->time_stamp.sec),(dbuf + 8), 4);
 		//printf("second: %08x\n", header->time_stamp.sec);
 
-		// Get the picoseconds time stamp at the 4th & 5th words
-		memcpy(&(header->time_stamp.psec),(dbuf + 12), 8);
+		// 5. Check the TSF field, if presents (= 0x10),
+		// get the picoseconds time stamp at the 4th & 5th words
+		if ((dbuf[2] & 0x30) == 0x10)
+			memcpy(&(header->time_stamp.psec),(dbuf + 12), 8);
+		else 
+			header->time_stamp.psec = 0;
 		//printf("psec: %016llx\n", header->time_stamp.psec);
 
+
+		// *****
+		// Split up the IQ data bytes
+		// *****
 		for (i = (VRT_HEADER_SIZE * 4); i < (bytes - (VRT_TRAILER_SIZE * 4)); 
 			i += 4) {
 			// Gets the payload, each word = I2I1Q2Q1 bytes
@@ -466,9 +493,11 @@ int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 			
 			j++;
 		}
-	}
 
-	// TODO: Handle the trailer word. 
+		// *****
+		// TODO: Handle the trailer word. 
+		// *****
+	}
 
 	free(dbuf);
 

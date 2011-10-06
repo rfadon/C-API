@@ -123,16 +123,6 @@
  * @brief This structure contains header information related to each frame read
  * by wsa_get_frame().
  */
-	/** @var char wsa_frame_header::prod_serial
-	 * WSA product version number.
-	 */
-	/** @var uint64_t wsa_frame_header::freq
-	 * The center frequency (Hz) to which the RF PLL is tuned.
-	 */
-	/** @var char wsa_frame_header::gain
-	 * The amplification in the radio front end at the time a WSA data 
-	 * frame is captured.
-	 */
 	/** @var uint32_t wsa_frame_header::sample_size
 	 * Number of {I, Q} samples pairs per WSA data frame.
 	 */

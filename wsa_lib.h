@@ -51,9 +51,6 @@ struct wsa_time {
 
 // Temporary define for now. Will need to be expanded for more details...
 struct wsa_frame_header {
-	char prod_serial[20];  //???
-	uint64_t freq;
-	char gain[10];
 	uint32_t sample_size; 
 	struct wsa_time time_stamp;
 };
@@ -92,7 +89,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 //int16_t wsa_clear_query_resp(struct wsa_device *dev);
 int32_t wsa_query_error(struct wsa_device *dev);
-int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
+int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size);
 
 #endif
