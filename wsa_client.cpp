@@ -273,11 +273,11 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
-int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
+int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
     // Send the string to the server
-	int16_t bytes_txed = send(out_sock, out_str, len, 0);
+	int32_t bytes_txed = send(out_sock, out_str, len, 0);
     if (bytes_txed > 0) {
         doutf(2, "Sent %d bytes to server.\n", bytes_txed);
     }
@@ -306,9 +306,9 @@ int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
  * 
- * @return Number of "words" read
+ * @return Number of bytes read
  */
-int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
+int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0, total_bytes = 0;

@@ -81,7 +81,7 @@ void print_cli_menu(struct wsa_device *dev)
 {
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
-	uint64_t MAX_SS = dev->descr.max_sample_size;
+	uint32_t MAX_SS = dev->descr.max_sample_size;
 	float MAX_IF_GAIN = 0;	//TODO use this wsa_get_max_if_gain() ?
 	float MIN_IF_GAIN = -39.0;		//TODO wsa_get_min_if_gain()
 	uint32_t FREQ_RES = 10000;	//TODO
@@ -303,7 +303,7 @@ int save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Verify sample size
 	// *****
-	int64_t size = wsa_get_sample_size(dev);
+	int32_t size = wsa_get_sample_size(dev);
 	if (size < 1) {
 		printf("Warning: bad sample size detected. Defaulting it to "
 			"1024.\n");
@@ -489,7 +489,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 			else {
-				int64_t size = 0;
+				int32_t size = 0;
 				size = wsa_get_sample_size(dev);
 				if (size < 1)
 					result = (int16_t) size;
@@ -633,7 +633,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (strcmp(cmd_words[2], "") == 0) 
 				printf("Missing the sample size value. See 'h'.\n");
 			
-			int64_t sample_size = (int64_t) atof(cmd_words[2]);
+			int32_t sample_size = (int32_t) atof(cmd_words[2]);
 
 			if (sample_size != 1024) {
 				printf("Not supporting various sample sizes yet! "

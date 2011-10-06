@@ -254,10 +254,10 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
  * @return The number of data samples read upon success, or a negative 
  * number on error.
  */
-int64_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint64_t sample_size)
+int32_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header, 
+			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
 {	
-	int64_t result = 0;
+	int32_t result = 0;
 	char temp_str[50];
 
 	sprintf(temp_str, ":TRACE:IQ?\n");
@@ -271,7 +271,7 @@ int64_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	result = wsa_get_frame(dev, header, i_buf, q_buf, sample_size);
 	if (result < 0)
-		return (int64_t) WSA_ERR_READFRAMEFAILED;
+		return (int32_t) WSA_ERR_READFRAMEFAILED;
 
 	return result;
 }
@@ -284,7 +284,7 @@ int64_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header,
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sample_size(struct wsa_device *dev, int64_t sample_size)
+int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 {
 	int16_t result;
 	char temp_str[50];
@@ -309,7 +309,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int64_t sample_size)
  *
  * @return The sample size if success, or a negative number on error.
  */
-int64_t wsa_get_sample_size(struct wsa_device *dev)
+int32_t wsa_get_sample_size(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
@@ -318,8 +318,8 @@ int64_t wsa_get_sample_size(struct wsa_device *dev)
 	// TODO Handle the query output here 
 	if (query.result > 0) {
 		//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.result, 
-		//	(int64_t) atof(query.result));
-		return (int64_t) atof(query.result);
+		//	(int32_t) atof(query.result));
+		return (int32_t) atof(query.result);
 	}
 	else if (query.status <= 0) {
 		printf("No query response received.\n");

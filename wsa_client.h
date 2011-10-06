@@ -20,8 +20,8 @@ int16_t wsa_get_host_info(char *name);
 int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 
 						 SOCKET *data_sock);
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock);
-int16_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len);
-int64_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
+int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len);
+int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out);
 
 #endif

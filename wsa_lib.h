@@ -33,7 +33,7 @@ struct wsa_descriptor {
 	char fw_version[20];
 	char intf_type[20];
 	uint64_t inst_bw;
-	uint64_t max_sample_size;
+	uint32_t max_sample_size;
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
 	uint64_t freq_resolution;
@@ -44,8 +44,8 @@ struct wsa_descriptor {
 
 
 struct wsa_time {
-	int32_t sec;
-	uint32_t nsec;
+	uint32_t sec;
+	uint64_t psec;
 };
 
 
@@ -87,12 +87,12 @@ int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_list_devs(char **wsa_list);
 //int16_t wsa_help(struct wsa_device dev);
 
-int16_t wsa_send_command(struct wsa_device *dev, char *command);
+int32_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 //int16_t wsa_clear_query_resp(struct wsa_device *dev);
-int16_t wsa_query_error(struct wsa_device *dev);
-int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int16_t *i_buf, int16_t *q_buf, uint64_t sample_size);
+int32_t wsa_query_error(struct wsa_device *dev);
+int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
+				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size);
 
 #endif

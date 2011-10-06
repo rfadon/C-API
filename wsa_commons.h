@@ -10,6 +10,9 @@
 #define NUM_RF_GAINS 5	// including 0 but not use
 #define MHZ 1000000
 
+#define VRT_HEADER_SIZE 5
+#define VRT_TRAILER_SIZE 1
+
 //*****
 // WSA specific values
 //*****

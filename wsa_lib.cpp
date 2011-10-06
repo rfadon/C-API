@@ -252,9 +252,9 @@ int16_t wsa_list_devs(char **wsa_list)
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
-int16_t wsa_send_command(struct wsa_device *dev, char *command)
+int32_t wsa_send_command(struct wsa_device *dev, char *command)
 {
-	int16_t bytes_txed = 0;
+	int32_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
 
@@ -362,7 +362,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp resp;
-	int64_t bytes_got = 0;
+	int32_t bytes_got = 0;
 
 	// Send the query command out
 	bytes_got = wsa_send_command(dev, command);
@@ -398,7 +398,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_query_error(struct wsa_device *dev)
+int32_t wsa_query_error(struct wsa_device *dev)
 {
 	printf("To be added later.\n");
 
@@ -425,14 +425,15 @@ int16_t wsa_query_error(struct wsa_device *dev)
  *
  * @return Number of samples read on success, or a negative number on error.
  */
-int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int16_t *i_buf, int16_t *q_buf, uint64_t sample_size)
+int32_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
+				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size)
 {
-	int64_t result = 0;
+	int32_t result = 0;
 	uint32_t i;
 	int j = 0;
 	char *dbuf;
-	uint32_t bytes = (uint32_t) ((sample_size + 5) * 4); // 64 to 32???
+	uint32_t bytes = (uint32_t) ((sample_size + VRT_HEADER_SIZE + 
+		VRT_TRAILER_SIZE) * 4); // 64 to 32???
 	
 	// allocate the data buffer
 	dbuf = (char *) malloc(bytes * sizeof(char));
@@ -440,37 +441,34 @@ int64_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	result = wsa_sock_recv(dev->sock.data, dbuf, bytes, 1000);
 
 	if (result > 0) {
-		for (i = 0; i < bytes; i += 4) {
-			//// print a space every 4 bytes & a new line ever 8 words
-			//if ((i % 4) == 0) printf(" ");
-			//if ((i % 32) == 0) printf("\n");
-			//printf("%02x%02x%02x%02x", (unsigned char) dbuf[i + 3], 
-			//	(unsigned char) dbuf[i + 2], (unsigned char) dbuf[i + 1], 
-			//	(unsigned char) dbuf[i]);
+		// set sample size to the header
+		header->sample_size = sample_size;
 
-			// TODO: Handle the 4 header words
-			if (i < 16) {
-			}
+		// TODO: Verify continuity of pkt count. use global variable?
+		// TODO: Handle the 4 header words
 
-			// Gets the payload
-			// each word = I2I1Q2Q1 bytes
-			else if (i >= 16 && i < (bytes - 4)){
-				i_buf[j] = (((unsigned char) dbuf[i + 3]) * 0x100) +
-							((unsigned char) dbuf[i + 2]); 
-				q_buf[j] = (((unsigned char) dbuf[i + 1]) * 0x100) + 
-							(unsigned char) dbuf[i];
-				
-				//if ((j % 4) == 0) printf("\n");
-				//printf("%04x,%04x ", i_buf[j], q_buf[j]);
-				
-				j++;
-			}
+		// Get the second time stamp at the 3rd words
+		memcpy(&(header->time_stamp.sec),(dbuf + 8), 4);
+		//printf("second: %08x\n", header->time_stamp.sec);
 
-			// TODO: Handle the trailer word
-			else {
-			}
+		// Get the picoseconds time stamp at the 4th & 5th words
+		memcpy(&(header->time_stamp.psec),(dbuf + 12), 8);
+		//printf("psec: %016llx\n", header->time_stamp.psec);
+
+		for (i = (VRT_HEADER_SIZE * 4); i < (bytes - (VRT_TRAILER_SIZE * 4)); 
+			i += 4) {
+			// Gets the payload, each word = I2I1Q2Q1 bytes
+			i_buf[j] = (((uint8_t) dbuf[i + 3]) << 8) + ((uint8_t) dbuf[i + 2]); 
+			q_buf[j] = (((uint8_t) dbuf[i + 1]) << 8) + (uint8_t) dbuf[i];
+			
+			//if ((j % 4) == 0) printf("\n");
+			//printf("%04x,%04x ", i_buf[j], q_buf[j]);
+			
+			j++;
 		}
 	}
+
+	// TODO: Handle the trailer word. 
 
 	free(dbuf);
 

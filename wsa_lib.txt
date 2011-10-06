@@ -67,7 +67,7 @@
 	/** @var uint64_t wsa_descriptor::inst_bw
 	 * The WSA instantaneous bandwidth in Hz. 
 	 */
-	/** @var uint64_t wsa_descriptor::max_sample_size
+	/** @var uint32_t wsa_descriptor::max_sample_size
 	 * The maximum number of continuous I and Q data samples the WSA 
 	 * can capture per frame.
 	 */
