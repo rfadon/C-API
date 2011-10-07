@@ -50,6 +50,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
+#include <sys/timeb.h>
 #include <time.h>
 #include <direct.h>
 
@@ -165,13 +166,16 @@ void print_cli_menu(struct wsa_device *dev)
  */
 char* get_input_cmd(uint8_t pretext)
 {
-	const int str_size = MAX_STR_LEN; // Maximum characters in an option string
-	char input_opt[str_size], ch;	// store user's option
+	char ch;	// store user's option
+	char *input_opt; //input_opt[str_size];
 	int	cnt_ch = 0;					// count # of chars entered	
 
 	// Initialized the option
-	//ZeroMemory(input_opt, str_size);
-	strcpy(input_opt, "");
+	input_opt = (char *) malloc(sizeof(char) * MAX_STRING_LEN);
+	if (input_opt == NULL) {
+		printf("Error allocation memory. The program will be closed.\n");
+		exit(1);
+	}
 
 	// Get command loop for string input terminated by "enter"
 	if (pretext) 
@@ -179,10 +183,10 @@ char* get_input_cmd(uint8_t pretext)
 
 	// Conver the command to upper case.... <- should do this?
 	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
-		input_opt[cnt_ch++] = (char)ch;
+		input_opt[cnt_ch++] = (char) ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
 
-	return input_opt;
+	return input_opt;//&(input_opt[0]);
 }
 
 
@@ -209,7 +213,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 
 	// Allocate memory
 	for (int i = 0; i < MAX_FILE_LINES; i++)
-		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
+		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STRING_LEN);
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
 	
@@ -257,13 +261,13 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 {
 	int16_t result = 0;
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
-	char temp_str[MAX_STR_LEN];
+	char temp_str[MAX_STRING_LEN];
 	char *temp_ptr;
 	uint8_t w = 0;	// an index
 
 	// Allocate memory
 	for (int i = 0; i < MAX_CMD_WORDS; i++)
-		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
 
 	// clear up the words first
 	for (int i = 0; i < MAX_CMD_WORDS; i++)
@@ -304,6 +308,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result;
+	//int next;
 
 	// *****
 	// Get parameters to stored in the file
@@ -328,7 +333,26 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (freq < 0)
 		return (int16_t) freq;
 
-	// Get
+	// *****
+	// Create the file name string
+	// *****
+	char date[10];
+	char timeStr[10];
+	struct _timeb msec_buf;
+	char file_name[MAX_STRING_LEN];
+
+	// get the time
+	_strdate_s(date, 10);	 // MM/DD/YY
+	_strtime_s(timeStr, 10); // HH:MM:SS
+	_ftime(&msec_buf);		 // call time function
+	
+	// create file name in format "[prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]" in a 
+	// folder called CAPTURES
+	sprintf(file_name, "CAPTURES\\%s20%c%c-%c%c-%c%c_%s:%d.%s", prefix, 
+		date[6], date[7], date[0], date[1], date[3], date[4], timeStr, 
+		msec_buf.millitm, ext);
+
+	printf("File name: %s\n", file_name);
 
 	// *****
 	// Create parameters and buffers to store the data
@@ -706,12 +730,20 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			// Get the [name] &/or [ext:<type>] string if there exists one
 			while (strcmp(cmd_words[i], "") != 0) {
+				unsigned int j;
 				if (strstr(cmd_words[i], "EXT:") != NULL) {
 					temp = strchr(cmd_words[i], ':');
 					strcpy(ext, strtok(temp, ":"));
+					
+					// convert to lower case
+					for (j = 0; j < strlen(ext); j++)
+						ext[j] = tolower(ext[j]);
 					//break; // break when reached the ext: line?			
 				}
 				else {
+					// convert to lower case after the first letter
+					for (j = 1; j < strlen(cmd_words[i]); j++)
+						cmd_words[i][j] = tolower(cmd_words[i][j]);
 					strcat(prefix, cmd_words[i]);
 					strcat(prefix, " ");
 				}
@@ -755,8 +787,9 @@ int16_t do_wsa(const char *wsa_addr)
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
 	char intf_str[200];			// store the interface method string
+	char *in_buf;
 	int16_t result = 0;			// result returned from a function
-	char temp_str[MAX_STR_LEN];
+	char temp_str[MAX_STRING_LEN];
 
 
 	// Create the TCPIP interface method string
@@ -773,14 +806,17 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Start the control loop
 	do {
+		in_buf = get_input_cmd(TRUE);
 		// Get input string command
-		strcpy(temp_str, get_input_cmd(TRUE));
+		strcpy(temp_str, in_buf);
 		
 		// send cmd string to be processed
 		result = process_cmd_string(dev, temp_str);
 		if (result < 0) 
 			printf("Command '%s' not recognized.  See 'h'.\n", temp_str);
 	} while (result != 1);
+
+	free(in_buf);
 
 	// finish so close the connection
 	wsa_close(dev);
@@ -799,7 +835,8 @@ int16_t start_cli(void)
 {
 	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
-	char in_str[MAX_STR_LEN];		// store user's input string
+	char in_str[MAX_STRING_LEN];		// store user's input string
+	char *in_buf;
 	int16_t in_num = 0;				// store user's entered number
 	//char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
 	const char *wsa_addr;			// store the desired WSA IP address
@@ -814,7 +851,8 @@ int16_t start_cli(void)
 		// Ask user to enter an IP address
 		//*****
 		printf("\n> Enter the WSA4000's IP (or type 'l'): ");
-		strcpy(in_str, get_input_cmd(FALSE));
+		in_buf = get_input_cmd(FALSE);
+		strcpy(in_str, in_buf);
 
 		// prevent crashing b/c of strtok in the next line
 		if (strtok(in_str, " \t\r\n") == NULL) continue;
@@ -877,6 +915,8 @@ int16_t start_cli(void)
 			break;
 	} while (!user_quit);
 
+	free(in_buf);
+
 	return 0;
 }
 
@@ -909,7 +949,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 
 	// Allocate memory
 	for (int i = 0; i < MAX_CMD_WORDS; i++) {
-		cmd_words[i] = (char*) malloc(MAX_STR_LEN * sizeof(char));
+		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
 		strcpy(cmd_words[i], "");
 	}
 

@@ -4,7 +4,7 @@
 #include "stdint.h"
 
 #define MAX_CMD_WORDS 50
-#define MAX_STR_LEN 500
+#define MAX_STRING_LEN 500
 #define MAX_FILE_LINES 300
 #define SEP_CHARS "\n\r"
 #define DEFAULT_FS 100

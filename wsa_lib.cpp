@@ -175,7 +175,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		return WSA_ERR_INITFAILED;
 	}
 
-	return result;
+	return 0;
 }
 
 
