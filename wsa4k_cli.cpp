@@ -167,7 +167,7 @@ void print_cli_menu(struct wsa_device *dev)
 char* get_input_cmd(uint8_t pretext)
 {
 	char ch;	// store user's option
-	char *input_opt; //input_opt[str_size];
+	char *input_opt;
 	int	cnt_ch = 0;					// count # of chars entered	
 
 	// Initialized the option
@@ -186,7 +186,7 @@ char* get_input_cmd(uint8_t pretext)
 		input_opt[cnt_ch++] = (char) ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
 
-	return input_opt;//&(input_opt[0]);
+	return input_opt;
 }
 
 
@@ -913,8 +913,9 @@ int16_t start_cli(void)
 		//*****
 		if (do_wsa(wsa_addr) == 0)
 			break;
-	} while (!user_quit);
 
+	} while (!user_quit);
+	
 	free(in_buf);
 
 	return 0;
