@@ -308,7 +308,6 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result;
-	//int next;
 
 	// *****
 	// Get parameters to stored in the file
@@ -317,13 +316,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 
 	// Verify sample size
-	int32_t size = wsa_get_sample_size(dev);
+	int32_t samples = wsa_get_sample_size(dev);
 	// TODO change this when set various ss is allowed
-	if (size < 1) {
+	if (samples < 1) {
 		printf("Warning: bad sample size detected. Defaulting it to "
 			"1024.\n");
-		size = 1024;
-		result = wsa_set_sample_size(dev, size);
+		samples = 1024;
+		result = wsa_set_sample_size(dev, samples);
 		if (result < 0)
 			return result;
 	}
@@ -332,6 +331,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t freq = wsa_get_freq(dev);
 	if (freq < 0)
 		return (int16_t) freq;
+
 
 	// *****
 	// Create the file name string
@@ -354,26 +354,39 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	printf("File name: %s\n", file_name);
 
+
 	// *****
 	// Create parameters and buffers to store the data
 	// *****
-	int16_t *i_buf;
-	int16_t *q_buf;
+	int fi = 0;	// frame index
+	int16_t **i_buf;
+	int16_t **q_buf;
 	struct wsa_frame_header header; 
 
 	// Allocate buffer space
-	i_buf = (int16_t *) malloc(sizeof(int16_t) * size);
-	q_buf = (int16_t *) malloc(sizeof(int16_t) * size);
-
-	while(0) {
+	i_buf = (int16_t **) malloc(sizeof(int16_t *) * _frame_size);
+	q_buf = (int16_t **) malloc(sizeof(int16_t *) * _frame_size);
+	for (int i = 0; i < _frame_size; i++) {
+		i_buf[i] = (int16_t *) malloc(sizeof(int16_t) * samples);
+		q_buf[i] = (int16_t *) malloc(sizeof(int16_t) * samples);
 	}
 
-	wsa_read_pkt(dev, &header, i_buf, q_buf, size);
-
-	/*for (int i = 0; i < size; i++) {
+	// For testing purpose only
+	wsa_read_pkt_int(dev, &header, i_buf[0], q_buf[0], samples);
+	for (int i = 0; i < samples; i++) {
 		if ((i % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[i], q_buf[i]);
+		printf("%04x,%04x ", i_buf[0][i], q_buf[0][i]);
+	}
+
+	/*while(fi < _frame_size) {
+		wsa_read_pkt_int(dev, &header, i_buf[fi], q_buf[fi], samples);
+		fi++;
 	}*/
+
+	for (int i = 0; i < _frame_size; i++) {
+		free(i_buf[i]);
+		free(q_buf[i]);
+	}
 
 	free(i_buf);
 	free(q_buf);

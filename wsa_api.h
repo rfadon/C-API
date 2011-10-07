@@ -118,8 +118,11 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int32_t wsa_read_pkt (struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size);
+int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header 
+		*header, char *data_buf, const uint32_t sample_size);
+
+int32_t wsa_read_pkt_int(struct wsa_device *dev, struct wsa_frame_header 
+		*header, int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size);
 //int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
 int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 int32_t wsa_get_sample_size(struct wsa_device *dev);

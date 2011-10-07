@@ -234,46 +234,67 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
+static uint16_t pkt_count = 0;
 
 /**
- * Reads a frame of data. \e Each frame consists of a header, and I and Q 
- * buffers of data of length determine by the \b sample_size parameter.
- * This function also checks for the continuity of the packets coming from the
- * WSA.  Warning will be issued if the packet count (tracked local to the 
- * function) is not continuous from the previous read.
+ * Reads a frame of data. \e Each frame consists of a header, and a 
+ * buffer of data of length determine by the \b sample_size parameter
+ * (i.e. sizeof(data_buf) = sample_size * 4 bytes/sample).
+ * 
+ * Each I and Q samples is 16-bit wide, signed 2-complement.  The raw 
+ * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
+ * another words, the I & Q samples are distributed in the raw data_buf 
+ * as follow:
+ *
+ * @code 
+ *		data_buf = QIQIQIQI... = <2 bytes Q><2bytes I><...>
+ * @endcode
+ *
+ * The bytes can be decoded, as an example, as follow:
+ * @code
+ *	Let takes the first 4 bytes of the data_buf, then:
+ * 
+ *		int16_t I = data_buf[3] << 8 + data_buf[2];
+ *		int16_t Q = data_buf[1] << 8 + data_buf[0];
+ * @endcode
+ *
+ * Alternatively, the data_buf can be passed to wsa_decode_frame() to have I
+ * and Q splited up and stored into separate int16_t buffers.  Or use
+ * wsa_get_frame_int() to do both tasks at once.  Those 2 functions are 
+ * useful when delaying in data acquisition time between frames is not a 
+ * factor. In addition, wsa_decode_frame() is useful for later needs of 
+ * decoding when a massive amount of data (multiple frames) has been captured.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
  * information for the frame.
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled 
- * Q data buffer with size specified by the sample_size.
- * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
- * sample pairs) per data frame to be captured. \n
- * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * @param data_buf - A char pointer buffer to store the raw I and Q data in
+ * in bytes. Its size is determined by the number of 32-bit sample_size words 
+ * multiply by 4 (automatically done by the function).
+ * @param sample_size - A 32-bit unsigned integer sample size (i.e. number of
+ * {I, Q} sample pairs) per data frame to be captured. \n
+ * The size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
- * @return The number of data samples read upon success, or a negative 
+ * @return The number of data samples read upon success, or a 16-bit negative 
  * number on error.
  */
-static uint16_t pkt_count;
-int32_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
-{	
+int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header 
+		*header, char *data_buf, const uint32_t sample_size)
+{
 	int16_t result = 0;
 	char temp_str[50];
 
 	sprintf(temp_str, ":TRACE:IQ?\n");
 
-	// set the freq using the selected connect type
+	// Query WSA for data using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
 		doutf(1, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_READFRAMEFAILED));
 		return WSA_ERR_READFRAMEFAILED;
 	}
 
-	result = wsa_get_frame(dev, header, i_buf, q_buf, sample_size);
+	result = wsa_get_frame(dev, header, data_buf, sample_size);
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 	
@@ -297,6 +318,56 @@ int32_t wsa_read_pkt(struct wsa_device *dev, struct wsa_frame_header *header,
 		pkt_count++;
 
 	return sample_size;
+}
+
+
+/**
+ * Reads a frame of data. \e Each frame consists of a header, and I and Q 
+ * buffers of data of length determine by the \b sample_size parameter.
+ * This function also checks for the continuity of the packets coming from the
+ * WSA.  Warning will be issued if the packet count (tracked local to the 
+ * function) is not continuous from the previous read.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ * information for the frame.
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * Q data buffer with size specified by the sample_size.
+ * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * sample pairs) per data frame to be captured. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return The number of data samples read upon success, or a negative 
+ * number on error.
+ */
+int32_t wsa_read_pkt_int(struct wsa_device *dev, struct wsa_frame_header *header, 
+			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
+{	
+	int32_t result = 0;char *dbuf;
+	
+	// allocate the data buffer
+	dbuf = (char *) malloc(sample_size * 4 * sizeof(char));
+
+	result = wsa_read_pkt_raw(dev, header, dbuf, sample_size);
+	// TODO handle result < 0
+	
+	result = wsa_decode_frame(dev, dbuf, i_buf, q_buf, sample_size);
+	// TODO handle result < 0
+
+	/*int i, j=0;
+	for (i = 0; i < sample_size * 4; i += 4) {		
+		if ((j % 4) == 0) printf("\n");
+		printf("%04x,%04x ", i_buf[j], q_buf[j]);
+		
+		j++;
+	}*/
+
+	free(dbuf);
+
+	return result;
 }
 
 /**

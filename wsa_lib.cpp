@@ -200,16 +200,16 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 }
 
 
-/**
- * List (print out) the IPs of connected WSAs to the network? or the PC???
- * For now, will list the IPs for any of the connected devices to a PC?
- *
- * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
- * connected to a network???.
- *
- * @return Number of connected WSAs (or IPs for now) on success, or a 
- * negative number on error.
- */
+///**
+// * List (print out) the IPs of connected WSAs to the network? or the PC???
+// * For now, will list the IPs for any of the connected devices to a PC?
+// *
+// * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
+// * connected to a network???.
+// *
+// * @return Number of connected WSAs (or IPs for now) on success, or a 
+// * negative number on error.
+// */
 // TODO: This section is to be replaced w/ list connected WSAs
 int16_t wsa_list_devs(char **wsa_list) 
 {
@@ -405,35 +405,56 @@ int32_t wsa_query_error(struct wsa_device *dev)
 	return 0;
 }
 
-
 /**
- * Reads a frame of data. \e Each frame consists of a header, and I and Q 
- * buffers of data of length determine by the \b sample_size parameter.
+ * Reads a frame of data. \e Each frame consists of a header and a 
+ * buffer of data of length determined by the \b sample_size parameter 
+ * (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per sample).
+ * 
+ * Each I and Q samples is 16-bit wide, signed 2-complement.  The raw \b
+ * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
+ * another words, the I & Q samples are distributed in the \b raw data_buf 
+ * as follow:
+ *
+ * @code 
+ *		data_buf = QIQIQIQI... = <2 bytes Q><2 bytes I><...>
+ * @endcode
+ *
+ * The bytes can be decoded, as an example, as follow:
+ * @code
+ *	Let takes the first 4 bytes of the \b data_buf, then:
+ * 
+ *		int16_t I = data_buf[3] << 8 + data_buf[2];
+ *		int16_t Q = data_buf[1] << 8 + data_buf[0];
+ * @endcode
+ * 
+ * Alternatively, the \b data_buf can be passed to wsa_decode_frame() to have I
+ * and Q splitted up and stored into separate int16_t buffers. The 
+ * wsa_decode_frame() function is useful for later needs of decoding  the 
+ * data byteswhen a massive amount of data (multiple frames) has been 
+ * captured for instance.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
  * information for the frame.
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled 
- * Q data buffer with size specified by the sample_size.
- * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
- * sample pairs) per data frame to be captured. \n
- * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * @param data_buf - A char pointer buffer to store the raw I and Q data in
+ * in bytes. Its size is determined by the number of 32-bit \b sample_size 
+ * words multiply by 4 (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per 
+ * sample, which is automatically done by the function).
+ * @param sample_size - A 32-bit unsigned integer sample size (i.e. number of
+ * {I, Q} sample pairs) per data frame to be captured. \n
+ * The size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
  * @return A 4-bit packet count number that starts at 0, or a 16-bit negative 
  * number on error.
  */
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size)
+				 char *data_buf, uint32_t sample_size)
 {
 	int32_t result = 0;
-	uint32_t i;
-	int j = 0;
-	int16_t pkt_count, pkt_size;
-	char *dbuf;
+	int16_t pkt_count = -1, pkt_size;
 	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
+	char *dbuf;
 	
 	// allocate the data buffer
 	dbuf = (char *) malloc(bytes * sizeof(char));
@@ -467,32 +488,21 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 		// TODO: how to handle TSI field?
 		// 4. Get the second time stamp at the 3rd words
-		memcpy(&(header->time_stamp.sec),(dbuf + 8), 4);
+		memcpy(&(header->time_stamp.sec), (dbuf + 8), 4);
 		//printf("second: %08x\n", header->time_stamp.sec);
 
 		// 5. Check the TSF field, if presents (= 0x10),
 		// get the picoseconds time stamp at the 4th & 5th words
 		if ((dbuf[2] & 0x30) == 0x10)
-			memcpy(&(header->time_stamp.psec),(dbuf + 12), 8);
+			memcpy(&(header->time_stamp.psec), (dbuf + 12), 8);
 		else 
 			header->time_stamp.psec = 0;
 		//printf("psec: %016llx\n", header->time_stamp.psec);
 
-
 		// *****
-		// Split up the IQ data bytes
+		// Get the data_buf
 		// *****
-		for (i = (VRT_HEADER_SIZE * 4); i < (bytes - (VRT_TRAILER_SIZE * 4)); 
-			i += 4) {
-			// Gets the payload, each word = I2I1Q2Q1 bytes
-			i_buf[j] = (((uint8_t) dbuf[i + 3]) << 8) + ((uint8_t) dbuf[i + 2]); 
-			q_buf[j] = (((uint8_t) dbuf[i + 1]) << 8) + (uint8_t) dbuf[i];
-			
-			//if ((j % 4) == 0) printf("\n");
-			//printf("%04x,%04x ", i_buf[j], q_buf[j]);
-			
-			j++;
-		}
+		memcpy(data_buf, dbuf + 20, sample_size * 4);
 
 		// *****
 		// TODO: Handle the trailer word. 
@@ -501,7 +511,56 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	free(dbuf);
 
-	return result;
+	return pkt_count;
+}
+
+
+/**
+ * Decodes a raw data_buf containing I & Q data and returned the I and Q 
+ * buffers of data of length determine by the \b sample_size parameter.  
+ * Note: the data_buf size is assumed as \b sample_size * 4 bytes per sample
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param data_buf - A char pointer buffer containing the raw I and Q data in
+ * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
+ * be the number of 32-bit sample_size words multiply by 4 (i.e. 
+ * sizeof(data_buf) = sample_size * 4 bytes per sample).
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the \b sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * Q data buffer with size specified by the \b sample_size.
+ * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * sample pairs) per data frame to be captured. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return the number of samples decoded, or a 16-bit negative 
+ * number on error.
+ */
+int32_t wsa_decode_frame(struct wsa_device *dev, char *data_buf,
+				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size)
+{
+	int32_t result = 0;
+	uint32_t i;
+	int j = 0;
+
+	// *****
+	// Split up the IQ data bytes
+	// *****
+	for (i = 0; i < sample_size * 4; i += 4) {
+		// Gets the payload, each word = I2I1Q2Q1 bytes
+		i_buf[j] = (((uint8_t) data_buf[i + 3]) << 8) + 
+					((uint8_t) data_buf[i + 2]); 
+		q_buf[j] = (((uint8_t) data_buf[i + 1]) << 8) + 
+					(uint8_t) data_buf[i];
+		
+		/*if ((j % 4) == 0) printf("\n");
+		printf("%04x,%04x ", i_buf[j], q_buf[j]);*/
+		
+		j++;
+	}
+
+	return sample_size;
 }
 
 
