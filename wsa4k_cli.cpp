@@ -344,13 +344,30 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// get the time
 	_strdate_s(date, 10);	 // MM/DD/YY
 	_strtime_s(timeStr, 10); // HH:MM:SS
-	_ftime(&msec_buf);		 // call time function
+	_ftime_s(&msec_buf);		 // call time function
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]" in a 
 	// folder called CAPTURES
-	sprintf(file_name, "CAPTURES\\%s20%c%c-%c%c-%c%c_%s:%d.%s", prefix, 
+	sprintf(file_name, "CAPTURES\\%s20%c%c-%c%c-%c%c_%s:%03d.%s", prefix, 
 		date[6], date[7], date[0], date[1], date[3], date[4], timeStr, 
 		msec_buf.millitm, ext);
+
+	printf("File name: %s\n", file_name);
+
+	time_t time_stamp;
+	struct tm  *time_struct;
+    char       time_str[50];
+	char       time_str2[10];
+	
+	// Format and print the time, "yyyy-mm-dd hh:mm:ss:ms pp" 
+	time_stamp = time(NULL);
+	time_struct = localtime(&time_stamp);
+	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H:%M:%S", time_struct);
+	//strftime(time_str2, sizeof(time_str2), "%p", time_struct);
+
+	sprintf(file_name, "2 CAPTURES\\%s%s:%03d.%s", prefix, time_str, 
+		msec_buf.millitm, ext);
+
 
 	printf("File name: %s\n", file_name);
 
@@ -379,10 +396,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	wsa_frame_decode(d_buf, i_buf, q_buf, _frame_size * samples);
 
 	// For testing purpose only
-	for (int i = 0; i < _frame_size * samples; i++) {
-		if ((i % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[i], q_buf[i]);
-	}
+	//for (int i = 0; i < _frame_size * samples; i++) {
+	//	if ((i % 4) == 0) printf("\n");
+	//	printf("%04x,%04x ", i_buf[i], q_buf[i]);
+	//}
 
 	free(d_buf);
 	free(i_buf);
