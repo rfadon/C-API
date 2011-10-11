@@ -44,10 +44,11 @@
  *  - USB interface method - might never be available.
  */
 
-#include <fstream>
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <conio.h>
+#include <fstream>
+#include <iostream>
 #include <malloc.h>
 #include <string.h>
 #include <sys/timeb.h>
@@ -97,7 +98,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" q                      Quit or exit this console.\n");
 	printf(" sd [name] [ext:<type>] Save data to a file with optional "
 									"prefix string.\n"
-		   "                        Output: [name] YYYY-MM-DD_HH:MM:SS:mmm.[ext]\n"
+		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
 		   "                        ex: 'sd Test trial ext:xsl' or 'sd'\n");
 	printf("\n");
@@ -315,6 +316,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 
+	printf("Gathering WSA settings...");
 	// Verify sample size
 	int32_t samples = wsa_get_sample_size(dev);
 	// TODO change this when set various ss is allowed
@@ -336,54 +338,84 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Create the file name string
 	// *****
-	char date[10];
-	char timeStr[10];
+	time_t time_stamp;
+	struct tm *time_struct;
+	char time_str[50];
 	struct _timeb msec_buf;
 	char file_name[MAX_STRING_LEN];
+	FILE *iq_fptr;
 
-	// get the time
-	_strdate_s(date, 10);	 // MM/DD/YY
-	_strtime_s(timeStr, 10); // HH:MM:SS
 	_ftime_s(&msec_buf);		 // call time function
 	
-	// create file name in format "[prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext]" in a 
+	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
-	sprintf(file_name, "CAPTURES\\%s20%c%c-%c%c-%c%c_%s:%03d.%s", prefix, 
-		date[6], date[7], date[0], date[1], date[3], date[4], timeStr, 
+	time_stamp = time(NULL);
+	time_struct = localtime(&time_stamp);
+	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H%M%S", time_struct);
+
+	sprintf(file_name, "CAPTURES\\%s%s%03d.%s", prefix, time_str, 
 		msec_buf.millitm, ext);
 
-	printf("File name: %s\n", file_name);
+	
+	// create a new file for data capture
+	if ((iq_fptr = fopen(file_name, "w")) == NULL) {
+		printf("\nError creating the file \"%s\"!\n", file_name);
+		return WSA_ERR_FILECREATEFAILED;
+	}
 
 
 	// *****
 	// Create parameters and buffers to store the data
 	// *****
-	struct wsa_frame_header header; 
+	struct wsa_frame_header *header; 
 	int fi = 0, next = 0;	// frame index and next index location
 	char *d_buf;		// To store raw data bytes
 	int16_t *i_buf;		// To store the integer I data
 	int16_t *q_buf;		// To store the integer Q data
 
 	// Allocate buffer space
+	header = (struct wsa_frame_header *) 
+		malloc(sizeof(struct wsa_frame_header) * _frame_size);
 	d_buf = (char *) malloc(sizeof(char) * 4 * _frame_size * samples);
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 
+	
+	// Collect the samples for all the _frame_size
+	printf("done.\nAcquiring data bytes... ");
 	while(fi < _frame_size) {
 		next = fi * samples * 4;
-		//wsa_read_frame_int(dev, &header, &i_buf[next], &q_buf[next], samples);
-		wsa_read_frame_raw(dev, &header, &d_buf[next], samples);
+		wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
 		fi++;
 	}
 
+	// Decode all the samples
+	printf("done.\nDecoding into I & Q... ");
 	wsa_frame_decode(d_buf, i_buf, q_buf, _frame_size * samples);
+	
+	// *****
+	// Save data to the file
+	// *****
+	// Loop to save data into the file
+	printf("done.\nSaving data to: %s ... ", file_name);
+	for (int j = 0; j < _frame_size; j++) {
+		// Save each header information into the file 
+		fprintf(iq_fptr, "#%d, cf:%ld, ss:%d, sec:%d, pico:%d\n", j + 1, freq, 
+			samples, header[j].time_stamp.sec, header[j].time_stamp.psec);
 
-	// For testing purpose only
-	//for (int i = 0; i < _frame_size * samples; i++) {
-	//	if ((i % 4) == 0) printf("\n");
-	//	printf("%04x,%04x ", i_buf[i], q_buf[i]);
-	//}
+		// Save decoded samples to the file	
+		for (int i = 0; i < samples; i++) {
+			next = j * samples + i;
+			fprintf(iq_fptr, "%d,%d\n", i_buf[next], q_buf[next]);
+		// For testing purpose only
+		//	if ((i % 4) == 0) printf("\n");
+		//	printf("%04x,%04x ", i_buf[next], q_buf[next]);
+		}
+	}
+	printf("done.\n");
 
+	fclose(iq_fptr);
+	free(header);
 	free(d_buf);
 	free(i_buf);
 	free(q_buf);

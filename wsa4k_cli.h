@@ -7,7 +7,7 @@
 #define MAX_STRING_LEN 500
 #define MAX_FILE_LINES 300
 #define SEP_CHARS "\n\r"
-#define DEFAULT_FS 3	// temp value
+#define DEFAULT_FS 100	// temp value
 
 #define MAX_BUF_SIZE 20
 #define MAX_ANT_PORT 2

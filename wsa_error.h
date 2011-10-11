@@ -327,7 +327,7 @@ static struct wsa_err_item {
 	// File related
 	//*****
 	wsa_err_item(WSA_ERR_FILECREATEFAILED,
-		"Unable to open the file"),
+		"Unable to create the file"),
 	wsa_err_item(WSA_ERR_FILEOPENFAILED,
 		"Unable to open the file"),
 	wsa_err_item(WSA_ERR_FILEREADFAILED,
