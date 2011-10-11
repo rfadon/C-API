@@ -354,23 +354,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	printf("File name: %s\n", file_name);
 
-	time_t time_stamp;
-	struct tm  *time_struct;
-    char       time_str[50];
-	char       time_str2[10];
-	
-	// Format and print the time, "yyyy-mm-dd hh:mm:ss:ms pp" 
-	time_stamp = time(NULL);
-	time_struct = localtime(&time_stamp);
-	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H:%M:%S", time_struct);
-	//strftime(time_str2, sizeof(time_str2), "%p", time_struct);
-
-	sprintf(file_name, "2 CAPTURES\\%s%s:%03d.%s", prefix, time_str, 
-		msec_buf.millitm, ext);
-
-
-	printf("File name: %s\n", file_name);
-
 
 	// *****
 	// Create parameters and buffers to store the data
