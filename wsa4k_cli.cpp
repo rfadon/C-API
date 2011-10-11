@@ -309,6 +309,10 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result;
+	// for acquisition time
+	time_t start_time;	// to capture run time
+	int start_ms;		// the msec of start time
+	int32_t delta_sec, delta_ms;	// time takes to run the data collection
 
 	// *****
 	// Get parameters to stored in the file
@@ -316,7 +320,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 
-	printf("Gathering WSA settings...");
+	printf("Gathering WSA settings... ");
 	// Verify sample size
 	int32_t samples = wsa_get_sample_size(dev);
 	// TODO change this when set various ss is allowed
@@ -344,15 +348,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct _timeb msec_buf;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
-
-	_ftime_s(&msec_buf);		 // call time function
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
-	time_stamp = time(NULL);
+	time_stamp = time(NULL);	// call time functions
 	time_struct = localtime(&time_stamp);
+	_ftime_s(&msec_buf);		 
 	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H%M%S", time_struct);
-
 	sprintf(file_name, "CAPTURES\\%s%s%03d.%s", prefix, time_str, 
 		msec_buf.millitm, ext);
 
@@ -372,25 +374,35 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	char *d_buf;		// To store raw data bytes
 	int16_t *i_buf;		// To store the integer I data
 	int16_t *q_buf;		// To store the integer Q data
+	int64_t total_bytes = 4 * _frame_size * samples;
 
 	// Allocate buffer space
 	header = (struct wsa_frame_header *) 
 		malloc(sizeof(struct wsa_frame_header) * _frame_size);
-	d_buf = (char *) malloc(sizeof(char) * 4 * _frame_size * samples);
+	d_buf = (char *) malloc(sizeof(char) * total_bytes);
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 
 	
 	// Collect the samples for all the _frame_size
 	printf("done.\nAcquiring data bytes... ");
+	start_time = time(0);			// time in seconds
+	_ftime(&msec_buf);			// call time function
+	start_ms = msec_buf.millitm;	// get millisecond
 	while(fi < _frame_size) {
 		next = fi * samples * 4;
 		wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
 		fi++;
 	}
+	delta_sec = (time(0) - start_time);
+	_ftime_s(&msec_buf);			// call time function
+	delta_ms = msec_buf.millitm - start_ms;
+	printf("done. \n\t(Run time: %d sec %d msec;  Rate: %.03lf bytes/sec).\n", 
+		delta_sec, delta_ms, 
+		total_bytes / (delta_sec + (delta_ms / 1000.0)));
 
 	// Decode all the samples
-	printf("done.\nDecoding into I & Q... ");
+	printf("Decoding into I & Q... ");
 	wsa_frame_decode(d_buf, i_buf, q_buf, _frame_size * samples);
 	
 	// *****
