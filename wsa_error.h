@@ -238,7 +238,7 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_READFRAMEFAILED, 
 		"Failed reading a WSA frame"),
 	wsa_err_item(WSA_ERR_INVSAMPLESIZE, 
-		"Invalid frame size"),	// TODO: could add version maximum pkt here
+		"Invalid frame size"),	// TODO: could add version maximum frame here
 	wsa_err_item(WSA_ERR_SIZESETFAILED,
 		"Failed to set the sample size"),
 	wsa_err_item(WSA_ERR_NOTIQFRAME,
@@ -349,6 +349,6 @@ static struct wsa_err_item {
 	
 };
 
-const char *wsa_get_err_msg(int16_t err_id);
+const char *_wsa_get_err_msg(int16_t err_id);
 
 #endif

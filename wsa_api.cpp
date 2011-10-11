@@ -6,7 +6,7 @@
  * functions to set/get particular settings or acquire data from the WSA.  
  * The wsa_api encodes the commands into SCPI syntax scripts, which 
  * are sent to a WSA through the wsa_lib library.  Subsequently, it decodes 
- * any responses or packet coming back from the WSA through the wsa_lib.
+ * any responses or packets coming back from the WSA through the wsa_lib.
  * Thus, the API helps to abstract away SCPI syntax from the user.
  *
  * Data frames passing back from the wsa_lib are in VRT format.  This 
@@ -123,7 +123,7 @@ int16_t wsa_check_addr(char *ip_addr)
 {
 	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
 		doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
-			wsa_get_err_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
+			wsa_get_error_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -179,7 +179,21 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 
 
 /**
- * Read command line(s) stored in the given \b file_name and set each line
+ * Returns a message string associated with the given error code \b err_code.
+ * 
+ * @param err_code - The negative WSA error code, returned from a WSA function.
+ *
+ * @return A char pointer to the error message string.
+ */
+const char *wsa_get_err_msg(int16_t err_code)
+{
+	return wsa_get_error_msg(err_code);
+}
+
+
+
+/**
+ * Read command line(s) stored in the given \b file_name and send each line
  * to the WSA.
  *
  * @remarks 
@@ -234,14 +248,14 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
-static uint16_t pkt_count = 0;
+static uint16_t frame_count = 0;
 
 /**
  * Reads a frame of data. \e Each frame consists of a header, and a 
  * buffer of data of length determine by the \b sample_size parameter
- * (i.e. sizeof(data_buf) = sample_size * 4 bytes/sample).
+ * (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per sample).
  * 
- * Each I and Q samples is 16-bit wide, signed 2-complement.  The raw 
+ * Each I and Q samples is 16-bit (2-byte) wide, signed 2-complement.  The raw 
  * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
  * another words, the I & Q samples are distributed in the raw data_buf 
  * as follow:
@@ -250,27 +264,35 @@ static uint16_t pkt_count = 0;
  *		data_buf = QIQIQIQI... = <2 bytes Q><2bytes I><...>
  * @endcode
  *
- * The bytes can be decoded, as an example, as follow:
+ * The bytes can be decoded as follow:
  * @code
  *	Let takes the first 4 bytes of the data_buf, then:
  * 
- *		int16_t I = data_buf[3] << 8 + data_buf[2];
- *		int16_t Q = data_buf[1] << 8 + data_buf[0];
+ *		int16_t I[0] = data_buf[3] << 8 + data_buf[2];
+ *		int16_t Q[0] = data_buf[1] << 8 + data_buf[0];
+ *
+ *  And so on for N number of samples:
+ *
+ *		int16_t I[i] = data_buf[i+3] << 8 + data_buf[i+2];
+ *		int16_t Q[i] = data_buf[i+1] << 8 + data_buf[i];
+ *  for i = 0, 1, 2, ..., (N - 1).
  * @endcode
  *
  * Alternatively, the data_buf can be passed to wsa_decode_frame() to have I
  * and Q splited up and stored into separate int16_t buffers.  Or use
  * wsa_get_frame_int() to do both tasks at once.  Those 2 functions are 
  * useful when delaying in data acquisition time between frames is not a 
- * factor. In addition, wsa_decode_frame() is useful for later needs of 
- * decoding when a massive amount of data (multiple frames) has been captured.
+ * factor. In addition, the wsa_decode_frame() function is useful for later 
+ * needs of decoding the data bytes when a large amount of raw data 
+ * (multiple frames) has been captured for instance. 
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
  * information for the frame.
  * @param data_buf - A char pointer buffer to store the raw I and Q data in
- * in bytes. Its size is determined by the number of 32-bit sample_size words 
- * multiply by 4 (automatically done by the function).
+ * in bytes. Its size is determined by the number of 32-bit \b sample_size 
+ * words multiply by 4 (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per 
+ * sample, which is automatically done by the function).
  * @param sample_size - A 32-bit unsigned integer sample size (i.e. number of
  * {I, Q} sample pairs) per data frame to be captured. \n
  * The size is limited to a maximum number, \b max_sample_size, listed 
@@ -279,7 +301,7 @@ static uint16_t pkt_count = 0;
  * @return The number of data samples read upon success, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header 
+int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
 		*header, char *data_buf, const uint32_t sample_size)
 {
 	int16_t result = 0;
@@ -290,7 +312,7 @@ int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header
 	// Query WSA for data using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
 		doutf(1, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_READFRAMEFAILED));
+			wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
 		return WSA_ERR_READFRAMEFAILED;
 	}
 
@@ -298,35 +320,43 @@ int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 	
-	// TODO: Verify continuity of pkt count. use global variable?
-	//if (result != pkt_count) {
-	//	printf("Warning: The packet count does not seem continuous. Some"
-	//	" packets might have been dropped.\n");
+	// TODO: Verify continuity of frame count. use global variable?
+	//if (result != frame_count) {
+	//	printf("Warning: The frame count does not seem continuous. Some"
+	//	" frames might have been dropped.\n");
 	
 	//// TODO Removed this next line once verified:
-	// printf("Previous packet count was %d, current count is %d", 
-	//	pkt_count, result);
+	// printf("Previous frame count was %d, current count is %d", 
+	//	frame_count, result);
 	//	
 	//	// reset to the new # here
-	//	pkt_count = result;
+	//	frame_count = result;
 	//}
 
-	// Increment the count for the next in coming pkt
-	if (pkt_count == 15)
-		pkt_count = 0;
+	// Increment the count for the next in coming frame
+	if (frame_count == 15)
+		frame_count = 0;
 	else 
-		pkt_count++;
+		frame_count++;
 
 	return sample_size;
 }
 
 
 /**
- * Reads a frame of data. \e Each frame consists of a header, and I and Q 
+ * Reads a frame of raw data and return pointers to the decoded 16-bit integer
+ * I & Q buffers. \e Each frame consists of a header, and I and Q 
  * buffers of data of length determine by the \b sample_size parameter.
- * This function also checks for the continuity of the packets coming from the
- * WSA.  Warning will be issued if the packet count (tracked local to the 
- * function) is not continuous from the previous read.
+ * This function also checks for the continuity of the frames coming from the
+ * WSA.  Warning will be issued if the frame count (tracked local to the 
+ * function) is not continuous from the previous read but will still return
+ * the frame.
+ *
+ * @remark wsa_read_frame_int() simplily invokes wsa_read_frame_raw() follow 
+ * by wsa_frame_decode() for each frame read.  However, if timing between
+ * each data acquisition frames is important and needs to be minimized, 
+ * it might be more advantageous to use wsa_read_frame_raw() to gather 
+ * multiple of frames first and then invokes wsa_frame_decode() separately.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
@@ -335,7 +365,7 @@ int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header
  * I data buffer with size specified by the sample_size.
  * @param q_buf - A 16-bit signed integer pointer for the unscaled 
  * Q data buffer with size specified by the sample_size.
- * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
+ * @param sample_size - A 32-bit unsigned integer sample size (i.e. {I, Q} 
  * sample pairs) per data frame to be captured. \n
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
@@ -343,18 +373,19 @@ int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header
  * @return The number of data samples read upon success, or a negative 
  * number on error.
  */
-int32_t wsa_read_pkt_int(struct wsa_device *dev, struct wsa_frame_header *header, 
+int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *header, 
 			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
 {	
-	int32_t result = 0;char *dbuf;
+	int32_t result = 0;
+	char *dbuf;
 	
 	// allocate the data buffer
 	dbuf = (char *) malloc(sample_size * 4 * sizeof(char));
 
-	result = wsa_read_pkt_raw(dev, header, dbuf, sample_size);
+	result = wsa_read_frame_raw(dev, header, dbuf, sample_size);
 	// TODO handle result < 0
 	
-	result = wsa_decode_frame(dev, dbuf, i_buf, q_buf, sample_size);
+	result = wsa_decode_frame(dbuf, i_buf, q_buf, sample_size);
 	// TODO handle result < 0
 
 	/*int i, j=0;
@@ -369,6 +400,40 @@ int32_t wsa_read_pkt_int(struct wsa_device *dev, struct wsa_frame_header *header
 
 	return result;
 }
+
+/**
+ * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data and 
+ * returned the I and Q buffers of data with the size determine by the 
+ * \b sample_size parameter.  
+ * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param data_buf - A char pointer buffer containing the raw I and Q data in
+ * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
+ * be the number of 32-bit sample_size words multiply by 4 (i.e. 
+ * sizeof(data_buf) = sample_size * 4 bytes per sample).
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the \b sample_size.
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled, 
+ * Q data buffer with size specified by the \b sample_size.
+ * @param sample_size - A 32-bit unsigned integer number of {I, Q} 
+ * sample pairs to be decoded from \b data_buf. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return the number of samples decoded, or a 16-bit negative 
+ * number on error.
+ */
+int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
+						 const uint32_t sample_size)
+{
+	int32_t result;
+
+	result = wsa_decode_frame(data_buf, i_buf, q_buf, sample_size);
+
+	return result;
+}
+
 
 /**
  * Sets the number of samples per frame to be received
@@ -389,7 +454,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_SIZESETFAILED));
+			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
 		return WSA_ERR_SIZESETFAILED;
 	}
 
@@ -491,7 +556,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
 		doutf(1, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_FREQSETFAILED));
+			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
 	}
 
@@ -507,7 +572,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)	{
 		doutf(1, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_FREQOUTOFBOUND));
+			wsa_get_error_msg(WSA_ERR_FREQOUTOFBOUND));
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 	
@@ -516,7 +581,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 		dev->descr.freq_resolution);
 	if (residue > 0) {
 		doutf(1, "Error WSA_ERR_INVFREQRES: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_INVFREQRES));
+			wsa_get_error_msg(WSA_ERR_INVFREQRES));
 		return WSA_ERR_INVFREQRES;
 	}
 
@@ -581,7 +646,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_IFGAINSETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_IFGAINSETFAILED));
+			wsa_get_error_msg(WSA_ERR_IFGAINSETFAILED));
 		return WSA_ERR_IFGAINSETFAILED;
 	}
 
@@ -668,7 +733,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_RFGAINSETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_RFGAINSETFAILED));
+			wsa_get_error_msg(WSA_ERR_RFGAINSETFAILED));
 		return WSA_ERR_RFGAINSETFAILED;
 	}
 
@@ -732,7 +797,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_ANTENNASETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_ANTENNASETFAILED));
+			wsa_get_error_msg(WSA_ERR_ANTENNASETFAILED));
 		return WSA_ERR_ANTENNASETFAILED;
 	}
 
@@ -792,7 +857,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
+			wsa_get_error_msg(WSA_ERR_FILTERSETFAILED));
 		return WSA_ERR_FILTERSETFAILED;
 	}
 
@@ -846,7 +911,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //	result = wsa_send_command(dev, temp_str);
 //	if (result < 0) {
 //		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
-//			wsa_get_err_msg(WSA_ERR_FILTERSETFAILED));
+//			wsa_get_error_msg(WSA_ERR_FILTERSETFAILED));
 //		return WSA_ERR_FILTERSETFAILED;
 //	}
 //
@@ -911,7 +976,7 @@ int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode)
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(1, "Error WSA_ERR_CALIBRATESETFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_CALIBRATESETFAILED));
+			wsa_get_error_msg(WSA_ERR_CALIBRATESETFAILED));
 		return WSA_ERR_CALIBRATESETFAILED;
 	}
 

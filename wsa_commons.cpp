@@ -9,7 +9,7 @@
  *
  * @param err_id The error ID
  */
-const char *wsa_get_err_msg(int16_t err_id)
+const char *_wsa_get_err_msg(int16_t err_id)
 {
 	int id = 0;
 

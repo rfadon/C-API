@@ -103,6 +103,8 @@ void wsa_close(struct wsa_device *dev);
 int16_t wsa_check_addr(char *intf_method);
 int16_t wsa_list(char **wsa_list);
 int16_t wsa_is_connected(struct wsa_device *dev);
+const char *wsa_get_err_msg(int16_t err_code);
+
 int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 /*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
@@ -118,14 +120,17 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int32_t wsa_read_pkt_raw(struct wsa_device *dev, struct wsa_frame_header 
+int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
 		*header, char *data_buf, const uint32_t sample_size);
-
-int32_t wsa_read_pkt_int(struct wsa_device *dev, struct wsa_frame_header 
+int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
 		*header, int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size);
-//int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
+int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
+						 const uint32_t sample_size);
+
 int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 int32_t wsa_get_sample_size(struct wsa_device *dev);
+
+//int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
 
 
 // ////////////////////////////////////////////////////////////////////////////

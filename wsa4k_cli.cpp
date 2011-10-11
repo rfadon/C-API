@@ -13,7 +13,7 @@
  * The CLI interfaces to a WSA through the wsa_api library, which provides
  * functions to set/get particular settings or data from the WSA.  The wsa_api
  * encodes the commands into SCPI syntax scripts, which are sent to a WSA 
- * through the wsa_lib library.  Subsequently decodes any responses or packet
+ * through the wsa_lib library.  Subsequently decodes any responses or packets
  * coming back from the WSA through the wsa_lib. \n \n
  *
  * The wsa_lib, thus, is the main gateway to a WSA box from a PC.  The 
@@ -130,7 +130,7 @@ void print_cli_menu(struct wsa_device *dev)
 									"or off.\n");
 	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
 	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
-									"freq 2441.5).\n"
+									"freq 441.5).\n"
 		   "                        - Range: %.2f - %.2f MHz inclusively.\n"
 		   "                        - Resolution %.2f MHz.\n", 
 									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
@@ -358,36 +358,33 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Create parameters and buffers to store the data
 	// *****
-	int fi = 0;	// frame index
-	int16_t **i_buf;
-	int16_t **q_buf;
 	struct wsa_frame_header header; 
+	int fi = 0, next = 0;	// frame index and next index location
+	char *d_buf;		// To store raw data bytes
+	int16_t *i_buf;		// To store the integer I data
+	int16_t *q_buf;		// To store the integer Q data
 
 	// Allocate buffer space
-	i_buf = (int16_t **) malloc(sizeof(int16_t *) * _frame_size);
-	q_buf = (int16_t **) malloc(sizeof(int16_t *) * _frame_size);
-	for (int i = 0; i < _frame_size; i++) {
-		i_buf[i] = (int16_t *) malloc(sizeof(int16_t) * samples);
-		q_buf[i] = (int16_t *) malloc(sizeof(int16_t) * samples);
+	d_buf = (char *) malloc(sizeof(char) * 4 * _frame_size * samples);
+	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
+	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
+
+	while(fi < _frame_size) {
+		next = fi * samples * 4;
+		//wsa_read_frame_int(dev, &header, &i_buf[next], &q_buf[next], samples);
+		wsa_read_frame_raw(dev, &header, &d_buf[next], samples);
+		fi++;
 	}
+
+	wsa_frame_decode(d_buf, i_buf, q_buf, _frame_size * samples);
 
 	// For testing purpose only
-	wsa_read_pkt_int(dev, &header, i_buf[0], q_buf[0], samples);
-	for (int i = 0; i < samples; i++) {
+	for (int i = 0; i < _frame_size * samples; i++) {
 		if ((i % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[0][i], q_buf[0][i]);
+		printf("%04x,%04x ", i_buf[i], q_buf[i]);
 	}
 
-	/*while(fi < _frame_size) {
-		wsa_read_pkt_int(dev, &header, i_buf[fi], q_buf[fi], samples);
-		fi++;
-	}*/
-
-	for (int i = 0; i < _frame_size; i++) {
-		free(i_buf[i]);
-		free(q_buf[i]);
-	}
-
+	free(d_buf);
 	free(i_buf);
 	free(q_buf);
 

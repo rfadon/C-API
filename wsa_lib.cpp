@@ -117,7 +117,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		if (strstr(intf_method, "TCPIP") != NULL) {
 			if ((temp_str = strstr(intf_method, "::")) == NULL) {
 				doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s \"%s\".\n", 
-					wsa_get_err_msg(WSA_ERR_INVINTFMETHOD), intf_method);
+					_wsa_get_err_msg(WSA_ERR_INVINTFMETHOD), intf_method);
 				return WSA_ERR_INVINTFMETHOD;
 			}
 
@@ -131,14 +131,14 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		else if (strstr(intf_method, "USB") != NULL) {
 			// TODO: add to this section if ever use USB.
 			doutf(1, "Error WSA_ERR_USBNOTAVBL: %s.\n", 
-				wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+				_wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 			return WSA_ERR_USBNOTAVBL;	
 		}
 
 		// Can't determine connection method from the interface string
 		else {
 			doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
-				wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
+				_wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
 			return WSA_ERR_INVINTFMETHOD;
 		}
 	} // end if SCPI section
@@ -159,7 +159,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 
 		if (result < 0) {
 			//doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-			//		wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
+			//		_wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
 			return WSA_ERR_ETHERNETCONNECTFAILED;
 		}
 
@@ -171,7 +171,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Initialize wsa_device structure with the proper values
 	if (wsa_dev_init(dev) < 0) {
 		doutf(1, "Error WSA_ERR_INITFAILED: "
-			"%s.\n", wsa_get_err_msg(WSA_ERR_INITFAILED));
+			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_INITFAILED;
 	}
 
@@ -304,7 +304,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %d: %s '%s'.\n", result, wsa_get_err_msg(result), 
+		printf("ERROR %d: %s '%s'.\n", result, _wsa_get_err_msg(result), 
 			file_name);
 		return result;
 	}
@@ -333,7 +333,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 		// If a bad command is detected, continue? Prefer not.
 		if (result < 0) {
 			result = WSA_ERR_CMDINVALID;
-			printf("ERROR %d: %s.\n", result, wsa_get_err_msg(result));
+			printf("ERROR %d: %s.\n", result, _wsa_get_err_msg(result));
 			printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 			break;
 		}
@@ -405,14 +405,27 @@ int32_t wsa_query_error(struct wsa_device *dev)
 	return 0;
 }
 
+
+/**
+ * Returns a message string associated with the given error code \b err_code.
+ * 
+ * @param err_code - The negative WSA error code, returned from a WSA function.
+ *
+ * @return A char pointer to the error message string.
+ */
+const char *wsa_get_error_msg(int16_t err_code)
+{
+	return _wsa_get_err_msg(err_code);
+}
+
 /**
  * Reads a frame of data. \e Each frame consists of a header and a 
  * buffer of data of length determined by the \b sample_size parameter 
  * (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per sample).
  * 
- * Each I and Q samples is 16-bit wide, signed 2-complement.  The raw \b
+ * Each I and Q samples is 16-bit (2-byte) wide, signed 2-complement.  The raw 
  * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
- * another words, the I & Q samples are distributed in the \b raw data_buf 
+ * another words, the I & Q samples are distributed in the raw data_buf 
  * as follow:
  *
  * @code 
@@ -421,16 +434,23 @@ int32_t wsa_query_error(struct wsa_device *dev)
  *
  * The bytes can be decoded, as an example, as follow:
  * @code
- *	Let takes the first 4 bytes of the \b data_buf, then:
+ *	Let takes the first 4 bytes of the \b data_buf, for example, then:
  * 
  *		int16_t I = data_buf[3] << 8 + data_buf[2];
  *		int16_t Q = data_buf[1] << 8 + data_buf[0];
+ *
+ *	And so on for N number of samples:
+ *
+ *		int16_t I[i] = data_buf[i+3] << 8 + data_buf[i+2];
+ *		int16_t Q[i] = data_buf[i+1] << 8 + data_buf[i];
+ *
+ *	where i = 0, 1, 2, ..., (N - 2), (N - 1).
  * @endcode
  * 
  * Alternatively, the \b data_buf can be passed to wsa_decode_frame() to have I
  * and Q splitted up and stored into separate int16_t buffers. The 
- * wsa_decode_frame() function is useful for later needs of decoding  the 
- * data byteswhen a massive amount of data (multiple frames) has been 
+ * wsa_decode_frame() function is useful for later needs of decoding the 
+ * data bytes when a large amount of raw data (multiple frames) has been 
  * captured for instance.
  *
  * @param dev - A pointer to the WSA device structure.
@@ -445,14 +465,14 @@ int32_t wsa_query_error(struct wsa_device *dev)
  * The size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
- * @return A 4-bit packet count number that starts at 0, or a 16-bit negative 
+ * @return A 4-bit frame count number that starts at 0, or a 16-bit negative 
  * number on error.
  */
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 char *data_buf, uint32_t sample_size)
 {
 	int32_t result = 0;
-	int16_t pkt_count = -1, pkt_size;
+	int16_t frame_count = -1, frame_size;
 	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
 	char *dbuf;
 	
@@ -478,13 +498,13 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		//else what?
 
 		// 2. Get the 4-bit packet count number
-		pkt_count = dbuf[2] & 0x0F;
-		//printf("Packet #: %d %02x\n", pkt_count, dbuf[2]);
+		frame_count = dbuf[2] & 0x0F;
+		//printf("Packet #: %d %02x\n", frame_count, dbuf[2]);
 
 		// 3. Get the 16-bit packet size
-		memcpy(&pkt_size, dbuf, 2);
-		//printf("Packet size: %d %04x\n", pkt_size, pkt_size);
-		// TODO: compare the sample size w/ this pkt_size, less hdr & trailer
+		memcpy(&frame_size, dbuf, 2);
+		//printf("Packet size: %d %04x\n", frame_size, frame_size);
+		// TODO: compare the sample size w/ this frame_size, less hdr & trailer
 
 		// TODO: how to handle TSI field?
 		// 4. Get the second time stamp at the 3rd words
@@ -511,14 +531,15 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	free(dbuf);
 
-	return pkt_count;
+	return frame_count;
 }
 
 
 /**
- * Decodes a raw data_buf containing I & Q data and returned the I and Q 
- * buffers of data of length determine by the \b sample_size parameter.  
- * Note: the data_buf size is assumed as \b sample_size * 4 bytes per sample
+ * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data and 
+ * returned the I and Q buffers of data with the size determine by the 
+ * \b sample_size parameter.  
+ * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
  * @param dev - A pointer to the WSA device structure.
  * @param data_buf - A char pointer buffer containing the raw I and Q data in
@@ -527,18 +548,18 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
  * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
  * I data buffer with size specified by the \b sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled 
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled, 
  * Q data buffer with size specified by the \b sample_size.
- * @param sample_size - A 64-bit unsigned integer sample size (i.e. {I, Q} 
- * sample pairs) per data frame to be captured. \n
+ * @param sample_size - A 32-bit unsigned integer number of {I, Q} 
+ * sample pairs to be decoded from \b data_buf. \n
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
  * @return the number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_frame(struct wsa_device *dev, char *data_buf,
-				 int16_t *i_buf, int16_t *q_buf, uint32_t sample_size)
+int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
+						 uint32_t sample_size)
 {
 	int32_t result = 0;
 	uint32_t i;
