@@ -278,11 +278,11 @@ static uint16_t frame_count = 0;
  *  for i = 0, 1, 2, ..., (N - 1).
  * @endcode
  *
- * Alternatively, the data_buf can be passed to wsa_decode_frame() to have I
+ * Alternatively, the data_buf can be passed to wsa_frame_decode() to have I
  * and Q splited up and stored into separate int16_t buffers.  Or use
  * wsa_get_frame_int() to do both tasks at once.  Those 2 functions are 
  * useful when delaying in data acquisition time between frames is not a 
- * factor. In addition, the wsa_decode_frame() function is useful for later 
+ * factor. In addition, the wsa_frame_decode() function is useful for later 
  * needs of decoding the data bytes when a large amount of raw data 
  * (multiple frames) has been captured for instance. 
  *
@@ -402,12 +402,12 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 }
 
 /**
- * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data and 
- * returned the I and Q buffers of data with the size determine by the 
+ * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
+ * and returned the I and Q buffers of data with the size determined by the 
  * \b sample_size parameter.  
+ *
  * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
- * @param dev - A pointer to the WSA device structure.
  * @param data_buf - A char pointer buffer containing the raw I and Q data in
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
@@ -421,7 +421,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
- * @return the number of samples decoded, or a 16-bit negative 
+ * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
 int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 

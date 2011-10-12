@@ -536,12 +536,12 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 
 /**
- * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data and 
- * returned the I and Q buffers of data with the size determine by the 
+ * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
+ * and returned the I and Q buffers of data with the size determined by the 
  * \b sample_size parameter.  
+ * 
  * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
- * @param dev - A pointer to the WSA device structure.
  * @param data_buf - A char pointer buffer containing the raw I and Q data in
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
@@ -555,7 +555,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
  *
- * @return the number of samples decoded, or a 16-bit negative 
+ * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
