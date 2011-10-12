@@ -32,9 +32,9 @@ uint8_t call_mode = FALSE;
 char *start = "STARTDATA\0";
 char *stop = "STOPDATA\0";
 
-const int32_t ctrl_port = HISLIP;
-const int32_t data_port = 7000;
-	      
+//const int32_t ctrl_port = HISLIP;
+//const int32_t data_port = 7000;
+		  
 
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
@@ -52,34 +52,34 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port);
  *
  * @return
  */
-int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_sock)
+int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 
+					SOCKET *data_sock, int32_t ctrl_port, int32_t data_port)
 {
 	//*****
-    // Starting Winsock2
+	// Starting Winsock2
 	//*****
-    WSAData ws_data;		// create an instance of Winsock data type
+	WSAData ws_data;		// create an instance of Winsock data type
 	int32_t ws_err_code;	// get error code
 	int16_t result = 0;		// result returned from a function
 
 	// MAKEWORD(2, 2) - request for version 2.2 of Winsock on the system
-    if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
-		doutf(1, "WSAStartup() returned error code %d. ", ws_err_code);
-		doutf(1, "%s\n", WSAGetLastErrorMessage(
+	if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
+		doutf(DHIGH, "WSAStartup() returned error code %d. ", ws_err_code);
+		doutf(DHIGH, "%s\n", WSAGetLastErrorMessage(
 			"Error creating an instance of Winsock in Windows!\n"));
-        return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
-    }
+		return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
+	}
 
 
 	//*****
 	// Create command socket
 	//*****
 	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, ctrl_port);
-    if (cmd_socket == INVALID_SOCKET) {
-        return WSA_ERR_SOCKETSETFUPFAILED;
-    }
-    else {
+	if (cmd_socket == INVALID_SOCKET) {
+		return WSA_ERR_SOCKETSETFUPFAILED;
+	}
+	else {
 		*cmd_sock = cmd_socket;
-		// TODO: remove this section
 		printf("connected.\n");
 	}
 
@@ -87,18 +87,16 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 	//*****
 	// Create data socket
 	//*****
-	// TODO: add data socket
 	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
-    if (data_socket == INVALID_SOCKET) {
-        result = WSA_ERR_SOCKETSETFUPFAILED;
-    }
-    else {
+	if (data_socket == INVALID_SOCKET) {
+		result = WSA_ERR_SOCKETSETFUPFAILED;
+	}
+	else {
 		*data_sock = data_socket;
-		// TODO: remove this section
 		printf("connected.\n");
 	}
 
-    return result;
+	return result;
 }
 
 
@@ -113,25 +111,25 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, SOCKET *data_so
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 {
 #if defined(SHUTDOWN_DELAY)
-    // Delay for a bit, so we can start other clients.  This is strictly
-    // for testing purposes, so you can convince yourself that the 
-    // server is handling more than one connection at a time.
+	// Delay for a bit, so we can start other clients.  This is strictly
+	// for testing purposes, so you can convince yourself that the 
+	// server is handling more than one connection at a time.
 	printf("\nWill shut down sockets in %d seconds: ", 
 		kShutdownDelay);
 	fflush(stdin);
 
-    for (int i = 0; i < kShutdownDelay; ++i) {
-        Sleep(1000);
+	for (int i = 0; i < kShutdownDelay; ++i) {
+		Sleep(1000);
 		printf(".");
 		fflush(stdin);
-    }
+	}
 	printf("\n");
 #endif
 
-    // Shut COMMAND socket connection down
+	// Shut COMMAND socket connection down
 	//fflush(stdin);
-    if (ShutdownConnection(cmd_sock, "command socket"))
-        printf("Command socket connection is down.\n");
+	if (ShutdownConnection(cmd_sock, "command socket"))
+		printf("Command socket connection is down.\n");
 	else
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
@@ -139,16 +137,16 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 
 	// Shut DATA socket connection down
 	//fflush(stdin);
-    if (ShutdownConnection(data_sock, "data socket"))
-        printf("Command socket connection is down.\n");
+	if (ShutdownConnection(data_sock, "data socket"))
+		printf("Data socket connection is down.\n");
 	else
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'data' socket connection"));
 
-    // Shut Winsock back down and take off.
-    WSACleanup();
+	// Shut Winsock back down and take off.
+	WSACleanup();
 
-    return 0;
+	return 0;
 }
 
 
@@ -167,25 +165,25 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 	//printf("Looking up %s address: ", sock_name);
 	//fflush(stdin);
 
-    u_long new_sock_addr = wsa_verify_addr(sock_addr);
-    if (new_sock_addr == INADDR_NONE) {
-        fprintf(stderr, "\nError %s\n", 
+	u_long new_sock_addr = wsa_verify_addr(sock_addr);
+	if (new_sock_addr == INADDR_NONE) {
+		fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
-        return -1;	// random number
-    }
+		return -1;	// random number
+	}
 
 	// Keep record of the socket's address & port
 	in_addr socAdrIn;
-    memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
+	memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
 	//printf("%s:%d\n", inet_ntoa(socAdrIn), sock_port); 
 
 	//printf("Connecting to %s (%s:%d)... ", sock_name, inet_ntoa(socAdrIn), 
 	//	sock_port);
-	printf("Connecting to WSA @ %s... ", inet_ntoa(socAdrIn));
+	printf("Connecting to WSA @ %s:%d... ", inet_ntoa(socAdrIn), sock_port);
 
 	// The htons function converts a u_short from host to TCP/IP 
 	// network byte order (which is big-endian)
-    SOCKET sd = establish_connection(new_sock_addr, htons(sock_port));
+	SOCKET sd = establish_connection(new_sock_addr, htons(sock_port));
 	//if (sd == INVALID_SOCKET) 
 	//	printf("%s socket setup failed!\n", sock_name);
 
@@ -208,24 +206,24 @@ u_long wsa_verify_addr(const char *sock_addr)
 	WSADATA wsaData;
 	int iResult;
 	// Initialize Winsock
-    if ((iResult = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
-        return -1;
-    }
+	if ((iResult = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
+		printf("WSAStartup failed: %d\n", iResult);
+		return -1;
+	}
 
 	u_long new_sock_addr = inet_addr(sock_addr);
-    if (new_sock_addr == INADDR_NONE) {
-        // sock_addr isn't a dotted IP, so resolve it through DNS
-        hostent *pHE = gethostbyname(sock_addr);
-        if (pHE == NULL) {
-            return INADDR_NONE;
-        }
-        new_sock_addr = *((u_long*)pHE->h_addr_list[0]);
-    }
+	if (new_sock_addr == INADDR_NONE) {
+		// sock_addr isn't a dotted IP, so resolve it through DNS
+		hostent *pHE = gethostbyname(sock_addr);
+		if (pHE == NULL) {
+			return INADDR_NONE;
+		}
+		new_sock_addr = *((u_long*)pHE->h_addr_list[0]);
+	}
 	
 	WSACleanup();
 
-    return new_sock_addr;
+	return new_sock_addr;
 }
 
 
@@ -241,25 +239,39 @@ u_long wsa_verify_addr(const char *sock_addr)
  */
 SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 {
-    // Create a stream socket
-	// Unspecified to do both IPv4 & 6. TCP w/ no specific protocol
-	// TODO: future consideration: first try with AF_INET6, when fail
-	// try the below.  AF_UNSPEC is useless w/ winsock2
-	SOCKET sd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sd != INVALID_SOCKET) {
-        sockaddr_in remoteSocIn;
-        remoteSocIn.sin_family = AF_INET;
-        remoteSocIn.sin_addr.s_addr = sock_addr;
-        remoteSocIn.sin_port = sock_port;
+	sockaddr_in remoteSocIn;
+	// Create a stream socket
+	// AF_UNSPEC is useless w/ winsock2
+	// So first check for IPv6, if failed do IPv4
+	SOCKET sd = socket(AF_INET6, SOCK_STREAM, 0);
+	if (sd != INVALID_SOCKET) {
+		remoteSocIn.sin_family = AF_INET6;//AF_INET;
+		remoteSocIn.sin_addr.s_addr = sock_addr;
+		remoteSocIn.sin_port = sock_port;
 
-        if (connect(sd, (sockaddr*)&remoteSocIn, 
+		if (connect(sd, (sockaddr*)&remoteSocIn, 
 			sizeof(sockaddr_in)) == SOCKET_ERROR) {
-            sd = INVALID_SOCKET;
+			sd = INVALID_SOCKET;
 			printf("Invalid socket!!!\n");
-        }
-    }
+		}
+	}
+	else {
+		doutf(DMED, "Not IPv6 ready. Will try IPv4 instead... ");
+		sd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sd != INVALID_SOCKET) {
+			remoteSocIn.sin_family = AF_INET;
+			remoteSocIn.sin_addr.s_addr = sock_addr;
+			remoteSocIn.sin_port = sock_port;
 
-    return sd;
+			if (connect(sd, (sockaddr*)&remoteSocIn, 
+				sizeof(sockaddr_in)) == SOCKET_ERROR) {
+				sd = INVALID_SOCKET;
+				printf("Invalid socket!!!\n");
+			}
+		}
+	}
+
+	return sd;
 }
 
 
@@ -276,22 +288,22 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
-    // Send the string to the server
+	// Send the string to the server
 	int32_t bytes_txed = send(out_sock, out_str, len, 0);
-    if (bytes_txed > 0) {
-        doutf(2, "Sent %d bytes to server.\n", bytes_txed);
-    }
-    else if (bytes_txed == SOCKET_ERROR) {
-        printf("Sent failed.  Socket error/closed! Error: %ld\n", 
+	if (bytes_txed > 0) {
+		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+	}
+	else if (bytes_txed == SOCKET_ERROR) {
+		printf("Sent failed.  Socket error/closed! Error: %ld\n", 
 			WSAGetLastError());
 		return -1;
-    }
-    else {
-        // Client closed connection before we could reply to
-        // all the data it sent, so bomb out early.
-        printf("Peer unexpectedly dropped connection!\n");
-        return -1;
-    }
+	}
+	else {
+		// Client closed connection before we could reply to
+		// all the data it sent, so bomb out early.
+		printf("Peer unexpectedly dropped connection!\n");
+		return -1;
+	}
 
 	return bytes_txed;
 }
@@ -315,7 +327,8 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
-	timeval timer = {seconds, (time_out - (long) seconds * 1000) * 1000}; 
+	timeval timer = {(long)seconds, 
+					(time_out - (long) (seconds * 1000)) * 1000}; 
 
 	// First check for read-ability to the socket
 	FD_SET Reader;
@@ -329,12 +342,12 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 	//	on that socket (which means you have to do accept(), etc. 
 	FD_SET(in_sock, &Reader);
 
-	// Loop to get incoming command 1 byte at a time
+	// Loop to get incoming command buf_size bytes at a time
 	do {
 		// Make reading of socket non-blocking w/ time-out of x msec
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
-			//printf("winsock init select() function returned with error %d\n", 
-			//	WSAGetLastError());
+			doutf(DMED, "winsock init select() function returned with "
+				"error %d\n", WSAGetLastError());
 			//return 0;
 			break;
 		}
@@ -344,11 +357,6 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 			// read incoming strings at a time
 			bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size, 0);
 			if (bytes_rxed > 0) {
-				// TODO verify here
-				// Danger: will keep receive until sock is empty
-				// might ended up getting others data here
-				// change while to < 0 for one socket at a time,
-				// & uncomment printf error above.
 				rx_buf_ptr += bytes_rxed;
 				total_bytes += bytes_rxed;
 			}
@@ -372,7 +380,8 @@ int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_ou
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
-	timeval timer = {seconds, (time_out - (long) seconds * 1000) * 1000}; 
+	timeval timer = {(long) seconds, 
+					(time_out - (long) (seconds * 1000)) * 1000}; 
 
 	// First check for read-ability to the socket
 	FD_SET Reader;
@@ -477,83 +486,83 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
  */
 int16_t wsa_get_host_info(char *name)
 {
-    //-----------------------------------------
-    // Declare and initialize variables
-    WSADATA wsaData;
-    int iResult;
+	//-----------------------------------------
+	// Declare and initialize variables
+	WSADATA wsaData;
+	int iResult;
 
-    DWORD dwError;
-    int i = 0;
+	DWORD dwError;
+	int i = 0;
 
-    struct hostent *remoteHost;
-    char *host_name;
-    struct in_addr addr;
+	struct hostent *remoteHost;
+	char *host_name;
+	struct in_addr addr;
 
-    char **pAlias;
+	char **pAlias;
 
-    // Initialize Winsock
-    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
-        return -1;
-    }
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		printf("WSAStartup failed: %d\n", iResult);
+		return -1;
+	}
 
-    host_name = name;
+	host_name = name;
 
-    printf("Calling gethostbyname with %s\n", host_name);
-    remoteHost = gethostbyname(host_name);
-    
-    if (remoteHost == NULL) {
-        dwError = WSAGetLastError();
-        if (dwError != 0) {
-            if (dwError == WSAHOST_NOT_FOUND) {
-                printf("Host not found\n");
-                return -1;
-            } else if (dwError == WSANO_DATA) {
-                printf("No data record found\n");
-                return -1;
-            } else {
-                printf("Function failed with error: %ld\n", dwError);
-                return -1;
-            }
-        }
-    } else {
-        printf("Function returned:\n");
-        printf("\tOfficial name: %s\n", remoteHost->h_name);
-        for (pAlias = remoteHost->h_aliases; *pAlias != 0; pAlias++) {
-            printf("\tAlternate name #%d: %s\n", ++i, *pAlias);
-        }
-        printf("\tAddress type: ");
-        switch (remoteHost->h_addrtype) {
-        case AF_INET:
-            printf("AF_INET\n");
-            break;
-        case AF_NETBIOS:
-            printf("AF_NETBIOS\n");
-            break;
-        default:
-            printf(" %d\n", remoteHost->h_addrtype);
-            break;
-        }
-        printf("\tAddress length: %d\n", remoteHost->h_length);
+	printf("Calling gethostbyname with %s\n", host_name);
+	remoteHost = gethostbyname(host_name);
+	
+	if (remoteHost == NULL) {
+		dwError = WSAGetLastError();
+		if (dwError != 0) {
+			if (dwError == WSAHOST_NOT_FOUND) {
+				printf("Host not found\n");
+				return -1;
+			} else if (dwError == WSANO_DATA) {
+				printf("No data record found\n");
+				return -1;
+			} else {
+				printf("Function failed with error: %ld\n", dwError);
+				return -1;
+			}
+		}
+	} else {
+		printf("Function returned:\n");
+		printf("\tOfficial name: %s\n", remoteHost->h_name);
+		for (pAlias = remoteHost->h_aliases; *pAlias != 0; pAlias++) {
+			printf("\tAlternate name #%d: %s\n", ++i, *pAlias);
+		}
+		printf("\tAddress type: ");
+		switch (remoteHost->h_addrtype) {
+		case AF_INET:
+			printf("AF_INET\n");
+			break;
+		case AF_NETBIOS:
+			printf("AF_NETBIOS\n");
+			break;
+		default:
+			printf(" %d\n", remoteHost->h_addrtype);
+			break;
+		}
+		printf("\tAddress length: %d\n", remoteHost->h_length);
 
-        i = 0;
-        if (remoteHost->h_addrtype == AF_INET)
-        {
-            while (remoteHost->h_addr_list[i] != 0) {
-                addr.s_addr = *(u_long *) remoteHost->h_addr_list[i++];
-                printf("\tIP Address #%d: %s\n", i, inet_ntoa(addr));
-            }
-        }
-        else if (remoteHost->h_addrtype == AF_NETBIOS)
-        {   
-            printf("NETBIOS address was returned\n");
-        }   
-    }
+		i = 0;
+		if (remoteHost->h_addrtype == AF_INET)
+		{
+			while (remoteHost->h_addr_list[i] != 0) {
+				addr.s_addr = *(u_long *) remoteHost->h_addr_list[i++];
+				printf("\tIP Address #%d: %s\n", i, inet_ntoa(addr));
+			}
+		}
+		else if (remoteHost->h_addrtype == AF_NETBIOS)
+		{   
+			printf("NETBIOS address was returned\n");
+		}   
+	}
 
 	WSACleanup();
 
-    return 0;
+	return 0;
 }
 
 

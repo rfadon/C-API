@@ -50,7 +50,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 		return WSA_ERR_MALLOCFAILED;
 	}
 	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
-	//doutf(1, "\nFile content: \n%s\n", buffer);
+	doutf(DLOW, "\nFile content: \n%s\n", buffer);
 	
 	for (int i = 0; i < MAX_FILE_LINES; i++) 
 		strcpy(cmd_strs[i], "");

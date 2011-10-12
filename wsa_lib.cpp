@@ -18,14 +18,15 @@
 
 
 /**
- * Initialized the the wsa_device structure
+ * Initialized the \b wsa_device descriptor structure
  *
  * @param dev - A pointer to the WSA device structure.
  *
- * @return None
+ * @return 0 on success or a 16-bit negative number on error.
  */
 int16_t wsa_dev_init(struct wsa_device *dev)
 {
+	// 
 	dev->descr.inst_bw = 0;
 	dev->descr.max_sample_size = 0;
 	dev->descr.max_tune_freq = 0;
@@ -50,7 +51,8 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
 	sprintf(dev->descr.prod_version, "v1.0"); // temp value
-	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560);
+	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
+	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
 	sprintf(dev->descr.rfe_version, "v1.0"); // temp
 	strcpy(dev->descr.fw_version, "v1.0");
 
@@ -61,7 +63,23 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_sample_size = WSA4000_MAX_SAMPLE_SIZE;
 		dev->descr.inst_bw = (uint64_t) WSA4000_INST_BW;
 		
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
+		// if it's RFE0440
+		if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0) {
+			dev->descr.max_tune_freq = WSA_RFE0440_MAX_FREQ;
+			dev->descr.min_tune_freq = WSA_RFE0440_MIN_FREQ;
+			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
+			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
+				WSA_RFE0440_ABS_AMP_HIGH;
+			dev->descr.abs_max_amp[WSA_GAIN_MEDIUM] = 
+				WSA_RFE0440_ABS_AMP_MEDIUM;
+			dev->descr.abs_max_amp[WSA_GAIN_LOW] = 
+				WSA_RFE0440_ABS_AMP_LOW;
+			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = 
+				WSA_RFE0440_ABS_AMP_VLOW;
+		}
+
+		// if it's RFE0560
+		else if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
 			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
@@ -94,19 +112,44 @@ int16_t wsa_dev_init(struct wsa_device *dev)
  * Currently supported standard command syntax type is: SCPI.
  * @param intf_method - A char pointer to store the interface method to the 
  * WSA. \n Possible methods: \n
- * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n
- * - With USB, use: "USB" (check if supported with the WSA version used)
+ * - With USB, use: "USB" (check if supported with the WSA version used). \n
+ * - With LAN, use: "TCPIP::<Ip address of the WSA>[::<cmd port,data port>]".\n
+ * The ports' number if not entered will be defaulted to: \n
+ *			- command port: a HISLIP port (or 4880) \n
+ *			- data port: 7000 \n
+ * However, if port forwarding method is used to forward different ports to 
+ * the required ports eventually, then you can enter the ports in the format
+ * and the \e order as specified. \n
+ * Example: "TCPIP::192.168.1.1" or "TCPIP::192.168.1.1::7001,7100"
  * 
  * @return 0 on success, or a negative number on error.
- * TODO: define ERROR values with associated messages....
  */
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method)
 {
 	int16_t result = 0;			// result returned from a function
-	char *temp_str;				// temporary store a string
-	const char* wsa_addr;		// store the WSA IP address
+	char *temp_str;		// temporary store a string
+	char intf_type[10];
+	char ports_str[20];
+	char wsa_addr[200];		// store the WSA IP address
+	int32_t data_port, ctrl_port;
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
+	int colons = 0;
+
+	// initialed the strings
+	strcpy(intf_type, "");
+	strcpy(wsa_addr, "");
+	strcpy(ports_str, "");
+
+	// Gets the interface strings
+	temp_str = strtok(intf_method, ":");
+	while (temp_str != NULL) {
+		if (colons == 0)	 strcpy(intf_type, temp_str);
+		else if (colons == 1)	 strcpy(wsa_addr, temp_str);
+		else if (colons == 2)	 strcpy(ports_str, temp_str);
+		temp_str = strtok(NULL, ":");
+		colons++;
+	}
 
 	//*****
 	// Check the syntax type & interface method & connect base on those info
@@ -114,30 +157,28 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// When the cmd_syntax is SCPI:
 	if (strncmp(cmd_syntax, SCPI, 4) == 0) {
 		// If it's a TCPIP connection, get the address
-		if (strstr(intf_method, "TCPIP") != NULL) {
-			if ((temp_str = strstr(intf_method, "::")) == NULL) {
-				doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s \"%s\".\n", 
+		if (strstr(intf_type, "TCPIP") != NULL) {
+			// if no address available, return error
+			if(strlen(wsa_addr) == 0) {
+				doutf(DMED, "Error WSA_ERR_INVINTFMETHOD: %s \"%s\".\n", 
 					_wsa_get_err_msg(WSA_ERR_INVINTFMETHOD), intf_method);
 				return WSA_ERR_INVINTFMETHOD;
 			}
-
-			//Assume right after TCPIP:: is the IP address
-			// TODO: there might be a danger here...
-			wsa_addr = strtok(temp_str, "::");
+			
 			is_tcpip = TRUE;
 		}
 		
 		// If it's USB
-		else if (strstr(intf_method, "USB") != NULL) {
+		else if (strstr(intf_type, "USB") != NULL) {
 			// TODO: add to this section if ever use USB.
-			doutf(1, "Error WSA_ERR_USBNOTAVBL: %s.\n", 
+			doutf(DHIGH, "Error WSA_ERR_USBNOTAVBL: %s.\n", 
 				_wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 			return WSA_ERR_USBNOTAVBL;	
 		}
 
 		// Can't determine connection method from the interface string
 		else {
-			doutf(1, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
+			doutf(DMED, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
 				_wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
 			return WSA_ERR_INVINTFMETHOD;
 		}
@@ -154,12 +195,26 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Do the connection
 	//*****
 	if (is_tcpip) {
+		// extract the ports if they exist
+		if (strlen(ports_str) > 0)	{
+			temp_str = strtok(ports_str, ",");
+			ctrl_port = atoi(temp_str);
+			temp_str = strtok(NULL, ",");
+			data_port = atoi(temp_str);
+		}
+		else {
+			ctrl_port = HISLIP;
+			data_port = DATA_PORT;
+		}
+		doutf(DLOW, "%d %d\n", ctrl_port, data_port);
+
+		// Do the connection
 		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
-				&(dev->sock).data);
+				&(dev->sock).data, ctrl_port, data_port);
 
 		if (result < 0) {
-			//doutf(1, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-			//		_wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
+			doutf(DMED, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
+					_wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
 			return WSA_ERR_ETHERNETCONNECTFAILED;
 		}
 
@@ -170,7 +225,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 
 	// Initialize wsa_device structure with the proper values
 	if (wsa_dev_init(dev) < 0) {
-		doutf(1, "Error WSA_ERR_INITFAILED: "
+		doutf(DMED, "Error WSA_ERR_INITFAILED: "
 			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_INITFAILED;
 	}

@@ -9,6 +9,7 @@
 
 #define TIMEOUT 1000	/* Timeout for sockets in milliseconds */
 #define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
+#define DATA_PORT 7000
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,7 +19,7 @@ int16_t wsa_list_ips(char **ip_list);
 u_long wsa_verify_addr(const char *sock_addr);
 int16_t wsa_get_host_info(char *name);
 int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 
-						 SOCKET *data_sock);
+					SOCKET *data_sock, int32_t ctrl_port, int32_t data_port);
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock);
 int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len);
 int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,

@@ -856,12 +856,13 @@ int16_t do_wsa(const char *wsa_addr)
 
 
 	// Create the TCPIP interface method string
-	sprintf(intf_str, "TCPIP::%s::%d", wsa_addr, HISLIP);
+	sprintf(intf_str, "TCPIP::%s", wsa_addr);
+	//sprintf(intf_str, "TCPIP::%s::%d,%d", wsa_addr, HISLIP, DATA_PORT);
 
 	// Start the WSA connection
 	dev = &wsa_dev;
 	if ((result = wsa_open(dev, intf_str)) < 0) {
-		doutf(1, "Error WSA_ERR_OPENFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_OPENFAILED: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
@@ -1039,7 +1040,8 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				strcpy(temp_str, strtok(temp_str, "="));
 
 				// Create the TCPIP interface method string
-				sprintf(intf_str, "TCPIP::%s::%d", temp_str, HISLIP);
+				sprintf(intf_str, "TCPIP::%s::%d,%d", temp_str, HISLIP, 
+					DATA_PORT);
 
 				w++;
 			}

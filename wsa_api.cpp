@@ -122,7 +122,7 @@ void wsa_close(struct wsa_device *dev)
 int16_t wsa_check_addr(char *ip_addr) 
 {
 	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
-		doutf(1, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
+		doutf(DMED, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
 			wsa_get_error_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
@@ -311,7 +311,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 
 	// Query WSA for data using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
-		doutf(1, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
 		return WSA_ERR_READFRAMEFAILED;
 	}
@@ -453,7 +453,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
 		return WSA_ERR_SIZESETFAILED;
 	}
@@ -555,7 +555,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 
 	// set the freq using the selected connect type
 	if ((result = wsa_send_command(dev, temp_str)) < 0) {
-		doutf(1, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
 	}
@@ -571,7 +571,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	int64_t residue; 
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)	{
-		doutf(1, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQOUTOFBOUND));
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
@@ -580,7 +580,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	residue = freq - ((freq / dev->descr.freq_resolution) * 
 		dev->descr.freq_resolution);
 	if (residue > 0) {
-		doutf(1, "Error WSA_ERR_INVFREQRES: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_INVFREQRES: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_INVFREQRES));
 		return WSA_ERR_INVFREQRES;
 	}
@@ -645,7 +645,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_IFGAINSETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_IFGAINSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_IFGAINSETFAILED));
 		return WSA_ERR_IFGAINSETFAILED;
 	}
@@ -732,7 +732,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_RFGAINSETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_RFGAINSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_RFGAINSETFAILED));
 		return WSA_ERR_RFGAINSETFAILED;
 	}
@@ -796,7 +796,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_ANTENNASETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_ANTENNASETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_ANTENNASETFAILED));
 		return WSA_ERR_ANTENNASETFAILED;
 	}
@@ -856,7 +856,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FILTERSETFAILED));
 		return WSA_ERR_FILTERSETFAILED;
 	}
@@ -910,7 +910,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //	// set the freq using the selected connect type
 //	result = wsa_send_command(dev, temp_str);
 //	if (result < 0) {
-//		doutf(1, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
+//		doutf(DMED, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
 //			wsa_get_error_msg(WSA_ERR_FILTERSETFAILED));
 //		return WSA_ERR_FILTERSETFAILED;
 //	}
@@ -975,7 +975,7 @@ int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode)
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
-		doutf(1, "Error WSA_ERR_CALIBRATESETFAILED: %s.\n", 
+		doutf(DMED, "Error WSA_ERR_CALIBRATESETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_CALIBRATESETFAILED));
 		return WSA_ERR_CALIBRATESETFAILED;
 	}

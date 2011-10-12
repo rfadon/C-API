@@ -89,8 +89,8 @@
 	 */
 	/** @var float wsa_descriptor::abs_max_amp
 	 * An array storing the absolute maximum RF input level in dBm for each 
-	 * RF gain setting of the RFE use. Operating a WSA device at these absolute 
-	 * maximums may cause damage to the device.
+	 * quantized RF gain setting of the RFE. Operating a WSA device at these 
+	 * absolute maximums may cause damage to the device.
 	 */
  
 
