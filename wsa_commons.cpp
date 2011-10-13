@@ -24,7 +24,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		}
 		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
-	return NULL;
+	
+	return "unknown error code";
 }
 
 

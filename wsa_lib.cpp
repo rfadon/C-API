@@ -111,15 +111,16 @@ int16_t wsa_dev_init(struct wsa_device *dev)
  * commands communication to the WSA. \n 
  * Currently supported standard command syntax type is: SCPI.
  * @param intf_method - A char pointer to store the interface method to the 
- * WSA. \n Possible methods: \n
+ * WSA. \n \n Possible methods: \n
  * - With USB, use: "USB" (check if supported with the WSA version used). \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>[::<cmd port,data port>]".\n
  * The ports' number if not entered will be defaulted to: \n
- *			- command port: a HISLIP port (or 4880) \n
- *			- data port: 7000 \n
+ *		- command port: a HISLIP port (or 4880) \n
+ *		- data port: 7000 \n
+ *		.
  * However, if port forwarding method is used to forward different ports to 
  * the required ports eventually, then you can enter the ports in the format
- * and the \e order as specified. \n
+ * and the \e \b order as specified. \n
  * Example: "TCPIP::192.168.1.1" or "TCPIP::192.168.1.1::7001,7100"
  * 
  * @return 0 on success, or a negative number on error.
@@ -156,8 +157,10 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	//*****
 	// When the cmd_syntax is SCPI:
 	if (strncmp(cmd_syntax, SCPI, 4) == 0) {
+
 		// If it's a TCPIP connection, get the address
 		if (strstr(intf_type, "TCPIP") != NULL) {
+
 			// if no address available, return error
 			if(strlen(wsa_addr) == 0) {
 				doutf(DMED, "Error WSA_ERR_INVINTFMETHOD: %s \"%s\".\n", 
@@ -221,7 +224,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}
 	
-	// TODO Add other methods here
+	// TODO Add other connection methods here
 
 	// Initialize wsa_device structure with the proper values
 	if (wsa_dev_init(dev) < 0) {
@@ -255,7 +258,7 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 }
 
 
-///**
+////**
 // * List (print out) the IPs of connected WSAs to the network? or the PC???
 // * For now, will list the IPs for any of the connected devices to a PC?
 // *
@@ -447,7 +450,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 
 //TODO: Determine if string should be returned instead.
 /**
- * Querry the WSA for any error.
+ * Querry the WSA for any error messages.  This is equivalent to the SCPI
+ * command SYSTem:ERRor?
  *
  * @param dev - A pointer to the WSA device structure.
  *
@@ -626,9 +630,8 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
 		i_buf[j] = (((uint8_t) data_buf[i + 3]) << 8) + 
-					((uint8_t) data_buf[i + 2]); 
-		q_buf[j] = (((uint8_t) data_buf[i + 1]) << 8) + 
-					(uint8_t) data_buf[i];
+			((uint8_t) data_buf[i + 2]); 
+		q_buf[j] = (((uint8_t) data_buf[i + 1]) << 8) + (uint8_t) data_buf[i];
 		
 		/*if ((j % 4) == 0) printf("\n");
 		printf("%04x,%04x ", i_buf[j], q_buf[j]);*/

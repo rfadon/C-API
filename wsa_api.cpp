@@ -448,9 +448,12 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 	int16_t result;
 	char temp_str[50];
 
-	sprintf(temp_str, ":TRACE:IQ:POINTS %lld\n", sample_size);
+	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+		return WSA_ERR_INVSAMPLESIZE;
 
-	// set the freq using the selected connect type
+	sprintf(temp_str, ":TRACE:IQ:POINTS %ld\n", sample_size);
+
+	// set the ss using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 

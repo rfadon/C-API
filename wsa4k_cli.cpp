@@ -86,9 +86,9 @@ void print_cli_menu(struct wsa_device *dev)
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
 	uint32_t MAX_SS = dev->descr.max_sample_size;
-	float MAX_IF_GAIN = 0;	//TODO use this wsa_get_max_if_gain() ?
-	float MIN_IF_GAIN = -39.0;		//TODO wsa_get_min_if_gain()
-	uint32_t FREQ_RES = 10000;	//TODO
+	float MAX_IF_GAIN = dev->descr.min_if_gain;
+	float MIN_IF_GAIN = dev->descr.max_if_gain;
+	uint32_t FREQ_RES = dev->descr.freq_resolution;
 
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive, < > required, "
@@ -149,7 +149,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set ss <size>          Set the number of samples per frame to be "
 									"captured\n"
 		   "                        (ex: set ss 2000).\n"
-		   "                        - Maximum allows: %d; Minimum: 1.\n\n", 
+		   "                        - Maximum allows: %d; Minimum: 128.\n\n", 
 									MAX_SS);
 }
 // NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
@@ -591,7 +591,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					return 0;
 				}
 				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum sample size: 1\n");
+					printf("Minimum sample size: 128\n");
 					return 0;
 				}
 				else
