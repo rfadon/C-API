@@ -243,21 +243,23 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 	// Create a stream socket
 	// AF_UNSPEC is useless w/ winsock2
 	// So first check for IPv6, if failed do IPv4
-	SOCKET sd = socket(AF_INET6, SOCK_STREAM, 0);
-	if (sd != INVALID_SOCKET) {
-		remoteSocIn.sin_family = AF_INET6;//AF_INET;
-		remoteSocIn.sin_addr.s_addr = sock_addr;
-		remoteSocIn.sin_port = sock_port;
 
-		if (connect(sd, (sockaddr*)&remoteSocIn, 
-			sizeof(sockaddr_in)) == SOCKET_ERROR) {
-			sd = INVALID_SOCKET;
-			printf("Invalid socket!!!\n");
-		}
-	}
-	else {
-		doutf(DMED, "Not IPv6 ready. Will try IPv4 instead... ");
-		sd = socket(AF_INET, SOCK_STREAM, 0);
+	// need to be tested... didn't work when Marek tried w/ his pc
+	//SOCKET sd = socket(AF_INET6, SOCK_STREAM, 0);
+	//if (sd != INVALID_SOCKET) {
+	//	remoteSocIn.sin_family = AF_INET6;//AF_INET;
+	//	remoteSocIn.sin_addr.s_addr = sock_addr;
+	//	remoteSocIn.sin_port = sock_port;
+
+	//	if (connect(sd, (sockaddr*)&remoteSocIn, 
+	//		sizeof(sockaddr_in)) == SOCKET_ERROR) {
+	//		sd = INVALID_SOCKET;
+	//		printf("Invalid socket!!!\n");
+	//	}
+	//}
+	//else {
+	//	doutf(DMED, "Not IPv6 ready. Will try IPv4 instead... ");
+		SOCKET sd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sd != INVALID_SOCKET) {
 			remoteSocIn.sin_family = AF_INET;
 			remoteSocIn.sin_addr.s_addr = sock_addr;
@@ -269,7 +271,7 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 				printf("Invalid socket!!!\n");
 			}
 		}
-	}
+	//}
 
 	return sd;
 }

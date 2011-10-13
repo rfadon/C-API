@@ -88,7 +88,7 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
 //int16_t wsa_clear_query_resp(struct wsa_device *dev);
-int32_t wsa_query_error(struct wsa_device *dev);
+char *wsa_query_error(struct wsa_device *dev);
 const char *wsa_get_error_msg(int16_t err_code);
 
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 

@@ -89,7 +89,8 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
-	if ((result = wsa_connect(dev, SCPI, intf_method)) < 0) {
+	result = wsa_connect(dev, SCPI, intf_method);
+	if (result < 0) {
 		return result;
 	}
 
@@ -310,7 +311,8 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	sprintf(temp_str, ":TRACE:IQ?\n");
 
 	// Query WSA for data using the selected connect type
-	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
 		return WSA_ERR_READFRAMEFAILED;
@@ -443,7 +445,7 @@ int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf,
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
+int16_t wsa_set_sample_size(struct wsa_device *dev, uint32_t sample_size)
 {
 	int16_t result;
 	char temp_str[50];
@@ -548,16 +550,17 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, cfreq);
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %lld GHz\n", cfreq);
 
 	// set the freq using the selected connect type
-	if ((result = wsa_send_command(dev, temp_str)) < 0) {
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
@@ -574,8 +577,6 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	int64_t residue; 
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)	{
-		doutf(DMED, "Error WSA_ERR_FREQOUTOFBOUND: %s.\n", 
-			wsa_get_error_msg(WSA_ERR_FREQOUTOFBOUND));
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 	
@@ -583,8 +584,6 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	residue = freq - ((freq / dev->descr.freq_resolution) * 
 		dev->descr.freq_resolution);
 	if (residue > 0) {
-		doutf(DMED, "Error WSA_ERR_INVFREQRES: %s.\n", 
-			wsa_get_error_msg(WSA_ERR_INVFREQRES));
 		return WSA_ERR_INVFREQRES;
 	}
 

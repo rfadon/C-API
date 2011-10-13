@@ -333,6 +333,10 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 			else 
 				break;
 		}
+
+		// Make sure that the set is done w/out any error in the system
+		if (strcmp(wsa_query_error(dev), "") != 0)
+			return WSA_ERR_SETFAILED;
 	}
 
 	return bytes_txed;
@@ -386,7 +390,6 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	lines = result;
 	for (int i = 0; i < lines; i++) {
 		result = wsa_send_command(dev, cmd_strs[i]);
-		Sleep(20); // delay the send a little bit
 		
 		// If a bad command is detected, continue? Prefer not.
 		if (result < 0) {
@@ -395,12 +398,14 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 			break;
 		}
+		
+		result = lines;
 	}
-	result = lines;
 
 	// Free memory
 	for (int i = 0; i < MAX_FILE_LINES; i++)
 		free(cmd_strs[i]);
+
 
 	return result;
 }
@@ -422,6 +427,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	struct wsa_resp resp;
 	int32_t bytes_got = 0;
 
+	strcpy(resp.result, "");
+
 	// Send the query command out
 	bytes_got = wsa_send_command(dev, command);
 
@@ -432,23 +439,20 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			resp.status = WSA_ERR_USBNOTAVBL;
 		}
 		else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
-					MAX_STR_LEN, TIMEOUT);
+			bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+				MAX_STR_LEN, TIMEOUT);
 		}
+
+		resp.result[bytes_got] = 0; // add EOL to the string
 	}
 
 	// TODO define what result should be
 	resp.status = bytes_got;
 
-	if (bytes_got < 0) {
-		resp.result[0] = 0;
-	}
-
 	return resp;
 }
 
 
-//TODO: Determine if string should be returned instead.
 /**
  * Querry the WSA for any error messages.  This is equivalent to the SCPI
  * command SYSTem:ERRor?
@@ -457,11 +461,45 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  *
  * @return 0 on success, or a negative number on error.
  */
-int32_t wsa_query_error(struct wsa_device *dev)
+char *wsa_query_error(struct wsa_device *dev)
 {
-	printf("To be added later.\n");
+	struct wsa_resp resp;
+	int32_t bytes_got = 0;
+	uint8_t resend_cnt = 0;
+	uint16_t len = strlen("SYST:ERR?");
 
-	return 0;
+	// TODO: check WSA version/model # ?
+	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+		return (char *) _wsa_get_err_msg(WSA_ERR_USBNOTAVBL);
+	}
+	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+		while (1) {
+			// Send the query command out
+			bytes_got = wsa_sock_send(dev->sock.cmd, "SYST:ERR?", len);
+			if (bytes_got < len) {
+				if (resend_cnt > 5)
+					return (char *) _wsa_get_err_msg(WSA_ERR_CMDSENDFAILED);
+
+				printf("Not all bytes sent. Resending the packet...\n");
+				resend_cnt++;
+			}
+			else {
+				// Read back the output
+				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+					MAX_STR_LEN, TIMEOUT);
+
+				resp.result[bytes_got] = 0; // add EOL to the string
+				break;
+			}
+		}
+	}
+
+	if (strstr(resp.result, "No error") != NULL)
+		return "";
+	else {
+		printf("WSA returns: %s\n", resp.result);
+		return resp.result;
+	}
 }
 
 
