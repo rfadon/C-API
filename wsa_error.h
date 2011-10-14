@@ -130,7 +130,7 @@
 #define WSA_ERR_FILTERSETFAILED (LNEG_NUM - 1604)
 #define WSA_ERR_INVCALIBRATEMODE (LNEG_NUM - 1605)
 #define WSA_ERR_CALIBRATESETFAILED (LNEG_NUM - 1606)
-
+#define WSA_ERR_INVRFESETTING (LNEG_NUM - 1607)
 
 
 // ///////////////////////////////
@@ -321,6 +321,8 @@ static struct wsa_err_item {
 		"Invalid calibration mode"),
 	wsa_err_item(WSA_ERR_CALIBRATESETFAILED,
 		"Failed to set the calibration mode"),
+	wsa_err_item(WSA_ERR_INVRFESETTING,
+		"This setting is not valid with the current RFE product"),
 
 
 	//*****

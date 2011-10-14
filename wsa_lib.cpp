@@ -426,24 +426,57 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 {
 	struct wsa_resp resp;
 	int32_t bytes_got = 0;
+	uint8_t resend_cnt = 0;
+	uint16_t len = strlen(command);
 
 	strcpy(resp.result, "");
 
 	// Send the query command out
-	bytes_got = wsa_send_command(dev, command);
+	//bytes_got = wsa_send_command(dev, command);
 
-	// Receive query result from the WSA server
-	if (bytes_got > 0) {
-		// TODO: check WSA version/model # ?
-		if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-			resp.status = WSA_ERR_USBNOTAVBL;
-		}
-		else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-			bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
-				MAX_STR_LEN, TIMEOUT);
-		}
+	//// Receive query result from the WSA server
+	//if (bytes_got > 0) {
+	//	// TODO: check WSA version/model # ?
+	//	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+	//		resp.status = WSA_ERR_USBNOTAVBL;
+	//	}
+	//	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+	//		bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+	//			MAX_STR_LEN, TIMEOUT);
+	//		printf("got %lld %s\n", resp.status, resp.result);
+	//	}
 
-		resp.result[bytes_got] = 0; // add EOL to the string
+	//	resp.result[bytes_got] = 0; // add EOL to the string
+	//}
+
+	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+		resp.status = WSA_ERR_USBNOTAVBL;
+		strcpy(resp.result, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+	}
+	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+		while (1) {
+			// Send the query command out
+			bytes_got = wsa_sock_send(dev->sock.cmd, command, len);
+			if (bytes_got < len) {
+				if (resend_cnt > 5) {
+					resp.status = WSA_ERR_CMDSENDFAILED;
+					strcpy(resp.result, 
+						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
+					return resp;
+				}
+
+				printf("Not all bytes sent. Resending the packet...\n");
+				resend_cnt++;
+			}
+			else {
+				// Read back the output
+				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+					MAX_STR_LEN, TIMEOUT);
+
+				resp.result[bytes_got] = 0; // add EOL to the string
+				break;
+			}
+		}
 	}
 
 	// TODO define what result should be
@@ -465,34 +498,36 @@ char *wsa_query_error(struct wsa_device *dev)
 {
 	struct wsa_resp resp;
 	int32_t bytes_got = 0;
-	uint8_t resend_cnt = 0;
-	uint16_t len = strlen("SYST:ERR?");
+	//uint8_t resend_cnt = 0;
+	//uint16_t len = strlen("SYST:ERR?");
 
-	// TODO: check WSA version/model # ?
-	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-		return (char *) _wsa_get_err_msg(WSA_ERR_USBNOTAVBL);
-	}
-	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-		while (1) {
-			// Send the query command out
-			bytes_got = wsa_sock_send(dev->sock.cmd, "SYST:ERR?", len);
-			if (bytes_got < len) {
-				if (resend_cnt > 5)
-					return (char *) _wsa_get_err_msg(WSA_ERR_CMDSENDFAILED);
+	//// TODO: check WSA version/model # ?
+	//if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+	//	return (char *) _wsa_get_err_msg(WSA_ERR_USBNOTAVBL);
+	//}
+	//else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+	//	while (1) {
+	//		// Send the query command out
+	//		bytes_got = wsa_sock_send(dev->sock.cmd, "SYST:ERR?", len);
+	//		if (bytes_got < len) {
+	//			if (resend_cnt > 5)
+	//				return (char *) _wsa_get_err_msg(WSA_ERR_CMDSENDFAILED);
 
-				printf("Not all bytes sent. Resending the packet...\n");
-				resend_cnt++;
-			}
-			else {
-				// Read back the output
-				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
-					MAX_STR_LEN, TIMEOUT);
+	//			printf("Not all bytes sent. Resending the packet...\n");
+	//			resend_cnt++;
+	//		}
+	//		else {
+	//			// Read back the output
+	//			bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+	//				MAX_STR_LEN, TIMEOUT);
 
-				resp.result[bytes_got] = 0; // add EOL to the string
-				break;
-			}
-		}
-	}
+	//			resp.result[bytes_got] = 0; // add EOL to the string
+	//			break;
+	//		}
+	//	}
+	//}
+
+	resp = wsa_send_query(dev, "SYST:ERR?");
 
 	if (strstr(resp.result, "No error") != NULL)
 		return "";
@@ -679,5 +714,4 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 
 	return sample_size;
 }
-
 

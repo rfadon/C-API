@@ -603,7 +603,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (size < 1)
 					result = (int16_t) size;
 				else
-					printf("The current sample size: %lld\n", size);
+					printf("The current sample size: %ld\n", size);
 			}
 		} // end get SS
 
@@ -727,7 +727,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Missing the gain dB value. See 'h'.\n");
 				}
 				else
-					result = wsa_set_gain_if (dev, (float) atof(cmd_words[3]));
+					result = wsa_set_gain_if(dev, (float) atof(cmd_words[3]));
 			} // end set GAIN IF
 			
 			else {

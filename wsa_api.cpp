@@ -42,7 +42,11 @@
 #include "wsa_error.h"
 #include "wsa_lib.h"
 #include "wsa_api.h"
+#include "wsa_commons.h"
 
+
+// Defines some private prameters
+#define WSA_RFE0440 "RFE0440"
 #define MAX_ANT_PORT 2
 
 #define SCPI_OSR_CALI 0x0001
@@ -482,8 +486,8 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 
 	// TODO Handle the query output here 
 	if (query.result > 0) {
-		//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.result, 
-		//	(int32_t) atof(query.result));
+		printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.result, 
+			(int32_t) atof(query.result));
 		return (int32_t) atof(query.result);
 	}
 	else if (query.status <= 0) {
@@ -539,7 +543,7 @@ int64_t wsa_get_freq(struct wsa_device *dev)
  * See the \b descr component of \b wsa_dev structure for maximum/minimum
  * frequency values.
  *
- * @param dev - A pointer to the WSA device structure.
+ * @param dev - A pointer to the WSA device structure.	
  * @param cfreq - The center frequency to set, in Hz
  * @return 0 on success, or a negative number on error.
  * @par Errors:
@@ -556,7 +560,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "FREQ:CENT %lld GHz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -605,13 +609,11 @@ float wsa_get_gain_if (struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
 	query = wsa_send_query(dev, ":INPUT:GAIN:IF?\n");
 
-	// TODO Handle the query output here 
-	//if (query.status > 0)
-		//return atof(query.result);
-		//printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	//else 
 	if (query.status <= 0) {
 		printf("No query response received.\n");
 		return WSA_ERR_QUERYNORESP;
@@ -638,6 +640,9 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
+
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
 
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
@@ -667,18 +672,12 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
 
-	
 	query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
 
-	// TODO Handle the query output here 
-	//if (query.status > 0)
-	//	printf("Got %lld bytes: \"%s\"\n", query.status, query.result);
-	//else 
 	if (query.status <= 0) {
 		printf("No query response received.\n");
 		return (wsa_gain) WSA_ERR_QUERYNORESP;
 	}
-
 	
 	// Convert to wsa_gain type
 	if (strstr(query.result, "HIGH") != NULL) {
@@ -759,6 +758,9 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
 	query = wsa_send_query(dev, ":INPUT:ANTENNA?\n");
 
 	// TODO Handle the query output here 
@@ -790,6 +792,9 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 	int16_t result = 0;
 	char temp_str[30];
 
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
 	if (port_num < 1 || port_num > MAX_ANT_PORT)
 		return WSA_ERR_INVANTENNAPORT;
 
@@ -819,11 +824,14 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 	struct wsa_resp query;		// store query results
 	int temp = 0;
 
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
 	// TODO: Handle any other bits info in the OSR also... 
 	// as this is a destructive read
 	query = wsa_send_query(dev, ":INP:FILT:PRES:STATE?\n");
 
-	// TODO Handle the query output here 
+	// Handle the query output here 
 	if (query.status > 0) {
 		temp = atoi(query.result);
 		return temp;
@@ -849,6 +857,9 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 {
 	int16_t result = 0;
 	char temp_str[50];
+
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
 
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
