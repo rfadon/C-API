@@ -293,7 +293,7 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 	// Send the string to the server
 	int32_t bytes_txed = send(out_sock, out_str, len, 0);
 	if (bytes_txed > 0) {
-		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+		//doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
 	}
 	else if (bytes_txed == SOCKET_ERROR) {
 		printf("Sent failed.  Socket error/closed! Error: %ld\n", 
@@ -362,11 +362,15 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 				rx_buf_ptr += bytes_rxed;
 				total_bytes += bytes_rxed;
 			}
+			// TODO?
+			// DANGER here is that the code so far doesn't handle multiple 
+			// answers in the buffer... assuming 1 answer per query so far...
+			rx_buf_ptr += total_bytes;
 		}
 	} while (total_bytes < buf_size);
 	
 	// Terminate the last string in buff to 0.
-	//rx_buf_ptr[0] = '\0'; // why need this?
+	//rx_buf_ptr[total_bytes] = '\0'; // why need this?
 
 	return total_bytes;
 }
