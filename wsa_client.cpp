@@ -345,13 +345,13 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 	FD_SET(in_sock, &Reader);
 
 	// Loop to get incoming command buf_size bytes at a time
-	do {
+	//do {
 		// Make reading of socket non-blocking w/ time-out of x msec
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			doutf(DMED, "winsock init select() function returned with "
 				"error %d\n", WSAGetLastError());
-			//return 0;
-			break;
+			return 0;
+			//break;
 		}
 		
 		// if the socket is read-able, rx packet
@@ -367,7 +367,7 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 			// answers in the buffer... assuming 1 answer per query so far...
 			rx_buf_ptr += total_bytes;
 		}
-	} while (total_bytes < buf_size);
+	//} while (total_bytes < buf_size);
 	
 	// Terminate the last string in buff to 0.
 	//rx_buf_ptr[total_bytes] = '\0'; // why need this?

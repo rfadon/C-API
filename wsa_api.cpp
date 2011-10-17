@@ -486,8 +486,8 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 
 	// TODO Handle the query output here 
 	if (query.result > 0) {
-		printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.result, 
-			(int32_t) atof(query.result));
+		//printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.result, 
+		//	(int32_t) atof(query.result));
 		return (int32_t) atof(query.result);
 	}
 	else if (query.status <= 0) {

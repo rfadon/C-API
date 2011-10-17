@@ -394,7 +394,8 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 		// If a bad command is detected, continue? Prefer not.
 		if (result < 0) {
 			result = WSA_ERR_CMDINVALID;
-			printf("ERROR %d: %s.\n", result, _wsa_get_err_msg(result));
+			printf("ERROR WSA_ERR_CMDINVALID: \"%s\".\n", 
+				_wsa_get_err_msg(result));
 			printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 			break;
 		}
