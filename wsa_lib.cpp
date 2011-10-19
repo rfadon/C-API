@@ -51,8 +51,8 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
 	sprintf(dev->descr.prod_version, "v1.0"); // temp value
-	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
-	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
+	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
+	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
 	sprintf(dev->descr.rfe_version, "v1.0"); // temp
 	strcpy(dev->descr.fw_version, "v1.0");
 
@@ -429,6 +429,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	int32_t bytes_got = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
+	int loop_count = 0;
 
 	strcpy(resp.result, "");
 
@@ -453,8 +454,18 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			}
 			// Read back the output
 			else {
-				bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
-					MAX_STR_LEN, TIMEOUT);
+				do {
+					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+						MAX_STR_LEN, TIMEOUT);
+					
+					if (bytes_got > 0)
+						break;
+
+					// Loop to make sure received bytes
+					if (loop_count == 5)
+						break;
+					loop_count++;
+				} while (bytes_got < 1);
 
 				resp.result[bytes_got] = 0; // add EOL to the string
 				break;
@@ -480,11 +491,13 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 char *wsa_query_error(struct wsa_device *dev)
 {
 	struct wsa_resp resp;
-	int32_t bytes_got = 0;
 
 	resp = wsa_send_query(dev, "SYST:ERR?");
 
-	if (strstr(resp.result, "No error") != NULL)
+	if (resp.status == 0)
+		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
+
+	if (strstr(resp.result, "No error") != NULL || strcmp(resp.result, "") == 0)
 		return "";
 	else {
 		printf("WSA returns: %s\n", resp.result);
@@ -566,11 +579,19 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	// allocate the data buffer
 	dbuf = (char *) malloc(bytes * sizeof(char));
 
-	result = wsa_sock_recv(dev->sock.data, dbuf, bytes, 1000);
+	// reset header ???
+	header->sample_size = 0;
+	header->time_stamp.sec = 0;
+	header->time_stamp.psec = 0;
+
+	// go get the required bytes
+	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, 1000);
+	if (result < 0)
+		return WSA_ERR_READFRAMEFAILED;
 
 	if (result > 0) {
 		// set sample size to the header
-		header->sample_size = sample_size;
+		header->sample_size = (result/4) - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
 		// *****
 		// Handle the 5 header words

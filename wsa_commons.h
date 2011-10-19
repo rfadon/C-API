@@ -42,7 +42,7 @@
 #define WSA_RFE0560_MIN_FREQ 10000000
 #define WSA_RFE0560_MAX_IF_GAIN 0	// TODO Temp values for now
 #define WSA_RFE0560_MIN_IF_GAIN -39
-#define WSA_RFE0560_FREQRES	30000 // to read in the register
+#define WSA_RFE0560_FREQRES	100000 // to read in the register
 
 // TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S:
 #define WSA_RFE0560_ABS_AMP_HIGH -15

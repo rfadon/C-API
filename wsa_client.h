@@ -4,10 +4,10 @@
 #include "stdint.h"
 #include "ws-util.h"
 
-#define MAX_STR_LEN 200
+#define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20
 
-#define TIMEOUT 100	/* Timeout for sockets in milliseconds */
+#define TIMEOUT 500	/* Timeout for sockets in milliseconds */
 #define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
 #define DATA_PORT 7000
 
@@ -23,6 +23,8 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock);
 int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len);
 int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
+					  uint32_t time_out);
+int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out);
 
 #endif

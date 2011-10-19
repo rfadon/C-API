@@ -313,7 +313,9 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 
 
 /**
- * Gets incoming strings from the server socket ? bytes at a time
+ * Gets incoming control strings from the server socket \b buf_size bytes 
+ * at a time.  It does not loop to keep checking \b buf_size of bytes are
+ * received.
  *
  * @param in_sock - The socket at which the data will be received.
  * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
@@ -323,6 +325,69 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
  * @return Number of bytes read
  */
 int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
+					  uint32_t time_out)
+{
+	uint32_t bytes_rxed = 0;
+	double seconds = floor(time_out / 1000.0);
+	
+	//wait x msec. timeval = {secs, microsecs}.
+	timeval timer = {(long)seconds, 
+					(time_out - (long) (seconds * 1000)) * 1000}; 
+
+	// First check for read-ability to the socket
+	FD_SET Reader;
+	
+	// FD_ZERO() clears out the fd_set called socks, so that
+	//   it doesn't contain any file descriptors. 
+	FD_ZERO(&Reader);
+
+	// FD_SET() adds the file descriptor "socket" to the fd_set,
+	//	so that select() will return if a connection comes in
+	//	on that socket (which means you have to do accept(), etc.)
+	FD_SET(in_sock, &Reader);
+
+	// Make reading of socket non-blocking w/ time-out of x msec
+	if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
+		doutf(DMED, "winsock init select() function returned with "
+			"error %d\n", WSAGetLastError());
+		return 0;
+	}
+	
+	// if the socket is read-able, rx packet
+	if (FD_ISSET(in_sock, &Reader)) {
+		// read incoming strings at a time
+		bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size, 0);
+
+		// Terminate the last character in cmd resp string only to 0.
+		if (bytes_rxed > 0 && bytes_rxed < buf_size)
+				rx_buf_ptr[bytes_rxed] = '\0';
+
+		// TODO?
+		// DANGER here is that the code so far doesn't handle multiple 
+		// answers in the buffer... assuming 1 answer per query so far...
+		//printf("%d (%d) got: %s\n", bytes_rxed, buf_size, rx_buf_ptr);
+	}
+	
+	// Terminate the last string in buff to 0.
+	//rx_buf_ptr[total_bytes] = '\0'; // why need this here?
+
+	return bytes_rxed;
+}
+
+
+/**
+ * Gets incoming data packet from the server socket \b buf_size bytes 
+ * at a time.  This function will check to ensure the \b buf_size of bytes
+ * are received.
+ *
+ * @param in_sock - The socket at which the data will be received.
+ * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param buf_size - The size of the buffer in bytes.
+ * @param time_out - Time out in milliseconds.
+ * 
+ * @return Number of bytes read
+ */
+int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	uint32_t bytes_rxed = 0, total_bytes = 0;
@@ -341,37 +406,36 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 
 	// FD_SET() adds the file descriptor "socket" to the fd_set,
 	//	so that select() will return if a connection comes in
-	//	on that socket (which means you have to do accept(), etc. 
+	//	on that socket (which means you have to do accept(), etc.)
 	FD_SET(in_sock, &Reader);
 
+
 	// Loop to get incoming command buf_size bytes at a time
-	//do {
+	do {
 		// Make reading of socket non-blocking w/ time-out of x msec
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			doutf(DMED, "winsock init select() function returned with "
 				"error %d\n", WSAGetLastError());
-			return 0;
-			//break;
+			break;
 		}
 		
 		// if the socket is read-able, rx packet
 		if (FD_ISSET(in_sock, &Reader)) {
 			// read incoming strings at a time
-			bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size, 0);
+			bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size - total_bytes, 0);
 			if (bytes_rxed > 0) {
-				rx_buf_ptr += bytes_rxed;
 				total_bytes += bytes_rxed;
-			}
-			// TODO?
-			// DANGER here is that the code so far doesn't handle multiple 
-			// answers in the buffer... assuming 1 answer per query so far...
-			rx_buf_ptr += total_bytes;
-		}
-	//} while (total_bytes < buf_size);
-	
-	// Terminate the last string in buff to 0.
-	//rx_buf_ptr[total_bytes] = '\0'; // why need this?
 
+				if (total_bytes < buf_size) {
+					//rx_buf_ptr[bytes_rxed] = '\0'; 
+					rx_buf_ptr += bytes_rxed;
+				}
+				else 
+					break;
+			}
+		}
+	} while (1);
+	
 	return total_bytes;
 }
 

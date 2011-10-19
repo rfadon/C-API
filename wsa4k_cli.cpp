@@ -88,7 +88,7 @@ void print_cli_menu(struct wsa_device *dev)
 	uint32_t MAX_SS = dev->descr.max_sample_size;
 	float MAX_IF_GAIN = dev->descr.min_if_gain;
 	float MIN_IF_GAIN = dev->descr.max_if_gain;
-	uint32_t FREQ_RES = dev->descr.freq_resolution;
+	uint64_t FREQ_RES = dev->descr.freq_resolution;
 
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive, < > required, "
@@ -371,6 +371,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	struct wsa_frame_header *header; 
 	int fi = 0, next = 0;	// frame index and next index location
+	int frame_size = _frame_size;
 	char *d_buf;		// To store raw data bytes
 	int16_t *i_buf;		// To store the integer I data
 	int16_t *q_buf;		// To store the integer Q data
@@ -379,7 +380,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Allocate buffer space
 	header = (struct wsa_frame_header *) 
 		malloc(sizeof(struct wsa_frame_header) * _frame_size);
-	d_buf = (char *) malloc(sizeof(char) * total_bytes);
+	d_buf = (char *) malloc(sizeof(char) * total_bytes + 400);
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 
@@ -392,9 +393,15 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	start_ms = msec_buf.millitm;// get millisecond
 	
 	// Collect the samples for all the _frame_size
-	while(fi < _frame_size) {
+	// TODO handle the return from read here
+	while(fi < frame_size) {
 		next = fi * samples * 4;
-		wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
+		if (wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples) < 1) {
+			frame_size = fi;
+			printf("Error detected while trying to get frame #%d.\n",
+				frame_size);
+			break;
+		}
 		fi++;
 	}
 
@@ -407,19 +414,19 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		delta_sec -= 1;
 		delta_ms += 1000;
 	}
-	printf("done.\n\t(Run time: %I64d sec %hu msec;  Rate: %.03lf bytes/sec).\n", 
+	printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
 		delta_sec, delta_ms, total_bytes / (delta_sec + (delta_ms / 1000.0)));
 
 	// Decode all the samples
 	printf("Decoding into I & Q... ");
-	wsa_frame_decode(d_buf, i_buf, q_buf, _frame_size * samples);
+	wsa_frame_decode(d_buf, i_buf, q_buf, frame_size * samples);
 	
 	// *****
 	// Save data to the file
 	// *****
 	// Loop to save data into the file
 	printf("done.\nSaving data to: %s ... ", file_name);
-	for (int j = 0; j < _frame_size; j++) {
+	for (int j = 0; j < frame_size; j++) {
 		// Save each header information into the file 
 		fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%d\n", j + 1, freq, 
 			samples, header[j].time_stamp.sec, header[j].time_stamp.psec);
@@ -435,9 +442,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	printf("done.\n");
 
-	fclose(iq_fptr);
+	fclose(iq_fptr); 
 	free(header);
-	free(d_buf);
+	free(d_buf);printf("heres\n");
 	free(i_buf);
 	free(q_buf);
 

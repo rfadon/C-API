@@ -121,13 +121,13 @@ float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
 // ////////////////////////////////////////////////////////////////////////////
 
 int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, char *data_buf, const uint32_t sample_size);
+		*header, char *data_buf, const int32_t sample_size);
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
-		*header, int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size);
+		*header, int16_t *i_buf, int16_t *q_buf, const int32_t sample_size);
 int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 const uint32_t sample_size);
+						 const int32_t sample_size);
 
-int16_t wsa_set_sample_size(struct wsa_device *dev, uint32_t sample_size);
+int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 int32_t wsa_get_sample_size(struct wsa_device *dev);
 
 //int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
@@ -138,7 +138,7 @@ int32_t wsa_get_sample_size(struct wsa_device *dev);
 // ////////////////////////////////////////////////////////////////////////////
 
 int64_t wsa_get_freq (struct wsa_device *dev);
-int16_t wsa_set_freq (struct wsa_device *dev, uint64_t cfreq);
+int16_t wsa_set_freq (struct wsa_device *dev, int64_t cfreq);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -159,16 +159,16 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_antenna(struct wsa_device *dev);
-int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num);
+int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num);
 
 int16_t wsa_get_bpf(struct wsa_device *dev);
-int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode);
+int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode);
 
 //int16_t wsa_get_lpf(struct wsa_device *dev);
 //int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode);
 
 int16_t wsa_query_cal_mode(struct wsa_device *dev);
-int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode);
+int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode);
 
 
 // ////////////////////////////////////////////////////////////////////////////

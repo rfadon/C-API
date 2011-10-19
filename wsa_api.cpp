@@ -307,22 +307,45 @@ static uint16_t frame_count = 0;
  * number on error.
  */
 int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, char *data_buf, const uint32_t sample_size)
+		*header, char *data_buf, const int32_t sample_size)
 {
-	int16_t result = 0;
-	char temp_str[50];
-
-	sprintf(temp_str, ":TRACE:IQ?\n");
+	int16_t result = 0, loop = 0;
+	int16_t frame_num = 0;
+	uint32_t samples_count = 0;
+	
+	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+		return WSA_ERR_INVSAMPLESIZE;
 
 	// Query WSA for data using the selected connect type
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-		doutf(DMED, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
-			wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
-		return WSA_ERR_READFRAMEFAILED;
-	}
+	// Allow upto 5 times of trying to get data???
+	do {
+		result = wsa_send_command(dev, "TRACE:IQ?\n");
+		if (result < 0) {
+			doutf(DMED, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
+				wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
+			return WSA_ERR_READFRAMEFAILED;
+		}
 
-	result = wsa_get_frame(dev, header, data_buf, sample_size);
+		result = wsa_get_frame(dev, header, data_buf, sample_size);
+		loop++;
+		if (result < 0) {
+			printf("error getting data... trying again #%d\n", loop);
+		}
+		//esle if (result > 0 && result < sample_size) {
+		else if (samples_count < sample_size) {
+			// increment the buffer location
+			data_buf += header->sample_size;
+
+			samples_count += header->sample_size;
+			doutf(DHIGH, "%d, ", samples_count);
+		}
+		else 
+			break;
+
+		if (loop >= 5)
+			break;
+	} while (1);
+
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 	
@@ -380,10 +403,13 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
  * number on error.
  */
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const uint32_t sample_size)
+			int16_t *i_buf, int16_t *q_buf, const int32_t sample_size)
 {	
 	int32_t result = 0;
 	char *dbuf;
+
+	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+		return WSA_ERR_INVSAMPLESIZE;
 	
 	// allocate the data buffer
 	dbuf = (char *) malloc(sample_size * 4 * sizeof(char));
@@ -431,9 +457,14 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  * number on error.
  */
 int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 const uint32_t sample_size)
+						 const int32_t sample_size)
 {
 	int32_t result;
+	
+	// TODO need to check for the max value too? but maybe not if 
+	// multiple frames allow
+	if (sample_size < 128)
+		return WSA_ERR_INVSAMPLESIZE;
 
 	result = wsa_decode_frame(data_buf, i_buf, q_buf, sample_size);
 
@@ -449,7 +480,7 @@ int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf,
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sample_size(struct wsa_device *dev, uint32_t sample_size)
+int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 {
 	int16_t result;
 	char temp_str[50];
@@ -457,7 +488,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, uint32_t sample_size)
 	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
-	sprintf(temp_str, ":TRACE:IQ:POINTS %ld\n", sample_size);
+	sprintf(temp_str, "TRACE:IQ:POINTS %ld\n", sample_size);
 
 	// set the ss using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -482,7 +513,7 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
-	query = wsa_send_query(dev, ":TRACE:IQ:POINTS?\n");
+	query = wsa_send_query(dev, "TRACE:IQ:POINTS?\n");
 
 	// TODO Handle the query output here 
 	if (query.result > 0) {
@@ -551,10 +582,10 @@ int64_t wsa_get_freq(struct wsa_device *dev)
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq) // get vco vsn?
+int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq) // get vco vsn?
 {
 	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
+	char temp_str[50];
 
 	result = wsa_verify_freq(dev, cfreq);
 	if (result < 0)
@@ -612,7 +643,7 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, ":INPUT:GAIN:IF?\n");
+	query = wsa_send_query(dev, "INPUT:GAIN:IF?\n");
 
 	if (query.status <= 0) {
 		printf("No query response received.\n");
@@ -647,7 +678,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 
-	sprintf(temp_str, ":INPUT:GAIN:IF %.02f dB\n", gain);
+	sprintf(temp_str, "INPUT:GAIN:IF %.02f dB\n", gain);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -672,7 +703,7 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
 
-	query = wsa_send_query(dev, ":INPUT:GAIN:RF?\n");
+	query = wsa_send_query(dev, "INPUT:GAIN:RF?\n");
 
 	if (query.status <= 0) {
 		printf("No query response received.\n");
@@ -716,12 +747,12 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[50];
 
 	if (gain > WSA_GAIN_VLOW || gain < WSA_GAIN_HIGH)
 		return WSA_ERR_INVRFGAIN;
 
-	strcpy(temp_str, ":INPUT:GAIN:RF ");
+	strcpy(temp_str, "INPUT:GAIN:RF ");
 	switch(gain) {
 		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
 		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MED"); break;
@@ -729,6 +760,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
 		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
 		default:		strcat(temp_str, "ERROR"); break;
 	}
+	strcat(temp_str, "\n");
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -761,7 +793,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, ":INPUT:ANTENNA?\n");
+	query = wsa_send_query(dev, "INPUT:ANTENNA?\n");
 
 	// TODO Handle the query output here 
 	if (query.status > 0)
@@ -787,7 +819,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
+int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -798,7 +830,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, uint8_t port_num)
 	if (port_num < 1 || port_num > MAX_ANT_PORT)
 		return WSA_ERR_INVANTENNAPORT;
 
-	sprintf(temp_str, ":INPUT:ANTENNA %d\n", port_num);
+	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -829,7 +861,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 
 	// TODO: Handle any other bits info in the OSR also... 
 	// as this is a destructive read
-	query = wsa_send_query(dev, ":INP:FILT:PRES:STATE?\n");
+	query = wsa_send_query(dev, "INP:FILT:PRES:STATE?\n");
 
 	// Handle the query output here 
 	if (query.status > 0) {
@@ -853,7 +885,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
+int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode)
 {
 	int16_t result = 0;
 	char temp_str[50];
@@ -864,7 +896,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
 
-	sprintf(temp_str, ":INP:FILT:PRES:STATE %d\n", mode);
+	sprintf(temp_str, "INPUT:FILT:PRES:STATE %d\n", mode);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -889,7 +921,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //{
 //	struct wsa_resp query;		// store query results
 //
-//	query = wsa_send_query(dev, ":INPUT:FILTER:ANTIALIAS:STATE?\n");
+//	query = wsa_send_query(dev, "INPUT:FILTER:ANTIALIAS:STATE?\n");
 //
 //	// TODO Handle the query output here 
 //	if (query.status > 0)
@@ -918,7 +950,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, uint8_t mode)
 //	if (mode < 0 || mode > 1)
 //		return WSA_ERR_INVFILTERMODE;
 //
-//	sprintf(temp_str, ":INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
+//	sprintf(temp_str, "INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
 //
 //	// set the freq using the selected connect type
 //	result = wsa_send_command(dev, temp_str);
@@ -948,7 +980,7 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 	// TODO: create a read OSR register w/ the bit you want to check
 	// TODO: Handle any other bits info in the OSR also... 
 	// as this is a destructive read
-	query = wsa_send_query(dev, ":STAT:OPER?\n");
+	query = wsa_send_query(dev, "STAT:OPER?\n");
 
 	// TODO Handle the query output here 
 	if (query.status > 0) {
@@ -975,7 +1007,7 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_run_cal_mode(struct wsa_device *dev, uint8_t mode)
+int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode)
 {
 	int16_t result = 0;
 	char temp_str[30];
