@@ -391,6 +391,7 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	uint32_t bytes_rxed = 0, total_bytes = 0;
+	int count = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -416,7 +417,9 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			doutf(DMED, "winsock init select() function returned with "
 				"error %d\n", WSAGetLastError());
-			break;
+			if (count == 2)
+				break;
+			count++;
 		}
 		
 		// if the socket is read-able, rx packet
@@ -434,7 +437,8 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					break;
 			}
 		}
-	} while (1);
+		//printf("rxed: %ld - ", bytes_rxed);
+	} while (total_bytes < buf_size);
 	
 	return total_bytes;
 }

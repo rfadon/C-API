@@ -586,6 +586,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	// go get the required bytes
 	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, 1000);
+				//printf("@lib: %ld\n", result);
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 

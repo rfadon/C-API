@@ -380,7 +380,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Allocate buffer space
 	header = (struct wsa_frame_header *) 
 		malloc(sizeof(struct wsa_frame_header) * _frame_size);
-	d_buf = (char *) malloc(sizeof(char) * total_bytes + 400);
+	d_buf = (char *) malloc(sizeof(char) * total_bytes);
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 
@@ -395,6 +395,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Collect the samples for all the _frame_size
 	// TODO handle the return from read here
 	while(fi < frame_size) {
+		//printf("frame %d: ", fi + 1);
 		next = fi * samples * 4;
 		if (wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples) < 1) {
 			frame_size = fi;
@@ -404,6 +405,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		}
 		fi++;
 	}
+	total_bytes = 4 * frame_size * samples;
 
 	// get the end time & calculate the throughput rate
 	_ftime_s(&msec_buf);		// call time function again
@@ -444,7 +446,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	fclose(iq_fptr); 
 	free(header);
-	free(d_buf);printf("heres\n");
+	free(d_buf);
 	free(i_buf);
 	free(q_buf);
 

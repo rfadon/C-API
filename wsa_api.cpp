@@ -326,17 +326,19 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 			return WSA_ERR_READFRAMEFAILED;
 		}
 
+		// get data & increment counters
 		result = wsa_get_frame(dev, header, data_buf, sample_size);
+		samples_count += header->sample_size;
 		loop++;
+
+		// verify output
 		if (result < 0) {
-			printf("error getting data... trying again #%d\n", loop);
+			printf("Error getting data... trying again #%d\n", loop);
 		}
 		//esle if (result > 0 && result < sample_size) {
 		else if (samples_count < sample_size) {
 			// increment the buffer location
 			data_buf += header->sample_size;
-
-			samples_count += header->sample_size;
 			doutf(DHIGH, "%d, ", samples_count);
 		}
 		else 
