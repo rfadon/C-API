@@ -29,8 +29,8 @@ uint8_t call_mode = FALSE;
 
 //const int32_t fileSize = 1024;
 //const int32_t IQbus_size = 32;
-char *start = "STARTDATA\0";
-char *stop = "STOPDATA\0";
+//char *start = "STARTDATA\0";
+//char *stop = "STOPDATA\0";
 
 //const int32_t ctrl_port = HISLIP;
 //const int32_t data_port = 7000;
@@ -417,9 +417,7 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			doutf(DMED, "winsock init select() function returned with "
 				"error %d\n", WSAGetLastError());
-			if (count == 2)
-				break;
-			count++;
+			break;
 		}
 		
 		// if the socket is read-able, rx packet
@@ -437,7 +435,7 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					break;
 			}
 		}
-		//printf("rxed: %ld - ", bytes_rxed);
+		doutf(DLOW, "rxed: %ld - ", bytes_rxed);
 	} while (total_bytes < buf_size);
 	
 	return total_bytes;

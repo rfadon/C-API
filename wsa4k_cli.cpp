@@ -385,7 +385,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 
 	
-	printf("done.\nAcquiring data bytes... ");
+	printf("done.\nAcquiring data bytes ");
 	
 	// Get the start time
 	_ftime_s(&msec_buf);		// call time function
@@ -395,7 +395,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Collect the samples for all the _frame_size
 	// TODO handle the return from read here
 	while(fi < frame_size) {
-		//printf("frame %d: ", fi + 1);
+		//doutf(DLOW, "frame %d: ", fi + 1);
 		next = fi * samples * 4;
 		if (wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples) < 1) {
 			frame_size = fi;
@@ -403,6 +403,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				frame_size);
 			break;
 		}
+		printf(".");
 		fi++;
 	}
 	total_bytes = 4 * frame_size * samples;
@@ -760,11 +761,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			
 			int32_t sample_size = (int32_t) atof(cmd_words[2]);
 
-			if (sample_size != 1024) {
+			/*if (sample_size != 1024) {
 				printf("Not supporting various sample sizes yet! "
 					"Default to 1024.\n");
 				sample_size = 1024;
-			}
+			}*/
 			result = wsa_set_sample_size(dev, sample_size);
 		} // end set SS
 

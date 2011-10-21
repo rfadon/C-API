@@ -51,8 +51,8 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
 	sprintf(dev->descr.prod_version, "v1.0"); // temp value
-	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
-	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
+	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
+	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
 	sprintf(dev->descr.rfe_version, "v1.0"); // temp
 	strcpy(dev->descr.fw_version, "v1.0");
 
@@ -302,7 +302,8 @@ int16_t wsa_list_devs(char **wsa_list)
 /**
  * Send the control command string to the WSA device specified by \b dev. 
  * The commands format must be written according to the specified 
- * standard syntax in wsa_connect().
+ * standard syntax in wsa_connect().  
+ * @remarks To send query command, use wsa_send_query() instead.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param command - A char pointer to the control command string written 
@@ -335,8 +336,8 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 		}
 
 		// Make sure that the set is done w/out any error in the system
-		if (strcmp(wsa_query_error(dev), "") != 0)
-			return WSA_ERR_SETFAILED;
+		//if (strcmp(wsa_query_error(dev), "") != 0)
+		//	return WSA_ERR_SETFAILED;
 	}
 
 	return bytes_txed;
@@ -492,7 +493,7 @@ char *wsa_query_error(struct wsa_device *dev)
 {
 	struct wsa_resp resp;
 
-	resp = wsa_send_query(dev, "SYST:ERR?");
+	resp = wsa_send_query(dev, "SYST:ERR?\n");
 
 	if (resp.status == 0)
 		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
@@ -564,15 +565,17 @@ const char *wsa_get_error_msg(int16_t err_code)
  * {I, Q} sample pairs) per data frame to be captured. \n
  * The size is limited to a maximum number, \b max_sample_size, listed 
  * in the \b wsa_descriptor structure.
+ * @param time_out - The time, in milliseconds, to wait for a packet from
+ * a WSA before time out.
  *
  * @return A 4-bit frame count number that starts at 0, or a 16-bit negative 
  * number on error.
  */
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 char *data_buf, uint32_t sample_size)
+				 char *data_buf, uint32_t sample_size, uint32_t time_out)
 {
 	int32_t result = 0;
-	int16_t frame_count = -1, frame_size;
+	uint16_t frame_count = 0, frame_size;
 	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
 	char *dbuf;
 	
@@ -585,8 +588,8 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	header->time_stamp.psec = 0;
 
 	// go get the required bytes
-	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, 1000);
-				//printf("@lib: %ld\n", result);
+	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, time_out);
+	doutf(DLOW, "@lib: %ld\n", result);
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 
@@ -597,36 +600,59 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// *****
 		// Handle the 5 header words
 		// *****
+		/*printf("\n");
+		for(int i=0; i<20; i++) {
+			if (i%4 == 0) printf("\n");
+			printf("%02x", (unsigned char) dbuf[i]);
+		}
+		printf("\n\n");*/
 
-		// 1. Check the Pkt type & get the Stream identifier word
-		//if ((dbuf[3] & 0xF0) == 1) {
-		//	memcpy(&result, (dbuf + 4), 4);
-		//	if (result != 0x90000003)
-		//		return WSA_ERR_NOTIQFRAME;
-		//}
-		//else what?
+		// 1. Check "Pkt Type" & get the Stream identifier word
+		if ((dbuf[0] & 0xf0) == 0x10) {
+			result = (((uint8_t) dbuf[4]) << 24) + (((uint8_t) dbuf[5]) << 16) 
+					+ (((uint8_t) dbuf[6]) << 8) + (uint8_t) dbuf[7];
+			if (result != 0x90000003)
+				return WSA_ERR_NOTIQFRAME;
+		}
 
-		// 2. Get the 4-bit packet count number
-		frame_count = dbuf[2] & 0x0F;
-		//printf("Packet #: %d %02x\n", frame_count, dbuf[2]);
+		// Class identifier C?
+		// If 1, returns the data pf class c type?
 
-		// 3. Get the 16-bit packet size
-		memcpy(&frame_size, dbuf, 2);
-		//printf("Packet size: %d %04x\n", frame_size, frame_size);
+		// 2. Get the 4-bit "Pkt Count" number
+		frame_count = dbuf[1] & 0x0f;
+		doutf(DLOW, "Packet count: %d 0x%02x\n", frame_count, frame_count);
+
+		// 3. Get the 16-bit "Pkt Size"
+		frame_size = (((uint8_t) dbuf[2]) << 8) + (uint8_t) dbuf[3];
+		doutf(DLOW, "Packet size: 0x%04x %d\n", frame_size, frame_size);
 		// TODO: compare the sample size w/ this frame_size, less hdr & trailer
 
-		// TODO: how to handle TSI field?
-		// 4. Get the second time stamp at the 3rd words
-		memcpy(&(header->time_stamp.sec), (dbuf + 8), 4);
-		//printf("second: %08x\n", header->time_stamp.sec);
+		// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
+		if ((dbuf[1] & 0xC0) >> 6)
+			printf("ERROR: Second timestamp is not of UTC type.\n");
+		header->time_stamp.sec = (((uint8_t) dbuf[8]) << 24) +
+								(((uint8_t) dbuf[9]) << 16) +
+								(((uint8_t) dbuf[10]) << 8) + 
+								(uint8_t) dbuf[11];
+		doutf(DLOW, "second: 0x%08x %ld\n", header->time_stamp.sec, 
+			header->time_stamp.sec);
 
-		// 5. Check the TSF field, if presents (= 0x10),
+		// 5. Check the TSF field, if presents (= 0x10), 
 		// get the picoseconds time stamp at the 4th & 5th words
-		if ((dbuf[2] & 0x30) == 0x10)
-			memcpy(&(header->time_stamp.psec), (dbuf + 12), 8);
+		if ((dbuf[1] & 0x30) >> 5)
+			header->time_stamp.psec = (uint64_t)
+					((((uint8_t) dbuf[12]) & 0x0100000000000000) +
+					(((uint8_t) dbuf[13]) & 0x01000000000000) +
+					(((uint8_t) dbuf[14]) & 0x010000000000) +
+					(((uint8_t) dbuf[15]) & 0x0100000000) +
+					(uint32_t) (((uint8_t) dbuf[16]) << 24) +	// u32 shouldn't be there
+					(((uint8_t) dbuf[17]) << 16) + 
+					(((uint8_t) dbuf[18]) << 8) + 
+					(uint8_t) dbuf[19]);
 		else 
 			header->time_stamp.psec = 0;
-		//printf("psec: %016llx\n", header->time_stamp.psec);
+		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
+			header->time_stamp.psec);
 
 		// *****
 		// Get the data_buf
@@ -636,6 +662,8 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// *****
 		// TODO: Handle the trailer word. 
 		// *****
+		//if (dbuf[0] & 0x04)
+			// handle the trailer here
 	}
 
 	free(dbuf);

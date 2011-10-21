@@ -92,7 +92,7 @@ char *wsa_query_error(struct wsa_device *dev);
 const char *wsa_get_error_msg(int16_t err_code);
 
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 char *data_buf, uint32_t sample_size);
+				 char *data_buf, uint32_t sample_size, uint32_t time_out);
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 
