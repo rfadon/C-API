@@ -624,7 +624,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// TODO: compare the sample size w/ this frame_size, less hdr & trailer
 
 		// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
-		if ((dbuf[1] & 0xC0) >> 6)
+		if (!((dbuf[1] & 0xC0) >> 6))
 			printf("ERROR: Second timestamp is not of UTC type.\n");
 		header->time_stamp.sec = (((uint8_t) dbuf[8]) << 24) +
 								(((uint8_t) dbuf[9]) << 16) +
