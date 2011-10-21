@@ -707,9 +707,13 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 		q_buf[j] = (((uint8_t) data_buf[i + 1]) << 8) + (uint8_t) data_buf[i];*/
 		i_buf[j] = (((uint8_t) data_buf[i]) << 8) + ((uint8_t) data_buf[i + 1]); 
 		q_buf[j] = (((uint8_t) data_buf[i + 2]) << 8) + (uint8_t) data_buf[i + 3];
+
+
+		if (i_buf[j] > 8191) i_buf[j] -= 16384;
+		if (q_buf[j] > 8191) q_buf[j] -= 16384;
 		
-		/*if ((j % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[j], q_buf[j]);*/
+		if ((j % 4) == 0) printf("\n");
+		printf("%04x,%04x ", i_buf[j], q_buf[j]);
 		
 		j++;
 	}
