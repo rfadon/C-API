@@ -11,7 +11,7 @@
 //*****
 // LOCAL DEFINES
 //*****
-
+//#define DUMMY_CONN 0
 
 //TODO create a log file method
 //TODO add proper error method
@@ -335,9 +335,11 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 				break;
 		}
 
-		// Make sure that the set is done w/out any error in the system
-		//if (strcmp(wsa_query_error(dev), "") != 0)
-		//	return WSA_ERR_SETFAILED;
+		// If it's not asking for data, query for any error to
+		// make sure that the set is done w/out any error in the system
+		if (strstr(command, "IQ?") == NULL)
+			if (strcmp(wsa_query_error(dev), "") != 0)
+				return WSA_ERR_SETFAILED;
 	}
 
 	return bytes_txed;
@@ -487,7 +489,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  *
  * @param dev - A pointer to the WSA device structure.
  *
- * @return 0 on success, or a negative number on error.
+ * @return The query result.
  */
 char *wsa_query_error(struct wsa_device *dev)
 {
@@ -600,13 +602,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// *****
 		// Handle the 5 header words
 		// *****
-		/*printf("\n");
-		for(int i=0; i<20; i++) {
-			if (i%4 == 0) printf("\n");
-			printf("%02x", (unsigned char) dbuf[i]);
-		}
-		printf("\n\n");*/
-
+#ifndef DUMMY_CONN
 		// 1. Check "Pkt Type" & get the Stream identifier word
 		if ((dbuf[0] & 0xf0) == 0x10) {
 			result = (((uint8_t) dbuf[4]) << 24) + (((uint8_t) dbuf[5]) << 16) 
@@ -645,7 +641,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(((uint8_t) dbuf[13]) & 0x01000000000000) +
 					(((uint8_t) dbuf[14]) & 0x010000000000) +
 					(((uint8_t) dbuf[15]) & 0x0100000000) +
-					(uint32_t) (((uint8_t) dbuf[16]) << 24) +	// u32 shouldn't be there
+					(uint32_t) (((uint8_t) dbuf[16]) << 24) +	// u32 shouldn't be there?
 					(((uint8_t) dbuf[17]) << 16) + 
 					(((uint8_t) dbuf[18]) << 8) + 
 					(uint8_t) dbuf[19]);
@@ -653,7 +649,7 @@ int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 			header->time_stamp.psec = 0;
 		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
 			header->time_stamp.psec);
-
+#endif
 		// *****
 		// Get the data_buf
 		// *****
