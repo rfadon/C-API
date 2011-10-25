@@ -362,10 +362,15 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
  */
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
+	struct wsa_resp resp;
 	int16_t result = 0;
 	int16_t lines = 0;
 	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
 	FILE *cmd_fptr;
+
+	// set defaults
+	strcpy(resp.output, "");
+	resp.status = 0;
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
@@ -382,28 +387,33 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	
 	fclose(cmd_fptr);
 
-	if (result < 0) {
-		// free memory
-		for (int i = 0; i < MAX_FILE_LINES; i++)
-			free(cmd_strs[i]);
-		return result;
-	}
-
-	// Send each command line to WSA
-	lines = result;
-	for (int i = 0; i < lines; i++) {
-		result = wsa_send_command(dev, cmd_strs[i]);
-		
-		// If a bad command is detected, continue? Prefer not.
-		if (result < 0) {
-			result = WSA_ERR_CMDINVALID;
-			printf("ERROR WSA_ERR_CMDINVALID: \"%s\".\n", 
-				_wsa_get_err_msg(result));
-			printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
-			break;
+	if (result > 0) {
+		// Send each command line to WSA
+		lines = result;
+		for (int i = 0; i < lines; i++) {
+			// Send non-query cmds
+			if (strstr(cmd_strs[i], "?") == NULL)
+				result = wsa_send_command(dev, cmd_strs[i]);
+			// Send query cmds
+			else {
+				resp = wsa_send_query(dev, cmd_strs[i]);
+				result = resp.status;
+			}
+			
+			// If a bad command is detected, continue? Prefer not.
+			if (result < 0) {
+				result = WSA_ERR_CMDINVALID;
+				printf("ERROR WSA_ERR_CMDINVALID: \"%s\".\n", 
+					_wsa_get_err_msg(result));
+				printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
+				break;
+			}
+			// TODO how to handle response result
+			else if (strstr(cmd_strs[i], "?") != NULL)
+				printf("\"%s\": %s\n", cmd_strs[i], resp.output);
+			
+			result = lines;
 		}
-		
-		result = lines;
 	}
 
 	// Free memory
@@ -418,7 +428,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 /**
  * Send query command to the WSA device specified by \b dev. The commands 
  * format must be written according to the specified command syntax 
- * in wsa_connect().
+ * in wsa_connect() (ex. SCPI).
  *
  * @param dev - A pointer to the WSA device structure.
  * @param command - A char pointer to the query command string written in 
@@ -434,11 +444,13 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 	uint16_t len = strlen(command);
 	int loop_count = 0;
 
-	strcpy(resp.result, "");
+	// set defaults
+	strcpy(resp.output, "");
+	resp.status = 0;
 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
 		resp.status = WSA_ERR_USBNOTAVBL;
-		strcpy(resp.result, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+		strcpy(resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
@@ -447,7 +459,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			if (bytes_got < len) {
 				if (resend_cnt > 5) {
 					resp.status = WSA_ERR_CMDSENDFAILED;
-					strcpy(resp.result, 
+					strcpy(resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
 					return resp;
 				}
@@ -458,7 +470,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			// Read back the output
 			else {
 				do {
-					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.result, 
+					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					
 					if (bytes_got > 0)
@@ -470,7 +482,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 					loop_count++;
 				} while (bytes_got < 1);
 
-				resp.result[bytes_got] = 0; // add EOL to the string
+				resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
 		}
@@ -489,7 +501,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  *
  * @param dev - A pointer to the WSA device structure.
  *
- * @return The query result.
+ * @return The query result stored in a char pointer.
  */
 char *wsa_query_error(struct wsa_device *dev)
 {
@@ -500,17 +512,18 @@ char *wsa_query_error(struct wsa_device *dev)
 	if (resp.status == 0)
 		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
 
-	if (strstr(resp.result, "No error") != NULL || strcmp(resp.result, "") == 0)
+	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
 		return "";
 	else {
-		printf("WSA returns: %s\n", resp.result);
-		return resp.result;
+		printf("WSA returns: %s\n", resp.output);
+		return resp.output;
 	}
 }
 
 
 /**
- * Returns a message string associated with the given error code \b err_code.
+ * Returns a message string associated with the given \b err_code specific
+ * to the WSA system (i.e. not SCPI error codes).
  * 
  * @param err_code - The negative WSA error code, returned from a WSA function.
  *

@@ -150,6 +150,6 @@
 	 * The status of the query. Positive number when success, negative when 
 	 * failed.
 	 */
-	 /** @var char wsa_resp::result
-	  * The resulted string responded to a query.
+	 /** @var char wsa_resp::output
+	  * The char pointer to an output string responded to a query.
 	  */

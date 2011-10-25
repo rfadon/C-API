@@ -30,8 +30,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 
 
 /**
- * Tokenized all the words/strings in a file
- * Return pointer to the tokens
+ * Tokenized all the words/strings in a file.
+ * Pointer to the tokens is stored in cmd_strs.
+ * Return the number of tokens read.
  */
 int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 {
@@ -58,7 +59,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 
 	fToken = strtok(buffer, SEP_CHARS);
 	while (fToken != NULL)	{
-		//printf("%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
+		doutf(DLOW, "%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
 		// Avoid taking any empty line
 		if (strpbrk(fToken, ":*?") != NULL) {
 			strcpy(cmd_strs[next], fToken);

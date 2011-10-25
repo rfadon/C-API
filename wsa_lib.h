@@ -71,7 +71,7 @@ struct wsa_device {
 
 struct wsa_resp {
 	int64_t status;
-	char result[MAX_STR_LEN];
+	char output[MAX_STR_LEN];
 };
 
 
