@@ -293,8 +293,9 @@ static uint16_t frame_count = 0;
  * (multiple frames) has been captured for instance. 
  * 
  * @remarks This function does not set the \b sample_size to WSA at each 
- * capture in order to minimize the delay between captures.  Thus,The number of samples per frame (aka samples size) must be set at
- * least once during the WSA powered up
+ * capture in order to minimize the delay between captures.  The number of 
+ * samples per frame (\b sample_size) must be set using wsa_set_sample_size()
+ * at least once during the WSA powered on.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
@@ -387,11 +388,16 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
  * function) is not continuous from the previous read but will still return
  * the frame.
  *
- * @remark wsa_read_frame_int() simplily invokes wsa_read_frame_raw() follow 
+ * @remark 1. wsa_read_frame_int() simplily invokes wsa_read_frame_raw() follow 
  * by wsa_frame_decode() for each frame read.  However, if timing between
  * each data acquisition frames is important and needs to be minimized, 
  * it might be more advantageous to use wsa_read_frame_raw() to gather 
  * multiple of frames first and then invokes wsa_frame_decode() separately.
+ * \n \n
+ * 2. This function does not set the \b sample_size to WSA at each 
+ * capture in order to minimize the delay between captures.  The number of 
+ * samples per frame (\b sample_size) must be set using wsa_set_sample_size()
+ * at least once during the WSA powered on.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 

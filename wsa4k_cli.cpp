@@ -96,7 +96,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
-	printf(" sd [name] [ext:<type>] Save data to a file with optional "
+	printf(" save [name] [ext:<type>] Save data to a file with optional "
 									"prefix string.\n"
 		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
@@ -480,8 +480,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			result = wsa_get_antenna(dev);
 			if (result > 0)
 				printf("Currently using antenna port: %d\n", result);
-			else
-				printf("Unknown port. Check setup for any error.\n");
+			//else
+				//printf("Unknown port. Check setup for any error.\n");
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
@@ -582,16 +582,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else 
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
-
-		//else if (strcmp(cmd_words[1], "LPF") == 0) {
-		//	result = wsa_get_lpf(dev);
-		//	if (result >= 0) {
-		//		printf("RFE's anti-aliasing LPF state: ");
-		//		if (result) printf("On\n");
-		//		else if (!result) printf("Off\n");
-		//		else printf("Unknown state\n");
-		//	}
-		//} // end get LPF
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
@@ -745,15 +735,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set GAIN
 
-		//else if (strcmp(cmd_words[1], "LPF") == 0) {
-		//	if (strcmp(cmd_words[2], "ON") == 0)
-		//		result = wsa_set_lpf(dev, 1);
-		//	else if (strcmp(cmd_words[2], "OFF") == 0)
-		//		result = wsa_set_lpf(dev, 0);
-		//	else 
-		//		printf("Use 'on' or 'off' mode.\n");
-		//} // end set LPF
-
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			// TODO HERE
 			if (strcmp(cmd_words[2], "") == 0) 
@@ -761,11 +742,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			
 			int32_t sample_size = (int32_t) atof(cmd_words[2]);
 
-			/*if (sample_size != 1024) {
-				printf("Not supporting various sample sizes yet! "
-					"Default to 1024.\n");
-				sample_size = 1024;
-			}*/
 			result = wsa_set_sample_size(dev, sample_size);
 		} // end set SS
 
@@ -792,7 +768,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Open failed!\n");
 		}  // end Open directory
 
-		else if (strcmp(cmd_words[0], "SD") == 0) {
+		else if (strcmp(cmd_words[0], "SAVE") == 0) {
 			char prefix[200];
 			char ext[10];
 			int i = 1;

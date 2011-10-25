@@ -48,8 +48,8 @@ struct wsa_descriptor {
 
 
 struct wsa_time {
-	int32_t sec;
-	uint32_t nsec;
+	uint32_t sec;
+	uint64_t psec;
 };
 
 

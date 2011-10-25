@@ -567,7 +567,13 @@ const char *wsa_get_error_msg(int16_t err_code)
  * and Q splitted up and stored into separate int16_t buffers. The 
  * wsa_decode_frame() function is useful for later needs of decoding the 
  * data bytes when a large amount of raw data (multiple frames) has been 
- * captured for instance.
+ * captured for instance. 
+ * 
+ * @remarks This function does not set the \b sample_size to WSA at each 
+ * capture in order to minimize the delay between captures.  The number of 
+ * samples per frame must be sent to WSA at least once during the WSA 
+ * powered on.  For example, with SCPI, do: @code
+ * wsa_send_command(dev, "TRACE:IQ:POINTS 1024\n"); @endcode
  *
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
