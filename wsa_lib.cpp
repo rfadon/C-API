@@ -394,7 +394,7 @@ int32_t wsa_send_command(struct wsa_device *dev, char *command)
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
 	struct wsa_resp resp;
-	int16_t result = 0;
+	int64_t result = 0;
 	int16_t lines = 0;
 	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
 	FILE *cmd_fptr;
@@ -405,9 +405,9 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %d: %s '%s'.\n", result, _wsa_get_err_msg(result), 
-			file_name);
-		return result;
+		printf("ERROR %lld: %s '%s'.\n", result, 
+			_wsa_get_err_msg((int16_t) result), file_name);
+		return (int16_t) result;
 	}
 
 	// Allocate memory
@@ -420,7 +420,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if (result > 0) {
 		// Send each command line to WSA
-		lines = result;
+		lines = (int16_t) result;
 		for (int i = 0; i < lines; i++) {
 			// Send non-query cmds
 			if (strstr(cmd_strs[i], "?") == NULL)
@@ -435,7 +435,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			if (result < 0) {
 				result = WSA_ERR_CMDINVALID;
 				printf("ERROR WSA_ERR_CMDINVALID: \"%s\".\n", 
-					_wsa_get_err_msg(result));
+					_wsa_get_err_msg((int16_t) result));
 				printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 				break;
 			}
@@ -452,7 +452,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 		free(cmd_strs[i]);
 
 
-	return result;
+	return (int16_t) result;
 }
 
 

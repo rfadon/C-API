@@ -311,7 +311,8 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	int16_t frame_num = 0;
 	uint32_t samples_count = 0;
 	
-	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+	if ((sample_size < 128) || 
+		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	// Query WSA for data using the selected connect type
@@ -334,7 +335,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 			printf("Error getting data... trying again #%d\n", loop);
 		}
 		// increment the buffer location
-		else if (samples_count < sample_size) {
+		else if (samples_count < (uint32_t) sample_size) {
 			data_buf += header->sample_size;
 			doutf(DHIGH, "%d, ", samples_count);
 		}
@@ -412,7 +413,8 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 	int32_t result = 0;
 	char *dbuf;
 
-	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+	if ((sample_size < 128) || 
+		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 	
 	// allocate the data buffer
@@ -489,7 +491,8 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 	int16_t result;
 	char temp_str[50];
 
-	if ((sample_size < 128) || (sample_size > dev->descr.max_sample_size))
+	if ((sample_size < 128) || 
+		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "TRACE:IQ:POINTS %ld\n", sample_size);
