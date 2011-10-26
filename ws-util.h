@@ -9,8 +9,7 @@
 
 #include <winsock2.h>	// For MS Windows Socket Application 2.0
 
-const char* WSAGetLastErrorMessage(const char* pcMessagePrefix,
-									int nErrorID = 0);
+const char* WSAGetLastErrorMessage(const char* pcMessagePrefix);
 bool ShutdownConnection(SOCKET sd, char* sock_name);
 
 

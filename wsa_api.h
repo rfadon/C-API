@@ -113,7 +113,7 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain);
+float wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -148,8 +148,8 @@ int16_t wsa_set_freq (struct wsa_device *dev, int64_t cfreq);
 float wsa_get_gain_if (struct wsa_device *dev);
 int16_t wsa_set_gain_if (struct wsa_device *dev, float gain);
 
-wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
-int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain);
+enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
+int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain);
 /*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
 			uint64_t freq, double *cal_value);*/
 

@@ -229,7 +229,7 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
  *
  * @return The absolute maximum RF input level in dBm or negative error number.
  */
-float wsa_get_abs_max_amp(struct wsa_device *dev, wsa_gain gain)
+float wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain)
 {
 	// TODO Check version of WSA & return the correct info here
 	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
@@ -698,7 +698,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
  * @param dev - A pointer to the WSA device structure.
  * @return The gain setting of wsa_gain type, or a negative number on error.
  */
-wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
+enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 {
 	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
@@ -744,7 +744,7 @@ wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
   * @par Errors:
  * - Gain setting not allow.
  */
-int16_t wsa_set_gain_rf (struct wsa_device *dev, wsa_gain gain)
+int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain)
 {
 	int16_t result = 0;
 	char temp_str[50];

@@ -114,9 +114,9 @@ const int kNumMessages = sizeof(gaErrorList) / sizeof(ErrorEntry);
 // must copy the data from this function before you call it again.  It
 // follows that this function is also not thread-safe.
 
-const char* WSAGetLastErrorMessage(const char* pcMessagePrefix, 
-    int nErrorID /* = 0 */)
+const char* WSAGetLastErrorMessage(const char* pcMessagePrefix)
 {
+	int nErrorID = 0;
     // Build basic error string
     static char acErrorBuffer[256];
     ostrstream outs(acErrorBuffer, sizeof(acErrorBuffer));

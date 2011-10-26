@@ -122,6 +122,8 @@ int16_t wsa_start(struct wsa_device *dev)
 			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_INITFAILED;
 	}
+	
+	return result;
 }
 
 
