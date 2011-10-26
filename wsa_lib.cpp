@@ -17,16 +17,19 @@
 //TODO add proper error method
 
 
-////**
-// * Initialized the \b wsa_device descriptor structure
-// *
-// * @param dev - A pointer to the WSA device structure.
-// *
-// * @return 0 on success or a 16-bit negative number on error.
-// */
+// *****
+// Local functions:
+// *****
+char *wsa_query_error(struct wsa_device *dev);
+int16_t wsa_dev_init(struct wsa_device *dev);
+int16_t wsa_open(struct wsa_device *dev);
+
+
+// Initialized the \b wsa_device descriptor structure
+// Return 0 on success or a 16-bit negative number on error.
 int16_t wsa_dev_init(struct wsa_device *dev)
 {
-	// 
+	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
 	dev->descr.max_sample_size = 0;
 	dev->descr.max_tune_freq = 0;
@@ -99,8 +102,8 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	return 0;
 }
 
-// Local function: start up the WSA after socket connection is established
-int16_t wsa_start(struct wsa_device *dev) 
+// Open the WSA after socket connection is established
+int16_t wsa_open(struct wsa_device *dev) 
 {
 	int16_t result = 0;
 	//uint8_t stb_reg = 0;
@@ -125,6 +128,32 @@ int16_t wsa_start(struct wsa_device *dev)
 	
 	return result;
 }
+
+
+// Querry the WSA for any error messages.  This is equivalent to the SCPI
+// command SYSTem:ERRor?
+// Return The query result stored in a char pointer.
+char *wsa_query_error(struct wsa_device *dev)
+{
+	struct wsa_resp resp;
+
+	resp = wsa_send_query(dev, "SYST:ERR?\n");
+
+	if (resp.status == 0)
+		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
+
+	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
+		return "";
+	else {
+		printf("WSA returns: %s\n", resp.output);
+		return resp.output;
+	}
+}
+
+
+// *****
+// Global functions:
+// *****
 
 
 /**
@@ -260,7 +289,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// *****
 	// Check for any errors exist in the WSA
 	// *****
-	result = wsa_start(dev);
+	result = wsa_open(dev);
 	if (result < 0)
 		return result;
 
@@ -527,34 +556,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 
 
 /**
- * Querry the WSA for any error messages.  This is equivalent to the SCPI
- * command SYSTem:ERRor?
- *
- * @param dev - A pointer to the WSA device structure.
- *
- * @return The query result stored in a char pointer.
- */
-char *wsa_query_error(struct wsa_device *dev)
-{
-	struct wsa_resp resp;
-
-	resp = wsa_send_query(dev, "SYST:ERR?\n");
-
-	if (resp.status == 0)
-		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
-
-	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
-		return "";
-	else {
-		printf("WSA returns: %s\n", resp.output);
-		return resp.output;
-	}
-}
-
-
-/**
- * Returns a message string associated with the given \b err_code specific
- * to the WSA system (i.e. not SCPI error codes).
+ * Returns a message string associated with the given \b err_code that is
+ * returned from a \b wsa_lib function.
  * 
  * @param err_code - The negative WSA error code, returned from a WSA function.
  *
