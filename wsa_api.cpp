@@ -49,14 +49,6 @@
 #define WSA_RFE0440 "RFE0440"
 #define MAX_ANT_PORT 2
 
-#define SCPI_OSR_CALI 0x0001
-#define SCPI_OSR_SETT 0x0002
-#define SCPI_OSR_SWE  0x0008
-#define SCPI_OSR_MEAS 0x0010
-#define SCPI_OSR_TRIG 0x0020
-#define SCPI_OSR_CORR 0x0080
-#define SCPI_OSR_DATA 0x0100 //?
-
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //

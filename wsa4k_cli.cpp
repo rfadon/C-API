@@ -297,8 +297,8 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 
 /**
  * Save data to a file with the file name format as:
- * [prefix] YYYY-MM-DD_HH:MM:SS:mmm.[ext] if the prefix string and extension is
- * given.
+ * [prefix] YYYY-MM-DD_HHMMSSmmm.[ext] if the prefix string and/or extension 
+ * are given.
  *
  * @param dev - A pointer to the WSA device structure.
  * @param prefix - A char pointer to a prefix string.
@@ -383,7 +383,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	d_buf = (char *) malloc(sizeof(char) * total_bytes);
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
-
 	
 	printf("done.\nAcquiring data bytes ");
 	
@@ -393,7 +392,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	start_ms = msec_buf.millitm;// get millisecond
 	
 	// Collect the samples for all the _frame_size
-	// TODO handle the return from read here
 	while(fi < frame_size) {
 		//doutf(DLOW, "frame %d: ", fi + 1);
 		next = fi * samples * 4;

@@ -13,6 +13,47 @@
 #define VRT_HEADER_SIZE 5
 #define VRT_TRAILER_SIZE 1
 
+
+// *****
+// SCPI related registers/bits
+// *****
+
+// Status Byte Register SBR, use with SRE
+#define SCPI_SBR_EVTAVL 0x04	// Error/event queue available
+#define SCPI_SBR_QSR 0x08		// Questionable Status register
+#define SCPI_SBR_MSGAVL 0x10	// Message available
+#define SCPI_SBR_ESR 0x20		// Event Status register
+#define SCPI_SBR_RQS 0x40		// Request Service register
+#define SCPI_SBR_OSR 0x80		// Operational Status register
+
+
+// Standard Event Status Register ESR, use with ESE
+#define SCPI_ESR_MASK 0xBD	// Mask all?
+#define SCPI_ESR_OPC 0x00	// Operation complete
+#define SCPI_ESR_QYE 0x04	// Query error
+#define SCPI_ESR_DDE 0x08	// Device dependent error
+#define SCPI_ESR_EXE 0x10	// Execution error
+#define SCPI_ESR_CME 0x20	// Command error
+#define SCPI_ESR_PON 0x80	// Power ON
+
+
+// Operation Status Register OSR
+#define SCPI_OSR_CALI 0x0001	// RFE Calibrating
+#define SCPI_OSR_SETT 0x0002	// Settling
+#define SCPI_OSR_SWE  0x0008	// Sweeping
+//#define SCPI_OSR_MEAS 0x0010	// Measuring?
+#define SCPI_OSR_TRIG 0x0020	// Triggering
+#define SCPI_OSR_CORR 0x0080	//Correcting which? IQ or DC ?
+
+
+// Questionable Status Register QSR
+#define SCPI_QSR_POW 0x0002	// Battery power ???
+#define SCPI_QSR_TEMP 0x0010	// Temperature ?
+#define SCPI_QSR_FREQ 0x0020	// Frequency unlocked ?
+#define SCPI_QSR_PHAS 0x0040	// IQ out of phase ?
+#define SCPI_QSR_CALI 0x0100	//RFE Calibration ?
+
+
 //*****
 // WSA specific values
 //*****

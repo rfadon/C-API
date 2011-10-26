@@ -17,13 +17,13 @@
 //TODO add proper error method
 
 
-/**
- * Initialized the \b wsa_device descriptor structure
- *
- * @param dev - A pointer to the WSA device structure.
- *
- * @return 0 on success or a 16-bit negative number on error.
- */
+////**
+// * Initialized the \b wsa_device descriptor structure
+// *
+// * @param dev - A pointer to the WSA device structure.
+// *
+// * @return 0 on success or a 16-bit negative number on error.
+// */
 int16_t wsa_dev_init(struct wsa_device *dev)
 {
 	// 
@@ -99,11 +99,40 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 	return 0;
 }
 
+// Local function: start up the WSA after socket connection is established
+int16_t wsa_start(struct wsa_device *dev) 
+{
+	int16_t result = 0;
+	//uint8_t stb_reg = 0;
+
+	//Do:
+	// set "*SRE 255"
+	// read "*STB?"
+	// 
+	// set "ESE 255" (enable all by default)
+	// "ESR?"
+	// wsa_query_error()
+	//
+
+	// *****
+	// Initialize wsa_device structure with the proper values
+	// *****
+	if (wsa_dev_init(dev) < 0) {
+		doutf(DMED, "Error WSA_ERR_INITFAILED: "
+			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
+		return WSA_ERR_INITFAILED;
+	}
+}
+
 
 /**
  * Connect to a WSA through the specified interface method \b intf_method,
  * and communicate control commands in the format of the given command 
  * syntax.
+ *
+ * After successfully connected, this function will also do: \n
+ *  - Check for any errors in WSA
+ *  - Gather information for the WSA's descriptor
  *
  * @param dev - A pointer to the WSA device structure to be 
  * connected/establised.
@@ -152,9 +181,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		colons++;
 	}
 
-	//*****
+	// *****
 	// Check the syntax type & interface method & connect base on those info
-	//*****
+	// *****
 	// When the cmd_syntax is SCPI:
 	if (strncmp(cmd_syntax, SCPI, 4) == 0) {
 
@@ -194,9 +223,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	}
 	
 	
-	//*****
+	// *****
 	// Do the connection
-	//*****
+	// *****
 	if (is_tcpip) {
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
@@ -224,14 +253,14 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}
 	
-	// TODO Add other connection methods here
+	// TODO Add other connection methods here...
 
-	// Initialize wsa_device structure with the proper values
-	if (wsa_dev_init(dev) < 0) {
-		doutf(DMED, "Error WSA_ERR_INITFAILED: "
-			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
-		return WSA_ERR_INITFAILED;
-	}
+	// *****
+	// Check for any errors exist in the WSA
+	// *****
+	result = wsa_start(dev);
+	if (result < 0)
+		return result;
 
 	return 0;
 }
@@ -722,7 +751,7 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 	// *****
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
-		// Noticed IQ order swapped due to 440 hardware
+		// Noticed IQ order swapped due to 440 hardware?
 		q_buf[j] = (((uint8_t) data_buf[i]) << 8) + ((uint8_t) data_buf[i + 1]); 
 		i_buf[j] = (((uint8_t) data_buf[i + 2]) << 8) + (uint8_t) data_buf[i + 3];
 
