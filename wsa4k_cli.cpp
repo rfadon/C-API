@@ -846,7 +846,6 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the WSA connection
 	dev = &wsa_dev;
 	result = wsa_open(dev, intf_str);
-printf("open result: %d\n", result);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_OPENFAILED: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_OPENFAILED));

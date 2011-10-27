@@ -109,13 +109,12 @@ int16_t _wsa_open(struct wsa_device *dev)
 	int16_t result = 0;
 	char output[1024];
 
-	// set "*SRE 252" or 0xFC to enable all usable STB bits
-	result = wsa_send_command(dev, "*SRE 252\n");
-	if (result < 0)
-		return result;
+	// set "*SRE 252" or 0xFC to enable all usable STB bits?
+	// No, shouldn't do this. Will mess up users setting. At power up
+	// this reg is default to all enabled any way.
 
 	// go to read & handle the response
-	//result = _wsa_query_stb(dev, output);
+	result = _wsa_query_stb(dev, output);
 	if (result < 0)
 		return result;
 
@@ -140,31 +139,24 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 
 	// initialized the output buf
 	strcpy(output, "");
+	
 	// read "*STB?" for any status bits
-	wsa_send_command(dev, ":random\n");
-	wsa_send_command(dev, ":random2\n");
-	wsa_send_command(dev, ":random\n");
 	query = wsa_send_query(dev, "*STB?\n");
-printf("...\n");
-	printf("got %d %s\n", query.status, query.output);
 	if (query.status < 0)
 		return (int16_t) query.status;
 	else if (query.status == 0)
 		return WSA_ERR_QUERYNORESP;
 
 	stb_reg = atoi(query.output);
-	printf("STB = %d\n", stb_reg);
 	if (stb_reg == 0)
 		return 0;
 
 	if (stb_reg & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
-			printf("%s\n", wsa_query_error(dev));
 			sprintf(output, "%s\n", wsa_query_error(dev));
-			if (strcmp(output, "\n") == 0 ||  strcmp(output, "") == 0)
+			if (strcmp(output, "\n") == 0)
 				break;
-			printf("%s\n", output);
 		} while(1);
 	}
 
@@ -460,12 +452,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				break;
 		}
 
-printf("Sent command %d %s\n", bytes_txed, command);
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		/*if (strstr(command, "IQ?") == NULL)
+		if (strstr(command, "IQ?") == NULL)
 			if (strcmp(wsa_query_error(dev), "") != 0)
-				return WSA_ERR_SETFAILED;*/
+				return WSA_ERR_SETFAILED;
 	}
 
 	return bytes_txed;
@@ -597,14 +588,12 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			}
 			// Read back the output
 			else {
-printf("query %d %s\n", bytes_got, command);
 				do {
 					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.output, 
 						MAX_STR_LEN, TIMEOUT);
-					
 					if (bytes_got > 0)
 						break;
-printf("rxed %d\n", bytes_got);
+
 					// Loop to make sure received bytes
 					if (loop_count == 5)
 						break;
@@ -617,7 +606,6 @@ printf("rxed %d\n", bytes_got);
 
 		// TODO define what result should be
 		resp.status = bytes_got;
-printf("bytes got: %d\n", bytes_got);
 	}
 
 	return resp;
