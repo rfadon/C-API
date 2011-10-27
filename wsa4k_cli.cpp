@@ -846,7 +846,8 @@ int16_t do_wsa(const char *wsa_addr)
 	// Start the WSA connection
 	dev = &wsa_dev;
 	result = wsa_open(dev, intf_str);
-	if (result <= 0) {
+printf("open result: %d\n", result);
+	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_OPENFAILED: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
@@ -959,8 +960,11 @@ int16_t start_cli(void)
 		//*****
 		// All are good, start the connection & command part
 		//*****
-		if (do_wsa(wsa_addr) == 0)
+		result = do_wsa(wsa_addr);
+		if (result >= 0)
 			break;
+		else
+			printf("ERROR %d: %s.\n", result, wsa_get_err_msg(result));
 
 	} while (!user_quit);
 	

@@ -115,7 +115,7 @@ int16_t _wsa_open(struct wsa_device *dev)
 		return result;
 
 	// go to read & handle the response
-	result = _wsa_query_stb(dev, output);
+	//result = _wsa_query_stb(dev, output);
 	if (result < 0)
 		return result;
 
@@ -140,15 +140,18 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 
 	// initialized the output buf
 	strcpy(output, "");
-printf("...\n");
 	// read "*STB?" for any status bits
-	query = wsa_send_query(dev, "*STB?");
+	wsa_send_command(dev, ":random\n");
+	wsa_send_command(dev, ":random2\n");
+	wsa_send_command(dev, ":random\n");
+	query = wsa_send_query(dev, "*STB?\n");
+printf("...\n");
+	printf("got %d %s\n", query.status, query.output);
 	if (query.status < 0)
 		return (int16_t) query.status;
 	else if (query.status == 0)
 		return WSA_ERR_QUERYNORESP;
 
-	printf("got %s\n", query.output);
 	stb_reg = atoi(query.output);
 	printf("STB = %d\n", stb_reg);
 	if (stb_reg == 0)
@@ -354,10 +357,8 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Check for any errors exist in the WSA
 	// *****
 	result = _wsa_open(dev);
-	if (result < 0)
-		return result;
-
-	return 0;
+	
+	return result;
 }
 
 
@@ -447,9 +448,6 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
-			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
-			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
-			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
 			bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_txed < len) {
 				if (resend_cnt > 5)
@@ -462,7 +460,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				break;
 		}
 
-printf("got here\n");
+printf("Sent command %d %s\n", bytes_txed, command);
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
 		/*if (strstr(command, "IQ?") == NULL)
@@ -599,19 +597,19 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			}
 			// Read back the output
 			else {
+printf("query %d %s\n", bytes_got, command);
 				do {
 					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					
 					if (bytes_got > 0)
 						break;
-
+printf("rxed %d\n", bytes_got);
 					// Loop to make sure received bytes
 					if (loop_count == 5)
 						break;
 					loop_count++;
 				} while (bytes_got < 1);
-
 				resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
@@ -619,6 +617,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 
 		// TODO define what result should be
 		resp.status = bytes_got;
+printf("bytes got: %d\n", bytes_got);
 	}
 
 	return resp;
