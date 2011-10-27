@@ -23,6 +23,7 @@
 char *wsa_query_error(struct wsa_device *dev);
 int16_t wsa_dev_init(struct wsa_device *dev);
 int16_t wsa_open(struct wsa_device *dev);
+int16_t wsa_query_stb(struct wsa_device *dev, char *output);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -106,26 +107,81 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 int16_t wsa_open(struct wsa_device *dev) 
 {
 	int16_t result = 0;
-	//uint8_t stb_reg = 0;
+	char output[1024];
 
-	//Do:
-	// set "*SRE 255"
-	// read "*STB?"
-	// 
-	// set "ESE 255" (enable all by default)
-	// "ESR?"
-	// wsa_query_error()
-	//
+	// set "*SRE 252" or 0xFC to enable all usable STB bits
+	result = wsa_send_command(dev, "*SRE 252");
+	if (result < 0)
+		return result;
 
-	// *****
+	// go to read & handle the response
+	result = wsa_query_stb(dev, output);
+	if (result < 0)
+		return result;
+
 	// Initialize wsa_device structure with the proper values
-	// *****
-	if (wsa_dev_init(dev) < 0) {
+	result = wsa_dev_init(dev);
+	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_INITFAILED: "
 			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
 		return WSA_ERR_INITFAILED;
 	}
 	
+	return result;
+}
+
+
+// Handle bits status in STB register
+int16_t wsa_query_stb(struct wsa_device *dev, char *output)
+{
+	int16_t result = 0;
+	uint8_t stb_reg = 0;
+	struct wsa_resp query;		// store query results
+
+	// initialized the output buf
+	strcpy(output, "");
+
+	// read "*STB?" for any status bits
+	query = wsa_send_query(dev, "*STB?");
+	if (query.status < 0)
+		return (int16_t) query.status;
+	else if (query.status == 0)
+		return WSA_ERR_QUERYNORESP;
+
+	stb_reg = atoi(query.output);
+	printf("STB = %d\n", stb_reg);
+	if (stb_reg == 0)
+		return 0;
+
+	if (stb_reg & SCPI_SBR_EVTAVL) {
+		// todo loop until output is ""
+		printf("%s\n", wsa_query_error(dev));
+	}
+
+	if (stb_reg & SCPI_SBR_QSR) {
+		//result = wsa_query_qsr(dev);
+	}
+
+	if (stb_reg & SCPI_SBR_MSGAVL) {
+		// do nothing?
+	}
+
+	if (stb_reg & SCPI_SBR_ESR) {
+		//result = wsa_query_esr(dev);
+	}
+
+	if (stb_reg & SCPI_SBR_RQS) {
+		//result = wsa_query_esr(dev);
+	}
+
+	if (stb_reg & SCPI_SBR_OSR) {
+		//result = wsa_query_osr(dev);
+	}
+
+	// set "ESE 255" (enable all by default)
+	// "ESR?"
+	// wsa_query_error()
+
 	return result;
 }
 
@@ -138,8 +194,9 @@ char *wsa_query_error(struct wsa_device *dev)
 	struct wsa_resp resp;
 
 	resp = wsa_send_query(dev, "SYST:ERR?\n");
-
-	if (resp.status == 0)
+	if (resp.status < 0)
+		return resp.output;
+	else if (resp.status == 0)
 		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
@@ -371,7 +428,7 @@ int16_t wsa_list_devs(char **wsa_list)
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
-int32_t wsa_send_command(struct wsa_device *dev, char *command)
+int16_t wsa_send_command(struct wsa_device *dev, char *command)
 {
 	int32_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
@@ -462,17 +519,19 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			
 			// If a bad command is detected, continue? Prefer not.
 			if (result < 0) {
-				result = WSA_ERR_CMDINVALID;
-				printf("ERROR WSA_ERR_CMDINVALID: \"%s\".\n", 
-					_wsa_get_err_msg((int16_t) result));
+				//result = WSA_ERR_CMDINVALID;
+				//printf("Error WSA_ERR_CMDINVALID: \"%s\".\n", 
+				//	_wsa_get_err_msg((int16_t) result));
+				printf("Error %d: \"%s\" (possibly: %s)\n", resp.output, 
+					_wsa_get_err_msg(WSA_ERR_CMDINVALID));
 				printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 				break;
 			}
 			// TODO how to handle response result
-			else if (strstr(cmd_strs[i], "?") != NULL)
+			else if (strstr(cmd_strs[i], "?") != NULL) {
 				printf("\"%s\": %s\n", cmd_strs[i], resp.output);
-			
-			result = lines;
+				result = lines;
+			}
 		}
 	}
 
@@ -546,12 +605,32 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 				break;
 			}
 		}
+
+		// TODO define what result should be
+		resp.status = bytes_got;
 	}
 
-	// TODO define what result should be
-	resp.status = bytes_got;
-
 	return resp;
+}
+
+
+/**
+ * Query the status of the WSA box for any event and store the output 
+ * response(s) in the \b output parameter.  
+ * @remarks This function is equivalent to the SCPI command "*STB?".
+ *
+ * @param dev
+ * @param output - a char pointer to the output result message of the query
+ * 
+ * @return 0 if successfully queried, or a negative number upon errors.
+ */
+int16_t wsa_get_status(struct wsa_device *dev, char *output)
+{
+	int16_t result = 0;
+
+	result = wsa_query_stb(dev, output);
+
+	return result;
 }
 
 

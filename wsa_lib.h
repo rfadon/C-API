@@ -82,16 +82,19 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_list_devs(char **wsa_list);
-//int16_t wsa_help(struct wsa_device dev);
 
-int32_t wsa_send_command(struct wsa_device *dev, char *command);
+int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
+
+int16_t wsa_get_status(struct wsa_device *dev, char *output);
 const char *wsa_get_error_msg(int16_t err_code);
 
 int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 char *data_buf, uint32_t sample_size, uint32_t time_out);
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
+
+//int16_t wsa_help(struct wsa_device dev);
 
 #endif
