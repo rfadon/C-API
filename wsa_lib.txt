@@ -121,7 +121,7 @@
 
 /** @struct wsa_frame_header
  * @brief This structure contains header information related to each frame read
- * by wsa_get_frame().
+ * by wsa_read_frame().
  */
 	/** @var uint32_t wsa_frame_header::sample_size
 	 * Number of {I, Q} samples pairs per WSA data frame.

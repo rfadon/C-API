@@ -845,12 +845,12 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Start the WSA connection
 	dev = &wsa_dev;
-	if ((result = wsa_open(dev, intf_str)) < 0) {
+	result = wsa_open(dev, intf_str);
+	if (result <= 0) {
 		doutf(DMED, "Error WSA_ERR_OPENFAILED: %s.\n", 
 			wsa_get_err_msg(WSA_ERR_OPENFAILED));
 		return WSA_ERR_OPENFAILED;
 	}
-
 
 	// Start the control loop
 	do {

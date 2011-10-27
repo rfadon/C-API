@@ -86,11 +86,8 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
 	result = wsa_connect(dev, SCPI, intf_method);
-	if (result < 0) {
-		return result;
-	}
 
-	return 0;
+	return result;
 }
 
 
@@ -132,26 +129,39 @@ int16_t wsa_check_addr(char *ip_addr)
 }
 
 
-/**
- * Count and print out the IPs of connected WSAs to the network? or the PC???
- * For now, will list the IPs for any of the connected devices to a PC?
- *
- * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
- * connected to a network???.
- *
- * @return Number of connected WSAs (or IPs for now) on success, or a 
- * negative number on error.
- */
-// TODO: This section is to be replaced w/ list connected WSAs
-int16_t wsa_list(char **wsa_list) 
-{
-	int16_t result = 0;			// result returned from a function
+////**
+// * Count and print out the IPs of connected WSAs to the network? or the PC???
+// * For now, will list the IPs for any of the connected devices to a PC?
+// *
+// * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
+// * connected to a network???.
+// *
+// * @return Number of connected WSAs (or IPs for now) on success, or a 
+// * negative number on error.
+// */
+//// TODO: This section is to be replaced w/ list connected WSAs
+//int16_t wsa_list(char **wsa_list) 
+//{
+//	int16_t result = 0;			// result returned from a function
+//
+//	result = wsa_list_devs(wsa_list);
+//
+//	return result;
+//}
 
-	result = wsa_list_devs(wsa_list);
 
-	return result;
-}
-
+////**
+// * Get the status of the WSA for any errors or messages
+// *
+// */
+//int16_t wsa_get_status(struct wsa_device *dev, char *output) 
+//{
+//	int16_t result = 0;
+//
+//	result = wsa_read_status(dev, output);
+//
+//	return result;
+//}
 
 
 /**
@@ -167,7 +177,7 @@ int16_t wsa_is_connected(struct wsa_device *dev)
 	int16_t result = 0;
 	struct wsa_resp query;		// store query results
 
-	//result = wsa_query_stb(dev);
+	//result = wsa_read_status(dev);???
 	// TODO check version & then do query
 	query = wsa_send_query(dev, "*STB?"); // ???
 
@@ -328,7 +338,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		}
 
 		// get data & increment counters
-		result = wsa_get_frame(dev, header, data_buf, sample_size, 5000);
+		result = wsa_read_frame(dev, header, data_buf, sample_size, 5000);
 		samples_count += header->sample_size;
 		loop++;
 

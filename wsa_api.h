@@ -100,8 +100,10 @@ struct wsa_trig
 
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
+
 int16_t wsa_check_addr(char *intf_method);
-int16_t wsa_list(char **wsa_list);
+//int16_t wsa_list(char **wsa_list);
+//int16_t wsa_get_status(struct wsa_device *dev, char *output);
 int16_t wsa_is_connected(struct wsa_device *dev);
 const char *wsa_get_err_msg(int16_t err_code);
 

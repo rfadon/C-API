@@ -21,14 +21,14 @@
 // Local functions:
 // *****
 char *wsa_query_error(struct wsa_device *dev);
-int16_t wsa_dev_init(struct wsa_device *dev);
-int16_t wsa_open(struct wsa_device *dev);
-int16_t wsa_query_stb(struct wsa_device *dev, char *output);
+int16_t _wsa_dev_init(struct wsa_device *dev);
+int16_t _wsa_open(struct wsa_device *dev);
+int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
-int16_t wsa_dev_init(struct wsa_device *dev)
+int16_t _wsa_dev_init(struct wsa_device *dev)
 {
 	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
@@ -104,23 +104,23 @@ int16_t wsa_dev_init(struct wsa_device *dev)
 }
 
 // Open the WSA after socket connection is established
-int16_t wsa_open(struct wsa_device *dev) 
+int16_t _wsa_open(struct wsa_device *dev) 
 {
 	int16_t result = 0;
 	char output[1024];
 
 	// set "*SRE 252" or 0xFC to enable all usable STB bits
-	result = wsa_send_command(dev, "*SRE 252");
+	result = wsa_send_command(dev, "*SRE 252\n");
 	if (result < 0)
 		return result;
 
 	// go to read & handle the response
-	result = wsa_query_stb(dev, output);
+	result = _wsa_query_stb(dev, output);
 	if (result < 0)
 		return result;
 
 	// Initialize wsa_device structure with the proper values
-	result = wsa_dev_init(dev);
+	result = _wsa_dev_init(dev);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_INITFAILED: "
 			"%s.\n", _wsa_get_err_msg(WSA_ERR_INITFAILED));
@@ -132,7 +132,7 @@ int16_t wsa_open(struct wsa_device *dev)
 
 
 // Handle bits status in STB register
-int16_t wsa_query_stb(struct wsa_device *dev, char *output)
+int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
 	uint8_t stb_reg = 0;
@@ -140,7 +140,7 @@ int16_t wsa_query_stb(struct wsa_device *dev, char *output)
 
 	// initialized the output buf
 	strcpy(output, "");
-
+printf("...\n");
 	// read "*STB?" for any status bits
 	query = wsa_send_query(dev, "*STB?");
 	if (query.status < 0)
@@ -148,14 +148,21 @@ int16_t wsa_query_stb(struct wsa_device *dev, char *output)
 	else if (query.status == 0)
 		return WSA_ERR_QUERYNORESP;
 
+	printf("got %s\n", query.output);
 	stb_reg = atoi(query.output);
 	printf("STB = %d\n", stb_reg);
 	if (stb_reg == 0)
 		return 0;
 
 	if (stb_reg & SCPI_SBR_EVTAVL) {
-		// todo loop until output is ""
-		printf("%s\n", wsa_query_error(dev));
+		// loop until output is ""
+		do {
+			printf("%s\n", wsa_query_error(dev));
+			sprintf(output, "%s\n", wsa_query_error(dev));
+			if (strcmp(output, "\n") == 0 ||  strcmp(output, "") == 0)
+				break;
+			printf("%s\n", output);
+		} while(1);
 	}
 
 	if (stb_reg & SCPI_SBR_QSR) {
@@ -346,7 +353,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// *****
 	// Check for any errors exist in the WSA
 	// *****
-	result = wsa_open(dev);
+	result = _wsa_open(dev);
 	if (result < 0)
 		return result;
 
@@ -440,6 +447,9 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
+			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
+			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
+			bytes_txed = wsa_sock_send(dev->sock.cmd, "/eioh", 5);
 			bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_txed < len) {
 				if (resend_cnt > 5)
@@ -452,11 +462,12 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				break;
 		}
 
+printf("got here\n");
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		if (strstr(command, "IQ?") == NULL)
+		/*if (strstr(command, "IQ?") == NULL)
 			if (strcmp(wsa_query_error(dev), "") != 0)
-				return WSA_ERR_SETFAILED;
+				return WSA_ERR_SETFAILED;*/
 	}
 
 	return bytes_txed;
@@ -624,11 +635,11 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
  * 
  * @return 0 if successfully queried, or a negative number upon errors.
  */
-int16_t wsa_get_status(struct wsa_device *dev, char *output)
+int16_t wsa_read_status(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
 
-	result = wsa_query_stb(dev, output);
+	result = _wsa_query_stb(dev, output);
 
 	return result;
 }
@@ -705,7 +716,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  * @return A 4-bit frame count number that starts at 0, or a 16-bit negative 
  * number on error.
  */
-int16_t wsa_get_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
+int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 char *data_buf, uint32_t sample_size, uint32_t time_out)
 {
 	int32_t result = 0;
