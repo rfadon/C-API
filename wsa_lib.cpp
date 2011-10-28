@@ -113,7 +113,7 @@ int16_t _wsa_open(struct wsa_device *dev)
 	// No, shouldn't do this. Will mess up users setting. At power up
 	// this reg is default to all enabled any way.
 
-	// go to read & handle the response
+	// go to read STB & handle the response
 	result = _wsa_query_stb(dev, output);
 	if (result < 0)
 		return result;
@@ -135,6 +135,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
 	uint8_t stb_reg = 0;
+	char *temp;
 	struct wsa_resp query;		// store query results
 
 	// initialized the output buf
@@ -142,10 +143,8 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	
 	// read "*STB?" for any status bits
 	query = wsa_send_query(dev, "*STB?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 
 	stb_reg = atoi(query.output);
 	if (stb_reg == 0)
@@ -180,26 +179,20 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 		//result = wsa_query_osr(dev);
 	}
 
-	// set "ESE 255" (enable all by default)
-	// "ESR?"
-	// wsa_query_error()
-
 	return result;
 }
 
 
 // Querry the WSA for any error messages.  This is equivalent to the SCPI
 // command SYSTem:ERRor?
-// Return The query result stored in a char pointer.
+// Return the query result stored in a char pointer.
 char *wsa_query_error(struct wsa_device *dev)
 {
 	struct wsa_resp resp;
 
 	resp = wsa_send_query(dev, "SYST:ERR?\n");
 	if (resp.status < 0)
-		return resp.output;
-	else if (resp.status == 0)
-		return (char *) _wsa_get_err_msg(WSA_ERR_NORESPONSERXED);
+		return (char *) _wsa_get_err_msg(resp.status);
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
 		return "";
@@ -208,7 +201,7 @@ char *wsa_query_error(struct wsa_device *dev)
 		return resp.output;
 	}
 }
-
+	
 
 // *****
 // Global functions:
@@ -605,6 +598,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 		}
 
 		// TODO define what result should be
+		if (bytes_got == 0)
+			resp.status = WSA_ERR_QUERYNORESP;
 		resp.status = bytes_got;
 	}
 

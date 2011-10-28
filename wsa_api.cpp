@@ -535,10 +535,8 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 	query = wsa_send_query(dev, "TRACE:IQ:POINTS?\n");
 
 	// Handle the query output here 
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int32_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 
 	//printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.output, 
 	//	(int32_t) atof(query.output));
@@ -568,10 +566,8 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	query = wsa_send_query(dev, "FREQ:CENT?\n");
 
 	// Handle the query output here 
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 
 	//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.output, 
 	//	(int64_t) atof(query.output));
@@ -659,10 +655,8 @@ float wsa_get_gain_if (struct wsa_device *dev)
 		return WSA_ERR_INVRFESETTING;
 
 	query = wsa_send_query(dev, "INPUT:GAIN:IF?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 		
 	return (float) atof(query.output);
 }
@@ -718,10 +712,8 @@ enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 	struct wsa_resp query;		// store query results
 
 	query = wsa_send_query(dev, "INPUT:GAIN:RF?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (wsa_gain) query.status;
-	else if (query.status == 0)
-		return (wsa_gain) WSA_ERR_QUERYNORESP;
 	
 	// Convert to wsa_gain type
 	if (strstr(query.output, "HIGH") != NULL) {
@@ -807,10 +799,8 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 		return WSA_ERR_INVRFESETTING;
 
 	query = wsa_send_query(dev, "INPUT:ANTENNA?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 		
 	return atoi(query.output);
 }
@@ -868,10 +858,8 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 		return WSA_ERR_INVRFESETTING;
 
 	query = wsa_send_query(dev, "INP:FILT:PRES:STATE?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 	
 	return atoi(query.output);
 }
@@ -980,10 +968,8 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 		return WSA_ERR_INVRFESETTING;
 
 	query = wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n");
-	if (query.status < 0)
+	if (query.status <= 0)
 		return (int16_t) query.status;
-	else if (query.status == 0)
-		return WSA_ERR_QUERYNORESP;
 
 	return (atoi(query.output) & SCPI_OSR_CALI);
 }
