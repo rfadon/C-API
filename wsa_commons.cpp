@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <errno.h>
+#include <limits.h>
 #include "wsa_commons.h"
 #include "wsa_error.h"
 
@@ -71,4 +73,26 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	free(buffer);
 
 	return next;
+}
+
+/**
+ * Convert a string to a long integer
+ */
+int16_t to_digit(char *num_str, long *val)
+{
+	char *temp;
+	long temp_val;
+
+	errno = 0; // to distinguish success/failure after calling strtol
+	temp_val = strtol(num_str, &temp, 0);
+	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN))
+		|| (errno != 0 && temp_val == 0)
+		|| temp == num_str) {
+		perror("strtol");
+		return WSA_ERR_INVNUMBER;
+	}
+
+	*val = temp_val;
+
+	return 0;
 }

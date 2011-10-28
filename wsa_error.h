@@ -118,7 +118,7 @@
 // ///////////////////////////////
 #define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
 #define WSA_ERR_CMDINVALID		(LNEG_NUM - 1502)
-#define WSA_ERR_NORESPONSERXED	(LNEG_NUM - 1503)
+#define WSA_ERR_RESPUNKNOWN	(LNEG_NUM - 1503)
 
 
 // ///////////////////////////////
@@ -304,8 +304,8 @@ static struct wsa_err_item {
 		"Sending of the command failed"),
 	wsa_err_item(WSA_ERR_CMDINVALID,
 		"Command is not valid or incorrectly written"),
-	wsa_err_item(WSA_ERR_NORESPONSERXED,
-		"No response string from socket is received at timeout"),
+	wsa_err_item(WSA_ERR_RESPUNKNOWN,
+		"The response received is invalid for the query sent"),
 
 
 	//*****

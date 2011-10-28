@@ -95,5 +95,6 @@
 #define SEP_CHARS "\n\r"
 
 int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
+int16_t to_digit(char *num_str, long *val);
 
 #endif

@@ -134,7 +134,7 @@ int16_t _wsa_open(struct wsa_device *dev)
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
-	uint8_t stb_reg = 0;
+	long stb_reg = 0;
 	char *temp;
 	struct wsa_resp query;		// store query results
 
@@ -146,11 +146,10 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	stb_reg = atoi(query.output);
-	if (stb_reg == 0)
-		return 0;
+	if (to_digit(query.output, &stb_reg) < 0)
+		return WSA_ERR_RESPUNKNOWN;
 
-	if (stb_reg & SCPI_SBR_EVTAVL) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
 			sprintf(output, "%s\n", wsa_query_error(dev));
@@ -159,23 +158,23 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 		} while(1);
 	}
 
-	if (stb_reg & SCPI_SBR_QSR) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_QSR) {
 		//result = wsa_query_qsr(dev);
 	}
 
-	if (stb_reg & SCPI_SBR_MSGAVL) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_MSGAVL) {
 		// do nothing?
 	}
 
-	if (stb_reg & SCPI_SBR_ESR) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_ESR) {
 		//result = wsa_query_esr(dev);
 	}
 
-	if (stb_reg & SCPI_SBR_RQS) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_RQS) {
 		//result = wsa_query_esr(dev);
 	}
 
-	if (stb_reg & SCPI_SBR_OSR) {
+	if (((uint8_t) stb_reg) & SCPI_SBR_OSR) {
 		//result = wsa_query_osr(dev);
 	}
 
