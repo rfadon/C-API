@@ -28,7 +28,6 @@
 
 
 // Standard Event Status Register ESR, use with ESE
-#define SCPI_ESR_MASK 0xBD	// Mask all?
 #define SCPI_ESR_OPC 0x00	// Operation complete
 #define SCPI_ESR_QYE 0x04	// Query error
 #define SCPI_ESR_DDE 0x08	// Device dependent error

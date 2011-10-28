@@ -24,6 +24,7 @@ char *wsa_query_error(struct wsa_device *dev);
 int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
+int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -134,7 +135,8 @@ int16_t _wsa_open(struct wsa_device *dev)
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
-	long stb_reg = 0;
+	long temp_val;
+	uint8_t stb_reg = 0;
 	char *temp;
 	struct wsa_resp query;		// store query results
 
@@ -146,10 +148,11 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	if (to_int(query.output, &stb_reg) < 0)
+	if (to_int(query.output, &temp_val) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	stb_reg = (uint8_t) temp_val;
 
-	if (((uint8_t) stb_reg) & SCPI_SBR_EVTAVL) {
+	if (stb_reg & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
 			sprintf(output, "%s\n", wsa_query_error(dev));
@@ -158,24 +161,68 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 		} while(1);
 	}
 
-	if (((uint8_t) stb_reg) & SCPI_SBR_QSR) {
+	if (stb_reg & SCPI_SBR_QSR) {
 		//result = wsa_query_qsr(dev);
 	}
 
-	if (((uint8_t) stb_reg) & SCPI_SBR_MSGAVL) {
+	if (stb_reg & SCPI_SBR_MSGAVL) {
 		// do nothing?
 	}
 
-	if (((uint8_t) stb_reg) & SCPI_SBR_ESR) {
+	if (stb_reg & SCPI_SBR_ESR) {
+		result = _wsa_query_esr(dev, output);
+	}
+
+	if (stb_reg & SCPI_SBR_RQS) {
 		//result = wsa_query_esr(dev);
 	}
 
-	if (((uint8_t) stb_reg) & SCPI_SBR_RQS) {
-		//result = wsa_query_esr(dev);
-	}
-
-	if (((uint8_t) stb_reg) & SCPI_SBR_OSR) {
+	if (stb_reg & SCPI_SBR_OSR) {
 		//result = wsa_query_osr(dev);
+	}
+
+	return result;
+}
+
+// Handle bits status in ESR register
+int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
+{
+	int16_t result = 0;
+	long temp_val;
+	uint8_t esr_reg = 0;
+	char *temp;
+	struct wsa_resp query;		// store query results
+
+	// initialized the output buf
+	strcpy(output, "");
+	
+	// read "*STB?" for any status bits
+	query = wsa_send_query(dev, "*ESR?\n");
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the output
+	if (to_int(query.output, &temp_val) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+	esr_reg = (uint8_t) temp_val;
+
+	if (esr_reg & SCPI_ESR_OPC) {
+	}
+
+	if (esr_reg & SCPI_ESR_QYE) {
+	}
+
+	if (esr_reg & SCPI_ESR_DDE) {
+		// do nothing?
+	}
+
+	if (esr_reg & SCPI_ESR_EXE) {
+	}
+
+	if (esr_reg & SCPI_ESR_CME) {
+	}
+
+	if (esr_reg & SCPI_ESR_PON) {
 	}
 
 	return result;
