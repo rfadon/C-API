@@ -531,6 +531,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 int32_t wsa_get_sample_size(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	long temp;
 
 	query = wsa_send_query(dev, "TRACE:IQ:POINTS?\n");
 
@@ -538,10 +539,15 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int32_t) query.status;
 
-	//printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.output, 
-	//	(int32_t) atof(query.output));
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
 
-	return (int32_t) atof(query.output);
+	//printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.output, 
+	//	(int32_t) temp);
+	
+	// TODO verify the temp value first
+
+	return (int32_t) temp;
 }
 
 
@@ -562,6 +568,7 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 int64_t wsa_get_freq(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	double temp;
 
 	query = wsa_send_query(dev, "FREQ:CENT?\n");
 
@@ -569,10 +576,15 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.output, 
-	//	(int64_t) atof(query.output));
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
 
-	return (int64_t) atof(query.output);
+	//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.output, 
+	//	(int64_t) temp);
+	
+	// TODO verify the temp value first
+
+	return (int64_t) temp;
 }
 
 
@@ -650,6 +662,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 float wsa_get_gain_if (struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	double temp;
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -657,8 +670,13 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	query = wsa_send_query(dev, "INPUT:GAIN:IF?\n");
 	if (query.status <= 0)
 		return (int16_t) query.status;
-		
-	return (float) atof(query.output);
+
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+	
+	// TODO verify the temp value first
+
+	return (float) temp;
 }
 
 
@@ -794,6 +812,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain)
 int16_t wsa_get_antenna(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	long temp;
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -801,8 +820,13 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 	query = wsa_send_query(dev, "INPUT:ANTENNA?\n");
 	if (query.status <= 0)
 		return (int16_t) query.status;
-		
-	return atoi(query.output);
+
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+	
+	// TODO verify the temp value first
+
+	return (int16_t) temp;
 }
 
 
@@ -853,6 +877,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
 int16_t wsa_get_bpf(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	long temp;
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -860,8 +885,13 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 	query = wsa_send_query(dev, "INP:FILT:PRES:STATE?\n");
 	if (query.status <= 0)
 		return (int16_t) query.status;
+
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
 	
-	return atoi(query.output);
+	// TODO verify the temp value first
+
+	return (int16_t) temp;
 }
 
 
@@ -963,6 +993,7 @@ int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode)
 int16_t wsa_query_cal_mode(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
+	long temp;
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -971,7 +1002,12 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	return (atoi(query.output) & SCPI_OSR_CALI);
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+	
+	// TODO verify the temp value first
+
+	return (((int16_t) temp) & SCPI_OSR_CALI);
 }
 
 

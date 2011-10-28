@@ -76,12 +76,12 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 }
 
 /**
- * Convert a string to a long integer
+ * Convert a string to a long number type
  */
-int16_t to_digit(char *num_str, long *val)
+int16_t to_int(char *num_str, long int *val)
 {
 	char *temp;
-	long temp_val;
+	long int temp_val;
 
 	errno = 0; // to distinguish success/failure after calling strtol
 	temp_val = strtol(num_str, &temp, 0);
@@ -89,6 +89,26 @@ int16_t to_digit(char *num_str, long *val)
 		|| (errno != 0 && temp_val == 0)
 		|| temp == num_str) {
 		perror("strtol");
+		return WSA_ERR_INVNUMBER;
+	}
+
+	*val = temp_val;
+
+	return 0;
+}
+
+/**
+ * Convert a string to a long number type
+ */
+int16_t to_double(char *num_str, double *val)
+{
+	char *temp;
+	double temp_val;
+
+	errno = 0; // to distinguish success/failure after calling strtol
+	temp_val = strtod(num_str, &temp);
+	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str) {
+		perror("strtod");
 		return WSA_ERR_INVNUMBER;
 	}
 

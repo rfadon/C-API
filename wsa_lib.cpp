@@ -146,7 +146,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	if (to_digit(query.output, &stb_reg) < 0)
+	if (to_int(query.output, &stb_reg) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
 	if (((uint8_t) stb_reg) & SCPI_SBR_EVTAVL) {
@@ -309,12 +309,23 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Do the connection
 	// *****
 	if (is_tcpip) {
+		long temp;
+
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
+			// get control port
 			temp_str = strtok(ports_str, ",");
-			ctrl_port = atoi(temp_str);
+			if (to_int(temp_str, &temp) < 0)
+				return WSA_ERR_INVNUMBER;
+			else 
+				ctrl_port = (int32_t) temp;
+			
+			// get data port
 			temp_str = strtok(NULL, ",");
-			data_port = atoi(temp_str);
+			if (to_int(temp_str, &temp) < 0)
+				return WSA_ERR_INVNUMBER;
+			else 
+				data_port = (int32_t) temp;
 		}
 		else {
 			ctrl_port = HISLIP;
