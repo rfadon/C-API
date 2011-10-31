@@ -56,8 +56,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
 	sprintf(dev->descr.prod_version, "v1.0"); // temp value
-	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
-	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
+	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
+	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
 	sprintf(dev->descr.rfe_version, "v1.0"); // temp
 	strcpy(dev->descr.fw_version, "v1.0");
 
@@ -206,7 +206,8 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 		return WSA_ERR_RESPUNKNOWN;
 	esr_reg = (uint8_t) temp_val;
 
-	if (esr_reg & SCPI_ESR_OPC) {
+	if (!(esr_reg & SCPI_ESR_OPC)) {
+		strcpy(output, "Operation incomplete.\n");
 	}
 
 	if (esr_reg & SCPI_ESR_QYE) {
