@@ -554,6 +554,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}  // end get GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
+				int_result = -1000;
 				if (strcmp(cmd_words[3], "") != 0) {
 					if (strcmp(cmd_words[3], "MAX") == 0) {
 						printf("Maximum IF gain: %d dB\n", 
@@ -570,7 +571,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				result = wsa_get_gain_if (dev, &int_result);
 
-				if (result > 0)
+				if (result >= 0)
 					printf("Current IF gain: %d dB\n", int_result);
 			} // end get GAIN IF
 
