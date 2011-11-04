@@ -659,10 +659,10 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
  * @param dev - A pointer to the WSA device structure.
  * @return The gain value in dB, or a large negative number on error.
  */
-float wsa_get_gain_if (struct wsa_device *dev)
+int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
 {
 	struct wsa_resp query;		// store query results
-	double temp;
+	long int temp;
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -671,12 +671,12 @@ float wsa_get_gain_if (struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	if (to_double(query.output, &temp) < 0)
+	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	
-	// TODO verify the temp value first
 
-	return (float) temp;
+	*gain = (int) temp;
+
+	return 0;
 }
 
 
@@ -693,7 +693,7 @@ float wsa_get_gain_if (struct wsa_device *dev)
  * @par Errors:
  * - Gain level out of range.
  */
-int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
+int16_t wsa_set_gain_if (struct wsa_device *dev, int gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
@@ -704,7 +704,7 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, float gain)
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 
-	sprintf(temp_str, "INPUT:GAIN:IF %.02f dB\n", gain);
+	sprintf(temp_str, "INPUT:GAIN:IF %d dB\n", gain);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);

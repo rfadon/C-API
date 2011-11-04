@@ -86,8 +86,8 @@ void print_cli_menu(struct wsa_device *dev)
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
 	uint32_t MAX_SS = dev->descr.max_sample_size;
-	float MAX_IF_GAIN = dev->descr.min_if_gain;
-	float MIN_IF_GAIN = dev->descr.max_if_gain;
+	int32_t MAX_IF_GAIN = dev->descr.min_if_gain;
+	int32_t MIN_IF_GAIN = dev->descr.max_if_gain;
 	uint64_t FREQ_RES = dev->descr.freq_resolution;
 
 	printf("\n---------------------------\n");
@@ -140,10 +140,10 @@ void print_cli_menu(struct wsa_device *dev)
 									"1000). \n"
 		   "                        - Maximum allows: %d.\n", MAX_FS);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
-		   "                        (ex: set gain rf HIGH, set gain if -20.0).\n"
+		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
 		   "                        - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
-		   "                        - IF range: %0.2lf to %0.2lf dB, inclusive."
-									"\n", MIN_IF_GAIN, MAX_IF_GAIN);
+		   "                        - IF range: %d to %d dB, inclusive.\n", 
+									MIN_IF_GAIN, MAX_IF_GAIN);
 	//printf(" set lpf <on | off>     Turn the RFE's anti-aliasing LPF stage "
 	//								"on or off.\n");
 	printf(" set ss <size>          Set the number of samples per frame to be "
@@ -466,7 +466,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 {
 	int16_t result = 0;			// result returned from a function
 	int64_t freq = 0;
-	float fl_result = 0;
+	int int_result = 0;
 	uint8_t user_quit = FALSE;	// determine if user has entered 'q' command
 
 
@@ -556,25 +556,22 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else if (strcmp(cmd_words[2], "IF") == 0) {
 				if (strcmp(cmd_words[3], "") != 0) {
 					if (strcmp(cmd_words[3], "MAX") == 0) {
-						printf("Maximum IF gain: %0.2f dB\n", 
+						printf("Maximum IF gain: %d dB\n", 
 							dev->descr.max_if_gain);
 						return 0;
 					}
 					else if (strcmp(cmd_words[3], "MIN") == 0) {
-						printf("Minimum IF gain: %0.2f dB\n", 
+						printf("Minimum IF gain: %d dB\n", 
 							dev->descr.min_if_gain);
 						return 0;
 					}
 					else
 						printf("Did you mean \"min\" or \"max\"?\n");
 				}
-				fl_result = wsa_get_gain_if (dev);
+				result = wsa_get_gain_if (dev, &int_result);
 
-				// Here assume that there will be no gain less than -200 dB
-				if (fl_result == WSA_ERR_QUERYNORESP || fl_result < -200)
-					result = (int16_t) fl_result;
-				else
-					printf("Current IF gain: %0.2f dB\n", fl_result);
+				if (result > 0)
+					printf("Current IF gain: %d dB\n", int_result);
 			} // end get GAIN IF
 
 			else 
@@ -725,7 +722,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Missing the gain dB value. See 'h'.\n");
 				}
 				else
-					result = wsa_set_gain_if(dev, (float) atof(cmd_words[3]));
+					result = wsa_set_gain_if(dev, atoi(cmd_words[3]));
 			} // end set GAIN IF
 			
 			else {
