@@ -199,7 +199,6 @@ char* get_input_cmd(uint8_t pretext)
  *
  * @return Number of lines processed or negative number if failed.
  */
-// TODO fix error code here
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name) 
 {
 	int16_t result = 0;
@@ -209,7 +208,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		printf("Error opening '%s'.\n", file_name);
-		return -1;
+		return WSA_ERR_FILEOPENFAILED;
 	}
 
 	// Allocate memory
@@ -224,7 +223,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 		// free memory
 		for (int i = 0; i < MAX_FILE_LINES; i++)
 			free(cmd_strs[i]);
-		return -1;
+		return WSA_ERR_FILEREADFAILED; //??
 	}
 
 	// Send each command line to WSA
@@ -255,7 +254,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
  * @param dev - A pointer to the WSA device structure.
  * @param cmd_str - A char pointer for a command string.
  *
- * @return 1 for quit, 0 for no error or negative number if failed
+ * @return 1 for quit, 0 for no error or a negative number if failed
  */
 //TODO must catch/return some errors...
 int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str) 
@@ -825,7 +824,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
  *
  * @param wsa_addr - A char pointer to the IP address of the WSA
  *
- * @return
+ * @return 0 when successful or a negative number when error occurred
  */
 int16_t do_wsa(const char *wsa_addr)
 {	
@@ -846,8 +845,8 @@ int16_t do_wsa(const char *wsa_addr)
 	result = wsa_open(dev, intf_str);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_OPENFAILED: %s.\n", 
-			wsa_get_err_msg(WSA_ERR_OPENFAILED));
-		return WSA_ERR_OPENFAILED;
+			wsa_get_err_msg(result));//WSA_ERR_OPENFAILED));
+		return result;//WSA_ERR_OPENFAILED;
 	}
 
 	// Start the control loop

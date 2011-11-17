@@ -387,8 +387,8 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 
 		if (result < 0) {
 			doutf(DMED, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-					_wsa_get_err_msg(WSA_ERR_ETHERNETCONNECTFAILED));
-			return WSA_ERR_ETHERNETCONNECTFAILED;
+					_wsa_get_err_msg(result));//WSA_ERR_ETHERNETCONNECTFAILED));
+			return result;//WSA_ERR_ETHERNETCONNECTFAILED;
 		}
 
 		strcpy(dev->descr.intf_type, "TCPIP");

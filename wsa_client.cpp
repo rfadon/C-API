@@ -169,23 +169,17 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 	if (new_sock_addr == INADDR_NONE) {
 		fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
-		return -1;	// random number
+		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
 	// Keep record of the socket's address & port
 	in_addr socAdrIn;
 	memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
-	//printf("%s:%d\n", inet_ntoa(socAdrIn), sock_port); 
-
-	//printf("Connecting to %s (%s:%d)... ", sock_name, inet_ntoa(socAdrIn), 
-	//	sock_port);
 	printf("Connecting to WSA @ %s:%d... ", inet_ntoa(socAdrIn), sock_port);
 
 	// The htons function converts a u_short from host to TCP/IP 
 	// network byte order (which is big-endian)
 	SOCKET sd = establish_connection(new_sock_addr, htons(sock_port));
-	//if (sd == INVALID_SOCKET) 
-	//	printf("%s socket setup failed!\n", sock_name);
 
 	return sd;
 }
@@ -208,7 +202,7 @@ u_long wsa_verify_addr(const char *sock_addr)
 	// Initialize Winsock
 	if ((iResult = WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) {
 		printf("WSAStartup failed: %d\n", iResult);
-		return -1;
+		return WSA_ERR_WINSOCKSTARTUPFAILED;
 	}
 
 	u_long new_sock_addr = inet_addr(sock_addr);
