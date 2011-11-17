@@ -467,6 +467,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t freq = 0;
 	int int_result = 0;
 	uint8_t user_quit = FALSE;	// determine if user has entered 'q' command
+	char msg[100];
+	strcpy(msg,"");
 
 
 	//*****
@@ -622,7 +624,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							strcat(file_name, cmd_words[i]);
 						}
 					}
-				
 
 					if (strcmp(cmd_words[2], "CLI") == 0) 
 						result = wsa_set_cli_command_file(dev, file_name);
@@ -647,6 +648,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Missing the antenna port value. See 'h'.\n");
 			else
 				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
+				if (result == WSA_ERR_INVANTENNAPORT)
+					sprintf(msg, "\n\t- Valid ports: 1 to %d.", MAX_ANT_PORT);
 		} // end set ANT
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
@@ -674,6 +677,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else {
 				freq = (int64_t) (atof(cmd_words[2]) * MHZ);
 				result = wsa_set_freq(dev, freq);
+				if (result == WSA_ERR_FREQOUTOFBOUND)
+					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+						(double) dev->descr.min_tune_freq / MHZ, 
+						(double) dev->descr.max_tune_freq / MHZ);
 			}
 		} // end set FREQ
 
@@ -684,7 +691,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else {
 				temp_fs = atoi(cmd_words[2]);
 				if (temp_fs < 1)
-					printf("Invalid number for the frame size.\n");
+					printf("Invalid number for the frame size."
+						"\n\t- Valid range: 1 or larger\n");
 				else 
 					_frame_size = temp_fs;
 			}
@@ -719,10 +727,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			else if (strcmp(cmd_words[2], "IF") == 0) {
 				if (strcmp(cmd_words[3], "") == 0) {
-					printf("Missing the gain dB value. See 'h'.\n");
+					printf("Missing the gain in dB value. See 'h'.\n");
 				}
-				else
+				else {
 					result = wsa_set_gain_if(dev, atoi(cmd_words[3]));
+					if (result == WSA_ERR_INVIFGAIN)
+						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
+							dev->descr.min_if_gain, dev->descr.max_if_gain);
+				}
 			} // end set GAIN IF
 			
 			else {
@@ -738,6 +750,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			int32_t sample_size = (int32_t) atof(cmd_words[2]);
 
 			result = wsa_set_sample_size(dev, sample_size);
+			if (result == WSA_ERR_INVSAMPLESIZE)
+				sprintf(msg, "\n\t- Valid range: 256 to %d.",
+					dev->descr.max_sample_size);
 		} // end set SS
 
 		else 
@@ -814,7 +829,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 	// Print out the errors
 	if (result < 0)
-		printf("ERROR: %s.\n", wsa_get_err_msg(result));
+		printf("ERROR: %s. %s\n", wsa_get_err_msg(result), msg);
 
 	return user_quit;
 }

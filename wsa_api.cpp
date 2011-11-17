@@ -673,6 +673,7 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	printf("got: %s, %ld\n", query.output, temp);
 
 	*gain = (int) temp;
 
@@ -850,7 +851,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	if (port_num < 1 || port_num > MAX_ANT_PORT)
+	if (port_num < 1 || port_num > MAX_ANT_PORT)	// todo replace the max
 		return WSA_ERR_INVANTENNAPORT;
 
 	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);
