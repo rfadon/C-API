@@ -75,8 +75,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
 			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
 				WSA_RFE0440_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MEDIUM] = 
-				WSA_RFE0440_ABS_AMP_MEDIUM;
+			dev->descr.abs_max_amp[WSA_GAIN_MED] = 
+				WSA_RFE0440_ABS_AMP_MED;
 			dev->descr.abs_max_amp[WSA_GAIN_LOW] = 
 				WSA_RFE0440_ABS_AMP_LOW;
 			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = 
@@ -92,8 +92,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			dev->descr.min_if_gain = WSA_RFE0560_MIN_IF_GAIN;
 			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
 				WSA_RFE0560_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MEDIUM] = 
-				WSA_RFE0560_ABS_AMP_MEDIUM;
+			dev->descr.abs_max_amp[WSA_GAIN_MED] = 
+				WSA_RFE0560_ABS_AMP_MED;
 			dev->descr.abs_max_amp[WSA_GAIN_LOW] = 
 				WSA_RFE0560_ABS_AMP_LOW;
 			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = 

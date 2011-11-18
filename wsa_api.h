@@ -18,7 +18,7 @@
 
 typedef enum wsa_gain {
 	WSA_GAIN_HIGH = 1,
-	WSA_GAIN_MEDIUM,
+	WSA_GAIN_MED,
 	WSA_GAIN_LOW,
 	WSA_GAIN_VLOW
 };

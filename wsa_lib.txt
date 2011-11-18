@@ -29,7 +29,7 @@
 	/** @var wsa_gain::WSA_GAIN_HIGH
 	 * High RF amplification. Value 1.
 	 */
-	/** @var wsa_gain::WSA_GAIN_MEDIUM
+	/** @var wsa_gain::WSA_GAIN_MED
 	 * Medium RF amplification.
 	 */
 	/** @var wsa_gain::WSA_GAIN_LOW

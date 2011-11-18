@@ -141,7 +141,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Maximum allows: %d.\n", MAX_FS);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
-		   "                        - RF options: HIGH, MEDIUM, LOW, VLOW.\n"
+		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
 		   "                        - IF range: %d to %d dB, inclusive.\n", 
 									MIN_IF_GAIN, MAX_IF_GAIN);
 	//printf(" set lpf <on | off>     Turn the RFE's anti-aliasing LPF stage "
@@ -545,7 +545,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Current RF gain: ");
 					switch(result) {
 						case(WSA_GAIN_HIGH):	printf("HIGH"); break;
-						case(WSA_GAIN_MEDIUM):	printf("MEDIUM"); break;
+						case(WSA_GAIN_MED):		printf("MEDIUM"); break;
 						case(WSA_GAIN_LOW):		printf("LOW"); break;
 						case(WSA_GAIN_VLOW):	printf("VLOW"); break;
 						default: printf("Unknown"); break;
@@ -706,8 +706,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				// Convert to wsa_gain type
 				if (strstr(cmd_words[3], "HIGH") != NULL)
 					gain = WSA_GAIN_HIGH;
-				else if (strstr(cmd_words[3], "MEDIUM") != NULL)
-					gain = WSA_GAIN_MEDIUM;
+				else if (strstr(cmd_words[3], "MED") != NULL)
+					gain = WSA_GAIN_MED;
 				else if (strstr(cmd_words[3], "VLOW") != NULL)
 					gain = WSA_GAIN_VLOW;
 				else if (strstr(cmd_words[3], "LOW") != NULL)

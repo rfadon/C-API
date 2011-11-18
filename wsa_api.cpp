@@ -739,7 +739,7 @@ enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
 		gain = WSA_GAIN_HIGH;
 	}
 	else if (strstr(query.output, "MED") != NULL) {
-		gain = WSA_GAIN_MEDIUM;
+		gain = WSA_GAIN_MED;
 	}
 	else if (strstr(query.output, "VLOW") != NULL) {
 		gain = WSA_GAIN_VLOW;
@@ -760,7 +760,7 @@ enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
  * @param gain - The gain setting of type wsa_gain to set for WSA. \n
  * Valid gain settings are:
  * - WSA_GAIN_HIGH
- * - WSA_GAIN_MEDIUM
+ * - WSA_GAIN_MED
  * - WSA_GAIN_LOW 
  * - WSA_GAIN_VLOW
  * 
@@ -779,7 +779,7 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain)
 	strcpy(temp_str, "INPUT:GAIN:RF ");
 	switch(gain) {
 		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
-		case(WSA_GAIN_MEDIUM):	strcat(temp_str, "MED"); break;
+		case(WSA_GAIN_MED):	strcat(temp_str, "MED"); break;
 		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
 		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
 		default:		strcat(temp_str, "ERROR"); break;
