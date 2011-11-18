@@ -570,8 +570,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					else
 						printf("Did you mean \"min\" or \"max\"?\n");
 				}
+				
 				result = wsa_get_gain_if (dev, &int_result);
-
 				if (result >= 0)
 					printf("Current IF gain: %d dB\n", int_result);
 			} // end get GAIN IF

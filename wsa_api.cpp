@@ -673,7 +673,6 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	printf("got: %s, %ld\n", query.output, temp);
 
 	*gain = (int) temp;
 
