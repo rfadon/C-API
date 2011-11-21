@@ -489,7 +489,7 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 	// A "temporary" (hope so) fix for certain bands that required iq swapped
 	freq = wsa_get_freq(dev);
 	if ((freq >= (90 * MHZ) && freq < (450 *MHZ)) ||
-		(freq >= (430 * MHZ) && freq < (7450 *MHZ)))
+		(freq >= (4300 * MHZ) && freq < (7450 *MHZ)))
 		// then swap i & q
 		result = wsa_decode_frame(data_buf, q_buf, i_buf, sample_size);
 	else
