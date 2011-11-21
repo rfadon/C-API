@@ -419,7 +419,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	// Decode all the samples
 	printf("Decoding into I & Q... ");
-	wsa_frame_decode(d_buf, i_buf, q_buf, frame_size * samples);
+	wsa_frame_decode(dev, d_buf, i_buf, q_buf, frame_size * samples);
 	
 	// *****
 	// Save data to the file

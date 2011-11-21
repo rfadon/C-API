@@ -435,7 +435,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 	result = wsa_read_frame_raw(dev, header, dbuf, sample_size);
 	// TODO handle result < 0
 	
-	result = wsa_decode_frame(dbuf, i_buf, q_buf, sample_size);
+	result = wsa_frame_decode(dev, dbuf, i_buf, q_buf, sample_size);
 	// TODO handle result < 0
 
 	/*int i, j=0;
@@ -458,6 +458,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  *
  * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
+ * @param dev - A pointer to the WSA device structure.
  * @param data_buf - A char pointer buffer containing the raw I and Q data in
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
@@ -474,17 +475,25 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_frame_decode(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 const int32_t sample_size)
+int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf, 
+						 int16_t *q_buf, const int32_t sample_size)
 {
 	int32_t result;
+	int64_t freq;
 	
 	// TODO need to check for the max value too? but maybe not if 
 	// multiple frames allow
 	if (sample_size < 128)
 		return WSA_ERR_INVSAMPLESIZE;
-
-	result = wsa_decode_frame(data_buf, i_buf, q_buf, sample_size);
+		
+	// A "temporary" (hope so) fix for certain bands that required iq swapped
+	freq = wsa_get_freq(dev);
+	if ((freq >= (90 * MHZ) && freq < (450 *MHZ)) ||
+		(freq >= (430 * MHZ) && freq < (7450 *MHZ)))
+		// then swap i & q
+		result = wsa_decode_frame(data_buf, q_buf, i_buf, sample_size);
+	else
+		result = wsa_decode_frame(data_buf, i_buf, q_buf, sample_size);
 
 	return result;
 }
