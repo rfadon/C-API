@@ -8,7 +8,7 @@
 #define MAX_BUF_SIZE 20
 
 #define TIMEOUT 1000	/* Timeout for sockets in milliseconds */
-#define HISLIP 4880		/* Connection protocol's port to use with TCPIP */
+#define CTRL_PORT 4880		/* Connection protocol's port to use with TCPIP */
 #define DATA_PORT 7000
 
 

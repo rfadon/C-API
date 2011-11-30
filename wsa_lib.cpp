@@ -274,7 +274,7 @@ char *wsa_query_error(struct wsa_device *dev)
  * - With USB, use: "USB" (check if supported with the WSA version used). \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>[::<cmd port,data port>]".\n
  * The ports' number if not entered will be defaulted to: \n
- *		- command port: a HISLIP port (or 4880) \n
+ *		- command port: 7001 \n
  *		- data port: 7000 \n
  *		.
  * However, if port forwarding method is used to forward different ports to 
@@ -376,7 +376,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 				data_port = (int32_t) temp;
 		}
 		else {
-			ctrl_port = HISLIP;
+			ctrl_port = CTRL_PORT;
 			data_port = DATA_PORT;
 		}
 		doutf(DLOW, "%d %d\n", ctrl_port, data_port);

@@ -853,7 +853,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s", wsa_addr);
-	//sprintf(intf_str, "TCPIP::%s::%d,%d", wsa_addr, HISLIP, DATA_PORT);
+	//sprintf(intf_str, "TCPIP::%s::%d,%d", wsa_addr, CTRL_PORT, DATA_PORT);
 
 	// Start the WSA connection
 	dev = &wsa_dev;
@@ -1039,7 +1039,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				strcpy(temp_str, strtok(temp_str, "="));
 
 				// Create the TCPIP interface method string
-				sprintf(intf_str, "TCPIP::%s::%d,%d", temp_str, HISLIP, 
+				sprintf(intf_str, "TCPIP::%s::%d,%d", temp_str, CTRL_PORT, 
 					DATA_PORT);
 
 				w++;

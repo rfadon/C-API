@@ -99,11 +99,12 @@
  * TCP/IP connection for control and data acquisition.
  */
 	/** @var SOCKET wsa_socket::cmd
-	 * The command socket for command controls and queries.  The string 
-	 * protocol used for this socket is HISLIP.
+	 * The command socket for command controls and queries.  The port 
+	 * used for this socket is 7001.
 	 */	 
 	/** @var SOCKET wsa_socket::data
-	 * The data socket used for streaming of data
+	 * The data socket used for streaming of data. The port used for this
+	 * socket is 7000.
 	 */
 	 
  

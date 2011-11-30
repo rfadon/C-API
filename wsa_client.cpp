@@ -32,7 +32,7 @@ uint8_t call_mode = FALSE;
 //char *start = "STARTDATA\0";
 //char *stop = "STOPDATA\0";
 
-//const int32_t ctrl_port = HISLIP;
+//const int32_t ctrl_port = 7001;
 //const int32_t data_port = 7000;
 		  
 

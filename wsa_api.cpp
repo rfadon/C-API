@@ -69,7 +69,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
  * @param dev - A pointer to the WSA device structure to be opened.
  * @param intf_method - A char pointer to store the interface method to the 
  * WSA. \n Possible methods: \n
- * - With LAN, use: "TCPIP::<Ip address of the WSA>::HISLIP" \n
+ * - With LAN, use: "TCPIP::<Ip address of the WSA>::7001" \n
  * - With USB, use: "USB" (check if supported with the WSA version used). \n
  *
  * @return 0 on success, or a negative number on error.
