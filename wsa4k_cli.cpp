@@ -33,6 +33,10 @@
  * of commands available with the CLI is listed in the print_cli_menu() 
  * function. \n \n
  *
+ * @section update Release v1.1
+ * - Can set various sample size. Use get max to determine the limit.
+ * - IF gain set/get is now available.
+ * 
  * @section limitation Limitations in v1.0
  * The following features are not yet supported with the CLI:
  *  - DC correction.  Need Nikhil to clarify on that.

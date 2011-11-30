@@ -14,6 +14,11 @@
  * the VRT packet and makes them available in structures and buffers 
  * for users.
  *
+ *
+ * @section update Release v1.1
+ * - Can set various sample size. Use get max to determine the limit.
+ * - IF gain set/get is now available.
+ * 
  * @section limitation Limitations in v1.0
  * The following features are not yet supported with the CLI:
  *  - DC correction.  Need Nikhil to clarify on that.

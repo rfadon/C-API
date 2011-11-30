@@ -26,14 +26,6 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////	
 uint8_t debug_mode = FALSE;
 uint8_t call_mode = FALSE;
-
-//const int32_t fileSize = 1024;
-//const int32_t IQbus_size = 32;
-//char *start = "STARTDATA\0";
-//char *stop = "STOPDATA\0";
-
-//const int32_t ctrl_port = 37001;
-//const int32_t data_port = 37000;
 		  
 
 ///////////////////////////////////////////////////////////////////////////////

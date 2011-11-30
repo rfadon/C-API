@@ -55,11 +55,11 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	// TODO will need to replace with reading from reg or eeprom?
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
-	sprintf(dev->descr.prod_version, "v1.0"); // temp value
+	sprintf(dev->descr.prod_version, "v1.1"); // temp value
 	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
 	//sprintf(dev->descr.rfe_name, "%s", WSA_RFE0440);
-	sprintf(dev->descr.rfe_version, "v1.0"); // temp
-	strcpy(dev->descr.fw_version, "v1.0");
+	sprintf(dev->descr.rfe_version, "v1.1"); // temp
+	strcpy(dev->descr.fw_version, "v1.1");
 
 	
 	// 3rd, set some values base on the model
