@@ -17,7 +17,7 @@
 #define FALSE	0
 #define TRUE	1
 
-//#define CTRL_PORT 4880		/* Connection protocol's port to use with TCPIP */
+//#define CTRL_PORT 37001		/* Connection protocol's port to use with TCPIP */
 
 extern uint8_t debug_mode;
 extern uint8_t call_mode;

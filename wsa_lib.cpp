@@ -274,13 +274,13 @@ char *wsa_query_error(struct wsa_device *dev)
  * - With USB, use: "USB" (check if supported with the WSA version used). \n
  * - With LAN, use: "TCPIP::<Ip address of the WSA>[::<cmd port,data port>]".\n
  * The ports' number if not entered will be defaulted to: \n
- *		- command port: 7001 \n
- *		- data port: 7000 \n
+ *		- command port: 37001 \n
+ *		- data port: 37000 \n
  *		.
  * However, if port forwarding method is used to forward different ports to 
  * the required ports eventually, then you can enter the ports in the format
  * and the \e \b order as specified. \n
- * Example: "TCPIP::192.168.1.1" or "TCPIP::192.168.1.1::7001,7100"
+ * Example: "TCPIP::192.168.1.1" or "TCPIP::192.168.1.1::37001,37001"
  * 
  * @return 0 on success, or a negative number on error.
  */

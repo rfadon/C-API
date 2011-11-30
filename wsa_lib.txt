@@ -100,11 +100,11 @@
  */
 	/** @var SOCKET wsa_socket::cmd
 	 * The command socket for command controls and queries.  The port 
-	 * used for this socket is 7001.
+	 * used for this socket is 37001.
 	 */	 
 	/** @var SOCKET wsa_socket::data
 	 * The data socket used for streaming of data. The port used for this
-	 * socket is 7000.
+	 * socket is 37000.
 	 */
 	 
  
