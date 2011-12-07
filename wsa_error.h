@@ -52,6 +52,8 @@
 #define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM - 209)
 #define WSA_ERR_WINSOCKSTARTUPFAILED (LNEG_NUM - 210)
 #define WSA_ERR_SOCKETSETFUPFAILED	(LNEG_NUM - 211)
+#define WSA_ERR_SOCKETERROR	(LNEG_NUM - 212)
+#define WSA_ERR_SOCKETDROPPED (LNEG_NUM - 213)
 //#define WSA_ERR_	(LNEG_NUM - 202)
 
 
@@ -216,13 +218,18 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_USBINITFAILED,
 		"Unable to initialize the WSA's USB component"),
 	wsa_err_item(WSA_ERR_ETHERNETCONNECTFAILED,
-		"Unable to open the WSA's Ethernet connection"),
+		"Unable to establish the WSA's Ethernet connection"),
 	wsa_err_item(WSA_ERR_ETHERNETINITFAILED,
 		"Unable to initialize the WSA's Ethernet component"),
 	wsa_err_item(WSA_ERR_WINSOCKSTARTUPFAILED,
 		"Unable to start up Windows Socket with this system"),
 	wsa_err_item(WSA_ERR_SOCKETSETFUPFAILED,
 		"Socket setup failed"),
+	wsa_err_item(WSA_ERR_SOCKETERROR,
+		"Socket error/closed. The Ethernet connection might have been closed"),
+	wsa_err_item(WSA_ERR_SOCKETDROPPED,
+		"Socket connection unexpectedly dropped. Close this application and "
+		"check the Ethernet connection (repower WSA if necessary)"),
 
 	//*****
 	// Amplitude related
@@ -298,7 +305,7 @@ static struct wsa_err_item {
 		"Invalid number of frames to capture"),
 
 	//*****
-	// SOCKET ERRORS
+	// COMMAND ERRORS
 	//*****
 	wsa_err_item(WSA_ERR_CMDSENDFAILED,
 		"Sending of the command failed"),

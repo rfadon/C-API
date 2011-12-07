@@ -632,11 +632,13 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq) // get vco vsn?
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
+	if (result == WSA_ERR_SETFAILED){
 		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
 	}
+	else if (result < 0) 
+		return result;
 
 	return 0;
 }
@@ -671,6 +673,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
  * Gets the current IF gain value of the RFE in dB.
  *
  * @param dev - A pointer to the WSA device structure.
+ * @param gain - An integer pointer to the IF gain value.
  * @return The gain value in dB, or a large negative number on error.
  */
 int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)

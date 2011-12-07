@@ -832,8 +832,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	} // End handling non get/set cmds.
 
 	// Print out the errors
-	if (result < 0)
-		printf("ERROR: %s. %s\n", wsa_get_err_msg(result), msg);
+	if (result < 0) {
+		printf("ERROR %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
+		if (result == WSA_ERR_QUERYNORESP) {
+			printf("Possibly due to lost of Ethernet connection.\n\n");
+			user_quit = TRUE;
+		}
+	}
 
 	return user_quit;
 }

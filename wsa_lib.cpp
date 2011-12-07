@@ -492,8 +492,10 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
 			bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
-			if (bytes_txed < len) {
-				if (resend_cnt > 5)
+			if (bytes_txed < 0)
+				return bytes_txed;
+			else if (bytes_txed < len) {
+				if (resend_cnt > 3)
 					return WSA_ERR_CMDSENDFAILED;
 
 				printf("Not all bytes sent. Resending the packet...\n");
@@ -506,10 +508,15 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
 		if (strstr(command, "IQ?") == NULL)
-			if (strcmp(wsa_query_error(dev), "") != 0)
-				return WSA_ERR_SETFAILED;
-	}
+			if ((strstr(wsa_query_error(dev), "no response") != 0) && 
+				(bytes_txed > 0))
+				return WSA_ERR_QUERYNORESP;
 
+			if (strcmp(wsa_query_error(dev), "") != 0) {
+				printf("%s", wsa_query_error(dev));
+				return WSA_ERR_SETFAILED;
+			}
+	}
 	return bytes_txed;
 }
 
@@ -626,8 +633,14 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 		while (1) {
 			// Send the query command out
 			bytes_got = wsa_sock_send(dev->sock.cmd, command, len);
-			if (bytes_got < len) {
-				if (resend_cnt > 5) {
+			if (bytes_got < 0) {
+				resp.status = bytes_got;
+				strcpy(resp.output, 
+					_wsa_get_err_msg(bytes_got));
+				return resp;
+			}
+			else if (bytes_got < len) {
+				if (resend_cnt > 3) {
 					resp.status = WSA_ERR_CMDSENDFAILED;
 					strcpy(resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
@@ -650,6 +663,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 						break;
 					loop_count++;
 				} while (bytes_got < 1);
+
 				resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
@@ -658,7 +672,8 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 		// TODO define what result should be
 		if (bytes_got == 0)
 			resp.status = WSA_ERR_QUERYNORESP;
-		resp.status = bytes_got;
+		else 
+			resp.status = bytes_got;
 	}
 
 	return resp;

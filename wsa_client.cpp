@@ -12,7 +12,7 @@
 using namespace std;
 
 // Comment this out to disable the shutdown-delay functionality.
-#define SHUTDOWN_DELAY
+//#define SHUTDOWN_DELAY
 #if defined(SHUTDOWN_DELAY)
 	// How long to wait after we do the echo before shutting the connection
 	// down, to give the user time to start other clients, for testing 
@@ -68,7 +68,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
 	//*****
 	SOCKET cmd_socket = setup_sock("WSA 'command' socket", wsa_addr, ctrl_port);
 	if (cmd_socket == INVALID_SOCKET) {
-		return WSA_ERR_SOCKETSETFUPFAILED;
+		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	else {
 		*cmd_sock = cmd_socket;
@@ -81,7 +81,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
 	//*****
 	SOCKET data_socket = setup_sock("WSA 'data' socket", wsa_addr, data_port);
 	if (data_socket == INVALID_SOCKET) {
-		result = WSA_ERR_SOCKETSETFUPFAILED;
+		result = WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	else {
 		*data_sock = data_socket;
@@ -102,11 +102,12 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
  */
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 {
+	printf("Closing down this application...\n");
 #if defined(SHUTDOWN_DELAY)
 	// Delay for a bit, so we can start other clients.  This is strictly
 	// for testing purposes, so you can convince yourself that the 
 	// server is handling more than one connection at a time.
-	printf("\nWill shut down sockets in %d seconds: ", 
+	printf("... in %d seconds: ", 
 		kShutdownDelay);
 	fflush(stdin);
 
@@ -122,18 +123,24 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 	//fflush(stdin);
 	if (ShutdownConnection(cmd_sock, "command socket"))
 		printf("Command socket connection is down.\n");
-	else
+	else {
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'command' socket connection"));
+		WSACleanup();
+		return WSA_ERR_SOCKETDROPPED;
+	}
 
 
 	// Shut DATA socket connection down
 	//fflush(stdin);
 	if (ShutdownConnection(data_sock, "data socket"))
 		printf("Data socket connection is down.\n");
-	else
+	else {
 		fprintf(stderr, "\nERROR: %s\n", 
 			WSAGetLastErrorMessage("Shutdown 'data' socket connection"));
+		WSACleanup();
+		return WSA_ERR_SOCKETDROPPED;
+	}
 
 	// Shut Winsock back down and take off.
 	WSACleanup();
@@ -156,22 +163,26 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 	// Find the server's address
 	//printf("Looking up %s address: ", sock_name);
 	//fflush(stdin);
+	SOCKET sd;
 
 	u_long new_sock_addr = wsa_verify_addr(sock_addr);
 	if (new_sock_addr == INADDR_NONE) {
 		fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
-		return WSA_ERR_INVIPHOSTADDRESS;
+		//return WSA_ERR_INVIPHOSTADDRESS;
+		sd = INVALID_SOCKET;
 	}
+	else {
+		// Keep record of the socket's address & port
+		in_addr socAdrIn;
+		memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
+		printf("Connecting to WSA @ %s:%d... ", 
+			inet_ntoa(socAdrIn), sock_port);
 
-	// Keep record of the socket's address & port
-	in_addr socAdrIn;
-	memcpy(&socAdrIn, &new_sock_addr, sizeof(u_long)); 
-	printf("Connecting to WSA @ %s:%d... ", inet_ntoa(socAdrIn), sock_port);
-
-	// The htons function converts a u_short from host to TCP/IP 
-	// network byte order (which is big-endian)
-	SOCKET sd = establish_connection(new_sock_addr, htons(sock_port));
+		// The htons function converts a u_short from host to TCP/IP 
+		// network byte order (which is big-endian)
+		sd = establish_connection(new_sock_addr, htons(sock_port));
+	}
 
 	return sd;
 }
@@ -277,20 +288,20 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
 	//const char *temp = (const char*) out_str;
 	// Send the string to the server
+	//if (out_socket
 	int32_t bytes_txed = send(out_sock, out_str, len, 0);
 	if (bytes_txed > 0) {
-		//doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
 	}
 	else if (bytes_txed == SOCKET_ERROR) {
-		printf("Sent failed.  Socket error/closed! Error: %ld\n", 
-			WSAGetLastError());
-		return -1;
+		printf("Sent failed.  Winsock2 error: %ld\n", WSAGetLastError());
+		return WSA_ERR_SOCKETERROR;
 	}
 	else {
 		// Client closed connection before we could reply to
 		// all the data it sent, so bomb out early.
-		printf("Peer unexpectedly dropped connection!\n");
-		return -1;
+		//printf("Peer unexpectedly dropped connection!\n");
+		return WSA_ERR_SOCKETDROPPED;
 	}
 
 	return bytes_txed;
@@ -313,7 +324,7 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
-	uint32_t bytes_rxed = 0;
+	int32_t bytes_rxed = 0;
 	double seconds = floor(time_out / 1000.0);
 	
 	//wait x msec. timeval = {secs, microsecs}.
@@ -336,7 +347,7 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 	if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 		doutf(DMED, "winsock init select() function returned with "
 			"error %d\n", WSAGetLastError());
-		return 0;
+		return WSA_ERR_SOCKETERROR;
 	}
 	
 	// if the socket is read-able, rx packet
@@ -459,7 +470,7 @@ int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_ou
 		if (select(0, &Reader, NULL, NULL, &timer) == SOCKET_ERROR) {
 			printf("init select() function returned with error %d\n", 
 				WSAGetLastError());
-			return 0;
+			return WSA_ERR_SOCKETERROR;
 		}
 		
 		// if the socket is read-able, rx packet
@@ -562,7 +573,7 @@ int16_t wsa_get_host_info(char *name)
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
 		printf("WSAStartup failed: %d\n", iResult);
-		return -1;
+		return WSA_ERR_WINSOCKSTARTUPFAILED;
 	}
 
 	host_name = name;
@@ -575,13 +586,13 @@ int16_t wsa_get_host_info(char *name)
 		if (dwError != 0) {
 			if (dwError == WSAHOST_NOT_FOUND) {
 				printf("Host not found\n");
-				return -1;
+				return -1;	// TODO
 			} else if (dwError == WSANO_DATA) {
 				printf("No data record found\n");
-				return -1;
+				return -1;	// TODO
 			} else {
 				printf("Function failed with error: %ld\n", dwError);
-				return -1;
+				return -1;	// TODO
 			}
 		}
 	} else {
