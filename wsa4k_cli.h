@@ -24,6 +24,7 @@ extern uint8_t call_mode;
 
 
 int16_t start_cli(void);
+void call_mode_print_help(char* argv);
 int16_t process_call_mode(int32_t argc, char **argv);
 
 

@@ -102,7 +102,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
  */
 int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 {
-	printf("Closing down this application...\n");
+	printf("\nClosing down this application...\n");
 #if defined(SHUTDOWN_DELAY)
 	// Delay for a bit, so we can start other clients.  This is strictly
 	// for testing purposes, so you can convince yourself that the 

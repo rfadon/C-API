@@ -993,6 +993,16 @@ int16_t start_cli(void)
 	return 0;
 }
 
+void call_mode_print_help(char* argv) {
+	//printf("Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
+	//"[{h}] [{<cmd1>}] [{<cmd2>}] [{...}]\n\nCase insensitive\n[ ]:"
+	//" optional parameter\n< >: required parameter\n\n", argv);
+
+	fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
+		"[{h}] [{<cmd1>}] [{<cmd2>}] [{...}]\n\nCase insensitive\n[ ]:"
+		" optional parameter\n< >: required parameter\n\n", argv);
+}
+
 
 /**
  * Process the standalone call '-c' method
@@ -1013,6 +1023,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	char intf_str[200];			// store the interface method string
 	uint8_t cmd_end = FALSE, is_cmd = FALSE;	// some cmd words related flags
 	uint8_t do_once = TRUE;
+	uint8_t has_ipstr = FALSE;
 
 	int16_t result = 0;
 	struct wsa_device wsa_dev;	// the wsa device structure
@@ -1044,6 +1055,8 @@ int16_t process_call_mode(int32_t argc, char **argv)
 					break;
 				}
 
+				has_ipstr = TRUE;
+
 				strcpy(temp_str, strchr(argv[w], '='));
 				strcpy(temp_str, strtok(temp_str, "="));
 
@@ -1064,6 +1077,10 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	//*****
 		// clear up the cmd words array before storing new cmds
 		if (cmd_end) {
+			if (!has_ipstr) {
+				printf("ERROR: No IP address is given!\n");
+				break;
+			}
 			for (int i = 0; i < MAX_CMD_WORDS; i++)
 				strcpy(cmd_words[i], "");
 		}
@@ -1127,14 +1144,26 @@ int16_t process_call_mode(int32_t argc, char **argv)
 		
 		// words not within the bracket
 		else {
+			if (strncmp(argv[w], "ip=", 3) == 0) {
+				printf("Unable to detect IP address.\n\n");
+				call_mode_print_help(argv[0]);
+				break;
+			}
+			
 			printf("Warning: Omit '%s' not contained within { }.\n", argv[w]);
 			w++;
 		}
 
 	//*****
-	// Send the cmd words to be processed if there are any & tx
+	// 1st: verify that ip string is included, else
+	// 2nd: Send the cmd words to be processed if there are any & tx
 	//*****
 		if (cmd_end) {
+			if (!has_ipstr) {
+				printf("Error: No IP address is given!\n");
+				break;
+			}
+
 			strcpy(temp_str, "");
 			for (int i = 0; i <= c; i++) {
 				// Copy the words into one complete cmd string for display
@@ -1151,6 +1180,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 			if (strlen(temp_str) > 0) {
 				// there are cmds, so establish the connection but only once
 				if (do_once) {
+					printf("\n");
 					// Start the WSA connection
 					if ((result = wsa_open(dev, intf_str)) < 0) {
 						printf("Error WSA_ERR_OPENFAILED: %s.", 
@@ -1178,7 +1208,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 		free(cmd_words[i]);
 
 	// if do_once is never started, print warning.
-	if (do_once)
+	if (do_once && has_ipstr)
 		printf("No command detected. See {h}.\n");
 	else
 		// finish so close the connection
