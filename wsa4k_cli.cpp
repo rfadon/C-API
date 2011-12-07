@@ -994,10 +994,6 @@ int16_t start_cli(void)
 }
 
 void call_mode_print_help(char* argv) {
-	//printf("Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
-	//"[{h}] [{<cmd1>}] [{<cmd2>}] [{...}]\n\nCase insensitive\n[ ]:"
-	//" optional parameter\n< >: required parameter\n\n", argv);
-
 	fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "
 		"[{h}] [{<cmd1>}] [{<cmd2>}] [{...}]\n\nCase insensitive\n[ ]:"
 		" optional parameter\n< >: required parameter\n\n", argv);
@@ -1150,7 +1146,9 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				break;
 			}
 			
-			printf("Warning: Omit '%s' not contained within { }.\n", argv[w]);
+			if (has_ipstr)
+				printf("Warning: Omit '%s' not contained within { }.\n", 
+					argv[w]);
 			w++;
 		}
 
@@ -1160,7 +1158,8 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	//*****
 		if (cmd_end) {
 			if (!has_ipstr) {
-				printf("Error: No IP address is given!\n");
+				printf("Error: No IP address is given!\n\n");
+				call_mode_print_help(argv[0]);
 				break;
 			}
 
