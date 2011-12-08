@@ -13,7 +13,7 @@
 #define SCPI "SCPI"	/* SCPI control commands syntax */
 
 
-typedef enum wsa_gain {
+enum wsa_gain {
 	WSA_GAIN_HIGH = 1,
 	WSA_GAIN_MED,
 	WSA_GAIN_LOW,
