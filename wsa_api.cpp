@@ -343,7 +343,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		}
 
 		// get data & increment counters
-		result = wsa_read_frame(dev, header, data_buf, sample_size, 5000);
+		result = wsa_read_frame(dev, header, data_buf, sample_size, 2000);
 		samples_count += header->sample_size;
 		loop++;
 

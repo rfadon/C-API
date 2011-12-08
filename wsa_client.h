@@ -7,8 +7,8 @@
 #define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20
 
-#define TIMEOUT 1000	/* Timeout for sockets in milliseconds */
-#define CTRL_PORT 37001		/* Connection protocol's port to use with TCPIP */
+#define TIMEOUT 500		/* Timeout for sockets in milliseconds */
+#define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */
 #define DATA_PORT 37000
 
 

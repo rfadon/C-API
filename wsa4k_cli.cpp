@@ -1153,7 +1153,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 		}
 
 	//*****
-	// 1st: verify that ip string is included, else
+	// 1st: verify that ip string is included, then
 	// 2nd: Send the cmd words to be processed if there are any & tx
 	//*****
 		if (cmd_end) {

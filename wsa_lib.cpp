@@ -384,11 +384,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		// Do the connection
 		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
 				&(dev->sock).data, ctrl_port, data_port);
-
 		if (result < 0) {
-			doutf(DMED, "Error WSA_ERR_ETHERNETCONNECTFAILED: %s.\n", 
-					_wsa_get_err_msg(result));//WSA_ERR_ETHERNETCONNECTFAILED));
-			return result;//WSA_ERR_ETHERNETCONNECTFAILED;
+			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
+			return result;
 		}
 
 		strcpy(dev->descr.intf_type, "TCPIP");

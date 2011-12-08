@@ -236,39 +236,77 @@ u_long wsa_verify_addr(const char *sock_addr)
  */
 SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 {
+	int result;
+	int loop = 0;
 	sockaddr_in remoteSocIn;
 	// Create a stream socket
 	// AF_UNSPEC is useless w/ winsock2
 	// So first check for IPv6, if failed do IPv4
 
-	// need to be tested... didn't work when Marek tried w/ his pc
-	//SOCKET sd = socket(AF_INET6, SOCK_STREAM, 0);
-	//if (sd != INVALID_SOCKET) {
-	//	remoteSocIn.sin_family = AF_INET6;//AF_INET;
-	//	remoteSocIn.sin_addr.s_addr = sock_addr;
-	//	remoteSocIn.sin_port = sock_port;
+	SOCKET sd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sd != INVALID_SOCKET) {
+		remoteSocIn.sin_family = AF_INET;
+		remoteSocIn.sin_addr.s_addr = sock_addr;
+		remoteSocIn.sin_port = sock_port;
 
-	//	if (connect(sd, (sockaddr*)&remoteSocIn, 
-	//		sizeof(sockaddr_in)) == SOCKET_ERROR) {
-	//		sd = INVALID_SOCKET;
-	//		printf("Invalid socket!!!\n");
-	//	}
-	//}
-	//else {
-	//	doutf(DMED, "Not IPv6 ready. Will try IPv4 instead... ");
-		SOCKET sd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sd != INVALID_SOCKET) {
-			remoteSocIn.sin_family = AF_INET;
-			remoteSocIn.sin_addr.s_addr = sock_addr;
-			remoteSocIn.sin_port = sock_port;
+		//wait x msec. timeval = {secs, microsecs}.
+		timeval timer = {0, 10000}; 
 
+		// First check for read-ability to the socket
+		fd_set Reader;
+		fd_set Writer;
+		fd_set Err;
+		
+		do {
+			// FD_ZERO() clears out the fd_set called socks, so that
+			//   it doesn't contain any file descriptors. 
+			FD_ZERO(&Reader);
+			FD_ZERO(&Writer);
+			FD_ZERO(&Err);
+
+			// FD_SET() adds the file descriptor "socket" to the fd_set,
+			//	so that select() will return if a connection comes in
+			//	on that socket (which means you have to do accept(), etc.)
+			FD_SET(sd, &Reader);
+			FD_SET(sd, &Writer);
+			FD_SET(sd, &Err);
+
+			// Make reading of socket non-blocking w/ time-out of x msec
+			result = select(3, &Reader, &Writer, &Err, &timer);
+			if (result == SOCKET_ERROR) {
+				doutf(DMED, "winsock init select() function returned with "
+					"error %d\n", WSAGetLastError());
+				sd = INVALID_SOCKET;
+				printf("Connection unavailable!\n");
+				break;
+			}
+			else if (result == 0) {
+				if (FD_ISSET(sd, &Reader) || FD_ISSET(sd, &Writer) || FD_ISSET(sd, &Err)) {
+					result = 1;
+					break;
+				}
+				else
+					Sleep(500);
+			}
+			else if (result > 0)
+				break;
+
+			loop++;
+			if (loop == 4) {
+				sd = INVALID_SOCKET;
+				printf("Connection unavailable!!\n");
+				break;		
+			}
+		} while (1);
+		
+		if (result > 0) {
 			if (connect(sd, (sockaddr*)&remoteSocIn, 
 				sizeof(sockaddr_in)) == SOCKET_ERROR) {
 				sd = INVALID_SOCKET;
 				printf("Invalid socket!!!\n");
 			}
 		}
-	//}
+	}
 
 	return sd;
 }
@@ -440,7 +478,8 @@ int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 
 
 // this one will receive & convert to words/tokens.... don't think I'll need this
-int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], uint32_t time_out)
+int16_t wsa_sock_recv_words(SOCKET in_sock, char *rx_buf_ptr[], 
+							uint32_t time_out)
 {
 	char *rx_buf[1]; 
 		rx_buf[0] = (char*) malloc(MAX_STR_LEN * sizeof(char));  
@@ -526,8 +565,8 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	start_time = time(0);			//* time in seconds
 
 	// Wait for client response rxed before proceeds....
-	// but time out if no resp in x seconds
-	while(wsa_sock_recv(in_sock, rx_buf, MAX_STR_LEN, 10) < 1) {
+	// but time out if no resp in x milliseconds
+	while(wsa_sock_recv(in_sock, rx_buf, MAX_STR_LEN, 5) < 1) {
 		if ((time(0) - start_time) == (time_out / 1000)) 
 			break; 
 	};
