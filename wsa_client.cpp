@@ -236,8 +236,6 @@ u_long wsa_verify_addr(const char *sock_addr)
  */
 SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 {
-	int result;
-	int loop = 0;
 	sockaddr_in remoteSocIn;
 	// Create a stream socket
 	// AF_UNSPEC is useless w/ winsock2
@@ -248,63 +246,11 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
 		remoteSocIn.sin_family = AF_INET;
 		remoteSocIn.sin_addr.s_addr = sock_addr;
 		remoteSocIn.sin_port = sock_port;
-
-		//wait x msec. timeval = {secs, microsecs}.
-		timeval timer = {0, 10000}; 
-
-		// First check for read-ability to the socket
-		fd_set Reader;
-		fd_set Writer;
-		fd_set Err;
-		
-		do {
-			// FD_ZERO() clears out the fd_set called socks, so that
-			//   it doesn't contain any file descriptors. 
-			FD_ZERO(&Reader);
-			FD_ZERO(&Writer);
-			FD_ZERO(&Err);
-
-			// FD_SET() adds the file descriptor "socket" to the fd_set,
-			//	so that select() will return if a connection comes in
-			//	on that socket (which means you have to do accept(), etc.)
-			FD_SET(sd, &Reader);
-			FD_SET(sd, &Writer);
-			FD_SET(sd, &Err);
-
-			// Make reading of socket non-blocking w/ time-out of x msec
-			result = select(3, &Reader, &Writer, &Err, &timer);
-			if (result == SOCKET_ERROR) {
-				doutf(DMED, "winsock init select() function returned with "
-					"error %d\n", WSAGetLastError());
-				sd = INVALID_SOCKET;
-				printf("Connection unavailable!\n");
-				break;
-			}
-			else if (result == 0) {
-				if (FD_ISSET(sd, &Reader) || FD_ISSET(sd, &Writer) || FD_ISSET(sd, &Err)) {
-					result = 1;
-					break;
-				}
-				else
-					Sleep(500);
-			}
-			else if (result > 0)
-				break;
-
-			loop++;
-			if (loop == 4) {
-				sd = INVALID_SOCKET;
-				printf("Connection unavailable!!\n");
-				break;		
-			}
-		} while (1);
-		
-		if (result > 0) {
-			if (connect(sd, (sockaddr*)&remoteSocIn, 
-				sizeof(sockaddr_in)) == SOCKET_ERROR) {
-				sd = INVALID_SOCKET;
-				printf("Invalid socket!!!\n");
-			}
+	
+		if (connect(sd, (sockaddr*)&remoteSocIn, 
+			sizeof(sockaddr_in)) == SOCKET_ERROR) {
+			sd = INVALID_SOCKET;
+			printf("Invalid socket!!!\n");
 		}
 	}
 
