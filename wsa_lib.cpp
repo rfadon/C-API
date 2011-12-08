@@ -137,7 +137,6 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	int16_t result = 0;
 	long temp_val;
 	uint8_t stb_reg = 0;
-	char *temp;
 	struct wsa_resp query;		// store query results
 
 	// initialized the output buf
@@ -190,7 +189,6 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 	int16_t result = 0;
 	long temp_val;
 	uint8_t esr_reg = 0;
-	char *temp;
 	struct wsa_resp query;		// store query results
 
 	// initialized the output buf
@@ -239,7 +237,7 @@ char *wsa_query_error(struct wsa_device *dev)
 
 	resp = wsa_send_query(dev, "SYST:ERR?\n");
 	if (resp.status < 0)
-		return (char *) _wsa_get_err_msg(resp.status);
+		return (char *) _wsa_get_err_msg((int16_t) resp.status);
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
 		return "";
