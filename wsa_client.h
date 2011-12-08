@@ -15,7 +15,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Global Functions
 ///////////////////////////////////////////////////////////////////////////////
-int16_t wsa_list_ips(char **ip_list);
 u_long wsa_verify_addr(const char *sock_addr);
 int16_t wsa_get_host_info(char *name);
 int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 

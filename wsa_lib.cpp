@@ -14,7 +14,6 @@
 //#define DUMMY_CONN 0
 
 //TODO create a log file method
-//TODO add proper error method
 
 
 // *****
@@ -48,10 +47,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	strcpy(dev->descr.rfe_name, "");
 	strcpy(dev->descr.rfe_version, "");
 	strcpy(dev->descr.fw_version, "");
-
-//TODO Move this section to a separate fn?
-		
-	// TODO: get & update the versions & wsa model
+	
+	// TODO get & update the versions & wsa model
 	// TODO will need to replace with reading from reg or eeprom?
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
@@ -63,7 +60,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 	
 	// 3rd, set some values base on the model
-	// TODO read from regs/eeprom instead???
+	// TODO: read from regs/eeprom instead once available
 	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
 		dev->descr.max_sample_size = WSA4000_MAX_SAMPLE_SIZE;
 		dev->descr.inst_bw = (uint64_t) WSA4000_INST_BW;
@@ -414,53 +411,13 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 	int16_t result = 0;			// result returned from a function
 	
 	//TODO close based on connection type
-	// right now do only client
+	// right now do only TCPIP client
 	if (strcmp(dev->descr.intf_type, "TCPIP") == 0)
 		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
 
 	return result;
 }
 
-
-////**
-// * List (print out) the IPs of connected WSAs to the network? or the PC???
-// * For now, will list the IPs for any of the connected devices to a PC?
-// *
-// * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
-// * connected to a network???.
-// *
-// * @return Number of connected WSAs (or IPs for now) on success, or a 
-// * negative number on error.
-// */
-// TODO: This section is to be replaced w/ list connected WSAs
-int16_t wsa_list_devs(char **wsa_list) 
-{
-	int16_t result = 0;			// result returned from a function
-
-	result = wsa_list_ips(wsa_list);
-
-	return result;
-}
-
-
-//**
-// * Open a file or print the help commands information associated with the 
-// * WSA used.
-// *
-// * @param dev - The WSA device structure from which the help information 
-// * will be provided.
-// *
-// * @return 0 on success, or a negative number on error.
-// */
-//int16_t wsa_help(struct wsa_device dev)
-//{
-//	// Open the generic SCPI for now
-//	if (_popen("ThinkRF SCPI DS 101202.pdf", "r") == NULL) {
-//		printf("ERROR: Failed to opent the SCPI file.\n");
-//		return -1;
-//	}
-//	return 0;
-//}
 
 
 /**
@@ -481,7 +438,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
 
-	// TODO: check WSA version/model # ?
+	// TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
 		return WSA_ERR_USBNOTAVBL;
 	}
@@ -573,15 +530,11 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			
 			// If a bad command is detected, continue? Prefer not.
 			if (result < 0) {
-				//result = WSA_ERR_CMDINVALID;
-				//printf("Error WSA_ERR_CMDINVALID: \"%s\".\n", 
-				//	_wsa_get_err_msg((int16_t) result));
 				printf("Error %d: \"%s\" (possibly: %s)\n", resp.output, 
 					_wsa_get_err_msg(WSA_ERR_CMDINVALID));
 				printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 				break;
 			}
-			// TODO how to handle response result
 			else if (strstr(cmd_strs[i], "?") != NULL) {
 				printf("\"%s\": %s\n", cmd_strs[i], resp.output);
 				result = lines;
@@ -778,7 +731,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	// allocate the data buffer
 	dbuf = (char *) malloc(bytes * sizeof(char));
 
-	// reset header ???
+	// reset header
 	header->sample_size = 0;
 	header->time_stamp.sec = 0;
 	header->time_stamp.psec = 0;
@@ -835,7 +788,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(((uint8_t) dbuf[13]) & 0x01000000000000) +
 					(((uint8_t) dbuf[14]) & 0x010000000000) +
 					(((uint8_t) dbuf[15]) & 0x0100000000) +
-					(uint32_t) (((uint8_t) dbuf[16]) << 24) +	// u32 shouldn't be there?
+					(uint32_t) (((uint8_t) dbuf[16]) << 24) +
 					(((uint8_t) dbuf[17]) << 16) + 
 					(((uint8_t) dbuf[18]) << 8) + 
 					(uint8_t) dbuf[19]);
@@ -850,7 +803,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		memcpy(data_buf, dbuf + 20, sample_size * 4);
 
 		// *****
-		// TODO: Handle the trailer word. 
+		// TODO: Handle the trailer word here once it is available
 		// *****
 		//if (dbuf[0] & 0x04)
 			// handle the trailer here

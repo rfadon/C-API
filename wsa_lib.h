@@ -65,7 +65,7 @@ struct wsa_socket {
 struct wsa_device {
 	struct wsa_descriptor descr;
 	struct wsa_socket sock;
-	//struct wsa_trig *trig_list; ??? might not belong here ???
+	//struct wsa_trig *trig_list; 
 };
 
 

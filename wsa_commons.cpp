@@ -43,7 +43,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	char *fToken;
 	int16_t next = 0;
 
-	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end ??
+	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end
 	fSize = ftell(fptr);		// obtain file size
 	rewind(fptr);
 	

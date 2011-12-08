@@ -343,15 +343,11 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 		if (bytes_rxed > 0 && bytes_rxed < buf_size)
 				rx_buf_ptr[bytes_rxed] = '\0';
 
-		// TODO?
 		// DANGER here is that the code so far doesn't handle multiple 
 		// answers in the buffer... assuming 1 answer per query so far...
 		//printf("%d (%d) got: %s\n", bytes_rxed, buf_size, rx_buf_ptr);
 	}
 	
-	// Terminate the last string in buff to 0.
-	//rx_buf_ptr[total_bytes] = '\0'; // why need this here?
-
 	return bytes_rxed;
 }
 
@@ -529,12 +525,12 @@ uint8_t get_sock_ack(SOCKET in_sock, char *ack_str, long time_out)
 	}
 }
 
-//* @param net_type -
+
 /**
  * Get host information based on the name given either as IP or host name 
  * format
  *
- * @param name -
+ * @param name - A char pointer to store the host name
  *
  * @return
  */
@@ -619,31 +615,4 @@ int16_t wsa_get_host_info(char *name)
 	return 0;
 }
 
-
-/**
- * Print a list of host names and the associated IP available to a user's PC.
- *
- * @param ip_list -
- *
- * @return Number of IP addresses available.
- */
-int16_t wsa_list_ips(char **ip_list) 
-{
-	// TODO: detect all the IPs available to the PC...
-	// Better yet... get only IP of WSA by using a specified name.
-	// Can only verify w/in a user's ntwk using subnet mask...
-	
-	//TODO modify wsa_get_host_info() to find out if the given IP is 
-	// IPv4 or 6 & pass that for when setup AF_NET info...
-	// & also if ip address is given instead.
-
-	// TODO use gethostname() to list <host name> (<IP>)
-
-	ip_list[0] = "192.168.215.107";
-	printf("\t1. %s\n", ip_list[0]);
-
-	printf("This function is not yet available for this software version.\n");
-
-	return 1;
-}
 

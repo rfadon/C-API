@@ -46,7 +46,7 @@
 
 
 // Questionable Status Register QSR
-#define SCPI_QSR_POW 0x0002	// Battery power ???
+#define SCPI_QSR_POW 0x0002		// Battery power ?
 #define SCPI_QSR_TEMP 0x0010	// Temperature ?
 #define SCPI_QSR_FREQ 0x0020	// Frequency unlocked ?
 #define SCPI_QSR_PHAS 0x0040	// IQ out of phase ?
@@ -84,7 +84,7 @@
 #define WSA_RFE0560_MIN_IF_GAIN -10
 #define WSA_RFE0560_FREQRES	100000 // to read in the register
 
-// TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S:
+// TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S -> Read from eeprom
 #define WSA_RFE0560_ABS_AMP_HIGH -15
 #define WSA_RFE0560_ABS_AMP_MED 0
 #define WSA_RFE0560_ABS_AMP_LOW 13

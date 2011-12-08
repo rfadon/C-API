@@ -128,68 +128,10 @@ int16_t wsa_check_addr(char *ip_addr)
 
 	// TODO add hook to check then if the address is actually for the WSA
 	// such as some handshaking
-	// do this in the client level?
 	else
 		return 1;
 }
 
-
-////**
-// * Count and print out the IPs of connected WSAs to the network? or the PC???
-// * For now, will list the IPs for any of the connected devices to a PC?
-// *
-// * @param wsa_list - A double char pointer to store (WSA???) IP addresses 
-// * connected to a network???.
-// *
-// * @return Number of connected WSAs (or IPs for now) on success, or a 
-// * negative number on error.
-// */
-//// TODO: This section is to be replaced w/ list connected WSAs
-//int16_t wsa_list(char **wsa_list) 
-//{
-//	int16_t result = 0;			// result returned from a function
-//
-//	result = wsa_list_devs(wsa_list);
-//
-//	return result;
-//}
-
-
-////**
-// * Get the status of the WSA for any errors or messages
-// *
-// */
-//int16_t wsa_get_status(struct wsa_device *dev, char *output) 
-//{
-//	int16_t result = 0;
-//
-//	result = wsa_read_status(dev, output);
-//
-//	return result;
-//}
-
-
-/**
- * Indicates if the WSA is still connected to the PC.
- *
- * @param dev - A pointer to the WSA device structure to be verified for 
- * the connection.
- * @return 1 if it is connected, 0 if not connected, or a negative number 
- * if errors.
- */
-int16_t wsa_is_connected(struct wsa_device *dev) 
-{
-	int16_t result = 0;
-	struct wsa_resp query;		// store query results
-
-	//result = wsa_read_status(dev);???
-	// TODO check version & then do query
-	query = wsa_send_query(dev, "*STB?"); // ???
-
-	//TODO Handle the response here
-	
-	return result;
-}
 
 
 /**
@@ -201,7 +143,6 @@ int16_t wsa_is_connected(struct wsa_device *dev)
  */
 const char *wsa_get_err_msg(int16_t err_code)
 {
-	// TODO add scpi error msg to here too?
 	return wsa_get_error_msg(err_code);
 }
 
@@ -333,7 +274,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		return WSA_ERR_INVSAMPLESIZE;
 
 	// Query WSA for data using the selected connect type
-	// Allow upto 5 times of trying to get data???
+	// Allow upto 5 times of trying to get data
 	do {
 		result = wsa_send_command(dev, "TRACE:IQ?\n");
 		if (result < 0) {
@@ -366,18 +307,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	if (result < 0)
 		return WSA_ERR_READFRAMEFAILED;
 	
-	// TODO: Verify continuity of frame count. use global variable?
-	//if (result != frame_count) {
-	//	printf("Warning: The frame count does not seem continuous. Some"
-	//	" frames might have been dropped.\n");
-	
-	//// TODO Removed this next line once verified:
-	// printf("Previous frame count was %d, current count is %d", 
-	//	frame_count, result);
-	//	
-	//	// reset to the new # here
-	//	frame_count = result;
-	//}
+	// TODO: Verify continuity of frame count once available in VRT
 
 	// Increment the count for the next in coming frame
 	if (frame_count == 15)
@@ -556,18 +486,10 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	//printf("Got %ld bytes: \"%s\" %ld\n", query.status, query.output, 
-	//	(int32_t) temp);
-	
-	// TODO verify the temp value first
-
 	return (int32_t) temp;
 }
 
 
-
-//TODO Check with Jacob how to distinct between onboard vs real time data 
-// capture ????
 
 ///////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
@@ -593,17 +515,10 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	//printf("Got %lld bytes: \"%s\" %lld\n", query.status, query.output, 
-	//	(int64_t) temp);
-	
-	// TODO verify the temp value first
-
 	return (int64_t) temp;
 }
 
 
-// TODO Mentioned here that to do onboard capture will need to call
-// start_onbard_capture()
 /**
  * Sets the WSA to the desired center frequency, \b cfreq.
  * @remarks \b wsa_set_freq() will return error if trigger mode is already
@@ -704,7 +619,7 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
  * @param dev - A pointer to the WSA device structure.
  * @param gain - The gain level in dB.
  * @remarks See the \b descr component of \b wsa_dev structure for 
- * maximum/minimum IF gain values. ???
+ * maximum/minimum IF gain values.
  *
  * @return 0 on success, or a negative number on error.
  * @par Errors:
@@ -840,8 +755,6 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	
-	// TODO verify the temp value first
 
 	return (int16_t) temp;
 }
@@ -867,7 +780,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	if (port_num < 1 || port_num > MAX_ANT_PORT)	// todo replace the max
+	if (port_num < 1 || port_num > MAX_ANT_PORT) // TODO replace the max
 		return WSA_ERR_INVANTENNAPORT;
 
 	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);
@@ -905,8 +818,6 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	
-	// TODO verify the temp value first
 
 	return (int16_t) temp;
 }
@@ -945,60 +856,6 @@ int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode)
 }
 
 
-// /**
-// * Gets the current mode of the RFE's internal anti-aliasing LPF.
-// * 
-// * @param dev - A pointer to the WSA device structure.
-// *
-// * @return 1 (on), 0 (off), or a negative number on error.
-// */
-//int16_t wsa_get_lpf(struct wsa_device *dev)
-//{
-//	struct wsa_resp query;		// store query results
-//
-//	query = wsa_send_query(dev, "INPUT:FILTER:ANTIALIAS:STATE?\n");
-//
-//	// TODO Handle the query output here 
-//	if (query.status > 0)
-//		//return atof(query.output);
-//		printf("Got %lld bytes: \"%s\"\n", query.status, query.output);
-//	else
-//		printf("No query response received.\n");
-//
-//	return 0;
-//}
-
-
-////**
-// * Sets the internal anti-aliasing low pass filter (LPF) on or off (bypassing).
-// * 
-// * @param dev - A pointer to the WSA device structure.
-// * @param mode - An integer mode of selection: 0 - Off, 1 - On.
-// *
-// * @return 0 on success, or a negative number on error.
-// */
-//int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode)
-//{
-//	int16_t result = 0;
-//	char temp_str[50];
-//
-//	if (mode < 0 || mode > 1)
-//		return WSA_ERR_INVFILTERMODE;
-//
-//	sprintf(temp_str, "INPUT:FILTER:ANTIALIAS:STATE %d\n", mode);
-//
-//	// set the freq using the selected connect type
-//	result = wsa_send_command(dev, temp_str);
-//	if (result < 0) {
-//		doutf(DMED, "Error WSA_ERR_FILTERSETFAILED: %s.\n", 
-//			wsa_get_error_msg(WSA_ERR_FILTERSETFAILED));
-//		return WSA_ERR_FILTERSETFAILED;
-//	}
-//
-//	return 0;
-//}
-
-
 /**
  * Checks if the RFE's internal calibration has finished or not.
  * 
@@ -1021,8 +878,6 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	
-	// TODO verify the temp value first
 
 	return (((int16_t) temp) & SCPI_OSR_CALI);
 }

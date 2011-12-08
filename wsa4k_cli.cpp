@@ -156,8 +156,6 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Maximum allows: %d; Minimum: 128.\n\n", 
 									MAX_SS);
 }
-// NOTE TO SELF: I can get & set all the values from Jean's lib!!! YAY!!!
-// maybe except for fs & ss????
 
 
 /**
@@ -227,7 +225,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 		// free memory
 		for (int i = 0; i < MAX_FILE_LINES; i++)
 			free(cmd_strs[i]);
-		return WSA_ERR_FILEREADFAILED; //??
+		return WSA_ERR_FILEREADFAILED;
 	}
 
 	// Send each command line to WSA
@@ -260,7 +258,6 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
  *
  * @return 1 for quit, 0 for no error or a negative number if failed
  */
-//TODO must catch/return some errors...
 int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str) 
 {
 	int16_t result = 0;
@@ -326,8 +323,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 	// Verify sample size
 	int32_t samples = wsa_get_sample_size(dev);
-	// TODO change this when set various ss is allowed
-	if (samples < 1) {
+	if (samples < 128) {
 		printf("Warning: bad sample size detected. Defaulting it to "
 			"1024.\n");
 		samples = 1024;
@@ -747,7 +743,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end set GAIN
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
-			// TODO HERE
 			if (strcmp(cmd_words[2], "") == 0) 
 				printf("Missing the sample size value. See 'h'.\n");
 			
