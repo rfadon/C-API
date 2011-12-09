@@ -864,6 +864,6 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 		j++;
 	}
 
-	return sample_size;
+	return (i / 4); //sample_size
 }
 

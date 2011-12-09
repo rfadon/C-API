@@ -308,7 +308,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  */
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
-	int16_t result;
+	int32_t result = 0;
 	// for acquisition time
 	time_t start_time;	// to capture run time
 	uint16_t start_ms, delta_ms;	// the msec of start time
@@ -323,13 +323,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 	// Verify sample size
 	int32_t samples = wsa_get_sample_size(dev);
-	if (samples < 128) {
-		printf("Warning: bad sample size detected. Defaulting it to "
-			"1024.\n");
-		samples = 1024;
-		result = wsa_set_sample_size(dev, samples);
-		if (result < 0)
-			return result;
+	if (samples < 0)
+		return (int16_t) samples;
+	
+	if (samples < 128 || samples > dev->descr.max_sample_size) {
+		printf("Error: bad sample size detected. Please check the "
+			"sample size. No data is saved.\n");
+		return WSA_ERR_INVSAMPLESIZE;
 	}
 
 	// Get the centre frequency
@@ -394,10 +394,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	while(fi < frame_size) {
 		//doutf(DLOW, "frame %d: ", fi + 1);
 		next = fi * samples * 4;
-		if (wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples) < 1) {
+		result = wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
+		if (result < 1) {
 			frame_size = fi;
-			printf("Error detected while trying to get frame #%d.\n",
-				frame_size);
+			printf("\nError detected while trying to get frame #%d. Collected"
+				" data will be saved... ", frame_size);
 			break;
 		}
 		printf(".");
@@ -448,7 +449,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(i_buf);
 	free(q_buf);
 
-	return 0;
+	return (int16_t) result;
 }
 
 /**
@@ -479,8 +480,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			result = wsa_get_antenna(dev);
 			if (result > 0)
 				printf("Currently using antenna port: %d\n", result);
-			//else
-				//printf("Unknown port. Check setup for any error.\n");
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
@@ -914,7 +913,7 @@ int16_t start_cli(void)
 		//*****
 		// Ask user to enter an IP address
 		//*****
-		printf("\n> Enter the WSA4000's IP (or type 'l'): ");
+		printf("\n> Enter the WSA4000's IP (or type 'h'): ");
 		in_buf = get_input_cmd(FALSE);
 		strcpy(in_str, in_buf);
 
@@ -935,27 +934,8 @@ int16_t start_cli(void)
 		//if (strspn(in_str, "H?") > 0) {
 		if (strcmp(in_str, "H") == 0 || strcmp(in_str, "?") == 0) {
 			printf("Enter an IP address in the format #.#.#.# or host name ");
-			printf("string.\nElse type: 'l' for a list to select "
-				"from, 'q' to quit.\n");
+			printf("string, or 'q' to quit.\n");
 			continue;
-		}
-
-		// User chose List option
-		else if (strcmp(in_str, "L") == 0) {
-			printf("No list option for now. Pls enter IP address instead.\n");
-			continue;
-			/*
-			result = wsa_list(ip_list);
-			printf("> ");
-			strcpy(in_str, get_input_cmd(FALSE));
-			in_num = atoi(in_str);
-
-			if (in_num <= result && in_num > 0)
-				wsa_addr = ip_list[in_num - 1];
-			else {
-				printf("Option invalid!\n");
-				continue;
-			}*/
 		}
 
 		// User has enter an address so verify first

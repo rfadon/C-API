@@ -278,22 +278,22 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	do {
 		result = wsa_send_command(dev, "TRACE:IQ?\n");
 		if (result < 0) {
-			doutf(DMED, "Error WSA_ERR_READFRAMEFAILED: %s.\n", 
-				wsa_get_error_msg(WSA_ERR_READFRAMEFAILED));
-			return WSA_ERR_READFRAMEFAILED;
+			doutf(DMED, "Error WSA_ERR_CMDSENDFAILED: %s.\n", 
+				wsa_get_error_msg(WSA_ERR_CMDSENDFAILED));
+			return WSA_ERR_CMDSENDFAILED;
 		}
 
 		// get data & increment counters
 		result = wsa_read_frame(dev, header, data_buf, sample_size, 2000);
-		samples_count += header->sample_size;
-		loop++;
-
-		// verify output
 		if (result < 0) {
 			printf("Error getting data... trying again #%d\n", loop);
+			loop++;
+			continue;
 		}
+
+		samples_count += header->sample_size;
 		// increment the buffer location
-		else if (samples_count < (uint32_t) sample_size) {
+		if (samples_count < (uint32_t) sample_size) {
 			data_buf += header->sample_size;
 			doutf(DHIGH, "%d, ", samples_count);
 		}
@@ -315,7 +315,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	else 
 		frame_count++;
 
-	return sample_size;
+	return samples_count;
 }
 
 
@@ -368,10 +368,10 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 	dbuf = (char *) malloc(sample_size * 4 * sizeof(char));
 
 	result = wsa_read_frame_raw(dev, header, dbuf, sample_size);
-	// TODO handle result < 0
+	if (result < 0)
+		return result;
 	
 	result = wsa_frame_decode(dev, dbuf, i_buf, q_buf, sample_size);
-	// TODO handle result < 0
 
 	/*int i, j=0;
 	for (i = 0; i < sample_size * 4; i += 4) {		

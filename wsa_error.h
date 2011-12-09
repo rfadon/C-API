@@ -116,7 +116,7 @@
 //#define WSA_ERR_	(LNEG_NUM - 1210)
 
 // ///////////////////////////////
-// SOCKET ERRORS				//
+// CMD ERRORS					//
 // ///////////////////////////////
 #define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
 #define WSA_ERR_CMDINVALID		(LNEG_NUM - 1502)
@@ -245,7 +245,7 @@ static struct wsa_err_item {
 	wsa_err_item(WSA_ERR_READFRAMEFAILED, 
 		"Failed reading a WSA frame"),
 	wsa_err_item(WSA_ERR_INVSAMPLESIZE, 
-		"Invalid frame size"),	// TODO: could add version maximum frame here
+		"Invalid sample size"),	// TODO: could add version maximum frame here
 	wsa_err_item(WSA_ERR_SIZESETFAILED,
 		"Failed to set the sample size"),
 	wsa_err_item(WSA_ERR_NOTIQFRAME,
