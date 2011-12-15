@@ -37,8 +37,8 @@ struct wsa_descriptor {
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
 	uint64_t freq_resolution;
-	int max_if_gain;
-	int min_if_gain;
+	int32_t max_if_gain;
+	int32_t min_if_gain;
 	float abs_max_amp[NUM_RF_GAINS];
 };
 

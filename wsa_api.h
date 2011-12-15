@@ -41,8 +41,8 @@ struct wsa_descriptor {
 	uint64_t max_tune_freq;
 	uint64_t min_tune_freq;
 	uint64_t freq_resolution;
-	int max_if_gain;
-	int min_if_gain;
+	int32_t max_if_gain;
+	int32_t min_if_gain;
 	float abs_max_amp[NUM_RF_GAINS];
 };
 
@@ -147,8 +147,8 @@ int16_t wsa_set_freq (struct wsa_device *dev, int64_t cfreq);
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain);
-int16_t wsa_set_gain_if (struct wsa_device *dev, int gain);
+int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain);
+int16_t wsa_set_gain_if (struct wsa_device *dev, int32_t gain);
 
 enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
 int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain);

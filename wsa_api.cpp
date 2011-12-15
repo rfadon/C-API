@@ -591,7 +591,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
  * @param gain - An integer pointer to the IF gain value.
  * @return The gain value in dB, or a large negative number on error.
  */
-int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
+int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain)
 {
 	struct wsa_resp query;		// store query results
 	long int temp;
@@ -606,7 +606,7 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	*gain = (int) temp;
+	*gain = (int32_t) temp;
 
 	return 0;
 }
@@ -625,7 +625,7 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int *gain)
  * @par Errors:
  * - Gain level out of range.
  */
-int16_t wsa_set_gain_if (struct wsa_device *dev, int gain)
+int16_t wsa_set_gain_if (struct wsa_device *dev, int32_t gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
