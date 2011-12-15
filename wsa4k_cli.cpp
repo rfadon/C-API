@@ -111,6 +111,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
 	printf(" get cal                Show the current RFE calibration mode.\n");
+	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
 	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
@@ -134,6 +135,8 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
 									"or off.\n");
 	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
+	printf(" set dec <rate>			Set decimation rate.\n"
+	       "                        - Range: 0 (for off), %d - %d.\n");
 	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
 									"freq 441.5).\n"
 		   "                        - Range: %.2f - %.2f MHz inclusively.\n"
@@ -502,6 +505,29 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end get CAL
 
+		else if (strcmp(cmd_words[1], "DEC") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum decimation rate: %d\n", 
+						dev->descr.max_decimation);
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum decimation rate: %d\n", 
+						dev->descr.min_decimation);
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+			else {
+				int32_t rate = 0;
+				result = wsa_get_decimation(dev, &rate);
+				if (result >= 0)
+					printf("The current sample size: %ld\n", rate);
+			}
+		} // end get decimation rate
+
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -668,6 +694,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set CAL
+
+		else if (strcmp(cmd_words[1], "DEC") == 0) {
+			if (strcmp(cmd_words[2], "") == 0) 
+				printf("Missing the decimation rate. See 'h'.\n");
+			
+			int32_t rate = (int32_t) atof(cmd_words[2]);
+
+			result = wsa_set_decimation(dev, rate);
+			if (result == WSA_ERR_INVDECIMATIONRATE)
+				sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+				dev->descr.min_decimation, dev->descr.max_decimation);
+		} // end set decimation rate
 
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) {

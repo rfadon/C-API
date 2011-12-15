@@ -87,6 +87,12 @@
 	/** @var int wsa_descriptor::min_if_gain
 	 * The minimum IF gain in dB that a WSA's RFE can be set.
 	 */
+	/** @var int32_t wsa_descriptor::min_decimation
+	 * The minimum decimation rate that can be set. (Not 0, as 0 is off).
+	 */
+	/** @var int32_t wsa_descriptor::max_decimation
+	 * The maximum decimation rate that can be set.
+	 */
 	/** @var float wsa_descriptor::abs_max_amp
 	 * An array storing the absolute maximum RF input level in dBm for each 
 	 * quantized RF gain setting of the RFE. Operating a WSA device at these 

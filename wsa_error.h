@@ -71,6 +71,7 @@
 #define WSA_ERR_INVSAMPLESIZE	(LNEG_NUM - 403)
 #define WSA_ERR_SIZESETFAILED	(LNEG_NUM - 404)
 #define WSA_ERR_NOTIQFRAME	(LNEG_NUM - 405)
+#define WSA_ERR_INVDECIMATIONRATE (LNEG_NUM - 406)
 //#define WSA_ERR_	(LNEG_NUM - 404)
 
 
@@ -250,6 +251,8 @@ static struct wsa_err_item {
 		"Failed to set the sample size"),
 	wsa_err_item(WSA_ERR_NOTIQFRAME,
 		"Not an IQ packet frame"),
+	wsa_err_item(WSA_ERR_INVDECIMATIONRATE,
+		"Invalid decimation rate"),
 
 	//*****
 	// Frequency related

@@ -490,6 +490,77 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 }
 
 
+/**
+ * Gets the decimation rate currently set in the WSA. If rate is 0, it means
+ * decimation is off (or no decimation).
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param rate - A pointer to the decimation rate of integer type.
+ *
+ * @return The sample size if success, or a negative number on error.
+ */
+int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
+{
+	struct wsa_resp query;		// store query results
+	long temp;
+
+	query = wsa_send_query(dev, "CALC:DEC?\n");
+
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int32_t) query.status;
+
+	// convert & make sure no error
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// make sure the returned value is valid
+	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
+		(temp > dev->descr.max_decimation))
+		return WSA_ERR_RESPUNKNOWN;
+
+	*rate = (int32_t) temp;
+
+	return 0;
+}
+
+
+/**
+ * Sets the decimation rate. 
+ * @note: The rate here implies that at every given 'rate' (samples), 
+ * only one sample is stored. Ex. if rate = 100, for a trace 
+ * frame of 1000, only 10 samples is stored???
+ *
+ * Rate supported: 0, 4 - 1024. Rate of 0 is equivalent to no decimation.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param rate - The decimation rate to set.
+ *
+ * @return 0 if success, or a negative number on error.
+ */
+int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
+{
+	int16_t result;
+	char temp_str[50];
+
+	// TODO get min & max rate
+	if (((rate != 0) && (rate < dev->descr.min_decimation)) || 
+		(rate > dev->descr.max_decimation))
+		return WSA_ERR_INVDECIMATIONRATE;
+
+	sprintf(temp_str, "CALC:DEC %d", rate);
+	
+	// set the rate using the selected connect type
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
+		return WSA_ERR_SETFAILED;
+	}
+
+	return 0;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //

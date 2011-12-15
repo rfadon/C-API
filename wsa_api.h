@@ -79,21 +79,6 @@ struct wsa_resp {
 #endif
 
 
-/*
-struct wsa_trig 
-{
-	uint16_t id;	
-	bool enable;	
-	uint64_t center;
-	uint64_t start;	
-	uint64_t stop;	
-	double amp;		
-	uint32_t dwell_time;	
-	uint32_t num_pkts;	
-};
-*/
-
-
 // ////////////////////////////////////////////////////////////////////////////
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
@@ -102,13 +87,10 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 
 int16_t wsa_check_addr(char *intf_method);
-//int16_t wsa_list(char **wsa_list);
-//int16_t wsa_get_status(struct wsa_device *dev, char *output);
 int16_t wsa_is_connected(struct wsa_device *dev);
 const char *wsa_get_err_msg(int16_t err_code);
 
 int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
-/*int16_t wsa_set_dc_corr (wsa_device *dev, int8_t dc_corr);*/
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -129,10 +111,11 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
 		*header, int16_t *i_buf, int16_t *q_buf, const int32_t sample_size);
 
-int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 int32_t wsa_get_sample_size(struct wsa_device *dev);
+int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 
-//int16_t wsa_set_iq_corr (struct wsa_device *dev, bool option);
+int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
+int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -152,8 +135,6 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, int gain);
 
 enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
 int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain);
-/*int16_t wsa_get_gain_cal (struct wsa_device *dev, wsa_gain gain, 
-			uint64_t freq, double *cal_value);*/
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -166,9 +147,6 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num);
 int16_t wsa_get_bpf(struct wsa_device *dev);
 int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode);
 
-//int16_t wsa_get_lpf(struct wsa_device *dev);
-//int16_t wsa_set_lpf(struct wsa_device *dev, uint8_t mode);
-
 int16_t wsa_query_cal_mode(struct wsa_device *dev);
 int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode);
 
@@ -176,15 +154,6 @@ int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode);
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
-/*
-int32_t wsa_add_trig (struct wsa_device *dev, struct wsa_trig *trigger);
-int16_t wsa_clear_trig_list (struct wsa_device *dev);
-int16_t wsa_disable_trig (struct wsa_device *dev, uint16_t id);
-int16_t wsa_enable_trig (struct wsa_device *dev, uint16_t id);
-int16_t wsa_get_trig (struct wsa_device *dev, uint16_t id, 
-			struct wsa_trig *trig);
-int32_t wsa_get_trig_list_size (struct wsa_device *dev);
-int16_t wsa_remove_trig (struct wsa_device *dev, uint16_t id);
-*/
+
 #endif
 

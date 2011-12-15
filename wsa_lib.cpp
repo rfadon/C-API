@@ -38,6 +38,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.freq_resolution = 0;
 	dev->descr.max_if_gain = -1000;	// some impossible #
 	dev->descr.min_if_gain = -1000;	// some impossible #
+	dev->descr.max_decimation = -1;
+	dev->descr.min_decimation = -1;
 	for (int i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
 
@@ -87,6 +89,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
 			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;
 			dev->descr.min_if_gain = WSA_RFE0560_MIN_IF_GAIN;
+			dev->descr.max_decimation = WSA_RFE0560_MAX_DECIMATION;
+			dev->descr.min_decimation = WSA_RFE0560_MIN_DECIMATION;
 			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
 				WSA_RFE0560_ABS_AMP_HIGH;
 			dev->descr.abs_max_amp[WSA_GAIN_MED] = 
