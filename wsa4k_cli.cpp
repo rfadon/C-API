@@ -10,22 +10,22 @@
  * @image html wsa4000_cli_2.PNG
  * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=11cm
  *
- * The CLI interfaces to a WSA through the wsa_api library, which provides
- * functions to set/get particular settings or data from the WSA.  The wsa_api
- * encodes the commands into SCPI syntax scripts, which are sent to a WSA 
- * through the wsa_lib library.  Subsequently decodes any responses or packets
- * coming back from the WSA through the wsa_lib. \n \n
+ * The CLI interfaces to a WSA through the \b wsa_api library, which provides
+ * functions to set/get particular settings or data from the WSA.  The \b 
+ * wsa_api encodes the commands into SCPI syntax scripts, which are sent 
+ * to a WSA through the \b wsa_lib library.  Subsequently decodes any 
+ * responses or packets coming back from the WSA through the \b wsa_lib. \n \n
  *
- * The wsa_lib, thus, is the main gateway to a WSA box from a PC.  The 
- * wsa_lib has functions to open, close, send/receive commands, 
- * querry the WSA box status, and get data.  In this CLI version, wsa_lib 
+ * The \b wsa_lib, thus, is the main gateway to a WSA box from a PC.  The 
+ * \b wsa_lib has functions to open, close, send/receive commands, 
+ * querry the WSA box status, and get data.  In this version, \b wsa_lib 
  * calls the wsa_client's functions in the transport layer to establish TCP/IP 
  * specific connections.  Other connection methods such as USB could be 
- * added to the transport layer later on.  The wsa_lib, thus, abstracts 
+ * added to the transport layer later on.  The \b wsa_lib, thus, abstracts 
  * away the interface method from any application/presentation program 
  * calling it.
  *
- * The CLI, hence, is a direct example of how the wsa_api library could be 
+ * The CLI, hence, is a direct example of how the \b wsa_api library could be 
  * used.  VRT data packet will be decoded before saving into a file.
  *  
  * The WSA4000 CLI is designed using mixed C/C++ languages.
@@ -37,15 +37,21 @@
  * - Can set various sample size. Use get max to determine the limit.
  * - IF gain set/get is now available.
  * 
- * @section limitation Limitations in v1.0
+ * @section limitation Limitations in Release v1.1
  * The following features are not yet supported with the CLI:
- *  - DC correction.  Need Nikhil to clarify on that.
- *  - IQ correction.  Same as above.
+ *  - VRT trailer extraction. Bit fields are yet to be defined.
+ *  - Data streaming. Currently only supports block mode.
+ *  - DC correction.  
+ *  - IQ correction.  
  *  - Automatic finding of a WSA box(s) on a network.
- *  - Set sample sizes. 1024 size for now.
  *  - Triggers.
  *  - Gain calibrarion. TBD with triggers.
- *  - USB interface method - might never be available.
+ *  - USB interface method.
+ *
+ * @section usage Usage
+ * wsa4k_cli.exe ran as a Windows console application. Use 'h' to see the 
+ * options available.  An IP address is required at the first prompt to 
+ * connect to the box.
  */
 
 #include <stdio.h>

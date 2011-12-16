@@ -1,13 +1,14 @@
 /**
  * @mainpage Introduction
  *
- * This documentation, compiled using Doxygen, describes in details the 
- * wsa_api library.  The wsa_api provides
- * functions to set/get particular settings or acquire data from the WSA.  
+ * This documentation describes in details the wsa_api library.  The wsa_api 
+ * provides functions to set/get particular settings or to acquire 
+ * data from the WSA.  \n
  * The wsa_api encodes the commands into SCPI syntax scripts, which 
  * are sent to a WSA through the wsa_lib library.  Subsequently, it decodes 
  * any responses or packets coming back from the WSA through the wsa_lib.
- * Thus, the API helps to abstract away SCPI syntax from the user.
+ * Thus, the API abstracts away the control protocol (such as SCPI) from 
+ * the user.
  *
  * Data frames passing back from the wsa_lib are in VRT format.  This 
  * API will extract the information and the actual data frames within
@@ -15,25 +16,23 @@
  * for users.
  *
  *
- * @section update Release v1.1
- * - Can set various sample size. Use get max to determine the limit.
- * - IF gain set/get is now available.
- * 
- * @section limitation Limitations in v1.0
+ * @section limitation Limitations in Release v1.1
  * The following features are not yet supported with the CLI:
- *  - DC correction.  Need Nikhil to clarify on that.
- *  - IQ correction.  Same as above.
+ *  - VRT trailer extraction. Bit fields are yet to be defined.
+ *  - Data streaming. Currently only supports block mode.
+ *  - DC correction.  
+ *  - IQ correction.  
  *  - Automatic finding of a WSA box(s) on a network.
- *  - Set sample sizes. 1024 size for now.
  *  - Triggers.
  *  - Gain calibrarion. TBD with triggers.
- *  - USB interface method - might never be available.
+ *  - USB interface method.
  *
  * @section usage How to use the library
  * The wsa_api is designed using mixed C/C++ languages.  To use the 
  * library, you need to include the header file, wsa_api.h, in files that 
  * will use any of its functions to access a WSA, and a link to 
- * the wsa_api.lib.
+ * the wsa_api.lib.  \b wsa_api also depends on the others *.h files provided
+ * in the \b include folder
  */
 
 

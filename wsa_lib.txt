@@ -12,13 +12,27 @@
  * WSA status, set gain, set centre frequency, etc., and perform data 
  * acquisition.
  *
- * The wsa_lib supports SCPI for control command syntax and VRT for packet.
+ * The wsa_lib currently supports SCPI protocol for control command syntax 
+ * and VRT protocol for packet.
+ *
+ *
+ * @section limitation Limitations in Release v1.1
+ * The following features are not yet supported with the CLI:
+ *  - VRT trailer extraction. Bit fields are yet to be defined.
+ *  - Data streaming. Currently only supports block mode.
+ *  - DC correction.  
+ *  - IQ correction.  
+ *  - Automatic finding of a WSA box(s) on a network.
+ *  - Triggers.
+ *  - Gain calibrarion. TBD with triggers.
+ *  - USB interface method.
  * 
  * @section usage How to use the library
  * The wsa_lib is designed using mixed C/C++ languages.  To use the 
  * library, you need to include the header file, wsa_lib.h, in files that 
  * will use any of its functions to access a WSA, and a link to 
- * the wsa_lib.lib.
+ * the wsa_lib.lib. \b wsa_lib also depends on the others *.h files provided
+ * in the \b include folder
  */
  
 
