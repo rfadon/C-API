@@ -10,14 +10,15 @@
 #define DEFAULT_FS 100	// temp value
 
 #define MAX_BUF_SIZE 20
-#define MAX_ANT_PORT 2
 #define MAX_FS 1000
 #define MHZ 1000000
+
+#define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */
+#define DATA_PORT 37000
 
 #define FALSE	0
 #define TRUE	1
 
-//#define CTRL_PORT 37001		/* Connection protocol's port to use with TCPIP */
 
 extern uint8_t debug_mode;
 extern uint8_t call_mode;

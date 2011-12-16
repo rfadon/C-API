@@ -24,7 +24,6 @@
 #define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 7)
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 8)
 #define WSA_ERR_QUERYNORESP	(LNEG_NUM - 9)
-//#define WSA_ERR_	(LNEG_NUM - 18)
 
 
 // ///////////////////////////////
@@ -54,7 +53,6 @@
 #define WSA_ERR_SOCKETSETFUPFAILED	(LNEG_NUM - 211)
 #define WSA_ERR_SOCKETERROR	(LNEG_NUM - 212)
 #define WSA_ERR_SOCKETDROPPED (LNEG_NUM - 213)
-//#define WSA_ERR_	(LNEG_NUM - 202)
 
 
 // ///////////////////////////////
@@ -72,7 +70,6 @@
 #define WSA_ERR_SIZESETFAILED	(LNEG_NUM - 404)
 #define WSA_ERR_NOTIQFRAME	(LNEG_NUM - 405)
 #define WSA_ERR_INVDECIMATIONRATE (LNEG_NUM - 406)
-//#define WSA_ERR_	(LNEG_NUM - 404)
 
 
 // ///////////////////////////////
@@ -82,7 +79,6 @@
 #define WSA_ERR_INVFREQRES		(LNEG_NUM - 602)
 #define WSA_ERR_FREQSETFAILED	(LNEG_NUM - 603)
 #define WSA_ERR_PLLLOCKFAILED	(LNEG_NUM - 604)
-//#define WSA_ERR_	(LNEG_NUM - 605)
 
 
 // ///////////////////////////////
@@ -92,14 +88,12 @@
 #define WSA_ERR_INVIFGAIN	(LNEG_NUM - 802)
 #define WSA_ERR_IFGAINSETFAILED (LNEG_NUM - 803)
 #define WSA_ERR_RFGAINSETFAILED (LNEG_NUM - 804)
-//#define WSA_ERR_	(LNEG_NUM - 802)
 
 
 // ///////////////////////////////
 // RUNMODE ERRORS				//
 // ///////////////////////////////
 #define WSA_ERR_INVRUNMODE	(LNEG_NUM - 1001)
-//#define WSA_ERR_	(LNEG_NUM - 1002)
 
 
 // ///////////////////////////////
@@ -114,7 +108,7 @@
 #define WSA_ERR_INVTRIGRANGE	(LNEG_NUM - 1207)
 #define WSA_ERR_INVDWELL		(LNEG_NUM - 1208)
 #define WSA_ERR_INVNUMFRAMES	(LNEG_NUM - 1209)
-//#define WSA_ERR_	(LNEG_NUM - 1210)
+
 
 // ///////////////////////////////
 // CMD ERRORS					//
@@ -145,7 +139,6 @@
 #define WSA_ERR_FILEWRITEFAILED (LNEG_NUM - 1903)
 
 
-
 // ///////////////////////////////
 // OTHERS ERRORS				//
 // ///////////////////////////////
@@ -153,7 +146,6 @@
 #define WSA_ERR_INVREGADDR		(LNEG_NUM - 2001)
 #define WSA_ERR_MALLOCFAILED	(LNEG_NUM - 2002)
 #define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
-
 
 
 static struct wsa_err_item {

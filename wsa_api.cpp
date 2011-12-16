@@ -45,14 +45,10 @@
 
 #include "stdint.h"
 #include "wsa_error.h"
+#include "wsa_commons.h"
 #include "wsa_lib.h"
 #include "wsa_api.h"
-#include "wsa_commons.h"
 
-
-// Defines some private prameters
-#define WSA_RFE0440 "RFE0440"
-#define MAX_ANT_PORT 2
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -851,7 +847,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	if (port_num < 1 || port_num > MAX_ANT_PORT) // TODO replace the max
+	if (port_num < 1 || port_num > WSA_RFE0560_MAX_ANT_PORT) // TODO replace the max
 		return WSA_ERR_INVANTENNAPORT;
 
 	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);

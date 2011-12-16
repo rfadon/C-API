@@ -2,7 +2,7 @@
 #define __WSA_CLIENT_H__
 
 #include "stdint.h"
-#include "ws-util.h"
+#include <winsock2.h>
 
 #define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20
@@ -15,7 +15,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Global Functions
 ///////////////////////////////////////////////////////////////////////////////
-u_long wsa_verify_addr(const char *sock_addr);
+uint32_t wsa_addr_check(const char *sock_addr);
 int16_t wsa_get_host_info(char *name);
 int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock, 
 					SOCKET *data_sock, int32_t ctrl_port, int32_t data_port);

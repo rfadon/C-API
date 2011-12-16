@@ -5,8 +5,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "wsa_client.h"
 #include "ws-util.h"
+#include "wsa_client.h"
 #include "wsa_error.h"
 
 using namespace std;
@@ -165,7 +165,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 	//fflush(stdin);
 	SOCKET sd;
 
-	u_long new_sock_addr = wsa_verify_addr(sock_addr);
+	u_long new_sock_addr = wsa_addr_check(sock_addr);
 	if (new_sock_addr == INADDR_NONE) {
 		fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
@@ -198,7 +198,7 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
-u_long wsa_verify_addr(const char *sock_addr)
+uint32_t wsa_addr_check(const char *sock_addr)
 {
 	WSADATA wsaData;
 	int iResult;
@@ -338,9 +338,14 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 	if (FD_ISSET(in_sock, &Reader)) {
 		// read incoming strings at a time
 		bytes_rxed = recv(in_sock, rx_buf_ptr, buf_size, 0);
+		if (bytes_rxed == SOCKET_ERROR) {
+			doutf(DMED, "winsock recv() function returned with "
+				"error %d\n", WSAGetLastError());
+			return WSA_ERR_SOCKETERROR;
+		}
 
 		// Terminate the last character in cmd resp string only to 0.
-		if (bytes_rxed > 0 && bytes_rxed < buf_size)
+		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
 				rx_buf_ptr[bytes_rxed] = '\0';
 
 		// DANGER here is that the code so far doesn't handle multiple 

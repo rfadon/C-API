@@ -1,8 +1,7 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "wsa_commons.h"
+
 #include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_lib.h"
@@ -12,8 +11,6 @@
 // LOCAL DEFINES
 //*****
 //#define DUMMY_CONN 0
-
-//TODO create a log file method
 
 
 // *****
@@ -420,6 +417,21 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
 
 	return result;
+}
+
+
+/**
+ * Given an address string, determine if it's a dotted-quad IP address
+ * or a domain address.  If the latter, ask DNS to resolve it.  In
+ * either case, return resolved IP address.  If we fail, we return
+ * INADDR_NONE.
+ *
+ * @param sock_addr - 
+ *
+ * @return Resolved IP address or INADDR_NONE when failed.
+ */
+uint32_t wsa_verify_addr(const char *sock_addr) {
+	return wsa_addr_check(sock_addr);
 }
 
 

@@ -119,8 +119,6 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get gain <rf | if [max | min]> \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
-	//printf(" get lpf                Show the current RFE's anti-aliasing"
-	//								" LPF state.\n");
 	printf(" get ss [max | min]     Show the current sample size per frame.\n"
 									"\n");
 	printf("\n");
@@ -131,11 +129,11 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("\n");
 
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
-									"%d.\n", MAX_ANT_PORT);
+									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
 									"or off.\n");
 	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
-	printf(" set dec <rate>			Set decimation rate.\n"
+	printf(" set dec <rate>	        Set decimation rate.\n"
 	       "                        - Range: 0 (for off), %d - %d.\n");
 	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
 									"freq 441.5).\n"
@@ -151,8 +149,6 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
 		   "                        - IF range: %d to %d dB, inclusive.\n", 
 									MIN_IF_GAIN, MAX_IF_GAIN);
-	//printf(" set lpf <on | off>     Turn the RFE's anti-aliasing LPF stage "
-	//								"on or off.\n");
 	printf(" set ss <size>          Set the number of samples per frame to be "
 									"captured\n"
 		   "                        (ex: set ss 2000).\n"
@@ -329,7 +325,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (samples < 0)
 		return (int16_t) samples;
 	
-	if (samples < 128 || samples > dev->descr.max_sample_size) {
+	if (samples < 128 || samples > (int32_t) dev->descr.max_sample_size) {
 		printf("Error: bad sample size detected. Please check the "
 			"sample size. No data is saved.\n");
 		return WSA_ERR_INVSAMPLESIZE;
@@ -674,7 +670,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
 				if (result == WSA_ERR_INVANTENNAPORT)
-					sprintf(msg, "\n\t- Valid ports: 1 to %d.", MAX_ANT_PORT);
+					sprintf(msg, "\n\t- Valid ports: 1 to %d.", WSA_RFE0560_MAX_ANT_PORT);
 		} // end set ANT
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
