@@ -581,7 +581,8 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
  * Retrieves the center frequency that the WSA is running at.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param cfreq - A long integer pointer to store the frequency in Hz
+ * @param cfreq - A long integer pointer to store the frequency in Hz.
+ *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
@@ -678,7 +679,8 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
  * Gets the current IF gain value of the RFE in dB.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param gain - An integer pointer to the IF gain value.
+ * @param gain - An integer pointer to store the IF gain value.
+ *
  * @return The gain value in dB, or a large negative number on error.
  */
 int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
@@ -749,7 +751,9 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
  * Gets the current quantized RF front end gain setting of the RFE.
  *
  * @param dev - A pointer to the WSA device structure.
- * @return The gain setting of wsa_gain type, or a negative number on error.
+ * @param gain - A \b wsa_gain pointer type to store the current RF gain value.
+ *
+ * @return 0 on successful, or a negative number on error.
  */
 int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
 {
@@ -832,10 +836,11 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain)
  * Gets which antenna port is currently in used with the RFE board.
  * 
  * @param dev - A pointer to the WSA device structure.
+ * @param port_num - An integer pointer to store the antenna port number.
  *
- * @return The antenna port number on success, or a negative number on error.
+ * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_antenna(struct wsa_device *dev)
+int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -847,10 +852,17 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	
+	// Verify the validity of the return value
+	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT)
+		return WSA_ERR_RESPUNKNOWN;
 
-	return (int16_t) temp;
+	*port_num = (int16_t) temp;
+
+	return 0;
 }
 
 
@@ -858,7 +870,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
  * Sets the antenna port to be used for the RFE board.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param port_num - An integer port number to used. \n
+ * @param port_num - An integer port number to set. \n
  * Available ports: 1, 2.  Or see product datasheet for ports availability.
  * \b Note: When calibration mode is enabled through wsa_run_cal_mode(), these 
  * antenna ports will not be available.  The seletected port will resume when 
@@ -866,7 +878,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
+int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num)
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -895,10 +907,12 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int16_t port_num)
  * Gets the current mode of the RFE's preselect BPF stage.
  * 
  * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer to store the current BPF mode: 
+ * 1 = on, 0 = off.
  *
- * @return 1 (on), 0 (off), or a negative number on error.
+ * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_bpf(struct wsa_device *dev)
+int16_t wsa_get_bpf(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -910,10 +924,17 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	
+	// Verify the validity of the return value
+	if (temp < 0 || temp > 1)
+		return WSA_ERR_RESPUNKNOWN;
+		
+	*mode = (int16_t) temp;
 
-	return (int16_t) temp;
+	return 0;
 }
 
 
@@ -925,7 +946,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_bpf(struct wsa_device *dev, int16_t mode)
+int16_t wsa_set_bpf(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[50];

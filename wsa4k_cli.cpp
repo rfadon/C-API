@@ -488,17 +488,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	if (strcmp(cmd_words[0], "GET") == 0) {
 		if (strcmp(cmd_words[1], "ANT") == 0) {
-			result = wsa_get_antenna(dev);
-			if (result > 0)
-				printf("Currently using antenna port: %d\n", result);
+			result = wsa_get_antenna(dev, &int_result);
+			if (result >= 0)
+				printf("Currently using antenna port: %d\n", int_result);
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
-			result = wsa_get_bpf(dev);
+			result = wsa_get_bpf(dev, &int_result);
 			if (result >= 0) {
 				printf("RFE's preselect BPF state: ");
-				if (result) printf("On\n");
-				else if (!result) printf("Off\n");
+				if (int_result) printf("On\n");
+				else if (!int_result) printf("Off\n");
 				else printf("Unknown state\n");
 			}
 		} // end get BPF
