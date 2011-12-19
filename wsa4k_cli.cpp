@@ -494,7 +494,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
-			result = wsa_get_bpf(dev, &int_result);
+			result = wsa_get_bpf_mode(dev, &int_result);
 			if (result >= 0) {
 				printf("RFE's preselect BPF state: ");
 				if (int_result) printf("On\n");
@@ -504,11 +504,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get BPF
 
 		else if (strcmp(cmd_words[1], "CAL") == 0) {
-			result = wsa_query_cal_mode(dev);
+			result = wsa_get_cal_mode(dev, &int_result);
 			if (result >= 0) {
 				printf("RFE's calibration state: ");
-				if (result) printf("On\n");
-				else if (!result) printf("Off\n");
+				if (int_result) printf("On\n");
+				else if (!int_result) printf("Off\n");
 				else printf("Unknown state\n");
 			}
 		} // end get CAL
@@ -677,9 +677,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
 			if (strcmp(cmd_words[2], "ON") == 0)
-				result = wsa_set_bpf(dev, 1);
+				result = wsa_set_bpf_mode(dev, 1);
 			else if (strcmp(cmd_words[2], "OFF") == 0)
-				result = wsa_set_bpf(dev, 0);
+				result = wsa_set_bpf_mode(dev, 0);
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set BPF

@@ -147,11 +147,11 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
 int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
 
-int16_t wsa_get_bpf(struct wsa_device *dev, int32_t *mode);
-int16_t wsa_set_bpf(struct wsa_device *dev, int32_t mode);
+int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode);
+int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
-int16_t wsa_query_cal_mode(struct wsa_device *dev);
-int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode);
+int16_t wsa_get_cal_mode(struct wsa_device *dev, int32_t *mode);
+int16_t wsa_run_cal_mode(struct wsa_device *dev, int32_t mode);
 
 
 // ////////////////////////////////////////////////////////////////////////////

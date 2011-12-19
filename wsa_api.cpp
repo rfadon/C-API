@@ -855,7 +855,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	
+
 	// Verify the validity of the return value
 	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT)
 		return WSA_ERR_RESPUNKNOWN;
@@ -912,7 +912,7 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_bpf(struct wsa_device *dev, int32_t *mode)
+int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -946,7 +946,7 @@ int16_t wsa_get_bpf(struct wsa_device *dev, int32_t *mode)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_bpf(struct wsa_device *dev, int32_t mode)
+int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[50];
@@ -975,11 +975,12 @@ int16_t wsa_set_bpf(struct wsa_device *dev, int32_t mode)
  * Checks if the RFE's internal calibration has finished or not.
  * 
  * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer to store the calibration mode:
+ * 1 if the calibration is still running or 0 if completed.
  *
- * @return 1 if the calibration is still running or 0 if completed, 
- * or a negative number on error.
+ * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_query_cal_mode(struct wsa_device *dev)
+int16_t wsa_get_cal_mode(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -991,17 +992,24 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	
+	// Verify the validity of the return value
+	if (temp < 0 || temp > 1)
+		return WSA_ERR_RESPUNKNOWN;
 
-	return (((int16_t) temp) & SCPI_OSR_CALI);
+	*mode = (((int16_t) temp) & SCPI_OSR_CALI);
+
+	return 0;
 }
 
 
 /**
  * Runs the RFE'S internal calibration mode or cancel it. \n
  * While the calibration mode is running, no other commands should be 
- * running until the calibration is finished by using wsa_query_cal_mode(), 
+ * running until the calibration is finished by using wsa_get_cal_mode(), 
  * or could be cancelled
  * 
  * @param dev - A pointer to the WSA device structure.
@@ -1009,7 +1017,7 @@ int16_t wsa_query_cal_mode(struct wsa_device *dev)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_run_cal_mode(struct wsa_device *dev, int16_t mode)
+int16_t wsa_run_cal_mode(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[30];
