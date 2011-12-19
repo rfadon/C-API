@@ -377,22 +377,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 
 	// *****
-	// Create parameters and buffers to store the data
+	// Create parameters and buffers to store the raw data
 	// *****
-	struct wsa_frame_header *header; 
+	struct wsa_frame_header *header;
+	char *d_buf;		// To store raw data bytes 
 	int fi = 0, next = 0;	// frame index and next index location
 	int frame_size = _frame_size;
-	char *d_buf;		// To store raw data bytes
-	int16_t *i_buf;		// To store the integer I data
-	int16_t *q_buf;		// To store the integer Q data
 	int64_t total_bytes = 4 * _frame_size * samples;
 
-	// Allocate buffer space
+	// Allocate header buffer space
 	header = (struct wsa_frame_header *) 
 		malloc(sizeof(struct wsa_frame_header) * _frame_size);
+
+	// Allocate raw data buffer space
 	d_buf = (char *) malloc(sizeof(char) * total_bytes);
-	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
-	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
+	if (d_buf == NULL)
+		return WSA_ERR_MALLOCFAILED;
 	
 	printf("done.\nAcquiring data bytes ");
 	
@@ -408,14 +408,27 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		result = wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
 		if (result < 1) {
 			frame_size = fi;
-			printf("\nError detected while trying to get frame #%d. Collected"
-				" data will be saved... ", frame_size);
+			printf("\nError detected while trying to get frame #%d.\n", 
+				frame_size + 1);
 			break;
 		}
 		printf(".");
 		fi++;
 	}
+	// Determined the total bytes acquired
 	total_bytes = 4 * frame_size * samples;
+
+	// if there are no data to save, exit; else, save.
+	if (result < 1) {
+		if( total_bytes > 1)
+			printf("Collected data will be saved... ");
+		else {
+			fclose(iq_fptr); 
+			free(header);
+			free(d_buf);
+			return (int16_t) result;
+		}
+	}
 
 	// get the end time & calculate the throughput rate
 	_ftime_s(&msec_buf);		// call time function again
@@ -428,6 +441,23 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
 		delta_sec, delta_ms, total_bytes / (delta_sec + (delta_ms / 1000.0)));
+
+	
+	// *****
+	// Create buffers to store the decoded I & Q from the raw data
+	// *****
+	int16_t *i_buf;		// To store the integer I data
+	int16_t *q_buf;		// To store the integer Q data
+
+	// Allocate i buffer space
+	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
+	if (i_buf == NULL)
+		return WSA_ERR_MALLOCFAILED;
+	
+	// Allocate q buffer space
+	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
+	if (q_buf == NULL)
+		return WSA_ERR_MALLOCFAILED;
 
 	// Decode all the samples
 	printf("Decoding into I & Q... ");
@@ -460,7 +490,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(i_buf);
 	free(q_buf);
 
-	return (int16_t) result;
+	return 0;
 }
 
 /**
