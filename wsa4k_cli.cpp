@@ -75,11 +75,15 @@ static int _frame_size = DEFAULT_FS;
 //*****
 // Local functions
 //*****
+void print_cli_menu(struct wsa_device *dev);
+void print_wsa_stat(struct wsa_device *dev);
+
+int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str);
+
+char* get_input_cmd(uint8_t pretext);
 int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str);
 int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 					int16_t num_words);
-void print_cli_menu(struct wsa_device *dev);
-char* get_input_cmd(uint8_t pretext);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 
@@ -551,7 +555,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (freq < 0)
 					result = (int16_t) freq;
 			else
-				printf("Current centre frequency: %0.2f MHz\n", 
+				printf("Current centre frequency: %0.3f MHz\n", 
 					(float) freq / MHZ);
 		} // end get FREQ
 
@@ -569,15 +573,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				result = wsa_get_gain_rf(dev);
 				if (result >= 0) {
-					printf("Current RF gain: ");
-					switch(result) {
-						case(WSA_GAIN_HIGH):	printf("HIGH"); break;
-						case(WSA_GAIN_MED):		printf("MEDIUM"); break;
-						case(WSA_GAIN_LOW):		printf("LOW"); break;
-						case(WSA_GAIN_VLOW):	printf("VLOW"); break;
-						default: printf("Unknown"); break;
-					}
-					printf("\n");
+					char temp[10];
+					gain_rf_to_str((wsa_gain) result, &temp[0]);
+					printf("Current RF gain: %s\n", temp);
 				}
 			}  // end get GAIN RF
 
@@ -907,6 +905,9 @@ int16_t do_wsa(const char *wsa_addr)
 		return result;//WSA_ERR_OPENFAILED;
 	}
 
+	// print out the current stat
+	print_wsa_stat(dev);
+
 	// Start the control loop
 	do {
 		in_buf = get_input_cmd(TRUE);
@@ -941,13 +942,13 @@ int16_t start_cli(void)
 	char in_str[MAX_STRING_LEN];		// store user's input string
 	char *in_buf;
 	int16_t in_num = 0;				// store user's entered number
-	//char *ip_list[MAX_BUF_SIZE];	// store potential WSA IP addresses
 	const char *wsa_addr;			// store the desired WSA IP address
 	int16_t result = 0;				// result returned from a function
 
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
-	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n\n");
+	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
+	printf("\t\t\t\t(Version: %s)\n\n", "v1.1-15");
 
 	do {
 		//*****
@@ -971,7 +972,6 @@ int16_t start_cli(void)
 			return 0; // break;
 
 		// User asked for help
-		//if (strspn(in_str, "H?") > 0) {
 		if (strcmp(in_str, "H") == 0 || strcmp(in_str, "?") == 0) {
 			printf("Enter an IP address in the format #.#.#.# or host name ");
 			printf("string, or 'q' to quit.\n");
@@ -1231,3 +1231,71 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	return result;
 }
 
+
+/**
+ * Print out some statistics of the WSA's current settings
+ *
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0
+ */
+void print_wsa_stat(struct wsa_device *dev) {
+	int64_t result;
+	int32_t value;
+
+	printf("\nCurrent WSA's statistics:\n");
+	printf("\t- Firmware version: %s\n", dev->descr.fw_version);
+	printf("\t- Current settings: \n");
+
+	// TODO handle the errors
+	result = wsa_get_freq(dev);
+	if (result >= 0)
+		printf("\t\t- Frequency: %0.3lf MHz\n", (float) result / MHZ);
+	else
+		printf("\t\t- Error: Failed getting the frequency value.\n");
+
+	result = wsa_get_gain_if(dev, &value);
+	if (result >= 0)
+		printf("\t\t- Gain IF: %d dB\n", value);
+	else
+		printf("\t\t- Error: Failed getting the gain IF value.\n");
+	
+	result = wsa_get_gain_rf(dev);
+	if (result >= 0) {
+		char temp[10];
+		gain_rf_to_str((wsa_gain) result, &temp[0]);
+		printf("\t\t- Gain RF: %s\n", temp);
+	}
+	else
+		printf("\t\t- Error: Failed getting the gain RF value.\n");
+
+	result = wsa_get_sample_size(dev);
+	if (result >= 0)
+		printf("\t\t- Sample size: %ld\n", (uint32_t) result);
+	else
+		printf("\t\t- Error: Failed getting the sample size.\n");
+
+	printf("\t\t- Frame size per file: %ld\n", _frame_size);
+}
+
+
+/**
+ * Convert a gain RF setting to a string, useful for printing
+ * 
+ * @param gain - the enum'ed gain value to be converted into a string name
+ * @param gain_str - a char pointer to store the string name of the given gain
+ * 
+ * @return 0 if successful, else a negative value
+ */
+int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
+{
+	switch(gain) {
+		case(WSA_GAIN_HIGH):	strcpy(gain_str, "HIGH"); break;
+		case(WSA_GAIN_MED):		strcpy(gain_str, "MEDIUM"); break;
+		case(WSA_GAIN_LOW):		strcpy(gain_str, "LOW"); break;
+		case(WSA_GAIN_VLOW):	strcpy(gain_str, "VLOW"); break;
+		default: strcpy(gain_str, "Unknown"); break;
+	}
+	
+	return 0;
+}
