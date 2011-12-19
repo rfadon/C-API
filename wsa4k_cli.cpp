@@ -337,7 +337,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
 	
-	if (samples < 128 || samples > dev->descr.max_sample_size) {
+	if (samples < 128 || samples > (int32_t) dev->descr.max_sample_size) {
 		printf("Error: bad sample size detected. Please check the "
 			"sample size. No data is saved.\n");
 		return WSA_ERR_INVSAMPLESIZE;
@@ -570,10 +570,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
-				result = wsa_get_gain_rf(dev);
+				enum wsa_gain gain;
+				result = wsa_get_gain_rf(dev, &gain);
 				if (result >= 0) {
 					char temp[10];
-					gain_rf_to_str((wsa_gain) result, &temp[0]);
+					gain_rf_to_str(gain, &temp[0]);
 					printf("Current RF gain: %s\n", temp);
 				}
 			}  // end get GAIN RF
@@ -784,7 +785,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			result = wsa_set_sample_size(dev, sample_size);
 			if (result == WSA_ERR_INVSAMPLESIZE)
-				sprintf(msg, "\n\t- Valid range: 256 to %d.",
+				sprintf(msg, "\n\t- Valid range: 128 to %d.",
 					dev->descr.max_sample_size);
 		} // end set SS
 
@@ -1240,6 +1241,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int16_t result;
 	int64_t freq;
 	int32_t value;
+	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
 	printf("\t- Firmware version: %s\n", dev->descr.fw_version);
@@ -1258,10 +1260,10 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else
 		printf("\t\t- Error: Failed getting the gain IF value.\n");
 	
-	result = wsa_get_gain_rf(dev);
+	result = wsa_get_gain_rf(dev, &gain);
 	if (result >= 0) {
 		char temp[10];
-		gain_rf_to_str((wsa_gain) result, &temp[0]);
+		gain_rf_to_str(gain, &temp[0]);
 		printf("\t\t- Gain RF: %s\n", temp);
 	}
 	else

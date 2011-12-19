@@ -681,7 +681,7 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
  * @param gain - An integer pointer to the IF gain value.
  * @return The gain value in dB, or a large negative number on error.
  */
-int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain)
+int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 {
 	struct wsa_resp query;		// store query results
 	long int temp;
@@ -693,9 +693,14 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
+	
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain)
+		return WSA_ERR_RESPUNKNOWN;
+	
 	*gain = (int32_t) temp;
 
 	return 0;
@@ -715,7 +720,7 @@ int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain)
  * @par Errors:
  * - Gain level out of range.
  */
-int16_t wsa_set_gain_if (struct wsa_device *dev, int32_t gain)
+int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
@@ -746,32 +751,31 @@ int16_t wsa_set_gain_if (struct wsa_device *dev, int32_t gain)
  * @param dev - A pointer to the WSA device structure.
  * @return The gain setting of wsa_gain type, or a negative number on error.
  */
-enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev)
+int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
 {
-	wsa_gain gain = (wsa_gain) NULL;
 	struct wsa_resp query;		// store query results
 
 	query = wsa_send_query(dev, "INPUT:GAIN:RF?\n");
 	if (query.status <= 0)
-		return (wsa_gain) query.status;
+		return (int16_t) query.status;
 	
 	// Convert to wsa_gain type
 	if (strstr(query.output, "HIGH") != NULL) {
-		gain = WSA_GAIN_HIGH;
+		*gain = WSA_GAIN_HIGH;
 	}
 	else if (strstr(query.output, "MED") != NULL) {
-		gain = WSA_GAIN_MED;
+		*gain = WSA_GAIN_MED;
 	}
 	else if (strstr(query.output, "VLOW") != NULL) {
-		gain = WSA_GAIN_VLOW;
+		*gain = WSA_GAIN_VLOW;
 	}
 	else if (strstr(query.output, "LOW") != NULL) {
-		gain = WSA_GAIN_LOW;
+		*gain = WSA_GAIN_LOW;
 	}
 	else
-		gain = (wsa_gain) NULL;
+		*gain = (enum wsa_gain) NULL;
 
-	return gain;
+	return 0;
 }
 
 /**

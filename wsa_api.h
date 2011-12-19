@@ -126,18 +126,18 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq);
-int16_t wsa_set_freq (struct wsa_device *dev, int64_t cfreq);
+int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq);
 
 
 // ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_gain_if (struct wsa_device *dev, int32_t *gain);
-int16_t wsa_set_gain_if (struct wsa_device *dev, int32_t gain);
+int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain);
+int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain);
 
-enum wsa_gain wsa_get_gain_rf (struct wsa_device *dev);
-int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain);
+int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain);
+int16_t wsa_set_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
 
 
 // ////////////////////////////////////////////////////////////////////////////
