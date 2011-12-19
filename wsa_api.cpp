@@ -492,8 +492,10 @@ int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
 
 	// Verify the validity of the return value
 	if (temp < WSA4000_MIN_SAMPLE_SIZE || 
-		temp > (long) dev->descr.max_sample_size)
+		temp > (long) dev->descr.max_sample_size) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	*sample_size = (int32_t) temp;
 
@@ -527,8 +529,10 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 
 	// make sure the returned value is valid
 	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
-		(temp > dev->descr.max_decimation))
+		(temp > dev->descr.max_decimation)) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	*rate = (int32_t) temp;
 
@@ -601,8 +605,10 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 		return WSA_ERR_RESPUNKNOWN;
 
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq)
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	*cfreq = (int64_t) temp;
 
@@ -700,8 +706,10 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 		return WSA_ERR_RESPUNKNOWN;
 	
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain)
+	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 	
 	*gain = (int32_t) temp;
 
@@ -857,8 +865,10 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 		return WSA_ERR_RESPUNKNOWN;
 
 	// Verify the validity of the return value
-	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT)
+	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	*port_num = (int16_t) temp;
 
@@ -929,8 +939,10 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 		return WSA_ERR_RESPUNKNOWN;
 	
 	// Verify the validity of the return value
-	if (temp < 0 || temp > 1)
+	if (temp < 0 || temp > 1) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 		
 	*mode = (int16_t) temp;
 
@@ -997,8 +1009,10 @@ int16_t wsa_get_cal_mode(struct wsa_device *dev, int32_t *mode)
 		return WSA_ERR_RESPUNKNOWN;
 	
 	// Verify the validity of the return value
-	if (temp < 0 || temp > 1)
+	if (temp < 0 || temp > 1) {
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	*mode = (((int16_t) temp) & SCPI_OSR_CALI);
 
