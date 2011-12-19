@@ -323,6 +323,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint16_t start_ms, delta_ms;	// the msec of start time
 	time_t delta_sec;	// time takes to run the data collection
 	int32_t samples;
+	int64_t freq;
 
 	// *****
 	// Get parameters to stored in the file
@@ -343,9 +344,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Get the centre frequency
-	int64_t freq = wsa_get_freq(dev);
-	if (freq < 0)
-		return (int16_t) freq;
+	result = wsa_get_freq(dev, &freq);
+	if (result < 0)
+		return result;
 
 
 	// *****
@@ -551,11 +552,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 
-			freq = wsa_get_freq(dev);
-
-			if (freq < 0)
-					result = (int16_t) freq;
-			else
+			result = wsa_get_freq(dev, &freq);
+			if (result >= 0)
 				printf("Current centre frequency: %0.3f MHz\n", 
 					(float) freq / MHZ);
 		} // end get FREQ
@@ -1239,7 +1237,8 @@ int16_t process_call_mode(int32_t argc, char **argv)
  * @return 0
  */
 void print_wsa_stat(struct wsa_device *dev) {
-	int64_t result;
+	int16_t result;
+	int64_t freq;
 	int32_t value;
 
 	printf("\nCurrent WSA's statistics:\n");
@@ -1247,7 +1246,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	printf("\t- Current settings: \n");
 
 	// TODO handle the errors
-	result = wsa_get_freq(dev);
+	result = wsa_get_freq(dev, &freq);
 	if (result >= 0)
 		printf("\t\t- Frequency: %0.3lf MHz\n", (float) result / MHZ);
 	else

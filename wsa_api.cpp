@@ -268,7 +268,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 	int16_t frame_num = 0;
 	uint32_t samples_count = 0;
 	
-	if ((sample_size < 128) || 
+	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
@@ -359,7 +359,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 	int32_t result = 0;
 	char *dbuf;
 
-	if ((sample_size < 128) || 
+	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 	
@@ -417,11 +417,14 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 	
 	// TODO need to check for the max value too? but maybe not if 
 	// multiple frames allow
-	if (sample_size < 128)
+	if (sample_size < WSA4000_MIN_SAMPLE_SIZE)
 		return WSA_ERR_INVSAMPLESIZE;
 		
 	// A "temporary" (hope so) fix for certain bands that required iq swapped
-	freq = wsa_get_freq(dev);
+	result = wsa_get_freq(dev, &freq);
+	if (result < 0)
+		return result;
+
 	if ((freq >= 90000000 && freq < 450000000) ||
 		(freq >= 4300000000 && freq < 7450000000))
 		// then swap i & q
@@ -446,7 +449,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 	int16_t result;
 	char temp_str[50];
 
-	if ((sample_size < 128) || 
+	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
@@ -483,7 +486,13 @@ int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value
+	if (temp < WSA4000_MIN_SAMPLE_SIZE || 
+		temp > (long) dev->descr.max_sample_size)
 		return WSA_ERR_RESPUNKNOWN;
 
 	*sample_size = (int32_t) temp;
@@ -572,9 +581,10 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
  * Retrieves the center frequency that the WSA is running at.
  *
  * @param dev - A pointer to the WSA device structure.
- * @return The frequency in Hz, or a negative number on error.
+ * @param cfreq - A long integer pointer to store the frequency in Hz
+ * @return 0 on successful or a negative number on error.
  */
-int64_t wsa_get_freq(struct wsa_device *dev)
+int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -585,10 +595,17 @@ int64_t wsa_get_freq(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	return (int64_t) temp;
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq)
+		return WSA_ERR_RESPUNKNOWN;
+
+	*cfreq = (int64_t) temp;
+
+	return 0;
 }
 
 
