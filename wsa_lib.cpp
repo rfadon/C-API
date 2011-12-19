@@ -529,29 +529,36 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
 	
+	// don't need command file any more
 	fclose(cmd_fptr);
 
+	// process the command strings acquired
 	if (result > 0) {
 		// Send each command line to WSA
 		lines = (int16_t) result;
 		for (int i = 0; i < lines; i++) {
 			// Send non-query cmds
-			if (strstr(cmd_strs[i], "?") == NULL)
+			if (strstr(cmd_strs[i], "?") == NULL) {
 				result = wsa_send_command(dev, cmd_strs[i]);
-			// Send query cmds
-			else {
-				resp = wsa_send_query(dev, cmd_strs[i]);
-				result = resp.status;
+				// If a bad command is detected, continue? Prefer not.
+				if (result < 0) {
+					printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
+					break;
+				}
 			}
 			
-			// If a bad command is detected, continue? Prefer not.
-			if (result < 0) {
-				printf("Error %d: \"%s\" (possibly: %s)\n", resp.output, 
-					_wsa_get_err_msg(WSA_ERR_CMDINVALID));
-				printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
-				break;
-			}
-			else if (strstr(cmd_strs[i], "?") != NULL) {
+			// Send query cmds
+			else {
+				resp = wsa_send_query(dev, cmd_strs[i]);			
+			
+				// If a bad command is detected, continue? Prefer not.
+				if (resp.status < 0) {
+					printf("WSA returned error %d: \"%s\" (possibly: %s)\n", 
+						resp.output, _wsa_get_err_msg(WSA_ERR_CMDINVALID));
+					printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
+					break;
+				}
+
 				printf("\"%s\": %s\n", cmd_strs[i], resp.output);
 				result = lines;
 			}
@@ -562,8 +569,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	for (int i = 0; i < MAX_FILE_LINES; i++)
 		free(cmd_strs[i]);
 
-
-	return (int16_t) result;
+	return result;
 }
 
 
