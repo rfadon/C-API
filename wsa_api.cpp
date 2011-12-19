@@ -182,16 +182,18 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
  *
  * @return The absolute maximum RF input level in dBm or negative error number.
  */
-float wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain)
+int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
+						  float *value)
 {
 	// TODO Check version of WSA & return the correct info here
 	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
 		return WSA_ERR_INVRFGAIN;
 	}
 	else {
-		// Should never reach here
-		return dev->descr.abs_max_amp[gain];
+		*value = dev->descr.abs_max_amp[gain];
 	}
+
+	return 0;
 }
 
 

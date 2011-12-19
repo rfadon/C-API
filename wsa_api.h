@@ -99,7 +99,8 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-float wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain);
+int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
+						  float *value);
 
 
 // ////////////////////////////////////////////////////////////////////////////
