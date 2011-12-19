@@ -114,7 +114,7 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
 		*header, int16_t *i_buf, int16_t *q_buf, const int32_t sample_size);
 
-int32_t wsa_get_sample_size(struct wsa_device *dev);
+int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size);
 int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);

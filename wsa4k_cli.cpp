@@ -322,6 +322,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	time_t start_time;	// to capture run time
 	uint16_t start_ms, delta_ms;	// the msec of start time
 	time_t delta_sec;	// time takes to run the data collection
+	int32_t samples;
 
 	// *****
 	// Get parameters to stored in the file
@@ -331,11 +332,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	printf("Gathering WSA settings... ");
 	// Verify sample size
-	int32_t samples = wsa_get_sample_size(dev);
-	if (samples < 0)
-		return (int16_t) samples;
+	result = wsa_get_sample_size(dev, &samples);
+	if (result < 0)
+		return result;
 	
-	if (samples < 128 || samples > (int32_t) dev->descr.max_sample_size) {
+	if (samples < 128 || samples > dev->descr.max_sample_size) {
 		printf("Error: bad sample size detected. Please check the "
 			"sample size. No data is saved.\n");
 		return WSA_ERR_INVSAMPLESIZE;
@@ -621,10 +622,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else {
 				int32_t size = 0;
-				size = wsa_get_sample_size(dev);
-				if (size < 1)
-					result = (int16_t) size;
-				else
+				result = wsa_get_sample_size(dev, &size);
+				if (result >= 0)
 					printf("The current sample size: %ld\n", size);
 			}
 		} // end get SS
@@ -1269,9 +1268,9 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else
 		printf("\t\t- Error: Failed getting the gain RF value.\n");
 
-	result = wsa_get_sample_size(dev);
+	result = wsa_get_sample_size(dev, &value);
 	if (result >= 0)
-		printf("\t\t- Sample size: %ld\n", (uint32_t) result);
+		printf("\t\t- Sample size: %ld\n", value);
 	else
 		printf("\t\t- Error: Failed getting the sample size.\n");
 

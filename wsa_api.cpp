@@ -179,8 +179,10 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
  * @param dev - A pointer to the WSA device structure.
  * @param gain - The gain setting of \b wsa_gain type at which the absolute 
  * maximum amplitude input level is to be retrieved.
+ * @param value - A float pointer to store the absolute maximum RF input 
+ * level in dBm for the given RF gain
  *
- * @return The absolute maximum RF input level in dBm or negative error number.
+ * @return 0 on successful or negative error number.
  */
 int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
 						  float *value)
@@ -466,10 +468,11 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
  * Gets the number of samples per frame.
  * 
  * @param dev - A pointer to the WSA device structure.
+ * @param sample_size - An integer pointer to store the sample size.
  *
- * @return The sample size if success, or a negative number on error.
+ * @return 0 if successful, or a negative number on error.
  */
-int32_t wsa_get_sample_size(struct wsa_device *dev)
+int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -478,12 +481,14 @@ int32_t wsa_get_sample_size(struct wsa_device *dev)
 
 	// Handle the query output here 
 	if (query.status <= 0)
-		return (int32_t) query.status;
+		return (int16_t) query.status;
 
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	return (int32_t) temp;
+	*sample_size = (int32_t) temp;
+
+	return 0;
 }
 
 
