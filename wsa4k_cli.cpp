@@ -638,7 +638,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum sample size: %lld\n", 
+					printf("Maximum sample size: %ld\n", 
 						dev->descr.max_sample_size);
 					return 0;
 				}
@@ -1280,7 +1280,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	// TODO handle the errors
 	result = wsa_get_freq(dev, &freq);
 	if (result >= 0)
-		printf("\t\t- Frequency: %0.3lf MHz\n", (float) result / MHZ);
+		printf("\t\t- Frequency: %0.3lf MHz\n", (float) freq / MHZ);
 	else
 		printf("\t\t- Error: Failed getting the frequency value.\n");
 
