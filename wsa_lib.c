@@ -404,13 +404,17 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		}
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
-		// Do the connection
-		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
-				&(dev->sock).data, ctrl_port, data_port);
-		if (result < 0) {
-			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
+		// setup command socket & connect
+		result = wsa_setup_sock("WSA 'command' socket", wsa_addr, 
+			&(dev->sock).cmd, ctrl_port);
+		if (result < 0)
 			return result;
-		}
+
+		// setup data socket & connect
+		result = wsa_setup_sock("WSA 'data' socket", wsa_addr, 
+			&(dev->sock).data, data_port);
+		if (result < 0)
+			return result;
 #endif
 
 		strcpy(dev->descr.intf_type, "TCPIP");
@@ -441,8 +445,14 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 	
 	//TODO close based on connection type
 	// right now do only TCPIP client
-	if (strcmp(dev->descr.intf_type, "TCPIP") == 0)
+	if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+#ifdef WIN_SOCK
 		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
+#else
+		result = wsa_close_sock(dev->sock.cmd);
+		result = wsa_close_sock(dev->sock.data);
+#endif
+	}
 
 	return result;
 }

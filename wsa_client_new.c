@@ -9,6 +9,12 @@
 #include "wsa_client.h"
 
 
+///////////////////////////////////////////////////////////////////////////////
+// Local Prototypes
+///////////////////////////////////////////////////////////////////////////////
+void *get_in_addr(struct sockaddr *sock_addr);
+
+
 /**
  * Get sockaddr, IPv4 or IPv6
  * 
@@ -34,7 +40,7 @@ void *get_in_addr(struct sockaddr *sock_addr)
  * @return 0 upon successful, or a negative value when failed.
  */
 int16_t wsa_addr_check(const char *sock_addr, const char *port, 
-						struct addrinfo *ai_list)//int *sock_fd)
+						struct addrinfo *ai_list)
 {
 	// ******
 	// Short notations used:
@@ -74,8 +80,8 @@ int16_t wsa_addr_check(const char *sock_addr, const char *port,
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
-int16_t setup_sock(char *sock_name, const char *sock_addr, const char *port,
-				   int *sock_fd)
+int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, int *sock_fd, 
+					   const char *port)
 {
 	printf("setting up %s socket at port %s ... ", sock_name, port);
 
@@ -94,18 +100,18 @@ int16_t setup_sock(char *sock_name, const char *sock_addr, const char *port,
 		temp_fd = socket(ai_ptr->ai_family, ai_ptr->ai_socktype,
 			ai_ptr->ai_protocol);
 		if (temp_fd == -1) {
-			perror("server: socket() error");
+			perror("client: socket() error");
 			continue;
 		}
 
 		// establish the client connection
 		if (connect(temp_fd, ai_ptr->ai_addr, ai_ptr->ai_addrlen) == -1) {
 			close(temp_fd);
-			perror("client: connect");
+			perror("client: connect() error");
 			continue;
 		}
 
-		break; // successfully connected if got here
+		break; // successfully connected if got to here
 	}
 
 	// If no address succeeded
@@ -113,7 +119,7 @@ int16_t setup_sock(char *sock_name, const char *sock_addr, const char *port,
 		fprintf(stderr, "client: failed to connect\n");
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
-	else printf("binded.\n");
+	else printf("connected.\n");
 
 	freeaddrinfo(ai_list); // all done with this list
 
@@ -122,7 +128,25 @@ int16_t setup_sock(char *sock_name, const char *sock_addr, const char *port,
 	return 0;
 }
 
+/**
+ * 
+ *
+ * @param cmd_sock -
+ * @param data_sock -
+ * 
+ * @return 
+ */
+int16_t wsa_close_client(int sock_fd)
+{
+	// Close all socket file descriptors
+	if (close(sock_fd) == -1)
+		return WSA_ERR_SOCKETERROR;
 
+	return 0;
+}
+
+
+/*
 int16_t wsa_start_client(const char *wsa_addr, int *ctrl_sock_fd, 
 				int *data_sock_fd, char *ctrl_port, char *data_port)
 {
@@ -132,10 +156,22 @@ int16_t wsa_start_client(const char *wsa_addr, int *ctrl_sock_fd,
 	//*****
 	// Create command socket
 	//*****
+	result = wsa_setup_sock("WSA 'command' socket", wsa_addr, ctrl_port, 
+		ctrl_sock_fd);
+	if (result < 0) {
+		return result;
+	}
 
 	//*****
 	// Create data socket
 	//*****
+	result = wsa_setup_sock("WSA 'command' socket", wsa_addr, ctrl_port, 
+		ctrl_sock_fd);
+	if (result < 0) {
+		return result;
+	}
 
 	return 0;
 }
+*/
+
