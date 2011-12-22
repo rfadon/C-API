@@ -13,6 +13,8 @@
 // Local Prototypes
 ///////////////////////////////////////////////////////////////////////////////
 void *get_in_addr(struct sockaddr *sock_addr);
+int16_t _addr_check(const char *sock_addr, const char *sock_port,
+					struct addrinfo *ai_list);
 
 
 /**
@@ -29,25 +31,14 @@ void *get_in_addr(struct sockaddr *sock_addr)
 	return &(((struct sockaddr_in6*) sock_addr)->sin6_addr);
 }
 
-/**
- * Given a client address string, determine if it's a dotted-quad IP address
- * or a domain address.  If the latter, ask DNS to resolve it.  In
- * either case, return resolved IP address.  If we fail, we return
- * INADDR_NONE.
- *
- * @param sock_addr - 
- *
- * @return 0 upon successful, or a negative value when failed.
- */
-int16_t wsa_addr_check(const char *sock_addr, const char *port, 
-						struct addrinfo *ai_list)
+int16_t _addr_check(const char *sock_addr, const char *sock_port,
+					struct addrinfo *ai_list)
 {
 	// ******
 	// Short notations used:
 	// fd = file descriptor
 	// ai = address info
 	// *****
-
 	struct addrinfo hint_ai, *ai_ptr; 
 	int16_t result;
 
@@ -61,7 +52,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *port,
 	hint_ai.ai_protocol = 0				// to auto chose the protocol
 
 	// Check the address at the given port
-	result = getaddrinfo(sock_addr, port, &hint_ai, &ai_list);
+	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (result != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
@@ -71,26 +62,51 @@ int16_t wsa_addr_check(const char *sock_addr, const char *port,
 }
 
 /**
+ * Given a client address string and the port number, determine if it's 
+ * a dotted-quad IP address or a domain address.  
+ *
+ * @param sock_addr - 
+ * @param sock_port -
+ *
+ * @return 0 upon successful, or a negative value when failed.
+ */
+int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
+{
+	struct addrinfo *ai_list;
+	int16_t result;
+
+	// Check the address at the given port
+	result = _addr_check(sock_addr, sock_port, &hint_ai, &ai_list);
+	if (result != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		return WSA_ERR_INVIPHOSTADDRESS;
+	}
+
+	freeaddrinfo(ai_list);
+
+	return 0;
+}
+
+/**
  * Look up, verify and establish the socket once deemed valid
  *
  * @param sock_name - Name of the socket (ex. server, client)
  * @param sock_addr -
- * @param port -
+ * @param sock_port -
  * @param sock_fd -
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
-int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, int *sock_fd, 
-					   const char *port)
+int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
+					   int32_t *sock_fd, const char *sock_port)
 {
-	printf("setting up %s socket at port %s ... ", sock_name, port);
+	printf("setting up %s socket at port %s ... ", sock_name, sock_port);
 
 	struct addrinfo *ai_list, *ai_ptr;
 	int16_t result;	
-	int yes = 1;
-	int temp_fd;
+	int32_t temp_fd;
 
-	result = wsa_addr_check(sock_addr, port, ai_list);
+	result = _addr_check(sock_addr, sock_port, ai_list);
 	if (result < 0)
 		return result;
 
@@ -129,14 +145,14 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, int *sock_fd,
 }
 
 /**
- * 
+ * Close the connection
  *
  * @param cmd_sock -
  * @param data_sock -
  * 
  * @return 
  */
-int16_t wsa_close_client(int sock_fd)
+int16_t wsa_close_client(int32_t sock_fd)
 {
 	// Close all socket file descriptors
 	if (close(sock_fd) == -1)
@@ -145,33 +161,15 @@ int16_t wsa_close_client(int sock_fd)
 	return 0;
 }
 
-
-/*
-int16_t wsa_start_client(const char *wsa_addr, int *ctrl_sock_fd, 
-				int *data_sock_fd, char *ctrl_port, char *data_port)
+/**
+ * Sends a string to the server.  
+ *
+ * @param out_sock -
+ * @param out_str -
+ * @param len -
+ * 
+ * @returns Number of bytes sent on success, or negative otherwise.
+ */
+int32_t wsa_sock_send(int32_t out_sock, char *out_str, int32_t len)
 {
-	
-	int16_t result = 0;		// result returned from a function
-
-	//*****
-	// Create command socket
-	//*****
-	result = wsa_setup_sock("WSA 'command' socket", wsa_addr, ctrl_port, 
-		ctrl_sock_fd);
-	if (result < 0) {
-		return result;
-	}
-
-	//*****
-	// Create data socket
-	//*****
-	result = wsa_setup_sock("WSA 'command' socket", wsa_addr, ctrl_port, 
-		ctrl_sock_fd);
-	if (result < 0) {
-		return result;
-	}
-
-	return 0;
-}
-*/
 

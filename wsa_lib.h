@@ -149,8 +149,8 @@ struct wsa_socket {
 	SOCKET cmd;
 	SOCKET data;
 #else
-	int cmd;
-	int data;
+	int32_t cmd;
+	int32_t data;
 #endif
 };
 
@@ -174,11 +174,16 @@ struct wsa_resp {
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
+#ifdef WIN_SOCK
 uint32_t wsa_verify_addr(const char *sock_addr);
+#else
+int16_t wsa_verify_addr(const char *sock_addr, char *sock_port);
+#endif
 
 int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
-struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
+int16_t wsa_send_query(struct wsa_device *dev, char *command, 
+						struct wsa_resp *resp);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 const char *wsa_get_error_msg(int16_t err_code);

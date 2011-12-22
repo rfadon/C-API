@@ -997,22 +997,45 @@ int16_t start_cli(void)
 
 		// User wants to run away...
 		if (strcmp(in_str, "Q") == 0) 
-			return 0; // break;
+			return 0;
 
 		// User asked for help
 		if (strcmp(in_str, "H") == 0 || strcmp(in_str, "?") == 0) {
-			printf("Enter an IP address in the format #.#.#.# or host name ");
-			printf("string, or 'q' to quit.\n");
+			printf("Enter an IP address or host name.\n");
+			/*printf("Enter <IP address | host name>[:<command port>,"
+				"<data port>]\nCommand and data ports are optional. By "
+				"default, they are 37001 and 37000 respectively. Provide ports"
+				" only if those ports will be routed to the default ports."
+				"Ex: www.yournet.com\n    www.yournet.com:7000,7001\n"
+				"    192.168.1.2\n    192.168.1.2:7234,72348\n");
+			printf("string, or 'q' to quit.\n");*/
 			continue;
 		}
 
 		// User has enter an address so verify first
 		else if (strchr(in_str, '.') != 0) {
-			if (wsa_check_addr(in_str) > 0)
-				wsa_addr = in_str;
-			else {
-				printf("\nInvalid address. Try again or 'h'.\n");
+			if (strchr(in_str, ':') != 0) {
+				// TODO split up the ports & the address
+				printf("Not yet support routed ports. Enter an address"
+					" without the ports for now.\n");
 				continue;
+				//// Make sure both ports work
+				//if (wsa_check_addrandport(in_str, ctrl) >= 0) {
+				//	if (wsa_check_addrandport(in_str, data) >= 0)
+				//	wsa_addr = in_str;
+				//}
+				//else {
+				//	printf("\nInvalid address. Try again or 'h'.\n");
+				//	continue;
+				//}
+			}
+			else {
+				if (wsa_check_addr(in_str) > 0)
+					wsa_addr = in_str;
+				else {
+					printf("\nInvalid address. Try again or 'h'.\n");
+					continue;
+				}
 			}
 		}
 		else {

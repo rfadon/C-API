@@ -9,7 +9,9 @@
 
 #define TIMEOUT 500		/* Timeout for sockets in milliseconds */
 
+
 #ifdef WIN_SOCK
+
 #define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */
 #define DATA_PORT 37000
 
@@ -29,18 +31,16 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out);
 #else
-	#define CTRL_PORT "37001"
-	#define DATA_PORT "37000"
+
+#define CTRL_PORT "37001"
+#define DATA_PORT "37000"
 
 
 #endif
-int16_t wsa_addr_check(const char *sock_addr, const char *port, 
-						struct addrinfo *ai_list);
-//int16_t wsa_start_client(const char *wsa_addr, int *ctrl_sock_fd, 
-//				int *data_sock_fd, char *ctrl_port, char *data_port);
-int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, int *sock_fd, 
-				   const char *port)
-int16_t wsa_close_sock(int sock_fd);
+int16_t wsa_addr_check(const char *sock_addr, const char *sock_port);
+int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
+					   int32_t *sock_fd, const char *sock_port);
+int16_t wsa_close_sock(int32_t sock_fd);
 
 #endif
 

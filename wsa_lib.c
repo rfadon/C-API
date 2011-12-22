@@ -27,6 +27,8 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 // Return 0 on success or a 16-bit negative number on error.
 int16_t _wsa_dev_init(struct wsa_device *dev)
 {
+	int i;
+
 	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
 	dev->descr.max_sample_size = 0;
@@ -37,7 +39,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.min_if_gain = -1000;	// some impossible #
 	dev->descr.max_decimation = -1;
 	dev->descr.min_decimation = -1;
-	for (int i = 0; i < NUM_RF_GAINS; i++)
+	for (i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
 
 	strcpy(dev->descr.prod_name, "");
@@ -140,7 +142,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	strcpy(output, "");
 	
 	// read "*STB?" for any status bits
-	query = wsa_send_query(dev, "*STB?\n");
+	wsa_send_query(dev, "*STB?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -192,7 +194,7 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 	strcpy(output, "");
 	
 	// read "*STB?" for any status bits
-	query = wsa_send_query(dev, "*ESR?\n");
+	wsa_send_query(dev, "*ESR?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -232,7 +234,7 @@ char *wsa_query_error(struct wsa_device *dev)
 {
 	struct wsa_resp resp;
 
-	resp = wsa_send_query(dev, "SYST:ERR?\n");
+	wsa_send_query(dev, "SYST:ERR?\n", &resp);
 	if (resp.status < 0)
 		return (char *) _wsa_get_err_msg((int16_t) resp.status);
 
@@ -293,7 +295,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	char *data_port, *ctrl_port;
 #endif
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
-	int colons = 0;
+	int32_t colons = 0;
 
 	// initialed the strings
 	strcpy(intf_type, "");
@@ -458,7 +460,7 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 }
 
 
-/**
+/** TODO redefine this
  * Given an address string, determine if it's a dotted-quad IP address
  * or a domain address.  If the latter, ask DNS to resolve it.  In
  * either case, return resolved IP address.  If we fail, we return
@@ -468,9 +470,15 @@ int16_t wsa_disconnect(struct wsa_device *dev)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
+#ifdef WIN_SOCK
 uint32_t wsa_verify_addr(const char *sock_addr) {
 	return wsa_addr_check(sock_addr);
 }
+#else
+int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) {
+	return wsa_addr_check(sock_addr, sock_port);
+}
+#endif
 
 
 
@@ -546,10 +554,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
 	struct wsa_resp resp;
-	int64_t result = 0;
+	int16_t result = 0;
 	int16_t lines = 0;
 	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
 	FILE *cmd_fptr;
+	int i;
 
 	// set defaults
 	strcpy(resp.output, "");
@@ -557,13 +566,13 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %lld: %s '%s'.\n", result, 
-			_wsa_get_err_msg((int16_t) result), file_name);
-		return (int16_t) result;
+		printf("ERROR %d: %s '%s'.\n", result, 
+			wsa_get_err_msg(result, file_name);
+		return result;
 	}
 
 	// Allocate memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
@@ -574,8 +583,8 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	// process the command strings acquired
 	if (result > 0) {
 		// Send each command line to WSA
-		lines = (int16_t) result;
-		for (int i = 0; i < lines; i++) {
+		lines = result;
+		for (i = 0; i < lines; i++) {
 			// Send non-query cmds
 			if (strstr(cmd_strs[i], "?") == NULL) {
 				result = wsa_send_command(dev, cmd_strs[i]);
@@ -588,7 +597,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			
 			// Send query cmds
 			else {
-				resp = wsa_send_query(dev, cmd_strs[i]);			
+				 result = wsa_send_query(dev, cmd_strs[i], &resp);			
 			
 				// If a bad command is detected, continue? Prefer not.
 				if (resp.status < 0) {
@@ -605,7 +614,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	}
 
 	// Free memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		free(cmd_strs[i]);
 
 	return result;
@@ -620,41 +629,43 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
  * @param dev - A pointer to the WSA device structure.
  * @param command - A char pointer to the query command string written in 
  * the format specified by the command syntax in wsa_connect().
+ * @param resp - A pointer to \b wsa_resp struct to store the responses.
  *
- * @return The result stored in a wsa_resp struct format.
+ * @return 0 upon successful or a negative value
  */
-struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
+int16_t wsa_send_query(struct wsa_device *dev, char *command, 
+						struct wsa_resp *resp);
 {
-	struct wsa_resp resp;
+	struct wsa_resp temp_resp;
 	int32_t bytes_got = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
-	int loop_count = 0;
+	int32_t loop_count = 0;
 
 	// set defaults
-	strcpy(resp.output, "");
-	resp.status = 0;
+	strcpy(temp_resp.output, "");
+	temp_resp.status = 0;
 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-		resp.status = WSA_ERR_USBNOTAVBL;
-		strcpy(resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+		temp_resp.status = WSA_ERR_USBNOTAVBL;
+		strcpy(temp_resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
 			// Send the query command out
 			bytes_got = wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_got < 0) {
-				resp.status = bytes_got;
-				strcpy(resp.output, 
+				temp_resp.status = bytes_got;
+				strcpy(temp_resp.output, 
 					_wsa_get_err_msg(bytes_got));
-				return resp;
+				return temp_resp;
 			}
 			else if (bytes_got < len) {
 				if (resend_cnt > 3) {
-					resp.status = WSA_ERR_CMDSENDFAILED;
-					strcpy(resp.output, 
+					temp_resp.status = WSA_ERR_CMDSENDFAILED;
+					strcpy(temp_resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
-					return resp;
+					return temp_resp;
 				}
 
 				printf("Not all bytes sent. Resending the packet...\n");
@@ -663,7 +674,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			// Read back the output
 			else {
 				do {
-					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.output, 
+					bytes_got = wsa_sock_recv(dev->sock.cmd, temp_resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					if (bytes_got > 0)
 						break;
@@ -674,19 +685,21 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 					loop_count++;
 				} while (bytes_got < 1);
 
-				resp.output[bytes_got] = 0; // add EOL to the string
+				temp_resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
 		}
 
 		// TODO define what result should be
 		if (bytes_got == 0)
-			resp.status = WSA_ERR_QUERYNORESP;
+			temp_resp.status = WSA_ERR_QUERYNORESP;
 		else 
-			resp.status = bytes_got;
+			temp_resp.status = bytes_got;
 	}
 
-	return resp;
+	*resp = temp_resp;
+
+	return 0;
 }
 
 
@@ -904,7 +917,7 @@ int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf,
 {
 	int32_t result = 0;
 	uint32_t i;
-	int j = 0;
+	int32_t j = 0;
 
 	// *****
 	// Split up the IQ data bytes

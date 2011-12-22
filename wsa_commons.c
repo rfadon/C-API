@@ -43,6 +43,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	char *buffer;
 	char *fToken;
 	int16_t next = 0;
+	int i;
 
 	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end
 	fSize = ftell(fptr);		// obtain file size
@@ -57,7 +58,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
 	doutf(DLOW, "\nFile content: \n%s\n", buffer);
 	
-	for (int i = 0; i < MAX_FILE_LINES; i++) 
+	for (i = 0; i < MAX_FILE_LINES; i++) 
 		strcpy(cmd_strs[i], "");
 
 	fToken = strtok(buffer, SEP_CHARS);

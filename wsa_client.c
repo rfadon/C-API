@@ -366,7 +366,7 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
  * 
- * @return Number of bytes read
+ * @return Number of bytes read on successful or a negative value on error
  */
 int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
