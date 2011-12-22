@@ -16,14 +16,11 @@
 // WSA RELATED ERRORS			//
 // ///////////////////////////////
 #define WSA_ERR_NOWSA			(LNEG_NUM - 1)
-#define WSA_ERR_INVIPADDRESS	(LNEG_NUM - 2)
-#define WSA_ERR_NOCTRLPIPE		(LNEG_NUM - 3)
-#define WSA_ERR_UNKNOWNPRODSER	(LNEG_NUM - 4)
-#define WSA_ERR_UNKNOWNPRODVSN	(LNEG_NUM - 5)
-#define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM - 6)
-#define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 7)
-#define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 8)
-#define WSA_ERR_QUERYNORESP	(LNEG_NUM - 9)
+#define WSA_ERR_UNKNOWNPRODSER	(LNEG_NUM - 2)
+#define WSA_ERR_UNKNOWNPRODVSN	(LNEG_NUM - 3)
+#define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM - 4)
+#define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 5)
+#define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 6)
 
 
 // ///////////////////////////////
@@ -42,10 +39,11 @@
 // INTERFACE/CONNECTION ERRORS  //
 // ///////////////////////////////
 #define WSA_ERR_INVINTFMETHOD	(LNEG_NUM - 201)
-#define WSA_ERR_INVIPHOSTADDRESS	(LNEG_NUM - 202)
-#define WSA_ERR_USBNOTAVBL		(LNEG_NUM - 203)
-#define WSA_ERR_USBOPENFAILED	(LNEG_NUM - 204)
-#define WSA_ERR_USBINITFAILED	(LNEG_NUM - 205)
+#define WSA_ERR_USBNOTAVBL		(LNEG_NUM - 202)
+#define WSA_ERR_USBOPENFAILED	(LNEG_NUM - 203)
+#define WSA_ERR_USBINITFAILED	(LNEG_NUM - 204)
+
+#define WSA_ERR_INVIPHOSTADDRESS	(LNEG_NUM - 205)
 #define WSA_ERR_ETHERNETNOTAVBL	(LNEG_NUM - 206)
 #define WSA_ERR_ETHERNETCONNECTFAILED	(LNEG_NUM - 207)
 #define WSA_ERR_ETHERNETINITFAILED	(LNEG_NUM - 209)
@@ -111,11 +109,13 @@
 
 
 // ///////////////////////////////
-// CMD ERRORS					//
+// CTRL/CMD ERRORS				//
 // ///////////////////////////////
+#define WSA_ERR_NOCTRLPIPE		(LNEG_NUM - 1500)
 #define WSA_ERR_CMDSENDFAILED	(LNEG_NUM - 1501)
 #define WSA_ERR_CMDINVALID		(LNEG_NUM - 1502)
 #define WSA_ERR_RESPUNKNOWN	(LNEG_NUM - 1503)
+#define WSA_ERR_QUERYNORESP	(LNEG_NUM - 1504)
 
 
 // ///////////////////////////////
@@ -161,10 +161,6 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_NOWSA, 
 		"No WSA detected. Check the power or the connection"),
-	wsa_err_item(WSA_ERR_NOCTRLPIPE, 
-		"No control channel detected. Possible firmware error"),
-	wsa_err_item(WSA_ERR_NODATABUS, 
-		"No data channel detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_UNKNOWNPRODSER, 
 		"Unknown WSA product serial number detected"),
 	wsa_err_item(WSA_ERR_UNKNOWNPRODVSN, 
@@ -175,8 +171,6 @@ static struct wsa_err_item {
 		"Unknown WSA firmware version detected"),
 	wsa_err_item(WSA_ERR_PRODOBSOLETE,
 		"Product is obsolete and not supported"),
-	wsa_err_item(WSA_ERR_QUERYNORESP,
-		"Query returns no response"),
 
 	//*****
 	// WSA Setup Related
@@ -200,8 +194,6 @@ static struct wsa_err_item {
 	//*****
 	wsa_err_item(WSA_ERR_INVINTFMETHOD, 
 		"Invalid connection type"),
-	wsa_err_item(WSA_ERR_INVIPHOSTADDRESS,
-		"Invalid IP or Host Name given"),
 	wsa_err_item(WSA_ERR_USBNOTAVBL, 
 		"USB connection is not available with this WSA"),
 	wsa_err_item(WSA_ERR_ETHERNETNOTAVBL,
@@ -210,6 +202,9 @@ static struct wsa_err_item {
 		"Unable to open the WSA's USB connection"),
 	wsa_err_item(WSA_ERR_USBINITFAILED,
 		"Unable to initialize the WSA's USB component"),
+		
+	wsa_err_item(WSA_ERR_INVIPHOSTADDRESS,
+		"Invalid IP or Host Name given"),
 	wsa_err_item(WSA_ERR_ETHERNETCONNECTFAILED,
 		"Unable to establish the WSA's Ethernet connection"),
 	wsa_err_item(WSA_ERR_ETHERNETINITFAILED,
@@ -300,14 +295,18 @@ static struct wsa_err_item {
 		"Invalid number of frames to capture"),
 
 	//*****
-	// COMMAND ERRORS
+	// CONTROL/COMMAND ERRORS
 	//*****
+	wsa_err_item(WSA_ERR_NOCTRLPIPE, 
+		"No control channel detected. Possible firmware error"),
 	wsa_err_item(WSA_ERR_CMDSENDFAILED,
 		"Sending of the command failed"),
 	wsa_err_item(WSA_ERR_CMDINVALID,
 		"Command is not valid or incorrectly written"),
 	wsa_err_item(WSA_ERR_RESPUNKNOWN,
 		"The response received is invalid for the query sent"),
+	wsa_err_item(WSA_ERR_QUERYNORESP,
+		"Query returns no response"),
 
 
 	//*****

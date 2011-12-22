@@ -145,8 +145,13 @@ struct wsa_frame_header {
 
 
 struct wsa_socket {
+#ifdef WIN_SOCK
 	SOCKET cmd;
 	SOCKET data;
+#else
+	int cmd;
+	int data;
+#endif
 };
 
 

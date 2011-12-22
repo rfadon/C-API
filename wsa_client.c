@@ -59,7 +59,7 @@ int16_t wsa_start_client(const char *wsa_addr, SOCKET *cmd_sock,
 		doutf(DHIGH, "WSAStartup() returned error code %d. ", ws_err_code);
 		doutf(DHIGH, "%s\n", WSAGetLastErrorMessage(
 			"Error creating an instance of Winsock in Windows!\n"));
-		return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
+		return WSA_ERR_WINSOCKSTARTUPFAILED;
 	}
 
 

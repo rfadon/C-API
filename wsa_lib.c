@@ -287,7 +287,11 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	char intf_type[10];
 	char ports_str[20];
 	char wsa_addr[200];		// store the WSA IP address
+#ifdef WIN_SOCK
 	int32_t data_port, ctrl_port;
+#else
+	char *data_port, *ctrl_port;
+#endif
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 	int colons = 0;
 
@@ -353,7 +357,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// *****
 	if (is_tcpip) {
 		long temp;
-
+#ifdef WIN_SOCK
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
 			// get control port
@@ -383,6 +387,31 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
 			return result;
 		}
+#else
+		// extract the ports if they exist
+		if (strlen(ports_str) > 0)	{
+			// get control port
+			temp_str = strtok(ports_str, ",");
+			strcpy(ctrl_port, temp_str);
+			
+			// get data port
+			temp_str = strtok(NULL, ",");
+			strcpy(data_port, temp_str);
+		}
+		else {
+			strcpy(ctrl_port, CTRL_PORT);
+			strcpy(data_port, DATA_PORT);
+		}
+		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
+
+		// Do the connection
+		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
+				&(dev->sock).data, ctrl_port, data_port);
+		if (result < 0) {
+			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
+			return result;
+		}
+#endif
 
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}

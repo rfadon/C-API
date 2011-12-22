@@ -8,8 +8,11 @@
 #define MAX_BUF_SIZE 20
 
 #define TIMEOUT 500		/* Timeout for sockets in milliseconds */
+
+#ifdef WIN_SOCK
 #define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */
 #define DATA_PORT 37000
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,6 +28,10 @@ int32_t wsa_sock_recv(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out);
 int32_t wsa_sock_recv_data(SOCKET in_sock, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out);
+#else
+	#define CTRL_PORT "37001"
+	#define DATA_PORT "37000"
+#endif
 
 #endif
 

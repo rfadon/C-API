@@ -976,7 +976,7 @@ int16_t start_cli(void)
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
-	printf("\t\t\t\t(Version: %s)\n\n", "v1.1-15");
+	printf("\t\t\t\t(Version: %s)\n\n", "v1.1-27");
 
 	do {
 		//*****
@@ -1090,7 +1090,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 			if (strncmp(argv[w], "-ip=", 4) == 0) {
 				if (strlen(argv[w]) <= 4) {
 					printf("\nERROR: Invalid IP address or host name.\n");
-					result = WSA_ERR_INVIPADDRESS;
+					result = WSA_ERR_INVIPHOSTADDRESS;
 					break;
 				}
 
