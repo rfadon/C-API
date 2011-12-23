@@ -92,8 +92,8 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
  *
  * @param sock_name - Name of the socket (ex. server, client)
  * @param sock_addr -
- * @param sock_port -
  * @param sock_fd -
+ * @param sock_port -
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
@@ -135,7 +135,11 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 		fprintf(stderr, "client: failed to connect\n");
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
-	else printf("connected.\n");
+	
+	char str[INET6_ADDRSTRLEN];
+	inet_ntop(ai_ptr->ai_family, get_in_addr(
+		(struct sockaddr *) ai_ptr->ai_addr), str, sizeof(str));
+	printf("connected to %s\n", str);
 
 	freeaddrinfo(ai_list); // all done with this list
 
@@ -164,12 +168,45 @@ int16_t wsa_close_client(int32_t sock_fd)
 /**
  * Sends a string to the server.  
  *
- * @param out_sock -
+ * @param sock_fd -
  * @param out_str -
  * @param len -
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
-int32_t wsa_sock_send(int32_t out_sock, char *out_str, int32_t len)
+int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 {
+	int32_t bytes_txed = send(sock_fd, out_str, len, 0);
+	if (bytes_txed > 0) {
+		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+	}
+	else if (bytes_txed == -1)
+		return WSA_ERR_SOCKETERROR;
+	else {
+		// Client closed connection before we could reply to
+		// all the data it sent, so bomb out early.
+		return WSA_ERR_SOCKETDROPPED;
+	}
 
+	return bytes_txed;
+}
+
+
+/**
+ * Gets incoming control strings from the server socket \b buf_size bytes 
+ * at a time.  It does not loop to keep checking \b buf_size of bytes are
+ * received.
+ *
+ * @param sock_fd - The socket at which the data will be received.
+ * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param buf_size - The size of the buffer in bytes.
+ * @param time_out - Time out in milliseconds.
+ * 
+ * @return Number of bytes read
+ */
+int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
+					  uint32_t time_out)
+{
+	int32_t bytes_rxed = 0;
+	return 0;
+}

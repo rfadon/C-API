@@ -119,7 +119,6 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 #endif
 
 	// Shut COMMAND socket connection down
-	//fflush(stdin);
 	if (ShutdownConnection(cmd_sock, "command socket"))
 		printf("Command socket connection is down.\n");
 	else {
@@ -131,7 +130,6 @@ int16_t wsa_close_client(SOCKET cmd_sock, SOCKET data_sock)
 
 
 	// Shut DATA socket connection down
-	//fflush(stdin);
 	if (ShutdownConnection(data_sock, "data socket"))
 		printf("Data socket connection is down.\n");
 	else {
@@ -161,14 +159,12 @@ SOCKET setup_sock(char *sock_name, const char *sock_addr, int32_t sock_port)
 {
 	// Find the server's address
 	//printf("Looking up %s address: ", sock_name);
-	//fflush(stdin);
 	SOCKET sd;
 
 	u_long new_sock_addr = wsa_addr_check(sock_addr);
 	if (new_sock_addr == INADDR_NONE) {
 		fprintf(stderr, "\nError %s\n", 
 			WSAGetLastErrorMessage("lookup address"));
-		//return WSA_ERR_INVIPHOSTADDRESS;
 		sd = INVALID_SOCKET;
 	}
 	else {
@@ -269,9 +265,7 @@ SOCKET establish_connection(u_long sock_addr, u_short sock_port)
  */
 int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 {
-	//const char *temp = (const char*) out_str;
 	// Send the string to the server
-	//if (out_socket
 	int32_t bytes_txed = send(out_sock, out_str, len, 0);
 	if (bytes_txed > 0) {
 		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
@@ -283,7 +277,6 @@ int32_t wsa_sock_send(SOCKET out_sock, char *out_str, int32_t len)
 	else {
 		// Client closed connection before we could reply to
 		// all the data it sent, so bomb out early.
-		//printf("Peer unexpectedly dropped connection!\n");
 		return WSA_ERR_SOCKETDROPPED;
 	}
 

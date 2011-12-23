@@ -292,7 +292,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 #ifdef WIN_SOCK
 	int32_t data_port, ctrl_port;
 #else
-	char *data_port, *ctrl_port;
+	char data_port[10], ctrl_port[10];
 #endif
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 	int32_t colons = 0;
@@ -407,14 +407,14 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock("WSA 'command' socket", wsa_addr, 
-			&(dev->sock).cmd, ctrl_port);
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd, 
+			ctrl_port);
 		if (result < 0)
 			return result;
 
 		// setup data socket & connect
-		result = wsa_setup_sock("WSA 'data' socket", wsa_addr, 
-			&(dev->sock).data, data_port);
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, 
+			data_port);
 		if (result < 0)
 			return result;
 #endif
@@ -567,7 +567,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
 		printf("ERROR %d: %s '%s'.\n", result, 
-			wsa_get_err_msg(result, file_name);
+			wsa_get_err_msg(result, file_name));
 		return result;
 	}
 
@@ -634,7 +634,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
  * @return 0 upon successful or a negative value
  */
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
-						struct wsa_resp *resp);
+						struct wsa_resp *resp)
 {
 	struct wsa_resp temp_resp;
 	int32_t bytes_got = 0;
@@ -658,14 +658,14 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 				temp_resp.status = bytes_got;
 				strcpy(temp_resp.output, 
 					_wsa_get_err_msg(bytes_got));
-				return temp_resp;
+				return bytes_got;
 			}
 			else if (bytes_got < len) {
 				if (resend_cnt > 3) {
 					temp_resp.status = WSA_ERR_CMDSENDFAILED;
 					strcpy(temp_resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
-					return temp_resp;
+					return WSA_ERR_CMDSENDFAILED;
 				}
 
 				printf("Not all bytes sent. Resending the packet...\n");
