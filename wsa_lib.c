@@ -358,7 +358,6 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Do the connection
 	// *****
 	if (is_tcpip) {
-		long temp;
 #ifdef WIN_SOCK
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
@@ -566,8 +565,8 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %d: %s '%s'.\n", result, 
-			wsa_get_err_msg(result, file_name));
+		printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), 
+			file_name);
 		return result;
 	}
 
