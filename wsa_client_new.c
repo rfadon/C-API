@@ -31,6 +31,11 @@ void *get_in_addr(struct sockaddr *sock_addr)
 	return &(((struct sockaddr_in6*) sock_addr)->sin6_addr);
 }
 
+
+/**
+ * Local function that does address check with all the proper socket setup and
+ * call getaddrinfo() to verify.
+ */
 int16_t _addr_check(const char *sock_addr, const char *sock_port,
 					struct addrinfo *ai_list)
 {
@@ -63,7 +68,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 
 /**
  * Given a client address string and the port number, determine if it's 
- * a dotted-quad IP address or a domain address.  
+ * a dotted-quad IP address or a domain address.
  *
  * @param sock_addr - 
  * @param sock_port -
@@ -176,19 +181,33 @@ int16_t wsa_close_client(int32_t sock_fd)
  */
 int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 {
-	int32_t bytes_txed = send(sock_fd, out_str, len, 0);
-	if (bytes_txed > 0) {
-		doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
-	}
-	else if (bytes_txed == -1)
-		return WSA_ERR_SOCKETERROR;
-	else {
-		// Client closed connection before we could reply to
-		// all the data it sent, so bomb out early.
-		return WSA_ERR_SOCKETDROPPED;
+	int32_t total_txed = 0;
+	int32_t bytes_txed;
+	int32_t bytes_left = len;
+
+	// Loop to send all the bytes
+	while (total_txed < len) {
+		// Send the bytes
+		bytes_txed = send(sock_fd, out_str + total_txed, bytes_left, 0);
+		
+		// Check the returned value
+		if (bytes_txed > 0) {
+			doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+			
+			// update all the count
+			total_txed += bytes_txed;
+			bytes_left -= bytes_txed;
+		}
+		else if (bytes_txed == -1)
+			return WSA_ERR_SOCKETERROR;
+		else {
+			// Client closed connection before we could reply to
+			// all the data it sent, so bomb out early.
+			return WSA_ERR_SOCKETDROPPED;
+		}
 	}
 
-	return bytes_txed;
+	return total_txed;
 }
 
 
@@ -208,5 +227,18 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;
+
+	// TODO make this non-blocking
+	bytes_rxd = recv(ctrl_sock_fd, rx_buf, MAX_PKT_SIZE, 0);
+	if (bytes_rxed == SOCKET_ERROR) {
+		doutf(DMED, "recv() function returned with error %d\n", 
+			WSAGetLastError());
+		return WSA_ERR_SOCKETERROR;
+	}
+
+	// Terminate the last character in cmd resp string only to 0
+	if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
+			rx_buf_ptr[bytes_rxed] = '\0';
+
 	return 0;
 }
