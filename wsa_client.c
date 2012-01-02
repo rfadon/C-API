@@ -170,6 +170,7 @@ int16_t wsa_close_client(int32_t sock_fd)
 	return 0;
 }
 
+
 /**
  * Sends a string to the server.  
  *
@@ -214,31 +215,125 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 /**
  * Gets incoming control strings from the server socket \b buf_size bytes 
  * at a time.  It does not loop to keep checking \b buf_size of bytes are
- * received.
+ * received. \n
+ * This socket receive function makes used of select() function to check for
+ * data availability before receiving.
  *
  * @param sock_fd - The socket at which the data will be received.
  * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
  * 
- * @return Number of bytes read
+ * @return Number of bytes read on successful or a negative value on error
  */
 int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;
+	fd_set read_fd; // temp file descriptor for select()
+	//int max_fd;	// to keep track of the max fd, though not really necessary
 
-	// TODO make this non-blocking
-	bytes_rxd = recv(ctrl_sock_fd, rx_buf, MAX_PKT_SIZE, 0);
-	if (bytes_rxed == SOCKET_ERROR) {
-		doutf(DMED, "recv() function returned with error %d\n", 
-			WSAGetLastError());
+	struct timeval timer;
+	long seconds = (long) floor(time_out / 1000.0);
+
+	// first set the time out timer
+	timer.tv_sec = seconds;
+	timer.tv_usec = time_out - (seconds * 1000);
+
+	// *****
+	// Use select() & FD_SET to make this receiving non-blocking (i.e. with
+	// time out value)
+	// *****
+
+	// FD_ZERO() clears out the fd_set called socks, so that
+	//   it doesn't contain any file descriptors.
+	FD_ZERO(&read_fd);
+
+	// FD_SET() adds the file descriptor "socket" to the fd_set,
+	//	so that select() will return if a connection comes in
+	//	on that socket (which means you have to do accept(), etc.)
+	FD_SET(sock_fd, &read_fd);
+
+	//max_fd = sock_fd; // avoid modifying the main fd
+
+	// Make reading of socket non-blocking w/ time-out of s.ms sec
+	if (select(sock_fd + 1, &read_fd, NULL, NULL, &timer) == -1) {
+		doutf(DMED, "init select() function returned with error");
 		return WSA_ERR_SOCKETERROR;
 	}
 
-	// Terminate the last character in cmd resp string only to 0
-	if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
-			rx_buf_ptr[bytes_rxed] = '\0';
+	// if the socket is read-able, rx packet
+	if (FD_ISSET(sock_fd, &read_fd)) {
+		// read incoming strings at a time
+		bytes_rxed = recv(sock_fd, rx_buf_ptr, buf_size, 0);
+		
+		// checked the return value
+		if (bytes_rxed <= 0) {
+			if (bytes_rxed == 0) {
+				// Connection closed
+				doutf(DMED, "Connection is already closed.\n");
+				return WSA_ERR_SOCKETERROR;
+			}
+			else {
+				perror("recv");
+				return WSA_ERR_SOCKETSETFUPFAILED;
+			}
+		}
 
-	return 0;
+		// Terminate the last character in cmd resp string only to 0
+		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
+				rx_buf_ptr[bytes_rxed] = '\0';
+	}
+
+	return bytes_rxed;
 }
+
+
+/**
+ * Gets incoming data packet from the server socket \b buf_size bytes 
+ * at a time.  This function will check to ensure the \b buf_size of bytes
+ * are received.
+ *
+ * @param in_sock - The socket at which the data will be received.
+ * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param buf_size - The size of the buffer in bytes.
+ * @param time_out - Time out in milliseconds.
+ * 
+ * @return Number of bytes read on successful or a negative value on error
+ */
+int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr, 
+						   uint32_t buf_size, uint32_t time_out)
+{
+	uint32_t bytes_rxed = 0, total_bytes = 0;
+	uint16_t retry = 1;
+
+	do {
+		bytes_rxed = wsa_sock_recv(sock_fd, rx_buf_ptr, buf_size, time_out);
+		if (bytes_rxed > 0) {
+			retry = 0;
+			total_bytes += bytes_rxed;
+
+			if (total_bytes < buf_size) {
+				//rx_buf_ptr[bytes_rxed] = '\0'; 
+				rx_buf_ptr += bytes_rxed;
+			}
+			else {
+				doutf(DLOW, "total rxed: %ld - ", total_rxed);
+				break;
+			}
+			doutf(DLOW, "rxed: %ld - ", bytes_rxed);
+		}
+		else {
+			// if got error, try again to make sure?
+			if (retry == 2)
+				return bytes_rxed;
+			retry++;
+		}
+	} while (1);
+
+	return total_rxed;
+}
+
+
+// TODO: get_sock_ack() ?
+//		 wsa_get_host_info() ?
