@@ -11,13 +11,13 @@ CC=gcc
 LD=ld
 AR=ar
 
+VERSION=$(shell git describe --dirty='+' --long)
+
 INCLUDE=
 LIBPATH=
-CFLAGS=-Wall -O2 -I${INCLUDE} -fPIC
+CFLAGS=-Wall -O2 -I${INCLUDE} -fPIC -DCLI_VERSION="\"${VERSION}\""
 LIBS=
 LDFLAGS=-L${LIBPATH}
-
-VERSION=$(shell git describe --dirty='+' --long)
 
 all: ${TARGET}
 
