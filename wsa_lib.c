@@ -693,7 +693,8 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					loop_count++;
 				} while (bytes_got < 1);
 
-				temp_resp.output[bytes_got] = 0; // add EOL to the string
+				if (bytes_got > 0)
+					temp_resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
 		}
@@ -867,7 +868,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		// 5. Check the TSF field, if presents (= 0x10), 
 		// get the picoseconds time stamp at the 4th & 5th words
 		if ((dbuf[1] & 0x30) >> 5)
-			header->time_stamp.psec = (uint64_t)
+			/*header->time_stamp.psec = (uint64_t)
 					((((uint8_t) dbuf[12]) & 0x0100000000000000) +
 					(((uint8_t) dbuf[13]) & 0x01000000000000) +
 					(((uint8_t) dbuf[14]) & 0x010000000000) +
@@ -875,7 +876,8 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(uint32_t) (((uint8_t) dbuf[16]) << 24) +
 					(((uint8_t) dbuf[17]) << 16) + 
 					(((uint8_t) dbuf[18]) << 8) + 
-					(uint8_t) dbuf[19]);
+					(uint8_t) dbuf[19]);*/
+			memcpy(header->time_stamp.psec, dbuf + 12, 8);  // TODO verify
 		else 
 			header->time_stamp.psec = 0;
 		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
@@ -925,7 +927,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size)
 {
-	int32_t result = 0;
+	//int32_t result = 0;
 	uint32_t i;
 	int32_t j = 0;
 
