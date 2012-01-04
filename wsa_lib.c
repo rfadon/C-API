@@ -67,8 +67,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		
 		// if it's RFE0440
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0) {
-			dev->descr.max_tune_freq = WSA_RFE0440_MAX_FREQ;
-			dev->descr.min_tune_freq = WSA_RFE0440_MIN_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0440_MAX_FREQ;
+			dev->descr.min_tune_freq = (uint64_t) WSA_RFE0440_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
 			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
 				WSA_RFE0440_ABS_AMP_HIGH;
@@ -82,7 +82,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 		// if it's RFE0560
 		else if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
 			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;
@@ -242,7 +242,8 @@ char *wsa_query_error(struct wsa_device *dev)
 		return "";
 	else {
 		printf("WSA returns: %s\n", resp.output);
-		return resp.output;
+		//return resp.output;
+		return &(resp.output[0]); // TODO verify this output
 	}
 }
 	
@@ -600,8 +601,9 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			
 				// If a bad command is detected, continue? Prefer not.
 				if (resp.status < 0) {
-					printf("WSA returned error %d: \"%s\" (possibly: %s)\n", 
-						resp.output, _wsa_get_err_msg(WSA_ERR_CMDINVALID));
+					printf("WSA returned error %lld: \"%s\" (possibly: %s)\n", 
+						resp.status, resp.output, 
+						_wsa_get_err_msg(WSA_ERR_CMDINVALID));
 					printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 					break;
 				}
@@ -690,8 +692,10 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 		}
 
 		// TODO define what result should be
-		if (bytes_got == 0)
+		if (bytes_got == 0) {
 			temp_resp.status = WSA_ERR_QUERYNORESP;
+			return WSA_ERR_QUERYNORESP;
+		}
 		else 
 			temp_resp.status = bytes_got;
 	}
@@ -850,7 +854,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 								(((uint8_t) dbuf[9]) << 16) +
 								(((uint8_t) dbuf[10]) << 8) + 
 								(uint8_t) dbuf[11];
-		doutf(DLOW, "second: 0x%08x %ld\n", header->time_stamp.sec, 
+		doutf(DLOW, "second: 0x%08x %d\n", header->time_stamp.sec, 
 			header->time_stamp.sec);
 
 		// 5. Check the TSF field, if presents (= 0x10), 

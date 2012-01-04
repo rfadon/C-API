@@ -2,7 +2,10 @@
 #define __WSA_CLIENT_H__
 
 #include "stdint.h"
+
+#ifdef WIN_SOCK
 #include <winsock2.h>
+#endif
 
 #define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20

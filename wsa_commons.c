@@ -30,7 +30,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
 	
-	return wsa_err_list[WSA_ERR_UNKNOWN_ERROR].err_msg;
+	//return wsa_err_list[WSA_ERR_UNKNOWN_ERROR].err_msg;
+	return _wsa_get_err_msg(WSA_ERR_UNKNOWN_ERROR);
 }
 
 
