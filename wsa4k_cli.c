@@ -62,6 +62,7 @@
 #else
 #include <ctype.h>
 #include <curses.h>
+#include <unistd.h>
 #endif
 
 #include <stdio.h>
@@ -249,7 +250,8 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	lines = result;
 	for (i = 0; i < lines; i++) {
 		result = process_cmd_string(dev, cmd_strs[i]);
-		Sleep(20); // delay the send a little bit
+		//Sleep(20); // delay the send a little bit
+		//usleep(2000); // -> for gcc
 		
 		// If a bad command is detected, continue? Prefer not.
 		if (result < 0) {
@@ -364,7 +366,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	time_t time_stamp;
 	struct tm *time_struct;
 	char time_str[50];
+#ifdef WIN_SOCK
 	struct _timeb msec_buf;
+#else
+	struct timeb msec_buf;
+#endif
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 	
@@ -372,7 +378,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// folder called CAPTURES
 	time_stamp = time(NULL);	// call time functions
 	time_struct = localtime(&time_stamp);
+#ifdef WIN_SOCK
 	_ftime_s(&msec_buf);		 
+#else
+	ftime(&msec_buf);
+#endif
 	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H%M%S", time_struct);
 	sprintf(file_name, "CAPTURES\\%s%s%03d.%s", prefix, time_str, 
 		msec_buf.millitm, ext);
@@ -406,7 +416,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("done.\nAcquiring data bytes ");
 	
 	// Get the start time
+#ifdef WIN_SOCK
 	_ftime_s(&msec_buf);		// call time function
+#else
+	ftime(&msec_buf);
+#endif
 	start_time = msec_buf.time;	// time in seconds
 	start_ms = msec_buf.millitm;// get millisecond
 	
@@ -440,7 +454,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// get the end time & calculate the throughput rate
-	_ftime_s(&msec_buf);		// call time function again
+#ifdef WIN_SOCK
+	_ftime_s(&msec_buf);		// call time function again		 
+#else
+	ftime(&msec_buf);
+#endif
 	delta_sec = msec_buf.time - start_time;
 	delta_ms = msec_buf.millitm - start_ms;
 	// re-adjust the 1 second carry over when start_ms > end_ms
@@ -448,7 +466,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		delta_sec -= 1;
 		delta_ms += 1000;
 	}
-	printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
+	//printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
+	printf("done.\n\t(Run time: %lld sec %hu msec; Rate: %.03lf bytes/sec).\n", 
 		delta_sec, delta_ms, total_bytes / (delta_sec + (delta_ms / 1000.0)));
 
 	
@@ -480,7 +499,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("done.\nSaving data to: %s ... ", file_name);
 	for (j = 0; j < frame_size; j++) {
 		// Save each header information into the file 
-		fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%d\n", j + 1, freq, 
+		fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%lld\n", j + 1, freq, 
 			samples, header[j].time_stamp.sec, header[j].time_stamp.psec);
 
 		// Save decoded samples to the file	
@@ -573,7 +592,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int32_t rate = 0;
 				result = wsa_get_decimation(dev, &rate);
 				if (result >= 0)
-					printf("The current sample size: %ld\n", rate);
+					printf("The current sample size: %d\n", rate);
 			}
 		} // end get decimation rate
 
@@ -602,7 +621,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		else if (strcmp(cmd_words[1], "DIR") == 0) {
 			printf("File directory is: \"%s\\CAPTURES\\\"\n", 
-				_getcwd(NULL, 0));
+				//_getcwd(NULL, 0));
+				getcwd(NULL, 0));
 		}
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
@@ -649,7 +669,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum sample size: %ld\n", 
+					printf("Maximum sample size: %d\n", 
 						dev->descr.max_sample_size);
 					return 0;
 				}
@@ -664,7 +684,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int32_t size = 0;
 				result = wsa_get_sample_size(dev, &size);
 				if (result >= 0)
-					printf("The current sample size: %ld\n", size);
+					printf("The current sample size: %d\n", size);
 			}
 		} // end get SS
 
@@ -776,7 +796,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
-				wsa_gain gain = (wsa_gain) NULL;
+				struct wsa_gain gain = (struct wsa_gain) NULL;
 				uint8_t valid = TRUE;
 
 				// Convert to wsa_gain type
@@ -845,7 +865,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[0], "O") == 0) {
 			char dir[500];	// be generous b/c overflow will kill ur program.
-			sprintf(dir, "explorer %s\\CAPTURES", _getcwd(NULL, 0));
+			sprintf(dir, "explorer %s\\CAPTURES", getcwd(NULL, 0));//_getcwd(NULL, 0));
 			
 			if (system(dir)!= NULL)
 				printf("Open the folder of captured file(s)...\n");
@@ -980,7 +1000,6 @@ int16_t start_cli(void)
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
 	char in_str[MAX_STRING_LEN];	// store user's input string
 	char *in_buf;
-	int16_t in_num = 0;				// store user's entered number
 	const char *wsa_addr;			// store the desired WSA IP address
 	int16_t result = 0;				// result returned from a function
 
@@ -1336,11 +1355,11 @@ void print_wsa_stat(struct wsa_device *dev) {
 
 	result = wsa_get_sample_size(dev, &value);
 	if (result >= 0)
-		printf("\t\t- Sample size: %ld\n", value);
+		printf("\t\t- Sample size: %d\n", value);
 	else
 		printf("\t\t- Error: Failed getting the sample size.\n");
 
-	printf("\t\t- Frame size per file: %ld\n", _frame_size);
+	printf("\t\t- Frame size per file: %d\n", _frame_size);
 }
 
 
