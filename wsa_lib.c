@@ -16,7 +16,8 @@
 // *****
 // Local functions:
 // *****
-char *wsa_query_error(struct wsa_device *dev);
+//char *wsa_query_error(struct wsa_device *dev);
+int16_t wsa_query_error(struct wsa_device *dev, char *output);
 int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
@@ -137,6 +138,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	long temp_val;
 	uint8_t stb_reg = 0;
 	struct wsa_resp query;		// store query results
+	char query_msg[256];
 
 	// initialized the output buf
 	strcpy(output, "");
@@ -153,7 +155,8 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	if (stb_reg & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
-			sprintf(output, "%s\n", wsa_query_error(dev));
+			wsa_query_error(dev, query_msg);
+			sprintf(output, "%s\n", query_msg);
 			if (strcmp(output, "\n") == 0)
 				break;
 		} while(1);
@@ -230,21 +233,24 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 // Querry the WSA for any error messages.  This is equivalent to the SCPI
 // command SYSTem:ERRor?
 // Return the query result stored in a char pointer.
-char *wsa_query_error(struct wsa_device *dev)
+int16_t wsa_query_error(struct wsa_device *dev, char *output)
 {
 	struct wsa_resp resp;
 
 	wsa_send_query(dev, "SYST:ERR?\n", &resp);
 	if (resp.status < 0)
-		return (char *) _wsa_get_err_msg((int16_t) resp.status);
+		strcpy(output, _wsa_get_err_msg((int16_t) resp.status));
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
-		return "";
+		strcpy(output, "");
 	else {
 		printf("WSA returns: %s\n", resp.output);
 		//return resp.output;
-		return &(resp.output[0]); // TODO verify this output
+		strcpy(output, resp.output); // TODO verify this output
+
 	}
+
+	return 0;
 }
 	
 
@@ -499,6 +505,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	int32_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
+	char query_msg[256];
 
 	// TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
@@ -522,12 +529,12 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
 		if (strstr(command, "IQ?") == NULL) {
-			if ((strstr(wsa_query_error(dev), "no response") != 0) && 
-				(bytes_txed > 0))
+			wsa_query_error(dev, query_msg);
+			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
 				return WSA_ERR_QUERYNORESP;
 
-			if (strcmp(wsa_query_error(dev), "") != 0) {
-				printf("%s: %s", command, wsa_query_error(dev));
+			if (strcmp(query_msg, "") != 0) {
+				printf("%s: %s", command, query_msg);
 				return WSA_ERR_SETFAILED;
 			}
 		}
