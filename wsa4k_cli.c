@@ -470,7 +470,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		delta_ms += 1000;
 	}
 	//printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
-	printf("done.\n\t(Run time: %lld sec %hu msec; Rate: %.03lf bytes/sec).\n", 
+	printf("done.\n\t(Run time: %s sec %hu msec; Rate: %.03lf bytes/sec).\n", 
 		ctime(&delta_sec), delta_ms, 
 		total_bytes / (delta_sec + (delta_ms / 1000.0)));
 

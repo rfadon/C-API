@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <windows.h>
 #include <errno.h>
 #include <limits.h>
-
+#include <string.h>
+#ifdef WIN_SOCK
+#include <windows.h>
+#endif
 #include "wsa_commons.h"
 #include "wsa_error.h"
 
