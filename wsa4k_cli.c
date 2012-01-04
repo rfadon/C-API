@@ -63,6 +63,9 @@
 #include <ctype.h>
 #include <curses.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
 #endif
 
 #include <stdio.h>
@@ -468,7 +471,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	//printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
 	printf("done.\n\t(Run time: %lld sec %hu msec; Rate: %.03lf bytes/sec).\n", 
-		delta_sec, delta_ms, total_bytes / (delta_sec + (delta_ms / 1000.0)));
+		ctime(&delta_sec), delta_ms, 
+		total_bytes / (delta_sec + (delta_ms / 1000.0)));
 
 	
 	// *****
@@ -796,7 +800,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
-				struct wsa_gain gain = (struct wsa_gain) NULL;
+				enum wsa_gain gain = (enum wsa_gain) NULL;
 				uint8_t valid = TRUE;
 
 				// Convert to wsa_gain type
@@ -865,12 +869,29 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[0], "O") == 0) {
 			char dir[500];	// be generous b/c overflow will kill ur program.
+			DIR *temp;
+#ifdef WIN_SOCK
 			sprintf(dir, "explorer %s\\CAPTURES", getcwd(NULL, 0));//_getcwd(NULL, 0));
-			
+
+			// this using is a problem here for gcc/linux
 			if (system(dir)!= NULL)
 				printf("Open the folder of captured file(s)...\n");
 			else 
 				printf("Open failed!\n");
+#else
+			sprintf(dir, "%s\\CAPTURES", getcwd(NULL, 0));
+
+			temp = opendir(dir);
+			if (temp == NULL) {
+				if (errno == EACCES)
+					printf("Error: Permission to open '%s is denied'.\n", dir);
+				else if (errno == ENOENT)
+					printf("Error: '%s' directory does not exist.\n", dir);
+			}
+			else 
+				printf("Open the folder of captured file(s)...\n");
+
+#endif
 		}  // end Open directory
 
 		else if (strcmp(cmd_words[0], "SAVE") == 0) {
