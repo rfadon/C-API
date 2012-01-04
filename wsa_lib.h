@@ -1,7 +1,10 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
+#ifdef WIN_SOCK
 #include <winsock2.h>
+#endif
+
 #include "wsa_commons.h"
 
 
@@ -83,8 +86,8 @@
 #define WSA_RFE0560_MIN_FREQ 100000
 #define WSA_RFE0560_MAX_IF_GAIN 34
 #define WSA_RFE0560_MIN_IF_GAIN -10
-#define WSA_RFE0560_MAX_DECIMATION 1024
-#define WSA_RFE0560_MIN_DECIMATION 4
+#define WSA_RFE0560_MAX_DECIMATION 1023
+#define WSA_RFE0560_MIN_DECIMATION 16
 #define WSA_RFE0560_FREQRES	100000 // to read in the register
 #define WSA_RFE0560_MAX_ANT_PORT 2
 

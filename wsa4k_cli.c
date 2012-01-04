@@ -54,16 +54,22 @@
  * connect to the box.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifdef WIN_SOCK
 #include <conio.h>
 #include <fstream>
 #include <iostream>
+#include <direct.h>
+#else
+#include <ctype.h>
+#include <curses.h>
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
 #include <sys/timeb.h>
 #include <time.h>
-#include <direct.h>
 
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
@@ -144,7 +150,8 @@ void print_cli_menu(struct wsa_device *dev)
 									"or off.\n");
 	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
 	printf(" set dec <rate>	        Set decimation rate.\n"
-	       "                        - Range: 0 (for off), %d - %d.\n");
+		   "                        - Range: 0 (for off), %d - %d.\n", 
+		   dev->descr.min_decimation, dev->descr.max_decimation);
 	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
 									"freq 441.5).\n"
 		   "                        - Range: %.2f - %.2f MHz inclusively.\n"
@@ -216,6 +223,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	int16_t lines = 0;
 	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
 	FILE *cmd_fptr;
+	int i;
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		printf("Error opening '%s'.\n", file_name);
@@ -223,7 +231,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	}
 
 	// Allocate memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STRING_LEN);
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
@@ -232,14 +240,14 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 
 	if (result < 0) {
 		// free memory
-		for (int i = 0; i < MAX_FILE_LINES; i++)
+		for (i = 0; i < MAX_FILE_LINES; i++)
 			free(cmd_strs[i]);
 		return WSA_ERR_FILEREADFAILED;
 	}
 
 	// Send each command line to WSA
 	lines = result;
-	for (int i = 0; i < lines; i++) {
+	for (i = 0; i < lines; i++) {
 		result = process_cmd_string(dev, cmd_strs[i]);
 		Sleep(20); // delay the send a little bit
 		
@@ -252,7 +260,7 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	result = lines;
 
 	// Free memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		free(cmd_strs[i]);
 
 	return result;
@@ -274,13 +282,14 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 	char temp_str[MAX_STRING_LEN];
 	char *temp_ptr;
 	uint8_t w = 0;	// an index
+	int i;
 
 	// Allocate memory
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
+	for (i = 0; i < MAX_CMD_WORDS; i++)
 		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
 
 	// clear up the words first
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
+	for (i = 0; i < MAX_CMD_WORDS; i++)
 		strcpy(cmd_words[i], "");
 	
 	// Get string command
@@ -298,7 +307,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 	result = process_cmd_words(dev, cmd_words, w);
 
 	// Free the allocation
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
+	for (i = 0; i < MAX_CMD_WORDS; i++)
 		free(cmd_words[i]);
 
 	return result;
@@ -448,6 +457,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	int16_t *i_buf;		// To store the integer I data
 	int16_t *q_buf;		// To store the integer Q data
+	int i, j;
 
 	// Allocate i buffer space
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
@@ -468,13 +478,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Loop to save data into the file
 	printf("done.\nSaving data to: %s ... ", file_name);
-	for (int j = 0; j < frame_size; j++) {
+	for (j = 0; j < frame_size; j++) {
 		// Save each header information into the file 
 		fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%d\n", j + 1, freq, 
 			samples, header[j].time_stamp.sec, header[j].time_stamp.psec);
 
 		// Save decoded samples to the file	
-		for (int i = 0; i < samples; i++) {
+		for (i = 0; i < samples; i++) {
 			next = j * samples + i;
 			fprintf(iq_fptr, "%d,%d\n", i_buf[next], q_buf[next]);
 		// For testing purpose only
@@ -511,6 +521,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	uint8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
 	strcpy(msg,"");
+	int i;
 
 
 	//*****
@@ -672,7 +683,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else {
 					char *file_name = cmd_words[3];
 					if (num_words > 3) {
-						for (int i = 4; i < num_words; i++) {
+						for (i = 4; i < num_words; i++) {
 							strcat(file_name, " ");
 							strcat(file_name, cmd_words[i]);
 						}
@@ -845,17 +856,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[0], "SAVE") == 0) {
 			char prefix[200];
 			char ext[10];
-			int i = 1;
+			int n = 1;
 			char *temp;
 
 			strcpy(prefix, "");
 			strcpy(ext, "csv");
 
 			// Get the [name] &/or [ext:<type>] string if there exists one
-			while (strcmp(cmd_words[i], "") != 0) {
+			while (strcmp(cmd_words[n], "") != 0) {
 				unsigned int j;
-				if (strstr(cmd_words[i], "EXT:") != NULL) {
-					temp = strchr(cmd_words[i], ':');
+				if (strstr(cmd_words[n], "EXT:") != NULL) {
+					temp = strchr(cmd_words[n], ':');
 					strcpy(ext, strtok(temp, ":"));
 					
 					// convert to lower case
@@ -865,13 +876,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else {
 					// convert to lower case after the first letter
-					for (j = 1; j < strlen(cmd_words[i]); j++)
-						cmd_words[i][j] = tolower(cmd_words[i][j]);
-					strcat(prefix, cmd_words[i]);
+					for (j = 1; j < strlen(cmd_words[n]); j++)
+						cmd_words[n][j] = tolower(cmd_words[n][j]);
+					strcat(prefix, cmd_words[n]);
 					strcat(prefix, " ");
 				}
 
-				i++;
+				n++;
 			}
 
 			result = save_data_to_file(dev, prefix, ext);
@@ -967,7 +978,7 @@ int16_t start_cli(void)
 {
 	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
-	char in_str[MAX_STRING_LEN];		// store user's input string
+	char in_str[MAX_STRING_LEN];	// store user's input string
 	char *in_buf;
 	int16_t in_num = 0;				// store user's entered number
 	const char *wsa_addr;			// store the desired WSA IP address
@@ -1078,6 +1089,7 @@ void call_mode_print_help(char* argv) {
  */
 int16_t process_call_mode(int32_t argc, char **argv)
 {
+	int i, j; // for loop index
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
 	int16_t w = 1;				// skip the executable at index 0
 	int16_t c = 0;				// keep track of the words processed
@@ -1094,7 +1106,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	dev = &wsa_dev;
 
 	// Allocate memory
-	for (int i = 0; i < MAX_CMD_WORDS; i++) {
+	for (i = 0; i < MAX_CMD_WORDS; i++) {
 		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
 		strcpy(cmd_words[i], "");
 	}
@@ -1143,7 +1155,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				printf("ERROR: No IP address is given!\n");
 				break;
 			}
-			for (int i = 0; i < MAX_CMD_WORDS; i++)
+			for (i = 0; i < MAX_CMD_WORDS; i++)
 				strcpy(cmd_words[i], "");
 		}
 
@@ -1230,7 +1242,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 			}
 
 			strcpy(temp_str, "");
-			for (int i = 0; i <= c; i++) {
+			for (i = 0; i <= c; i++) {
 				// Copy the words into one complete cmd string for display
 				if (strcmp(cmd_words[i], "") != 0)
 					strcat(temp_str, cmd_words[i]);
@@ -1238,7 +1250,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 					strcat(temp_str, " ");
 
 				// capitalized the words
-				for (int j = 0; j < (int) strlen(cmd_words[i]); j++)
+				for (j = 0; j < (int) strlen(cmd_words[i]); j++)
 					cmd_words[i][j] = toupper(cmd_words[i][j]);
 			}
 
@@ -1269,7 +1281,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 	} while(w < argc);
 
 	// Free the allocation
-	for (int i = 0; i < MAX_CMD_WORDS; i++)
+	for (i = 0; i < MAX_CMD_WORDS; i++)
 		free(cmd_words[i]);
 
 	// if do_once is never started, print warning.
