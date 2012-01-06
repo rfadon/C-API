@@ -83,7 +83,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 		// if it's RFE0560
 		else if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0560_MAX_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) (WSA_RFE0560_MAX_FREQ * MHZ);
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
 			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;

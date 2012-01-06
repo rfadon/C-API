@@ -13,8 +13,9 @@ AR=ar
 
 VERSION=$(shell git describe --dirty='+' --long)
 
-INCLUDE=
-LIBPATH=
+LIBPREFIX=..
+INCLUDE=.
+LIBPATH=.
 CFLAGS=-Wall -O2 -I${INCLUDE} -fPIC -DCLI_VERSION="\"${VERSION}\""
 LIBS=
 LDFLAGS=-L${LIBPATH}

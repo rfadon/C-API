@@ -54,19 +54,6 @@
  * connect to the box.
  */
 
-#ifdef WIN_SOCK
-#include <conio.h>
-#include <fstream>
-#include <iostream>
-#include <direct.h>
-#else
-#include <ctype.h>
-#include <curses.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +61,19 @@
 #include <string.h>
 #include <sys/timeb.h>
 #include <time.h>
+
+#ifdef WIN_SOCK
+#include <conio.h>
+#include <fstream>
+#include <iostream>
+#include <direct.h>
+#else
+#include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
+#endif
 
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
