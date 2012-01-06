@@ -6,7 +6,7 @@ SRCS=main.c wsa4k_cli.c wsa_commons.c wsa_debug.c wsa_api.c wsa_lib.c \
 
 OBJS=$(SRCS:.c=.o)
 
-CROSS=mb-linux-
+CROSS=
 CC=gcc
 LD=ld
 AR=ar
@@ -40,3 +40,4 @@ latex/Makefile: Doxyfile
 
 clean:
 	rm -f ${TARGET} ${OBJS}
+	

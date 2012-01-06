@@ -5,6 +5,8 @@
 
 #include "wsa4k_cli.h"
 
+uint8_t debug_mode;
+uint8_t call_mode;
 
 /**
  * Starting point

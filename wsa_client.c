@@ -170,7 +170,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
  * 
  * @return 
  */
-int16_t wsa_close_client(int32_t sock_fd)
+int16_t wsa_close_sock(int32_t sock_fd)
 {
 	// Close all socket file descriptors
 	if (close(sock_fd) == -1)
