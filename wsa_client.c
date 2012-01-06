@@ -1,11 +1,19 @@
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef WIN_SOCK
+#include <winsock2.h>
+#else
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
+
+#include "wsa_error.h"
+#include "wsa_debug.h"
 #include "wsa_client.h"
 
 
@@ -44,7 +52,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	// fd = file descriptor
 	// ai = address info
 	// *****
-	struct addrinfo hint_ai, *ai_ptr; 
+	struct addrinfo hint_ai; 
 	int16_t result;
 
 	// Construct local address structure
@@ -54,7 +62,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 										// address family (IPv4, IPv6, etc.)
 	hint_ai.ai_socktype = SOCK_STREAM;	// For TCP type. Or use 0 for any type
 	hint_ai.ai_flags = 0;
-	hint_ai.ai_protocol = 0				// to auto chose the protocol
+	hint_ai.ai_protocol = 0;			// to auto chose the protocol
 
 	// Check the address at the given port
 	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
@@ -81,7 +89,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	int16_t result;
 
 	// Check the address at the given port
-	result = _addr_check(sock_addr, sock_port, &hint_ai, &ai_list);
+	result = _addr_check(sock_addr, sock_port, &ai_list);
 	if (result != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
@@ -331,7 +339,7 @@ int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr,
 		}
 	} while (1);
 
-	return total_rxed;
+	return total_bytes;
 }
 
 

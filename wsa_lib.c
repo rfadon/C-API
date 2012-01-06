@@ -867,7 +867,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 		// 5. Check the TSF field, if presents (= 0x10), 
 		// get the picoseconds time stamp at the 4th & 5th words
-		if ((dbuf[1] & 0x30) >> 5)
+		if ((dbuf[1] & 0x30) >> 5) {
 			/*header->time_stamp.psec = (uint64_t)
 					((((uint8_t) dbuf[12]) & 0x0100000000000000) +
 					(((uint8_t) dbuf[13]) & 0x01000000000000) +
@@ -877,9 +877,14 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(((uint8_t) dbuf[17]) << 16) + 
 					(((uint8_t) dbuf[18]) << 8) + 
 					(uint8_t) dbuf[19]);*/
-			memcpy(header->time_stamp.psec, dbuf + 12, 8);  // TODO verify
+			char temp[8];
+			memcpy(temp, dbuf + 12, 8);
+			printf("psec temp: %s\n", temp);
+			to_int(temp, &(header->time_stamp.psec));  // TODO verify
+		}
 		else 
 			header->time_stamp.psec = 0;
+
 		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
 			header->time_stamp.psec);
 #endif
