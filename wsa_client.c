@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef WIN_SOCK
 #include <winsock2.h>
@@ -89,7 +90,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	int16_t result;
 
 	// Check the address at the given port
-	result = _addr_check(sock_addr, sock_port, &ai_list);
+	result = _addr_check(sock_addr, sock_port, ai_list);
 	if (result != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
@@ -326,7 +327,7 @@ int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr,
 				rx_buf_ptr += bytes_rxed;
 			}
 			else {
-				doutf(DLOW, "total rxed: %ld - ", total_rxed);
+				doutf(DLOW, "total rxed: %ld - ", total_bytes);
 				break;
 			}
 			doutf(DLOW, "rxed: %ld - ", bytes_rxed);

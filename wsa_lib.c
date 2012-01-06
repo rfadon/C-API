@@ -878,9 +878,11 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(((uint8_t) dbuf[18]) << 8) + 
 					(uint8_t) dbuf[19]);*/
 			char temp[8];
+			long int val;
 			memcpy(temp, dbuf + 12, 8);
-			printf("psec temp: %s\n", temp);
-			to_int(temp, &(header->time_stamp.psec));  // TODO verify
+			to_int(temp, &val);  // TODO verify
+			header->time_stamp.psec = (uint64_t) val;
+			printf("temp: %s, psec: %lld\n", temp, header->time_stamp.psec);
 		}
 		else 
 			header->time_stamp.psec = 0;
