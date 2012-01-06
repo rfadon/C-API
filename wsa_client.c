@@ -117,12 +117,25 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	printf("setting up %s socket at port %s ... ", sock_name, sock_port);
 
 	struct addrinfo *ai_list, *ai_ptr;
+	struct addrinfo hint_ai; 
 	int16_t result;	
 	int32_t temp_fd;
 
-	result = _addr_check(sock_addr, sock_port, ai_list);
-	if (result < 0)
-		return result;
+	// Construct local address structure
+	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
+	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
+										// return socket addresses for any 
+										// address family (IPv4, IPv6, etc.)
+	hint_ai.ai_socktype = SOCK_STREAM;	// For TCP type. Or use 0 for any type
+	hint_ai.ai_flags = 0;
+	hint_ai.ai_protocol = 0;			// to auto chose the protocol
+
+	// Check the address at the given port
+	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
+	if (result != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		return WSA_ERR_INVIPHOSTADDRESS;
+	}
 
 	// loop through all the results and bind to the first we can
 	for (ai_ptr = ai_list; ai_ptr != NULL; ai_ptr = ai_ptr->ai_next) {
