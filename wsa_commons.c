@@ -91,8 +91,7 @@ int16_t to_int(char *num_str, long int *val)
 	errno = 0; // to distinguish success/failure after calling strtol
 	temp_val = strtol(num_str, &temp, 0);
 	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN))
-		|| (errno != 0 && temp_val == 0)
-		|| temp == num_str) {
+		|| (errno != 0 && temp_val == 0) || temp == num_str) {
 		perror("strtol");
 		return WSA_ERR_INVNUMBER;
 	}

@@ -215,7 +215,7 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 		
 		// Check the returned value
 		if (bytes_txed > 0) {
-			doutf(DMED, "Sent %d bytes to server.\n", bytes_txed);
+			doutf(DMED, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
 			
 			// update all the count
 			total_txed += bytes_txed;
@@ -279,7 +279,7 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 	//max_fd = sock_fd; // avoid modifying the main fd
 
 	// Make reading of socket non-blocking w/ time-out of s.ms sec
-	if (select(sock_fd + 1, &read_fd, NULL, NULL, &timer) == -1) {
+	if (select(sock_fd, &read_fd, NULL, NULL, &timer) == -1) {
 		doutf(DMED, "init select() function returned with error");
 		return WSA_ERR_SOCKETERROR;
 	}
@@ -303,8 +303,10 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 		}
 
 		// Terminate the last character in cmd resp string only to 0
-		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
-				rx_buf_ptr[bytes_rxed] = '\0';
+		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size) {
+			rx_buf_ptr[bytes_rxed] = '\0';
+			doutf(DMED, "Received (%d bytes): %s\n", bytes_txed, rx_buf_ptr);
+		}
 	}
 
 	return bytes_rxed;

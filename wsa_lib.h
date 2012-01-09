@@ -177,6 +177,7 @@ struct wsa_resp {
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
+
 #ifdef WIN_SOCK
 uint32_t wsa_verify_addr(const char *sock_addr);
 #else
@@ -187,13 +188,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
-
-int16_t wsa_read_status(struct wsa_device *dev, char *output);
-const char *wsa_get_error_msg(int16_t err_code);
-
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 char *data_buf, uint32_t sample_size, uint32_t time_out);
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
+int16_t wsa_read_status(struct wsa_device *dev, char *output);
+const char *wsa_get_error_msg(int16_t err_code);
 
 #endif

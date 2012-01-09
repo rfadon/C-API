@@ -131,7 +131,7 @@ int16_t wsa_check_addr(char *ip_addr)
 	int16_t result = 0;
 
 	// Check with command port
-	result = wsa_verify_addr(ip_addr, "37001");
+	result = wsa_verify_addr(ip_addr, "37001");  //TODO make this dynamic
 	if (result < 0)
 		return result;
 
@@ -297,7 +297,6 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		*header, char *data_buf, const int32_t sample_size)
 {
 	int16_t result = 0, loop = 0;
-	//int16_t frame_num = 0;
 	uint32_t samples_count = 0;
 	
 	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 

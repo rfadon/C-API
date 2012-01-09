@@ -16,7 +16,7 @@ VERSION=$(shell git describe --dirty='+' --long)
 LIBPREFIX=..
 INCLUDE=.
 LIBPATH=.
-CFLAGS=-Wall -O2 -I${INCLUDE} -fPIC -DCLI_VERSION="\"${VERSION}\""
+CFLAGS=-Wall -O2 -I${INCLUDE} -fPIC -DCLI_VERSION="\"${VERSION}\"" -DDEBUGLEVEL="\"${4}\""
 LIBS=
 LDFLAGS=-L${LIBPATH}
 
