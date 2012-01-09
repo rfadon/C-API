@@ -10,7 +10,7 @@
 #define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20
 
-#define TIMEOUT 500		/* Timeout for sockets in milliseconds */
+#define TIMEOUT 1000		/* Timeout for sockets in milliseconds */
 
 
 #ifdef WIN_SOCK

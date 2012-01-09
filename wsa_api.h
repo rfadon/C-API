@@ -109,7 +109,7 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 
 int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, char *data_buf);
+		*header, char *data_buf, const int32_t sample_size);
 int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 						 int16_t *q_buf, const int32_t sample_size);
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
