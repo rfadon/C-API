@@ -252,10 +252,8 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;
-	fd_set read_fd; // temp file descriptor for select()
-	int max_fd;		// to keep track of the max fd, though not really necessary
+	fd_set read_fd;		// temp file descriptor for select()
 	int32_t ret_val;	// return value of a function
-	int i = 0;
 
 	struct timeval timer;
 	long seconds = (long) floor(time_out / 1000.0);
@@ -278,54 +276,46 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 	//	on that socket (which means you have to do accept(), etc.)
 	FD_SET(sock_fd, &read_fd);
 
-	max_fd = sock_fd; // keep track of the biggest file descriptor
-
-	for (;;) {
-		ret_val = select(max_fd + 1, &read_fd, NULL, NULL, &timer);
-		// Make reading of socket non-blocking w/ time-out of s.ms sec
-		if (ret_val == -1) {
-			doutf(DMED, "init select() function returned with error");
-			perror("select()");
-			return WSA_ERR_SOCKETERROR;
-		}
-		else if (ret_val) {
-			doutf(DMED, "Data is available now.\n");
-		}
-		else {
-			printf("No data within %d milliseconds.\n", time_out);
-			return WSA_ERR_QUERYNORESP;
-		}
-
-		for(i = 0; i <= max_fd; i++) {
-			// if the socket is read-able, rx packet
-			if (FD_ISSET(i, &read_fd)) {
-				printf("got fd: %d\n", i);
-				// read incoming strings at a time
-				bytes_rxed = recv(sock_fd, rx_buf_ptr, buf_size, 0);
-				
-				// checked the return value
-				if (bytes_rxed <= 0) {
-					if (bytes_rxed == 0) {
-						// Connection closed
-						doutf(DMED, "Connection is already closed.\n");
-						return WSA_ERR_SOCKETERROR;
-					}
-					else {
-						perror("recv");
-						return WSA_ERR_SOCKETSETFUPFAILED;
-					}
-				}
-
-				// Terminate the last character in cmd resp string only to 0
-				if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
-					rx_buf_ptr[bytes_rxed] = '\0';
-				
-				doutf(DMED, "Received (%d bytes): %s\n\n", bytes_rxed, rx_buf_ptr);
-			}
-		}
-		break;
+	ret_val = select(sock_fd + 1, &read_fd, NULL, NULL, &timer);
+	// Make reading of socket non-blocking w/ time-out of s.ms sec
+	if (ret_val == -1) {
+		doutf(DMED, "init select() function returned with error");
+		perror("select()");
+		return WSA_ERR_SOCKETERROR;
+	}
+	else if (ret_val) {
+		doutf(DMED, "Data is available now.\n");
+	}
+	else {
+		printf("No data received within %d milliseconds.\n", time_out);
+		return WSA_ERR_QUERYNORESP;
 	}
 
+	// if the socket is read-able, rx packet
+	if (FD_ISSET(sock_fd, &read_fd)) {
+		// read incoming strings at a time
+		bytes_rxed = recv(sock_fd, rx_buf_ptr, buf_size, 0);
+		
+		// checked the return value
+		if (bytes_rxed <= 0) {
+			if (bytes_rxed == 0) {
+				// Connection closed
+				doutf(DMED, "Connection is already closed.\n");
+				return WSA_ERR_SOCKETERROR;
+			}
+			else {
+				perror("recv");
+				return WSA_ERR_SOCKETSETFUPFAILED;
+			}
+		}
+
+		// Terminate the last character in cmd resp string only to 0
+		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
+			rx_buf_ptr[bytes_rxed] = '\0';
+		
+		doutf(DMED, "Received (%d bytes): %s\n\n", bytes_rxed, rx_buf_ptr);
+	}
+		
 	return bytes_rxed;
 }
 
