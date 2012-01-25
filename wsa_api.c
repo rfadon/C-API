@@ -106,15 +106,17 @@ void wsa_close(struct wsa_device *dev)
 
 
 /**
- * Verify if the IP address or host name given is valid for the WSA.
+ * Verify if the given IP address or host name is valid for the WSA.  Default 
+ * ports used are 37001 and 37000 for command and data ports, respectively.
  * 
  * @param ip_addr - A char pointer to the IP address or host name to be 
  * verified.
  * 
- * @return 1 if the IP is valid, or a negative number on error.
+ * @return 0 if the IP is valid, or a negative number on error.
  */
 int16_t wsa_check_addr(char *ip_addr) 
 {
+#ifdef WSA_SOCK
 	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
 		doutf(DMED, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
 			wsa_get_error_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
@@ -125,6 +127,36 @@ int16_t wsa_check_addr(char *ip_addr)
 	// such as some handshaking
 	else
 		return 1;
+#else
+	int16_t result = 0;
+
+	// Check with command port
+	result = wsa_verify_addr(ip_addr, "37001");  //TODO make this dynamic
+	if (result < 0)
+		return result;
+
+	// check with data port
+	result = wsa_verify_addr(ip_addr, "37000");
+	if (result < 0)
+		return result;
+
+	return 0;
+#endif
+}
+
+/**
+ * Verify if the given IP address or host name at the given port is valid for 
+ * the WSA.
+ * 
+ * @param ip_addr - A char pointer to the IP address or host name to be 
+ * verified.
+ * @param port - A char pointer to the port to
+ * 
+ * @return 0 if the IP is valid, or a negative number on error.
+ */
+int16_t wsa_check_addrandport(char *ip_addr, char *port) 
+{
+	return wsa_verify_addr(ip_addr, port);
 }
 
 
@@ -265,7 +297,6 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		*header, char *data_buf, const int32_t sample_size)
 {
 	int16_t result = 0, loop = 0;
-	int16_t frame_num = 0;
 	uint32_t samples_count = 0;
 	
 	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
@@ -414,6 +445,7 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 {
 	int32_t result;
 	int64_t freq;
+	uint32_t temp;
 	
 	// TODO need to check for the max value too? but maybe not if 
 	// multiple frames allow
@@ -425,8 +457,10 @@ int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf,
 	if (result < 0)
 		return result;
 
-	if ((freq >= 90000000 && freq < 450000000) ||
-		(freq >= 4300000000 && freq < 7450000000))
+	// to avoid warnings of comparing to large #
+	temp = (uint32_t) (freq / 1000);
+	if ((temp >= 90000 && temp < 450000) ||
+		((temp >= 4300000) && temp < 7450000))
 		// then swap i & q
 		result = wsa_decode_frame(data_buf, q_buf, i_buf, sample_size);
 	else
@@ -453,7 +487,7 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
-	sprintf(temp_str, "TRACE:IQ:POINTS %ld\n", sample_size);
+	sprintf(temp_str, "TRACE:IQ:POINTS %d\n", sample_size);
 
 	// set the ss using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -480,7 +514,7 @@ int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	query = wsa_send_query(dev, "TRACE:IQ:POINTS?\n");
+	wsa_send_query(dev, "TRACE:IQ:POINTS?\n", &query);
 
 	// Handle the query output here 
 	if (query.status <= 0)
@@ -517,7 +551,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	query = wsa_send_query(dev, "CALC:DEC?\n");
+	wsa_send_query(dev, "CALC:DEC?\n", &query);
 
 	// Handle the query output here 
 	if (query.status <= 0)
@@ -594,7 +628,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	struct wsa_resp query;		// store query results
 	double temp;
 
-	query = wsa_send_query(dev, "FREQ:CENT?\n");
+	wsa_send_query(dev, "FREQ:CENT?\n", &query);
 
 	// Handle the query output here 
 	if (query.status <= 0)
@@ -606,7 +640,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) {
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned %s.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -697,7 +731,7 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, "INPUT:GAIN:IF?\n");
+	wsa_send_query(dev, "INPUT:GAIN:IF?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -767,7 +801,7 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
 {
 	struct wsa_resp query;		// store query results
 
-	query = wsa_send_query(dev, "INPUT:GAIN:RF?\n");
+	wsa_send_query(dev, "INPUT:GAIN:RF?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
@@ -856,7 +890,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, "INPUT:ANTENNA?\n");
+	wsa_send_query(dev, "INPUT:ANTENNA?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -930,7 +964,7 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, "INP:FILT:PRES:STATE?\n");
+	wsa_send_query(dev, "INP:FILT:PRES:STATE?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -1000,7 +1034,7 @@ int16_t wsa_get_cal_mode(struct wsa_device *dev, int32_t *mode)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	query = wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n");
+	wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 

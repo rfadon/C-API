@@ -16,7 +16,8 @@
 // *****
 // Local functions:
 // *****
-char *wsa_query_error(struct wsa_device *dev);
+//char *wsa_query_error(struct wsa_device *dev);
+int16_t wsa_query_error(struct wsa_device *dev, char *output);
 int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
@@ -27,6 +28,8 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 // Return 0 on success or a 16-bit negative number on error.
 int16_t _wsa_dev_init(struct wsa_device *dev)
 {
+	int i;
+
 	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
 	dev->descr.max_sample_size = 0;
@@ -37,7 +40,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.min_if_gain = -1000;	// some impossible #
 	dev->descr.max_decimation = -1;
 	dev->descr.min_decimation = -1;
-	for (int i = 0; i < NUM_RF_GAINS; i++)
+	for (i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
 
 	strcpy(dev->descr.prod_name, "");
@@ -65,8 +68,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		
 		// if it's RFE0440
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0) {
-			dev->descr.max_tune_freq = WSA_RFE0440_MAX_FREQ;
-			dev->descr.min_tune_freq = WSA_RFE0440_MIN_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0440_MAX_FREQ;
+			dev->descr.min_tune_freq = (uint64_t) WSA_RFE0440_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
 			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
 				WSA_RFE0440_ABS_AMP_HIGH;
@@ -80,7 +83,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 		// if it's RFE0560
 		else if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = WSA_RFE0560_MAX_FREQ;
+			dev->descr.max_tune_freq = (uint64_t) (WSA_RFE0560_MAX_FREQ * MHZ);
 			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
 			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;
@@ -135,12 +138,13 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	long temp_val;
 	uint8_t stb_reg = 0;
 	struct wsa_resp query;		// store query results
+	char query_msg[256];
 
 	// initialized the output buf
 	strcpy(output, "");
 	
 	// read "*STB?" for any status bits
-	query = wsa_send_query(dev, "*STB?\n");
+	wsa_send_query(dev, "*STB?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -151,7 +155,8 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	if (stb_reg & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
-			sprintf(output, "%s\n", wsa_query_error(dev));
+			wsa_query_error(dev, query_msg);
+			sprintf(output, "%s\n", query_msg);
 			if (strcmp(output, "\n") == 0)
 				break;
 		} while(1);
@@ -192,7 +197,7 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 	strcpy(output, "");
 	
 	// read "*STB?" for any status bits
-	query = wsa_send_query(dev, "*ESR?\n");
+	wsa_send_query(dev, "*ESR?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -228,20 +233,24 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 // Querry the WSA for any error messages.  This is equivalent to the SCPI
 // command SYSTem:ERRor?
 // Return the query result stored in a char pointer.
-char *wsa_query_error(struct wsa_device *dev)
+int16_t wsa_query_error(struct wsa_device *dev, char *output)
 {
 	struct wsa_resp resp;
 
-	resp = wsa_send_query(dev, "SYST:ERR?\n");
+	wsa_send_query(dev, "SYST:ERR?\n", &resp);
 	if (resp.status < 0)
-		return (char *) _wsa_get_err_msg((int16_t) resp.status);
+		strcpy(output, _wsa_get_err_msg((int16_t) resp.status));
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
-		return "";
+		strcpy(output, "");
 	else {
 		printf("WSA returns: %s\n", resp.output);
-		return resp.output;
+		//return resp.output;
+		strcpy(output, resp.output); // TODO verify this output
+
 	}
+
+	return 0;
 }
 	
 
@@ -287,9 +296,13 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	char intf_type[10];
 	char ports_str[20];
 	char wsa_addr[200];		// store the WSA IP address
+#ifdef WIN_SOCK
 	int32_t data_port, ctrl_port;
+#else
+	char data_port[10], ctrl_port[10];
+#endif
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
-	int colons = 0;
+	int32_t colons = 0;
 
 	// initialed the strings
 	strcpy(intf_type, "");
@@ -352,8 +365,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Do the connection
 	// *****
 	if (is_tcpip) {
-		long temp;
-
+#ifdef WIN_SOCK
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
 			// get control port
@@ -383,6 +395,35 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
 			return result;
 		}
+#else
+		// extract the ports if they exist
+		if (strlen(ports_str) > 0)	{
+			// get control port
+			temp_str = strtok(ports_str, ",");
+			strcpy(ctrl_port, temp_str);
+			
+			// get data port
+			temp_str = strtok(NULL, ",");
+			strcpy(data_port, temp_str);
+		}
+		else {
+			strcpy(ctrl_port, CTRL_PORT);
+			strcpy(data_port, DATA_PORT);
+		}
+		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
+
+		// setup command socket & connect
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd, 
+			ctrl_port);
+		if (result < 0)
+			return result;
+
+		// setup data socket & connect
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, 
+			data_port);
+		if (result < 0)
+			return result;
+#endif
 
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}
@@ -412,14 +453,20 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 	
 	//TODO close based on connection type
 	// right now do only TCPIP client
-	if (strcmp(dev->descr.intf_type, "TCPIP") == 0)
+	if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
+#ifdef WIN_SOCK
 		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
+#else
+		result = wsa_close_sock(dev->sock.cmd);
+		result = wsa_close_sock(dev->sock.data);
+#endif
+	}
 
 	return result;
 }
 
 
-/**
+/** TODO redefine this
  * Given an address string, determine if it's a dotted-quad IP address
  * or a domain address.  If the latter, ask DNS to resolve it.  In
  * either case, return resolved IP address.  If we fail, we return
@@ -429,9 +476,15 @@ int16_t wsa_disconnect(struct wsa_device *dev)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
+#ifdef WIN_SOCK
 uint32_t wsa_verify_addr(const char *sock_addr) {
 	return wsa_addr_check(sock_addr);
 }
+#else
+int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) {
+	return wsa_addr_check(sock_addr, sock_port);
+}
+#endif
 
 
 
@@ -452,6 +505,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	int32_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
+	char query_msg[256];
 
 	// TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
@@ -475,12 +529,12 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
 		if (strstr(command, "IQ?") == NULL) {
-			if ((strstr(wsa_query_error(dev), "no response") != 0) && 
-				(bytes_txed > 0))
+			wsa_query_error(dev, query_msg);
+			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
 				return WSA_ERR_QUERYNORESP;
 
-			if (strcmp(wsa_query_error(dev), "") != 0) {
-				printf("%s: %s", command, wsa_query_error(dev));
+			if (strcmp(query_msg, "") != 0) {
+				printf("%s: %s", command, query_msg);
 				return WSA_ERR_SETFAILED;
 			}
 		}
@@ -507,10 +561,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
 	struct wsa_resp resp;
-	int64_t result = 0;
+	int16_t result = 0;
 	int16_t lines = 0;
 	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
 	FILE *cmd_fptr;
+	int i;
 
 	// set defaults
 	strcpy(resp.output, "");
@@ -518,13 +573,13 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
 	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
 		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %lld: %s '%s'.\n", result, 
-			_wsa_get_err_msg((int16_t) result), file_name);
-		return (int16_t) result;
+		printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), 
+			file_name);
+		return result;
 	}
 
 	// Allocate memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
@@ -535,8 +590,8 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	// process the command strings acquired
 	if (result > 0) {
 		// Send each command line to WSA
-		lines = (int16_t) result;
-		for (int i = 0; i < lines; i++) {
+		lines = result;
+		for (i = 0; i < lines; i++) {
 			// Send non-query cmds
 			if (strstr(cmd_strs[i], "?") == NULL) {
 				result = wsa_send_command(dev, cmd_strs[i]);
@@ -549,12 +604,13 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 			
 			// Send query cmds
 			else {
-				resp = wsa_send_query(dev, cmd_strs[i]);			
+				 result = wsa_send_query(dev, cmd_strs[i], &resp);			
 			
 				// If a bad command is detected, continue? Prefer not.
 				if (resp.status < 0) {
-					printf("WSA returned error %d: \"%s\" (possibly: %s)\n", 
-						resp.output, _wsa_get_err_msg(WSA_ERR_CMDINVALID));
+					printf("WSA returned error %lld: \"%s\" (possibly: %s)\n", 
+						resp.status, resp.output, 
+						_wsa_get_err_msg(WSA_ERR_CMDINVALID));
 					printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
 					break;
 				}
@@ -566,7 +622,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	}
 
 	// Free memory
-	for (int i = 0; i < MAX_FILE_LINES; i++)
+	for (i = 0; i < MAX_FILE_LINES; i++)
 		free(cmd_strs[i]);
 
 	return result;
@@ -581,41 +637,43 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
  * @param dev - A pointer to the WSA device structure.
  * @param command - A char pointer to the query command string written in 
  * the format specified by the command syntax in wsa_connect().
+ * @param resp - A pointer to \b wsa_resp struct to store the responses.
  *
- * @return The result stored in a wsa_resp struct format.
+ * @return 0 upon successful or a negative value
  */
-struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
+int16_t wsa_send_query(struct wsa_device *dev, char *command, 
+						struct wsa_resp *resp)
 {
-	struct wsa_resp resp;
+	struct wsa_resp temp_resp;
 	int32_t bytes_got = 0;
 	uint8_t resend_cnt = 0;
 	uint16_t len = strlen(command);
-	int loop_count = 0;
+	int32_t loop_count = 0;
 
 	// set defaults
-	strcpy(resp.output, "");
-	resp.status = 0;
+	strcpy(temp_resp.output, "");
+	temp_resp.status = 0;
 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-		resp.status = WSA_ERR_USBNOTAVBL;
-		strcpy(resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+		temp_resp.status = WSA_ERR_USBNOTAVBL;
+		strcpy(temp_resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
 			// Send the query command out
 			bytes_got = wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_got < 0) {
-				resp.status = bytes_got;
-				strcpy(resp.output, 
+				temp_resp.status = bytes_got;
+				strcpy(temp_resp.output, 
 					_wsa_get_err_msg(bytes_got));
-				return resp;
+				return bytes_got;
 			}
 			else if (bytes_got < len) {
 				if (resend_cnt > 3) {
-					resp.status = WSA_ERR_CMDSENDFAILED;
-					strcpy(resp.output, 
+					temp_resp.status = WSA_ERR_CMDSENDFAILED;
+					strcpy(temp_resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
-					return resp;
+					return WSA_ERR_CMDSENDFAILED;
 				}
 
 				printf("Not all bytes sent. Resending the packet...\n");
@@ -624,7 +682,7 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 			// Read back the output
 			else {
 				do {
-					bytes_got = wsa_sock_recv(dev->sock.cmd, resp.output, 
+					bytes_got = wsa_sock_recv(dev->sock.cmd, temp_resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					if (bytes_got > 0)
 						break;
@@ -635,19 +693,24 @@ struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command)
 					loop_count++;
 				} while (bytes_got < 1);
 
-				resp.output[bytes_got] = 0; // add EOL to the string
+				if (bytes_got > 0)
+					temp_resp.output[bytes_got] = 0; // add EOL to the string
 				break;
 			}
 		}
 
 		// TODO define what result should be
-		if (bytes_got == 0)
-			resp.status = WSA_ERR_QUERYNORESP;
+		if (bytes_got == 0) {
+			temp_resp.status = WSA_ERR_QUERYNORESP;
+			return WSA_ERR_QUERYNORESP;
+		}
 		else 
-			resp.status = bytes_got;
+			temp_resp.status = bytes_got;
 	}
 
-	return resp;
+	*resp = temp_resp;
+
+	return 0;
 }
 
 
@@ -799,13 +862,13 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 								(((uint8_t) dbuf[9]) << 16) +
 								(((uint8_t) dbuf[10]) << 8) + 
 								(uint8_t) dbuf[11];
-		doutf(DLOW, "second: 0x%08x %ld\n", header->time_stamp.sec, 
+		doutf(DLOW, "second: 0x%08x %d\n", header->time_stamp.sec, 
 			header->time_stamp.sec);
 
 		// 5. Check the TSF field, if presents (= 0x10), 
 		// get the picoseconds time stamp at the 4th & 5th words
-		if ((dbuf[1] & 0x30) >> 5)
-			header->time_stamp.psec = (uint64_t)
+		if ((dbuf[1] & 0x30) >> 5) {
+			/*header->time_stamp.psec = (uint64_t)
 					((((uint8_t) dbuf[12]) & 0x0100000000000000) +
 					(((uint8_t) dbuf[13]) & 0x01000000000000) +
 					(((uint8_t) dbuf[14]) & 0x010000000000) +
@@ -813,9 +876,17 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 					(uint32_t) (((uint8_t) dbuf[16]) << 24) +
 					(((uint8_t) dbuf[17]) << 16) + 
 					(((uint8_t) dbuf[18]) << 8) + 
-					(uint8_t) dbuf[19]);
+					(uint8_t) dbuf[19]);*/
+			char temp[8];
+			long int val;
+			memcpy(temp, dbuf + 12, 8);
+			to_int(temp, &val);  // TODO verify
+			header->time_stamp.psec = (uint64_t) val;
+			printf("temp: %s, psec: %lld\n", temp, header->time_stamp.psec);
+		}
 		else 
 			header->time_stamp.psec = 0;
+
 		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
 			header->time_stamp.psec);
 #endif
@@ -863,9 +934,9 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size)
 {
-	int32_t result = 0;
+	//int32_t result = 0;
 	uint32_t i;
-	int j = 0;
+	int32_t j = 0;
 
 	// *****
 	// Split up the IQ data bytes

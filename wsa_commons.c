@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <windows.h>
 #include <errno.h>
 #include <limits.h>
-
+#include <string.h>
+#ifdef WIN_SOCK
+#include <windows.h>
+#endif
 #include "wsa_commons.h"
 #include "wsa_error.h"
 
@@ -28,7 +30,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
 	
-	return "unknown error code";
+	//return wsa_err_list[WSA_ERR_UNKNOWN_ERROR].err_msg;
+	return _wsa_get_err_msg(WSA_ERR_UNKNOWN_ERROR);
 }
 
 
@@ -43,6 +46,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	char *buffer;
 	char *fToken;
 	int16_t next = 0;
+	int i;
 
 	fseek(fptr, 0, SEEK_END);	// Reposition fptr posn indicator to the end
 	fSize = ftell(fptr);		// obtain file size
@@ -57,7 +61,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
 	doutf(DLOW, "\nFile content: \n%s\n", buffer);
 	
-	for (int i = 0; i < MAX_FILE_LINES; i++) 
+	for (i = 0; i < MAX_FILE_LINES; i++) 
 		strcpy(cmd_strs[i], "");
 
 	fToken = strtok(buffer, SEP_CHARS);
@@ -87,8 +91,7 @@ int16_t to_int(char *num_str, long int *val)
 	errno = 0; // to distinguish success/failure after calling strtol
 	temp_val = strtol(num_str, &temp, 0);
 	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN))
-		|| (errno != 0 && temp_val == 0)
-		|| temp == num_str) {
+		|| (errno != 0 && temp_val == 0) || temp == num_str) {
 		perror("strtol");
 		return WSA_ERR_INVNUMBER;
 	}
