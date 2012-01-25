@@ -56,9 +56,6 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	struct addrinfo hint_ai; 
 	int16_t result;
 
-		struct WSAData ws_data;		// create an instance of Winsock data type
-	int32_t ws_err_code;	// get error code
-
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -67,12 +64,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	hint_ai.ai_socktype = SOCK_STREAM;	// For TCP type. Or use 0 for any type
 	hint_ai.ai_flags = 0;
 	hint_ai.ai_protocol = 0;			// to auto chose the protocol
-
-	if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
-		doutf(DHIGH, "WSAStartup() returned error code %d. ", ws_err_code);
-		return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
-	}
-
+	
 	// Check the address at the given port
 	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (result != 0) {

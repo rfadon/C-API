@@ -13,6 +13,9 @@
 #define TIMEOUT 1000		/* Timeout for sockets in milliseconds */
 
 
+void wsa_initialize_client();
+void wsa_destroy_client();
+
 #ifdef WIN_SOCK
 
 #define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */

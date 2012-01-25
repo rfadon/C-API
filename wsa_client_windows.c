@@ -20,3 +20,19 @@ int16_t wsa_close_sock(int32_t sock_fd)
 
 	return 0;
 }
+
+void wsa_initialize_client()
+{
+	struct WSAData ws_data;		// create an instance of Winsock data type
+	int32_t ws_err_code;	// get error code
+
+	if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
+		doutf(DHIGH, "WSAStartup() returned error code %d. ", ws_err_code);
+		//return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
+	}
+}
+
+void wsa_destroy_client()
+{
+	WSACleanup();
+}

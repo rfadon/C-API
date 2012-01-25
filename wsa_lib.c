@@ -365,6 +365,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// Do the connection
 	// *****
 	if (is_tcpip) {
+		wsa_initialize_client();
 #ifdef WIN_SOCK
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
@@ -460,6 +461,7 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 		result = wsa_close_sock(dev->sock.cmd);
 		result = wsa_close_sock(dev->sock.data);
 #endif
+		wsa_destroy_client();
 	}
 
 	return result;
@@ -477,12 +479,26 @@ int16_t wsa_disconnect(struct wsa_device *dev)
  * @return Resolved IP address or INADDR_NONE when failed.
  */
 #ifdef WIN_SOCK
-uint32_t wsa_verify_addr(const char *sock_addr) {
-	return wsa_addr_check(sock_addr);
+uint32_t wsa_verify_addr(const char *sock_addr) 
+{
+	int16_t result;
+
+	wsa_initialize_client();
+	result = wsa_addr_check(sock_addr);
+	wsa_destroy_client();
+
+	return result;
 }
 #else
-int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) {
-	return wsa_addr_check(sock_addr, sock_port);
+int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) 
+{
+	int16_t result;
+
+	wsa_initialize_client();
+	result = wsa_addr_check(sock_addr, sock_port);
+	wsa_destroy_client();
+
+	return result;
 }
 #endif
 

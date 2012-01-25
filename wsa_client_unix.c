@@ -17,3 +17,13 @@ int16_t wsa_close_sock(int32_t sock_fd)
 
 	return 0;
 }
+
+void wsa_initialize_client()
+{
+	//Empty, since no initialization needs to be done
+}
+
+void wsa_destroy_client()
+{
+	//Empty, since nothing needs to be destroyed
+}
