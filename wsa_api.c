@@ -116,18 +116,6 @@ void wsa_close(struct wsa_device *dev)
  */
 int16_t wsa_check_addr(char *ip_addr) 
 {
-#ifdef WSA_SOCK
-	if (wsa_verify_addr(ip_addr) == INADDR_NONE) {
-		doutf(DMED, "Error WSA_ERR_INVIPHOSTADDRESS: %s \"%s\".\n", 
-			wsa_get_error_msg(WSA_ERR_INVIPHOSTADDRESS), ip_addr);
-		return WSA_ERR_INVIPHOSTADDRESS;
-	}
-
-	// TODO add hook to check then if the address is actually for the WSA
-	// such as some handshaking
-	else
-		return 1;
-#else
 	int16_t result = 0;
 
 	// Check with command port
@@ -141,7 +129,6 @@ int16_t wsa_check_addr(char *ip_addr)
 		return result;
 
 	return 0;
-#endif
 }
 
 /**

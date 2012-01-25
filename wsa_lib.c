@@ -296,11 +296,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	char intf_type[10];
 	char ports_str[20];
 	char wsa_addr[200];		// store the WSA IP address
-#ifdef WIN_SOCK
-	int32_t data_port, ctrl_port;
-#else
-	char data_port[10], ctrl_port[10];
-#endif
+	char data_port[10];
+	char ctrl_port[10];
+
 	uint8_t is_tcpip = FALSE;	// flag to indicate a TCPIP connection method
 	int32_t colons = 0;
 
@@ -366,37 +364,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	// *****
 	if (is_tcpip) {
 		wsa_initialize_client();
-#ifdef WIN_SOCK
-		// extract the ports if they exist
-		if (strlen(ports_str) > 0)	{
-			// get control port
-			temp_str = strtok(ports_str, ",");
-			if (to_int(temp_str, &temp) < 0)
-				return WSA_ERR_INVNUMBER;
-			else 
-				ctrl_port = (int32_t) temp;
-			
-			// get data port
-			temp_str = strtok(NULL, ",");
-			if (to_int(temp_str, &temp) < 0)
-				return WSA_ERR_INVNUMBER;
-			else 
-				data_port = (int32_t) temp;
-		}
-		else {
-			ctrl_port = CTRL_PORT;
-			data_port = DATA_PORT;
-		}
-		doutf(DLOW, "%d %d\n", ctrl_port, data_port);
 
-		// Do the connection
-		result = wsa_start_client(wsa_addr, &(dev->sock).cmd, 
-				&(dev->sock).data, ctrl_port, data_port);
-		if (result < 0) {
-			doutf(DMED, "Error %d: %s.\n", result, _wsa_get_err_msg(result));
-			return result;
-		}
-#else
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
 			// get control port
@@ -424,7 +392,6 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 			data_port);
 		if (result < 0)
 			return result;
-#endif
 
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}
@@ -455,12 +422,9 @@ int16_t wsa_disconnect(struct wsa_device *dev)
 	//TODO close based on connection type
 	// right now do only TCPIP client
 	if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-#ifdef WIN_SOCK
-		result = wsa_close_client(dev->sock.cmd, dev->sock.data);
-#else
 		result = wsa_close_sock(dev->sock.cmd);
 		result = wsa_close_sock(dev->sock.data);
-#endif
+
 		wsa_destroy_client();
 	}
 
@@ -478,18 +442,6 @@ int16_t wsa_disconnect(struct wsa_device *dev)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
-#ifdef WIN_SOCK
-uint32_t wsa_verify_addr(const char *sock_addr) 
-{
-	int16_t result;
-
-	wsa_initialize_client();
-	result = wsa_addr_check(sock_addr);
-	wsa_destroy_client();
-
-	return result;
-}
-#else
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) 
 {
 	int16_t result;
@@ -500,8 +452,6 @@ int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port)
 
 	return result;
 }
-#endif
-
 
 
 /**

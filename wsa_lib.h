@@ -1,10 +1,6 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
-#ifdef WIN_SOCK
-#include <winsock2.h>
-#endif
-
 #include "wsa_commons.h"
 
 
@@ -148,13 +144,8 @@ struct wsa_frame_header {
 
 
 struct wsa_socket {
-#ifdef WIN_SOCK
-	SOCKET cmd;
-	SOCKET data;
-#else
 	int32_t cmd;
 	int32_t data;
-#endif
 };
 
 
@@ -178,11 +169,7 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
 
-#ifdef WIN_SOCK
-uint32_t wsa_verify_addr(const char *sock_addr);
-#else
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
-#endif
 
 int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
