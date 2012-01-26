@@ -4,7 +4,7 @@
 #include <math.h>
 
 #ifdef _WIN32
-#include <Ws2tcpip.h>
+
 #else
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -13,9 +13,10 @@
 #include <netdb.h>
 #endif
 
+#include "wsa_client_os_specific.h"
+#include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_debug.h"
-#include "wsa_client.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////
