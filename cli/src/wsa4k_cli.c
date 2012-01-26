@@ -57,24 +57,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <malloc.h>
 #include <string.h>
 #include <sys/timeb.h>
 #include <time.h>
 
-#ifdef _WIN32
-//#include <conio.h>
-//#include <fstream>
-//#include <iostream>
-#include <direct.h>
-#else
-#include <ctype.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#endif
-
+#include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
 #include "wsa_error.h"
@@ -343,12 +330,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	char time_str[50];
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
-		
-#ifdef _WIN32
-	struct _timeb msec_buf;
-#else
-	struct timeb msec_buf;
-#endif
+
+	TIME_HOLDER msec_buf;
 
 	// *****
 	// Create parameters and buffers to store the raw data
@@ -400,11 +383,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// folder called CAPTURES
 	time_stamp = time(NULL);	// call time functions
 	time_struct = localtime(&time_stamp);
-#ifdef _WIN32
-	_ftime_s(&msec_buf);		 
-#else
-	ftime(&msec_buf);
-#endif
+	get_current_time(&msec_buf);
+
 	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H%M%S", time_struct);
 	sprintf(file_name, "CAPTURES\\%s%s%03d.%s", prefix, time_str, 
 		msec_buf.millitm, ext);
@@ -432,11 +412,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("done.\nAcquiring data bytes ");
 	
 	// Get the start time
-#ifdef _WIN32
-	_ftime_s(&msec_buf);		// call time function
-#else
-	ftime(&msec_buf);
-#endif
+	get_current_time(&msec_buf);
 	start_time = msec_buf.time;	// time in seconds
 	start_ms = msec_buf.millitm;// get millisecond
 	
@@ -470,11 +446,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// get the end time & calculate the throughput rate
-#ifdef _WIN32
-	_ftime_s(&msec_buf);		// call time function again		 
-#else
-	ftime(&msec_buf);
-#endif
+	get_current_time(&msec_buf);
 	delta_sec = msec_buf.time - start_time;
 	delta_ms = msec_buf.millitm - start_ms;
 	// re-adjust the 1 second carry over when start_ms > end_ms
@@ -554,7 +526,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	int32_t rate;
 	int32_t sample_size;
-	char dir[500];	// be generous b/c overflow will kill ur program.
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -638,9 +609,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		
 		else if (strcmp(cmd_words[1], "DIR") == 0) {
-			printf("File directory is: \"%s\\CAPTURES\\\"\n", 
-				//_getcwd(NULL, 0));
-				getcwd(NULL, 0));
+			print_captures_directory();
 		}
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
@@ -882,28 +851,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end print help
 
 		else if (strcmp(cmd_words[0], "O") == 0) {
-#ifdef _WIN32
-			sprintf(dir, "explorer %s\\CAPTURES", getcwd(NULL, 0));//_getcwd(NULL, 0));
-
-			// this using is a problem here for gcc/linux
-			if (system(dir))
-				printf("Open the folder of captured file(s)...\n");
-			else 
-				printf("Open failed!\n");
-#else
-			sprintf(dir, "%s\\CAPTURES", getcwd(NULL, 0));
-
-			temp = opendir(dir);
-			if (temp == NULL) {
-				if (errno == EACCES)
-					printf("Error: Permission to open '%s is denied'.\n", dir);
-				else if (errno == ENOENT)
-					printf("Error: '%s' directory does not exist.\n", dir);
-			}
-			else 
-				printf("Open the folder of captured file(s)...\n");
-
-#endif
+			open_captures_directory();
 		}  // end Open directory
 
 		else if (strcmp(cmd_words[0], "SAVE") == 0) {
