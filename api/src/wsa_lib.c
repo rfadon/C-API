@@ -468,9 +468,9 @@ int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port)
  */
 int16_t wsa_send_command(struct wsa_device *dev, char *command)
 {
-	int32_t bytes_txed = 0;
+	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
-	uint16_t len = strlen(command);
+	int32_t len = strlen(command);
 	char query_msg[256];
 
 	// TODO: check WSA version/model # 
@@ -479,7 +479,10 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
-			bytes_txed = wsa_sock_send(dev->sock.cmd, command, len);
+			// Making the assumption that we will not send more bytes
+			// than can fit into int16_t
+			// TODO: revisit this and move bytes_txed into the parameter list
+			bytes_txed = (int16_t) wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_txed < 0)
 				return bytes_txed;
 			else if (bytes_txed < len) {
@@ -611,9 +614,9 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 						struct wsa_resp *resp)
 {
 	struct wsa_resp temp_resp;
-	int32_t bytes_got = 0;
+	int16_t bytes_got = 0;
 	uint8_t resend_cnt = 0;
-	uint16_t len = strlen(command);
+	int32_t len = strlen(command);
 	int32_t loop_count = 0;
 
 	// set defaults
@@ -627,7 +630,10 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
 			// Send the query command out
-			bytes_got = wsa_sock_send(dev->sock.cmd, command, len);
+			// Making the assumption that we will not send more bytes
+			// than can fit into int16_t
+			// TODO: revisit this and move bytes_txed into the parameter list
+			bytes_got = (int16_t) wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_got < 0) {
 				temp_resp.status = bytes_got;
 				strcpy(temp_resp.output, 
@@ -648,7 +654,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			// Read back the output
 			else {
 				do {
-					bytes_got = wsa_sock_recv(dev->sock.cmd, temp_resp.output, 
+					bytes_got = (int16_t) wsa_sock_recv(dev->sock.cmd, temp_resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					if (bytes_got > 0)
 						break;

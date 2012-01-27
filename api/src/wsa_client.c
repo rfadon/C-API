@@ -3,16 +3,6 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef _WIN32
-
-#else
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#endif
-
 #include "wsa_client_os_specific.h"
 #include "wsa_client.h"
 #include "wsa_error.h"
@@ -54,8 +44,8 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	// fd = file descriptor
 	// ai = address info
 	// *****
-	struct addrinfo hint_ai; 
-	int16_t result;
+	struct addrinfo hint_ai;
+	int32_t getaddrinfo_result;
 
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
@@ -67,9 +57,9 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	hint_ai.ai_protocol = 0;			// to auto chose the protocol
 	
 	// Check the address at the given port
-	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
-	if (result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
+	if (getaddrinfo_result != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -116,9 +106,9 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 					   int32_t *sock_fd, const char *sock_port)
 {
 	struct addrinfo *ai_list, *ai_ptr;
-	struct addrinfo hint_ai; 
-	int16_t result;	
-	int32_t temp_fd;
+	struct addrinfo hint_ai;
+	int32_t getaddrinfo_result;
+	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
 	
 	printf("setting up %s socket at port %s ... ", sock_name, sock_port);
@@ -133,9 +123,9 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	hint_ai.ai_protocol = 0;			// to auto chose the protocol
 
 	// Check the address at the given port
-	result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
-	if (result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
+	if (getaddrinfo_result != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 

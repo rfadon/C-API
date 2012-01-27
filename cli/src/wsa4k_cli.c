@@ -58,6 +58,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/timeb.h>
 #include <time.h>
 
@@ -192,7 +193,7 @@ char* get_input_cmd(uint8_t pretext)
 		printf("\n> Enter a command (or 'h'): ");
 
 	// Conver the command to upper case.... <- should do this?
-	while (((ch = toupper(getchar())) != EOF) && (ch != '\n'))
+	while (((ch = (char) toupper(getchar())) != EOF) && (ch != '\n'))
 		input_opt[cnt_ch++] = (char) ch;
 	input_opt[cnt_ch] = '\0';	// Terminate string with a null char
 
@@ -318,7 +319,8 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  */
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
-	int32_t result = 0;
+	int16_t result = 0;
+	int32_t read_frame_result = 0;
 	// for acquisition time
 	time_t start_time;	// to capture run time
 	uint16_t start_ms, delta_ms;	// the msec of start time
@@ -340,7 +342,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	char *d_buf;		// To store raw data bytes 
 	int fi = 0, next = 0;	// frame index and next index location
 	int frame_size = _frame_size;
-	int64_t total_bytes;
+	int32_t total_bytes;
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -403,11 +405,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Allocate header buffer space
 	header = (struct wsa_frame_header *) 
 		malloc(sizeof(struct wsa_frame_header) * _frame_size);
+	if (header == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
 
 	// Allocate raw data buffer space
 	d_buf = (char *) malloc(sizeof(char) * total_bytes);
 	if (d_buf == NULL)
+	{
+		free(header);
 		return WSA_ERR_MALLOCFAILED;
+	}
 	
 	printf("done.\nAcquiring data bytes ");
 	
@@ -420,8 +429,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	while(fi < frame_size) {
 		//doutf(DLOW, "frame %d: ", fi + 1);
 		next = fi * samples * 4;
-		result = wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
-		if (result < 1) {
+		read_frame_result = wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
+		if (read_frame_result < 1) {
+			result = (int16_t) read_frame_result;
 			frame_size = fi;
 			printf("\nError detected while trying to get frame #%d.\n", 
 				frame_size + 1);
@@ -441,7 +451,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			fclose(iq_fptr); 
 			free(header);
 			free(d_buf);
-			return (int16_t) result;
+			return result;
 		}
 	}
 
@@ -465,12 +475,21 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Allocate i buffer space
 	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	if (i_buf == NULL)
+	{
+		free(header);
+		free(d_buf);
 		return WSA_ERR_MALLOCFAILED;
+	}
 	
 	// Allocate q buffer space
 	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
 	if (q_buf == NULL)
+	{
+		free(header);
+		free(d_buf);
+		free(i_buf);
 		return WSA_ERR_MALLOCFAILED;
+	}
 
 	// Decode all the samples
 	printf("Decoding into I & Q... ");
@@ -872,13 +891,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					
 					// convert to lower case
 					for (j = 0; j < strlen(ext); j++)
-						ext[j] = tolower(ext[j]);
+						ext[j] = (char) tolower(ext[j]);
 					//break; // break when reached the ext: line?			
 				}
 				else {
 					// convert to lower case after the first letter
 					for (j = 1; j < strlen(cmd_words[n]); j++)
-						cmd_words[n][j] = tolower(cmd_words[n][j]);
+						cmd_words[n][j] = (char) tolower(cmd_words[n][j]);
 					strcat(prefix, cmd_words[n]);
 					strcat(prefix, " ");
 				}
@@ -1251,7 +1270,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 
 				// capitalized the words
 				for (j = 0; j < (int) strlen(cmd_words[i]); j++)
-					cmd_words[i][j] = toupper(cmd_words[i][j]);
+					cmd_words[i][j] = (char) toupper(cmd_words[i][j]);
 			}
 
 			if (strlen(temp_str) > 0) {
