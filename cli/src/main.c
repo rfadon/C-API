@@ -24,7 +24,7 @@ int32_t main(int32_t argc, char *argv[])
 		while (1) {
 			// Copy the each command word arg to a constant string
 			for (i = 0; i < ((int32_t)strlen(argv[count_arg])); i++) 
-				in_str[i] = toupper(argv[count_arg][i]);	
+				in_str[i] = (char) toupper(argv[count_arg][i]);	
 			in_str[i] = 0;
 
 			if (strncmp("-H", in_str, 2) == 0) {
