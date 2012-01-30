@@ -783,6 +783,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	int32_t result = 0;
 	uint16_t frame_count = 0, frame_size;
 	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
+	uint32_t stream_identifier_word;
 	char *dbuf;
 	
 	// allocate the data buffer
@@ -809,9 +810,9 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 #ifndef DUMMY_CONN
 		// 1. Check "Pkt Type" & get the Stream identifier word
 		if ((dbuf[0] & 0xf0) == 0x10) {
-			result = (((uint8_t) dbuf[4]) << 24) + (((uint8_t) dbuf[5]) << 16) 
+			stream_identifier_word = (((uint8_t) dbuf[4]) << 24) + (((uint8_t) dbuf[5]) << 16) 
 					+ (((uint8_t) dbuf[6]) << 8) + (uint8_t) dbuf[7];
-			if (result != 0x90000003)
+			if (stream_identifier_word != 0x90000003)
 				return WSA_ERR_NOTIQFRAME;
 		}
 

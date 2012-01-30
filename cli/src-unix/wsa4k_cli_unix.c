@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <sys/timeb.h>
+
 #include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
 
@@ -9,6 +12,7 @@ void get_current_time(TIME_HOLDER* msec_buf)
 void open_captures_directory()
 {
 	char dir[500];	// be generous b/c overflow will kill ur program.
+	DIR *temp;
 
 	sprintf(dir, "%s\\CAPTURES", getcwd(NULL, 0));
 

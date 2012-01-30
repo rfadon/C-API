@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "wsa_client.h"
 #include "wsa_error.h"
 
