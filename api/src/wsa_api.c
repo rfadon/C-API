@@ -542,7 +542,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 
 	// Handle the query output here 
 	if (query.status <= 0)
-		return (int32_t) query.status;
+		return (int16_t) query.status;
 
 	// convert & make sure no error
 	if (to_int(query.output, &temp) < 0)

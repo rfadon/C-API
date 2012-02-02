@@ -540,7 +540,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int16_t result = 0;			// result returned from a function
 	int64_t freq = 0;
 	int int_result = 0;
-	uint8_t user_quit = FALSE;	// determine if user has entered 'q' command
+	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
 	int i;
 	int32_t rate;
