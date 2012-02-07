@@ -5,8 +5,8 @@ endif
 
 ifeq ($(BUILD_PLATFORM), windows)
 PATH_SEPARATOR = \\
-MKDIR_COMMAND = mkdir
-REMOVE_COMMAND = rmdir /q /s
+MKDIR_COMMAND = mkdir -p
+REMOVE_COMMAND = rm -fR
 
 VERSION=$(shell C:\Program Files\Git\bin\git.exe describe --dirty='+' --long)
 
