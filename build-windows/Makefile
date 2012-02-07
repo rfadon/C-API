@@ -1,45 +1,79 @@
+OS = windows
+
+ifeq ($(OS), windows)
+PATH_SEPARATOR = \\
+MKDIR_COMMAND = mkdir
+REMOVE_COMMAND = rmdir /q /s
+
+CC = cl
+AR = lib
+LD = link
+LIBS = WS2_32.Lib
 CFLAGS = /Wall /W3 /D_CRT_SECURE_NO_WARNINGS
+COMPILE_ONLY_FLAG = /c
+OUTPUT_FILE_FLAG = /Fo
+ARFLAGS =
+OUTPUT_LIBRARY_FILE_FLAG = /OUT:
+LDFLAGS =
+OUTPUT_EXECUTABLE_FILE_FLAG = /OUT:
 
-all : init executable
+else
 
+PATH_SEPARATOR = /
+MKDIR_COMMAND = mkdir -p
+REMOVE_COMMAND = rm -fR
+
+CC = gcc
+AR = ar
+LD = gcc
+LIBS = -lm
+CFLAGS = -std=gnu89 -Wall -Wextra -Werror
+COMPILE_ONLY_FLAG = -c
+OUTPUT_FILE_FLAG = -o 
+ARFLAGS = -cvq
+OUTPUT_LIBRARY_FILE_FLAG =
+LDFLAGS = $(CFLAGS)
+OUTPUT_EXECUTABLE_FILE_FLAG = -o
+endif
+
+API_SOURCE_DIR = ../api/src
+API_BUILD_DIR = api
+API_SOURCE_FILES = $(wildcard $(API_SOURCE_DIR)/*.c $(API_SOURCE_DIR)/src-$(OS)/*.c)
+API_OBJECT_FILES = $(API_SOURCE_FILES:$(API_SOURCE_DIR)/%.c=$(API_BUILD_DIR)/%.o)
+API_INCLUDE_FLAGS = -I../api/include -I../api/include/include-$(OS)
+BUILD_LIBRARY_DIRECTORY = lib
+API_TARGET = $(BUILD_LIBRARY_DIRECTORY)/libwsa.a
+
+CLI_SOURCE_DIR = ../cli/src
+CLI_BUILD_DIR = cli
+CLI_SOURCE_FILES = $(wildcard $(CLI_SOURCE_DIR)/*.c $(CLI_SOURCE_DIR)/src-$(OS)/*.c)
+CLI_OBJECT_FILES = $(CLI_SOURCE_FILES:$(CLI_SOURCE_DIR)/%.c=$(CLI_BUILD_DIR)/%.o)
+CLI_INCLUDE_FLAGS = $(API_INCLUDE_FLAGS) -I../cli/include -I../cli/include-$(OS)
+BUILD_BINARY_DIRECTORY = bin
+CLI_TARGET = $(BUILD_BINARY_DIRECTORY)/wsa.exe
+
+BUILD_DIRECTORIES = $(API_BUILD_DIR) $(CLI_BUILD_DIR) $(BUILD_LIBRARY_DIRECTORY) $(BUILD_BINARY_DIRECTORY)
+
+all : init $(API_TARGET) $(CLI_TARGET)
+
+.PHONY: init
 init : 
-	if not exist lib\ ( mkdir lib )
-	if not exist bin\ ( mkdir bin )
+	-$(MKDIR_COMMAND) $(BUILD_DIRECTORIES)
 
-wsa_api.obj : ..\api\src\wsa_api.c
-	cl /c $(CFLAGS) /I ..\api\include ..\api\src\wsa_api.c
+$(API_OBJECT_FILES):$(API_BUILD_DIR)/%.o:$(API_SOURCE_DIR)/%.c
+	-$(MKDIR_COMMAND) $(subst /,$(PATH_SEPARATOR),$(dir $@))
+	$(CC) $(CFLAGS) $(API_INCLUDE_FLAGS) $(COMPILE_ONLY_FLAG) $(OUTPUT_FILE_FLAG)$@ $<
 
-wsa_lib.obj : ..\api\src\wsa_lib.c
-	cl /c $(CFLAGS) /I ..\api\include ..\api\src\wsa_lib.c
+$(CLI_OBJECT_FILES):$(CLI_BUILD_DIR)/%.o:$(CLI_SOURCE_DIR)/%.c
+	-$(MKDIR_COMMAND) $(subst /,$(PATH_SEPARATOR),$(dir $@))
+	$(CC) $(CFLAGS) $(CLI_INCLUDE_FLAGS) $(COMPILE_ONLY_FLAG) $(OUTPUT_FILE_FLAG)$@ $<
 
-wsa_commons.obj : ..\api\src\wsa_commons.c
-	cl /c $(CFLAGS) /I ..\api\include ..\api\src\wsa_commons.c
+$(API_TARGET) : $(API_OBJECT_FILES)
+	$(AR) $(ARFLAGS) $(OUTPUT_LIBRARY_FILE_FLAG)$(API_TARGET) $(API_OBJECT_FILES)
 
-wsa_debug.obj : ..\api\src\wsa_debug.c
-	cl /c $(CFLAGS) /I ..\api\include ..\api\src\wsa_debug.c
+$(CLI_TARGET) : $(API_TARGET) $(CLI_OBJECT_FILES)
+	$(LD) $(LDFLAGS) $(OUTPUT_EXECUTABLE_FILE_FLAG)$(CLI_TARGET) $(CLI_OBJECT_FILES) $(API_TARGET) $(LIBS)
 
-wsa_client.obj : ..\api\src\wsa_client.c
-	cl /c $(CFLAGS) /I ..\api\include /I ..\api\include-windows ..\api\src\wsa_client.c
-
-wsa_client_windows.obj : ..\api\src-windows\wsa_client_windows.c
-	cl /c $(CFLAGS) /I ..\api\include ..\api\src-windows\wsa_client_windows.c
-
-wsa4k_cli.obj : ..\cli\src\wsa4k_cli.c
-	cl /c $(CFLAGS) /I ..\cli\include /I ..\cli\include-windows /I ..\api\include ..\cli\src\wsa4k_cli.c
-
-wsa4k_cli_windows.obj : ..\cli\src-windows\wsa4k_cli_windows.c
-	cl /c $(CFLAGS) /I ..\cli\include /I ..\cli\include-windows /I ..\api\include ..\cli\src-windows\wsa4k_cli_windows.c
-
-main.obj : ..\cli\src\main.c
-	cl /c $(CFLAGS) /I ..\cli\include /I ..\cli\include-windows /I ..\api\include ..\cli\src\main.c
-
-lib\wsa.lib : wsa_api.obj wsa_lib.obj wsa_commons.obj wsa_debug.obj wsa_client.obj wsa_client_windows.obj
-	lib /OUT:lib\wsa.lib wsa_api.obj wsa_lib.obj wsa_commons.obj wsa_debug.obj wsa_client.obj wsa_client_windows.obj
-
-executable : lib\wsa.lib wsa4k_cli.obj wsa4k_cli_windows.obj main.obj
-	link /OUT:bin\wsa.exe main.obj wsa4k_cli.obj wsa4k_cli_windows.obj lib\wsa.lib WS2_32.Lib
-
+.PHONY: clean
 clean : 
-	if exist *.obj ( del /q *.obj )
-	if exist bin\ ( rmdir /q /s bin )
-	if exist lib\ ( rmdir /q /s lib )
+	-$(REMOVE_COMMAND) $(BUILD_DIRECTORIES)
