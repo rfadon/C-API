@@ -1,45 +1,49 @@
-CFLAGS=-std=gnu89 -Wall -Wextra -Werror
+OS = unix
 
-all : init executable
+API_SOURCE_DIR = ../api/src
+API_BUILD_DIR = api
+API_SOURCE_FILES = $(wildcard $(API_SOURCE_DIR)/*.c $(API_SOURCE_DIR)/src-$(OS)/*.c)
+API_OBJECT_FILES = $(API_SOURCE_FILES:$(API_SOURCE_DIR)/%.c=$(API_BUILD_DIR)/%.o)
+API_INCLUDE_FLAGS = -I../api/include -I../api/include/include-$(OS)
+BUILD_LIBRARY_DIRECTORY = lib
+API_TARGET = $(BUILD_LIBRARY_DIRECTORY)/libwsa.a
 
+CLI_SOURCE_DIR = ../cli/src
+CLI_BUILD_DIR = cli
+CLI_SOURCE_FILES = $(wildcard $(CLI_SOURCE_DIR)/*.c $(CLI_SOURCE_DIR)/src-$(OS)/*.c)
+CLI_OBJECT_FILES = $(CLI_SOURCE_FILES:$(CLI_SOURCE_DIR)/%.c=$(CLI_BUILD_DIR)/%.o)
+CLI_INCLUDE_FLAGS = $(API_INCLUDE_FLAGS) -I../cli/include -I../cli/include-$(OS)
+BUILD_BINARY_DIRECTORY = bin
+CLI_TARGET = $(BUILD_BINARY_DIRECTORY)/wsa.exe
+
+BUILD_DIRECTORIES = $(API_BUILD_DIR) $(CLI_BUILD_DIR) $(BUILD_LIBRARY_DIRECTORY) $(BUILD_BINARY_DIRECTORY)
+
+CC = gcc
+AR = ar
+LIBS = -lm
+
+CFLAGS = -std=gnu89 -Wall -Wextra -Werror
+
+all : init $(API_TARGET) $(CLI_TARGET)
+
+.PHONY: init
 init : 
-	mkdir -p lib
-	mkdir -p bin
+	mkdir -p $(BUILD_DIRECTORIES)
 
-wsa_api.o : ../api/src/wsa_api.c
-	gcc -c $(CFLAGS) -I../api/include ../api/src/wsa_api.c
+$(API_OBJECT_FILES):$(API_BUILD_DIR)/%.o:$(API_SOURCE_DIR)/%.c
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(API_INCLUDE_FLAGS) -c -o $@ $<
 
-wsa_lib.o : ../api/src/wsa_lib.c
-	gcc -c $(CFLAGS) -I../api/include ../api/src/wsa_lib.c
+$(CLI_OBJECT_FILES):$(CLI_BUILD_DIR)/%.o:$(CLI_SOURCE_DIR)/%.c
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(CLI_INCLUDE_FLAGS) -c -o $@ $<
 
-wsa_commons.o : ../api/src/wsa_commons.c
-	gcc -c $(CFLAGS) -I../api/include ../api/src/wsa_commons.c
+$(API_TARGET) : $(API_OBJECT_FILES)
+	$(AR) -cvq $(API_TARGET) $(API_OBJECT_FILES)
 
-wsa_debug.o : ../api/src/wsa_debug.c
-	gcc -c $(CFLAGS) -I../api/include ../api/src/wsa_debug.c
+$(CLI_TARGET) : $(API_TARGET) $(CLI_OBJECT_FILES)
+	$(CC) $(CFLAGS) -o $(CLI_TARGET) $(CLI_OBJECT_FILES) $(API_TARGET) $(LIBS)
 
-wsa_client.o : ../api/src/wsa_client.c
-	gcc -c $(CFLAGS) -I../api/include -I../api/include-unix ../api/src/wsa_client.c
-
-wsa_client_unix.o : ../api/src-unix/wsa_client_unix.c
-	gcc -c $(CFLAGS) -I../api/include ../api/src-unix/wsa_client_unix.c
-
-wsa4k_cli.o : ../cli/src/wsa4k_cli.c
-	gcc -c $(CFLAGS) -I../cli/include -I../cli/include-unix -I../api/include ../cli/src/wsa4k_cli.c
-
-wsa4k_cli_unix.o : ../cli/src-unix/wsa4k_cli_unix.c
-	gcc -c $(CFLAGS) -I../cli/include -I../cli/include-unix -I../api/include ../cli/src-unix/wsa4k_cli_unix.c
-
-main.o : ../cli/src/main.c
-	gcc -c $(CFLAGS) -I../cli/include -I../cli/include-unix -I../api/include ../cli/src/main.c
-
-lib/libwsa.a : wsa_api.o wsa_lib.o wsa_commons.o wsa_debug.o wsa_client.o wsa_client_unix.o
-	ar -cvq lib/libwsa.a wsa_api.o wsa_lib.o wsa_commons.o wsa_debug.o wsa_client.o wsa_client_unix.o
-
-executable : lib/libwsa.a wsa4k_cli.o wsa4k_cli_unix.o main.o
-	gcc $(CFLAGS) -o bin/wsa.exe main.o wsa4k_cli.o wsa4k_cli_unix.o lib/libwsa.a -lm
-
+.PHONY: clean
 clean : 
-	-rm -f *.o
-	-rm -fR bin
-	-rm -fR lib
+	-rm -fR $(BUILD_DIRECTORIES)
