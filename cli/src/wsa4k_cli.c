@@ -1006,7 +1006,7 @@ int16_t start_cli(void)
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
-	//printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
+	printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
 
 	do {
 		//*****

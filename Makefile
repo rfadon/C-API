@@ -8,11 +8,13 @@ PATH_SEPARATOR = \\
 MKDIR_COMMAND = mkdir
 REMOVE_COMMAND = rmdir /q /s
 
+VERSION=$(shell C:\Program Files\Git\bin\git.exe describe --dirty='+' --long)
+
 CC = cl
 AR = lib
 LD = link
 LIBS = WS2_32.Lib
-CFLAGS = /Wall /W3 /WX /D_CRT_SECURE_NO_WARNINGS
+CFLAGS = /Wall /W3 /WX /D_CRT_SECURE_NO_WARNINGS /DCLI_VERSION\#\"$(VERSION)\"
 COMPILE_ONLY_FLAG = /c
 OUTPUT_FILE_FLAG = /Fo
 ARFLAGS = /WX
@@ -26,11 +28,13 @@ PATH_SEPARATOR = /
 MKDIR_COMMAND = mkdir -p
 REMOVE_COMMAND = rm -fR
 
+VERSION=$(shell git describe --dirty='+' --long)
+
 CC = gcc
 AR = ar
 LD = gcc
 LIBS = -lm
-CFLAGS = -std=gnu89 -Wall -Wextra -Werror
+CFLAGS = -std=gnu89 -Wall -Wextra -Werror -DCLI_VERSION="\"${VERSION}\""
 COMPILE_ONLY_FLAG = -c
 OUTPUT_FILE_FLAG = -o 
 ARFLAGS = rcs
@@ -60,6 +64,9 @@ CLI_TARGET = $(BUILD_BINARY_DIRECTORY)/wsa.exe
 BUILD_DIRECTORIES = $(API_BUILD_DIR) $(CLI_BUILD_DIR) $(BUILD_LIBRARY_DIRECTORY) $(BUILD_BINARY_DIRECTORY)
 
 all : init $(API_TARGET) $(CLI_TARGET)
+
+test :
+	echo $(VERSION)
 
 .PHONY: init
 init : 
