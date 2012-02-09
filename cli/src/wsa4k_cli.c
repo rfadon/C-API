@@ -545,6 +545,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	int32_t rate;
 	int32_t sample_size;
+	int32_t if_gain_value;
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -831,11 +832,15 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (strcmp(cmd_words[3], "") == 0) {
 					printf("Missing the gain in dB value. See 'h'.\n");
 				}
-				else {
-					result = wsa_set_gain_if(dev, atoi(cmd_words[3]));
-					if (result == WSA_ERR_INVIFGAIN)
+				else if (!string_to_integer(cmd_words[3], &if_gain_value)) {
+					result = wsa_set_gain_if(dev, if_gain_value);
+					if (result == WSA_ERR_INVIFGAIN) {
 						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
 							dev->descr.min_if_gain, dev->descr.max_if_gain);
+					}
+				}
+				else {
+					printf("The IF gain value must be an integer. See 'h'.\n");
 				}
 			} // end set GAIN IF
 			

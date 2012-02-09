@@ -263,3 +263,25 @@ int16_t to_double(char *num_str, double *val)
 
 	return 0;
 }
+
+
+int16_t string_to_integer(const char* from_string, int32_t* to_integer)
+{
+	char* end_of_string;
+	errno = 0;
+
+	*to_integer = strtol(from_string, &end_of_string, 10);
+
+	if (errno != 0) {
+		errno = 0;
+		return (int16_t) errno;
+	}
+	else if (from_string == end_of_string) {
+		return WSA_ERR_INVIFGAIN;
+	}
+	else if (*end_of_string != 0) {
+		return WSA_ERR_INVIFGAIN;
+	}
+
+	return 0;
+}
