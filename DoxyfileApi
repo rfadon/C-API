@@ -31,13 +31,13 @@ PROJECT_NAME           = "WSA API Library - Programming Reference Guide"
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = "Version 1.1"
+PROJECT_NUMBER         = $(VERSION)
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description 
 # for a project that appears at the top of each page and should give viewer 
 # a quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "Version 1.1     -     Author: QS      -     Date: Dec 16, 2011"
+PROJECT_BRIEF          = "Version $(VERSION)     -     Author: QS      -     Date: Dec 16, 2011"
 
 # With the PROJECT_LOGO tag one can specify an logo or icon that is 
 # included in the documentation. The maximum height of the logo should not 
@@ -51,7 +51,7 @@ PROJECT_LOGO           =
 # If a relative path is entered, it will be relative to the location 
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = E:/ThinkRF_Work/PROJECTS/WSA4000/wsa4000_cli/DoxygenApi
+OUTPUT_DIRECTORY       = $(API_DOCUMENTATION_DIRECTORY)
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 
 # 4096 sub-directories (in 2 levels) under the output directory of each output 
@@ -619,7 +619,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = E:/ThinkRF_Work/PROJECTS/WSA4000/wsa4000_cli \
+INPUT                  = $(API_SOURCE_FILES) \
                          wsa_lib.txt
 
 # This tag can be used to specify the character encoding of the source files 
@@ -674,7 +674,7 @@ FILE_PATTERNS          = *.c \
 # should be searched for input files as well. Possible values are YES and NO. 
 # If left blank NO is used.
 
-RECURSIVE              = YES
+RECURSIVE              = NO
 
 # The EXCLUDE tag can be used to specify files and/or directories that should 
 # excluded from the INPUT source files. This way you can easily exclude a 
@@ -1215,7 +1215,7 @@ SERVER_BASED_SEARCH    = NO
 # If the GENERATE_LATEX tag is set to YES (the default) Doxygen will 
 # generate Latex output.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = NO
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. 
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 

@@ -1,14 +1,13 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
-#include <winsock2.h>
 #include "wsa_commons.h"
 
 
 #define MAX_STR_LEN 512
 
 #define NUM_RF_GAINS 5	// including 0 but not use
-#define MHZ 1000000
+#define MHZ 1000000ULL
 
 #define VRT_HEADER_SIZE 5
 #define VRT_TRAILER_SIZE 1
@@ -57,7 +56,7 @@
 // WSA specific values
 //*****
 #define WSA4000 "WSA4000"
-#define WSA4000_INST_BW 125000000
+#define WSA4000_INST_BW 125000000ULL
 #define WSA4000_MIN_SAMPLE_SIZE 128
 #define WSA4000_MAX_SAMPLE_SIZE (2560 * 1024) //32768 // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
 
@@ -66,9 +65,9 @@
 // RFE0440 SPECIFIC
 // *****
 #define WSA_RFE0440 "RFE0440"
-#define WSA_RFE0440_MAX_FREQ 4000000000
-#define WSA_RFE0440_MIN_FREQ 200000000
-#define WSA_RFE0440_FREQRES	10000
+#define WSA_RFE0440_MAX_FREQ 4000000000ULL
+#define WSA_RFE0440_MIN_FREQ 200000000ULL
+#define WSA_RFE0440_FREQRES	10000ULL
 #define WSA_RFE0440_ABS_AMP_HIGH -15
 #define WSA_RFE0440_ABS_AMP_MED 0
 #define WSA_RFE0440_ABS_AMP_LOW 13
@@ -79,13 +78,13 @@
 // RFE0560 SPECIFIC
 // *****
 #define WSA_RFE0560 "RFE0560"
-#define WSA_RFE0560_MAX_FREQ 11000000000
-#define WSA_RFE0560_MIN_FREQ 100000
+#define WSA_RFE0560_MAX_FREQ 11000ULL // MHz here b/c of large # issue
+#define WSA_RFE0560_MIN_FREQ 100000ULL  // Hz
 #define WSA_RFE0560_MAX_IF_GAIN 34
 #define WSA_RFE0560_MIN_IF_GAIN -10
-#define WSA_RFE0560_MAX_DECIMATION 1024
-#define WSA_RFE0560_MIN_DECIMATION 4
-#define WSA_RFE0560_FREQRES	100000 // to read in the register
+#define WSA_RFE0560_MAX_DECIMATION 1023
+#define WSA_RFE0560_MIN_DECIMATION 16
+#define WSA_RFE0560_FREQRES	100000ULL // to read in the register
 #define WSA_RFE0560_MAX_ANT_PORT 2
 
 
@@ -145,8 +144,8 @@ struct wsa_frame_header {
 
 
 struct wsa_socket {
-	SOCKET cmd;
-	SOCKET data;
+	int32_t cmd;
+	int32_t data;
 };
 
 
@@ -169,18 +168,18 @@ struct wsa_resp {
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
-uint32_t wsa_verify_addr(const char *sock_addr);
+
+int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 
 int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
-struct wsa_resp wsa_send_query(struct wsa_device *dev, char *command);
-
-int16_t wsa_read_status(struct wsa_device *dev, char *output);
-const char *wsa_get_error_msg(int16_t err_code);
-
+int16_t wsa_send_query(struct wsa_device *dev, char *command, 
+						struct wsa_resp *resp);
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 char *data_buf, uint32_t sample_size, uint32_t time_out);
 int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
+int16_t wsa_read_status(struct wsa_device *dev, char *output);
+const char *wsa_get_error_msg(int16_t err_code);
 
 #endif

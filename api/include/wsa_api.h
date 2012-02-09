@@ -88,7 +88,8 @@ struct wsa_resp {
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 
-int16_t wsa_check_addr(char *intf_method);
+int16_t wsa_check_addr(char *ip_addr);
+int16_t wsa_check_addrandport(char *ip_addr, char *port);
 int16_t wsa_is_connected(struct wsa_device *dev);
 const char *wsa_get_err_msg(int16_t err_code);
 
