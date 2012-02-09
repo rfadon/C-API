@@ -12,5 +12,6 @@
 int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
 int16_t to_int(char *num_str, long int *val);
 int16_t to_double(char *num_str, double *val);
+int16_t string_to_integer(const char* from_string, int32_t* to_integer);
 
 #endif
