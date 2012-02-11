@@ -309,11 +309,13 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
 int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr, 
 						   uint32_t buf_size, uint32_t time_out)
 {
-	uint32_t bytes_rxed = 0, total_bytes = 0;
+	uint32_t bytes_rxed = 0;
+	uint32_t total_bytes = 0;
+	uint32_t bytes_expected = buf_size;
 	uint16_t retry = 1;
 
 	do {
-		bytes_rxed = wsa_sock_recv(sock_fd, rx_buf_ptr, buf_size, time_out);
+		bytes_rxed = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out);
 		if (bytes_rxed > 0) {
 			retry = 0;
 			total_bytes += bytes_rxed;
@@ -321,6 +323,7 @@ int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr,
 			if (total_bytes < buf_size) {
 				//rx_buf_ptr[bytes_rxed] = '\0'; 
 				rx_buf_ptr += bytes_rxed;
+				bytes_expected -= bytes_rxed;
 			}
 			else {
 				doutf(DLOW, "total rxed: %ld - ", total_bytes);
