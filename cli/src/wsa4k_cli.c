@@ -601,7 +601,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int32_t rate = 0;
 				result = wsa_get_decimation(dev, &rate);
 				if (result >= 0)
-					printf("The current sample size: %d\n", rate);
+					printf("The current decimation rate: %d\n", rate);
 			}
 		} // end get decimation rate
 
