@@ -778,11 +778,11 @@ const char *wsa_get_error_msg(int16_t err_code)
  * number on error.
  */
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 char *data_buf, uint32_t sample_size, uint32_t time_out)
+				 char *data_buf, int32_t sample_size, uint32_t time_out)
 {
 	int32_t result = 0;
 	uint16_t frame_count = 0, frame_size;
-	uint32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
+	int32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
 	uint32_t stream_identifier_word;
 	char *dbuf;
 	

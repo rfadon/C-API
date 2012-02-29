@@ -222,7 +222,7 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
  * 
  * @return Number of bytes read on successful or a negative value on error
  */
-int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
+int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;
@@ -307,11 +307,11 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, uint32_t buf_size,
  * @return Number of bytes read on successful or a negative value on error
  */
 int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr, 
-						   uint32_t buf_size, uint32_t time_out)
+						   int32_t buf_size, uint32_t time_out)
 {
-	uint32_t bytes_rxed = 0;
-	uint32_t total_bytes = 0;
-	uint32_t bytes_expected = buf_size;
+	int32_t bytes_rxed = 0;
+	int32_t total_bytes = 0;
+	int32_t bytes_expected = buf_size;
 	uint16_t retry = 1;
 
 	do {
