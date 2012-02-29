@@ -284,7 +284,7 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 		*header, char *data_buf, const int32_t sample_size)
 {
 	int16_t result = 0, loop = 0;
-	uint32_t samples_count = 0;
+	int32_t samples_count = 0;
 	
 	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
@@ -308,9 +308,9 @@ int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header
 			continue;
 		}
 
-		samples_count += header->sample_size;
+		samples_count += (int32_t) header->sample_size;
 		// increment the buffer location
-		if (samples_count < (uint32_t) sample_size) {
+		if (samples_count < sample_size) {
 			data_buf += header->sample_size;
 			doutf(DHIGH, "%d, ", samples_count);
 		}
