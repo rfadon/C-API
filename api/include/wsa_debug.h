@@ -15,6 +15,9 @@
 #define DMED 2
 #define DLOW 3
 
+#define WSA_API_LOG_FILE "wsa_api.log"
+#define ENABLE_LOG_FILE 0
+
 int doutf(int, const char *, ...);
 
 #endif
