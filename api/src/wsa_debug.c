@@ -35,7 +35,7 @@ int doutf(int level, const char *fmt, ...)
 			timeinfo = localtime(&rawtime);
 
 			va_start(ap, fmt);
-			fprintf(debugFile, "[%d-%02d-%02d %02d:%02d:%02d] [Level %d]", 
+			fprintf(debugFile, "[%d-%02d-%02d %02d:%02d:%02d] [Level %d] ", 
 				timeinfo->tm_year + 1900, 
 				timeinfo->tm_mon + 1, 
 				timeinfo->tm_mday, 
