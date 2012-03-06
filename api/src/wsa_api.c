@@ -49,6 +49,9 @@
 #include "wsa_api.h"
 
 
+#define MAX_RETRIES_READ_FRAME 5
+
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -283,46 +286,51 @@ static uint16_t frame_count = 0;
 int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
 		*header, char *data_buf, const int32_t sample_size)
 {
-	int16_t result = 0, loop = 0;
+	int16_t result = 0;
+	int16_t loop_counter = 0;
+	int16_t loop_done = 0;
 	int32_t samples_count = 0;
+	
 	
 	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	// Query WSA for data using the selected connect type
-	// Allow upto 5 times of trying to get data
-	do {
+	// Allow up to 5 times of trying to get data
+	while (!loop_done) {
 		result = wsa_send_command(dev, "TRACE:IQ?\n");
 		if (result < 0) {
-			doutf(DMED, "Error WSA_ERR_CMDSENDFAILED: %s.\n", 
-				wsa_get_error_msg(WSA_ERR_CMDSENDFAILED));
-			return WSA_ERR_CMDSENDFAILED;
+			doutf(DHIGH, "Error in wsa_read_frame_raw returned by wsa_send_command: %s.\n", 
+				wsa_get_error_msg(result));
+			return result;
 		}
 
 		// get data & increment counters
 		result = wsa_read_frame(dev, header, data_buf, sample_size, 2000);
 		if (result < 0) {
-			printf("Error getting data... trying again #%d\n", loop);
-			loop++;
-			continue;
-		}
+			loop_counter++;
+			doutf(DHIGH, "Error getting data... trying again #%d\n", loop_counter);
 
-		samples_count += (int32_t) header->sample_size;
-		// increment the buffer location
-		if (samples_count < sample_size) {
-			data_buf += header->sample_size;
-			doutf(DHIGH, "%d, ", samples_count);
+			if (loop_counter >= MAX_RETRIES_READ_FRAME) {
+				loop_done = 1;
+			}
 		}
-		else 
-			break;
-
-		if (loop >= 5)
-			break;
-	} while (1);
+		else {
+			samples_count += (int32_t) header->sample_size;
+			// increment the buffer location
+			if (samples_count < sample_size) {
+				data_buf += header->sample_size;
+				doutf(DHIGH, "%d, ", samples_count);
+			}
+			else { 
+				loop_done = 1;
+			}
+		}
+	}
 
 	if (result < 0)
-		return WSA_ERR_READFRAMEFAILED;
+		return result;
 	
 	// TODO: Verify continuity of frame count once available in VRT
 

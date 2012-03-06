@@ -796,9 +796,12 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 
 	// go get the required bytes
 	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, time_out);
-	doutf(DLOW, "@lib: %ld\n", result);
+	doutf(DMED, "In wsa_read_frame: wsa_sock_recv_data returned %ld\n", result);
 	if (result < 0)
-		return WSA_ERR_READFRAMEFAILED;
+	{
+		doutf(DHIGH, "Error in wsa_read_frame:  %s\n", wsa_get_error_msg((int16_t) result));
+		return (int16_t) result;
+	}
 
 	if (result > 0) {
 		// set sample size to the header
