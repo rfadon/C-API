@@ -92,6 +92,37 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	return 0;
 }
 
+
+/**
+ * similar to inet_ntop so that windows XP could use it
+ */
+const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
+{
+	if (af == AF_INET) {
+		struct sockaddr_in in;
+
+		memset(&in, 0, sizeof(in));
+		in.sin_family = AF_INET;
+		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct
+			sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+
+		return dst;
+	}
+	else if (af == AF_INET6) {
+		struct sockaddr_in6 in;
+
+		memset(&in, 0, sizeof(in));
+		in.sin6_family = AF_INET6;
+		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct
+			sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+
+		return dst;
+	}
+	return NULL;	
+}
+
 /**
  * Look up, verify and establish the socket once deemed valid
  *
@@ -155,7 +186,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	
-	inet_ntop(ai_ptr->ai_family, get_in_addr(
+	_inet_ntop(ai_ptr->ai_family, get_in_addr(
 		(struct sockaddr *) ai_ptr->ai_addr), str, sizeof(str));
 	printf("connected to %s\n", str);
 
