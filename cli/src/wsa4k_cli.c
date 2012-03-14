@@ -146,7 +146,8 @@ void print_cli_menu(struct wsa_device *dev)
 		   dev->descr.min_decimation, dev->descr.max_decimation);
 	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
 									"freq 441.5).\n"
-		   "                        - Range: %.2f - %.2f MHz inclusively.\n"
+		   "                        - Range: %.2f - %.2f MHz inclusively,\n"
+		   "                          but excluding 40.1 - 89.9 MHz.\n"
 		   "                        - Resolution %.2f MHz.\n", 
 									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
 									(float) FREQ_RES/MHZ);
@@ -557,12 +558,28 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	if (strcmp(cmd_words[0], "GET") == 0) {
 		if (strcmp(cmd_words[1], "ANT") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum antenna ports: 2\n");
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum antenna ports: 1\n");
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+			
 			result = wsa_get_antenna(dev, &int_result);
 			if (result >= 0)
 				printf("Currently using antenna port: %d\n", int_result);
 		} // end get ANT 
 
-		else if (strcmp(cmd_words[1], "BPF") == 0) {
+		else if (strcmp(cmd_words[1], "BPF") == 0) {			
+			if(num_words > 2)
+				printf("Extra parameters ignored (max/min not available)!\n");
+			
 			result = wsa_get_bpf_mode(dev, &int_result);
 			if (result >= 0) {
 				printf("RFE's preselect BPF state: ");
@@ -573,6 +590,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get BPF
 
 		else if (strcmp(cmd_words[1], "CAL") == 0) {
+			if(num_words > 2)
+				printf("Extra parameters ignored (max/min not available)!\n");
+
 			result = wsa_get_cal_mode(dev, &int_result);
 			if (result >= 0) {
 				printf("RFE's calibration state: ");
@@ -583,6 +603,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get CAL
 
 		else if (strcmp(cmd_words[1], "DEC") == 0) {
+			int32_t rate = 0;
+
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
 					printf("Maximum decimation rate: %d\n", 
@@ -597,12 +619,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
-			else {
-				int32_t rate = 0;
-				result = wsa_get_decimation(dev, &rate);
-				if (result >= 0)
-					printf("The current decimation rate: %d\n", rate);
-			}
+
+			result = wsa_get_decimation(dev, &rate);
+			if (result >= 0)
+				printf("The current decimation rate: %d\n", rate);
 		} // end get decimation rate
 
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
@@ -629,10 +649,26 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		
 		else if (strcmp(cmd_words[1], "DIR") == 0) {
+			if(num_words > 2)
+				printf("Extra parameters ignored!\n");
+
 			print_captures_directory();
 		}
 
 		else if (strcmp(cmd_words[1], "FS") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum frame size is PC dependent.\n");
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum frame size: 1\n");
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+
 			printf("Current # of frames per file: %d\n", _frame_size);
 		} // end get FS
 
