@@ -639,6 +639,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				enum wsa_gain gain;
+				if (strcmp(cmd_words[3], "") != 0) {
+					if (strcmp(cmd_words[3], "MAX") == 0) {
+						printf("Maximum RF gain: HIGH\n");
+						return 0;
+					}
+					else if (strcmp(cmd_words[3], "MIN") == 0) {
+						printf("Minimum RF gain: VLOW\n");
+						return 0;
+					}
+					else
+						printf("Did you mean \"min\" or \"max\"?\n");
+				}
+
 				result = wsa_get_gain_rf(dev, &gain);
 				if (result >= 0) {
 					char temp[10];

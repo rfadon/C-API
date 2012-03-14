@@ -78,8 +78,8 @@
 // RFE0560 SPECIFIC
 // *****
 #define WSA_RFE0560 "RFE0560"
-#define WSA_RFE0560_MAX_FREQ 11000ULL // MHz here b/c of large # issue
-#define WSA_RFE0560_MIN_FREQ 100000ULL  // Hz
+#define WSA_RFE0560_MAX_FREQ 10000ULL // MHz here b/c of large # issue
+#define WSA_RFE0560_MIN_FREQ 0ULL  // Hz
 #define WSA_RFE0560_MAX_IF_GAIN 34
 #define WSA_RFE0560_MIN_IF_GAIN -10
 #define WSA_RFE0560_MAX_DECIMATION 1023
@@ -89,10 +89,10 @@
 
 
 // TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S -> Read from eeprom
-#define WSA_RFE0560_ABS_AMP_HIGH -15
-#define WSA_RFE0560_ABS_AMP_MED 0
-#define WSA_RFE0560_ABS_AMP_LOW 13
-#define WSA_RFE0560_ABS_AMP_VLOW 20
+#define WSA_RFE0560_ABS_AMP_HIGH 0
+#define WSA_RFE0560_ABS_AMP_MED 15
+#define WSA_RFE0560_ABS_AMP_LOW 15
+#define WSA_RFE0560_ABS_AMP_VLOW 15
 
 // Control commands syntax supported types
 #define SCPI "SCPI"	/* SCPI control commands syntax */
