@@ -114,7 +114,7 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 
 		memset(&in, 0, sizeof(in));
 		in.sin6_family = AF_INET6;
-		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+		memcpy(&in.sin6_addr, src, sizeof(struct in6_addr));
 		getnameinfo((struct sockaddr *)&in, sizeof(struct
 			sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
 
