@@ -118,7 +118,6 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
-	printf(" get cal                Show the current RFE calibration mode.\n");
 	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
 	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");
@@ -140,7 +139,6 @@ void print_cli_menu(struct wsa_device *dev)
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
 									"or off.\n");
-	printf(" set cal <on | off>     Turn the calibration mode on or off.\n");
 	printf(" set dec <rate>	        Set decimation rate.\n"
 		   "                        - Range: 0 (for off), %d - %d.\n", 
 		   dev->descr.min_decimation, dev->descr.max_decimation);
@@ -589,19 +587,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end get BPF
 
-		else if (strcmp(cmd_words[1], "CAL") == 0) {
-			if(num_words > 2)
-				printf("Extra parameters ignored (max/min not available)!\n");
-
-			result = wsa_get_cal_mode(dev, &int_result);
-			if (result >= 0) {
-				printf("RFE's calibration state: ");
-				if (int_result) printf("On\n");
-				else if (!int_result) printf("Off\n");
-				else printf("Unknown state\n");
-			}
-		} // end get CAL
-
 		else if (strcmp(cmd_words[1], "DEC") == 0) {
 			int32_t rate = 0;
 
@@ -800,15 +785,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else 
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set BPF
-
-		else if (strcmp(cmd_words[1], "CAL") == 0) {
-			if (strcmp(cmd_words[2], "ON") == 0)
-				result = wsa_run_cal_mode(dev, 1);
-			else if (strcmp(cmd_words[2], "OFF") == 0)
-				result = wsa_run_cal_mode(dev, 0);
-			else 
-				printf("Use 'on' or 'off' mode.\n");
-		} // end set CAL
 
 		else if (strcmp(cmd_words[1], "DEC") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) 

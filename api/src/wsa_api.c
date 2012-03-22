@@ -911,9 +911,6 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
  * @param dev - A pointer to the WSA device structure.
  * @param port_num - An integer port number to set. \n
  * Available ports: 1, 2.  Or see product datasheet for ports availability.
- * \b Note: When calibration mode is enabled through wsa_run_cal_mode(), these 
- * antenna ports will not be available.  The seletected port will resume when 
- * the calibration mode is set to off.
  * 
  * @return 0 on success, or a negative number on error.
  */
@@ -1011,75 +1008,3 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	return 0;
 }
 
-
-/**
- * Checks if the RFE's internal calibration has finished or not.
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer pointer to store the calibration mode:
- * 1 if the calibration is still running or 0 if completed.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_cal_mode(struct wsa_device *dev, int32_t *mode)
-{
-	struct wsa_resp query;		// store query results
-	long temp;
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-
-	wsa_send_query(dev, "CALIBRATE:RFE:STATE?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
-	// Convert the number & make sure no error
-	if (to_int(query.output, &temp) < 0)
-		return WSA_ERR_RESPUNKNOWN;
-	
-	// Verify the validity of the return value
-	if (temp < 0 || temp > 1) {
-		printf("Error: WSA returned %ld.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-
-	*mode = (((int16_t) temp) & SCPI_OSR_CALI);
-
-	return 0;
-}
-
-
-/**
- * Runs the RFE'S internal calibration mode or cancel it. \n
- * While the calibration mode is running, no other commands should be 
- * running until the calibration is finished by using wsa_get_cal_mode(), 
- * or could be cancelled
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer mode of selection: 1 - Run, 0 - Cancel.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_run_cal_mode(struct wsa_device *dev, int32_t mode)
-{
-	int16_t result = 0;
-	char temp_str[30];
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-
-	if (mode < 0 || mode > 1)
-		return WSA_ERR_INVCALIBRATEMODE;
-
-	sprintf(temp_str, "CALIBRATE:RFE:STATE %d\n", mode);
-
-	// set the freq using the selected connect type
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-		doutf(DMED, "Error WSA_ERR_CALIBRATESETFAILED: %s.\n", 
-			wsa_get_error_msg(WSA_ERR_CALIBRATESETFAILED));
-		return WSA_ERR_CALIBRATESETFAILED;
-	}
-
-	return 0;
-}
