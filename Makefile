@@ -8,7 +8,7 @@ PATH_SEPARATOR = \\
 MKDIR_COMMAND = mkdir -p
 REMOVE_COMMAND = rm -fR
 
-VERSION=$(shell C:\Program Files\Git\bin\git.exe describe --dirty='+' --long)
+VERSION=$(shell C:\Program Files\Git\bin\git.exe describe --dirty='+')
 
 CC = cl
 AR = lib
@@ -28,7 +28,7 @@ PATH_SEPARATOR = /
 MKDIR_COMMAND = mkdir -p
 REMOVE_COMMAND = rm -fR
 
-VERSION=$(shell git describe --dirty='+' --long)
+VERSION=$(shell git describe --dirty='+')
 
 CC = gcc
 AR = ar
