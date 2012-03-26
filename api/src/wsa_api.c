@@ -271,7 +271,7 @@ static uint16_t frame_count = 0;
  * @param dev - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
  * information for the frame.
- * @param data_buf - A char pointer buffer to store the raw I and Q data in
+ * @param data_buf - A uint8 pointer buffer to store the raw I and Q data in
  * in bytes. Its size is determined by the number of 32-bit \b sample_size 
  * words multiply by 4 (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per 
  * sample, which is automatically done by the function).
@@ -284,7 +284,7 @@ static uint16_t frame_count = 0;
  * number on error.
  */
 int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, char *data_buf, const int32_t sample_size)
+		*header, uint8_t* data_buf, const int32_t sample_size)
 {
 	int16_t result = 0;
 	int16_t loop_counter = 0;
@@ -383,14 +383,14 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
 			int16_t *i_buf, int16_t *q_buf, const int32_t sample_size)
 {	
 	int32_t result = 0;
-	char *dbuf;
+	uint8_t* dbuf;
 
 	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
 		(sample_size > (int32_t) dev->descr.max_sample_size))
 		return WSA_ERR_INVSAMPLESIZE;
 	
 	// allocate the data buffer
-	dbuf = (char *) malloc(sample_size * 4 * sizeof(char));
+	dbuf = (uint8_t*) malloc(sample_size * 4 * sizeof(uint8_t));
 
 	result = wsa_read_frame_raw(dev, header, dbuf, sample_size);
 	if (result < 0)
@@ -419,7 +419,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
  * @param dev - A pointer to the WSA device structure.
- * @param data_buf - A char pointer buffer containing the raw I and Q data in
+ * @param data_buf - A uint8 pointer buffer containing the raw I and Q data in
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
@@ -435,7 +435,7 @@ int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *head
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_frame_decode(struct wsa_device *dev, char *data_buf, int16_t *i_buf, 
+int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_buf, 
 						 int16_t *q_buf, const int32_t sample_size)
 {
 	int32_t result;
