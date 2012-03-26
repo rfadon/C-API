@@ -1,7 +1,7 @@
 #ifndef __WSA_COMMONS_H__
 #define __WSA_COMMONS_H__
 
-#include "stdint.h"
+#include "thinkrf_stdint.h"
 
 #define FALSE	0
 #define TRUE	1

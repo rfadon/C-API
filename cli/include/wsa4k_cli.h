@@ -1,7 +1,7 @@
 #ifndef __WSA4K_CLI_H__
 #define __WSA4K_CLI_H__
 
-#include "stdint.h"
+#include "thinkrf_stdint.h"
 #include "wsa4k_cli_os_specific.h"
 
 #define MAX_CMD_WORDS 50

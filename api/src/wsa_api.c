@@ -42,7 +42,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "stdint.h"
+#include "thinkrf_stdint.h"
 #include "wsa_error.h"
 #include "wsa_commons.h"
 #include "wsa_lib.h"

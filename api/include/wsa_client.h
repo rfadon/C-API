@@ -1,7 +1,7 @@
 #ifndef __WSA_CLIENT_H__
 #define __WSA_CLIENT_H__
 
-#include "stdint.h"
+#include "thinkrf_stdint.h"
 
 #define MAX_STR_LEN 512
 #define MAX_BUF_SIZE 20

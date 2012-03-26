@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <thinkrf_stdint.h>
 #include <Ws2tcpip.h>
 
 #include "wsa_client.h"

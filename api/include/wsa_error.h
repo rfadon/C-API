@@ -1,7 +1,7 @@
 #ifndef __WSA_ERROR_H__
 #define __WSA_ERROR_H__
 
-#include "stdint.h"
+#include "thinkrf_stdint.h"
 #include "wsa_debug.h"
 
 //*****************************************************************************
