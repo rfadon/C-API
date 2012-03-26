@@ -6,7 +6,7 @@
 #define __WSA_DEBUG_H__
 
 #ifndef DEBUGLEVEL
-#define DEBUGLEVEL 3
+#define DEBUGLEVEL 0
 #endif
 
 // Different debug levels
@@ -16,7 +16,7 @@
 #define DLOW 3
 
 #define WSA_API_LOG_FILE "wsa_api.log"
-#define ENABLE_LOG_FILE 1
+#define ENABLE_LOG_FILE 0
 
 int doutf(int, const char *, ...);
 
