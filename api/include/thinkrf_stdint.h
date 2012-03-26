@@ -1,8 +1,6 @@
 #ifndef _THINKRF_STDINT_H_
 #define _THINKRF_STDINT_H_
 
-#include <stddef.h>
-
 /**
  * Exact-width integer types 
  */
