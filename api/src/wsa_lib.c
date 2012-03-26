@@ -648,13 +648,13 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					return WSA_ERR_CMDSENDFAILED;
 				}
 
-				printf("Not all bytes sent. Resending the packet...\n");
+				doutf(DMED, "Not all bytes sent. Resending the packet...\n");
 				resend_cnt++;
 			}
 			// Read back the output
 			else {
 				do {
-					bytes_got = (int16_t) wsa_sock_recv(dev->sock.cmd, temp_resp.output, 
+					bytes_got = (int16_t) wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
 						MAX_STR_LEN, TIMEOUT);
 					if (bytes_got > 0)
 						break;
@@ -665,8 +665,13 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					loop_count++;
 				} while (bytes_got < 1);
 
-				if (bytes_got > 0)
+				if (bytes_got > 0 && bytes_got < MAX_STR_LEN) {
 					temp_resp.output[bytes_got] = 0; // add EOL to the string
+				}
+				else {
+					temp_resp.output[MAX_STR_LEN - 1] = 0; // add EOL to the string
+				}
+
 				break;
 			}
 		}
@@ -778,16 +783,16 @@ const char *wsa_get_error_msg(int16_t err_code)
  * number on error.
  */
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 char *data_buf, int32_t sample_size, uint32_t time_out)
+				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out)
 {
 	int32_t result = 0;
 	uint16_t frame_count = 0, frame_size;
 	int32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
 	uint32_t stream_identifier_word;
-	char *dbuf;
+	uint8_t* dbuf;
 	
 	// allocate the data buffer
-	dbuf = (char *) malloc(bytes * sizeof(char));
+	dbuf = (uint8_t*) malloc(bytes * sizeof(uint8_t));
 
 	// reset header
 	header->sample_size = 0;
@@ -813,8 +818,8 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 #ifndef DUMMY_CONN
 		// 1. Check "Pkt Type" & get the Stream identifier word
 		if ((dbuf[0] & 0xf0) == 0x10) {
-			stream_identifier_word = (((uint8_t) dbuf[4]) << 24) + (((uint8_t) dbuf[5]) << 16) 
-					+ (((uint8_t) dbuf[6]) << 8) + (uint8_t) dbuf[7];
+			stream_identifier_word = (((uint32_t) dbuf[4]) << 24) + (((uint32_t) dbuf[5]) << 16) 
+					+ (((uint32_t) dbuf[6]) << 8) + (uint32_t) dbuf[7];
 			if (stream_identifier_word != 0x90000003)
 				return WSA_ERR_NOTIQFRAME;
 		}
@@ -827,43 +832,39 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 		doutf(DLOW, "Packet count: %d 0x%02x\n", frame_count, frame_count);
 
 		// 3. Get the 16-bit "Pkt Size"
-		frame_size = (((uint8_t) dbuf[2]) << 8) + (uint8_t) dbuf[3];
+		frame_size = (((uint16_t) dbuf[2]) << 8) + (uint16_t) dbuf[3];
 		doutf(DLOW, "Packet size: 0x%04x %d\n", frame_size, frame_size);
 		// TODO: compare the sample size w/ this frame_size, less hdr & trailer
 
 		// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
-		if (!((dbuf[1] & 0xC0) >> 6))
+		if (!((dbuf[1] & 0xC0) >> 6)) {
 			printf("ERROR: Second timestamp is not of UTC type.\n");
-		header->time_stamp.sec = (((uint8_t) dbuf[8]) << 24) +
-								(((uint8_t) dbuf[9]) << 16) +
-								(((uint8_t) dbuf[10]) << 8) + 
-								(uint8_t) dbuf[11];
-		doutf(DLOW, "second: 0x%08x %d\n", header->time_stamp.sec, 
+		}
+
+		header->time_stamp.sec = (((uint32_t) dbuf[8]) << 24) +
+								(((uint32_t) dbuf[9]) << 16) +
+								(((uint32_t) dbuf[10]) << 8) + 
+								(uint32_t) dbuf[11];
+		doutf(DLOW, "second: 0x%08X %u\n", header->time_stamp.sec, 
 			header->time_stamp.sec);
 
 		// 5. Check the TSF field, if presents (= 0x10), 
 		// get the picoseconds time stamp at the 4th & 5th words
 		if ((dbuf[1] & 0x30) >> 5) {
-			/*header->time_stamp.psec = (uint64_t)
-					((((uint8_t) dbuf[12]) & 0x0100000000000000) +
-					(((uint8_t) dbuf[13]) & 0x01000000000000) +
-					(((uint8_t) dbuf[14]) & 0x010000000000) +
-					(((uint8_t) dbuf[15]) & 0x0100000000) +
-					(uint32_t) (((uint8_t) dbuf[16]) << 24) +
-					(((uint8_t) dbuf[17]) << 16) + 
-					(((uint8_t) dbuf[18]) << 8) + 
-					(uint8_t) dbuf[19]);*/
-			char temp[8];
-			long int val;
-			memcpy(temp, dbuf + 12, 8);
-			to_int(temp, &val);  // TODO verify
-			header->time_stamp.psec = (uint64_t) val;
-			printf("temp: %s, psec: %lld\n", temp, header->time_stamp.psec);
+			header->time_stamp.psec = (((uint64_t) dbuf[12]) << 56) +
+					(((uint64_t) dbuf[13]) << 48) +
+					(((uint64_t) dbuf[14]) << 40) +
+					(((uint64_t) dbuf[15]) << 32) +
+					(((uint64_t) dbuf[16]) << 24) +
+					(((uint64_t) dbuf[17]) << 16) + 
+					(((uint64_t) dbuf[18]) << 8) + 
+					(uint64_t) dbuf[19];
 		}
-		else 
-			header->time_stamp.psec = 0;
+		else {
+			header->time_stamp.psec = 0ULL;
+		}
 
-		doutf(DLOW, "psec: 0x%016llx %lld\n", header->time_stamp.psec, 
+		doutf(DLOW, "psec: 0x%016llX %llu\n", header->time_stamp.psec, 
 			header->time_stamp.psec);
 #endif
 		// *****
@@ -907,7 +908,7 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_frame(char *data_buf, int16_t *i_buf, int16_t *q_buf, 
+int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size)
 {
 	//int32_t result = 0;

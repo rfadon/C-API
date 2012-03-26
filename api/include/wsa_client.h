@@ -18,9 +18,9 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 int16_t wsa_close_sock(int32_t sock_fd);
 
 int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len);
-int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
+int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out);
-int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr, 
+int32_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
 						   int32_t buf_size, uint32_t time_out);
 void wsa_initialize_client();
 void wsa_destroy_client();

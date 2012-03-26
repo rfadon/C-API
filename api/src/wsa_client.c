@@ -253,7 +253,7 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
  * 
  * @return Number of bytes read on successful or a negative value on error
  */
-int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
+int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;
@@ -300,7 +300,9 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
 	// if the socket is read-able, rx packet
 	if (FD_ISSET(sock_fd, &read_fd)) {
 		// read incoming strings at a time
-		bytes_rxed = recv(sock_fd, rx_buf_ptr, buf_size, 0);
+		// Need to cast the buffer pointer to char*
+		// since that is the data type on Windows
+		bytes_rxed = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
 		
 		// checked the return value
 		if (bytes_rxed <= 0) {
@@ -319,7 +321,7 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
 		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
 			rx_buf_ptr[bytes_rxed] = '\0';
 		
-		doutf(DMED, "Received (%d bytes): %s\n\n", bytes_rxed, rx_buf_ptr);
+		doutf(DMED, "Received (%d bytes)\n\n", bytes_rxed);
 	}
 		
 	return bytes_rxed;
@@ -338,7 +340,7 @@ int32_t wsa_sock_recv(int32_t sock_fd, char *rx_buf_ptr, int32_t buf_size,
  * 
  * @return Number of bytes read on successful or a negative value on error
  */
-int32_t wsa_sock_recv_data(int32_t sock_fd, char *rx_buf_ptr, 
+int32_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
 						   int32_t buf_size, uint32_t time_out)
 {
 	int32_t bytes_rxed = 0;

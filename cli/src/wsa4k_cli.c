@@ -338,7 +338,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Create parameters and buffers to store the raw data
 	// *****
 	struct wsa_frame_header *header;
-	char *d_buf;		// To store raw data bytes 
+	uint8_t* d_buf;		// To store raw data bytes 
 	int fi = 0, next = 0;	// frame index and next index location
 	int frame_size = _frame_size;
 	int32_t total_bytes;
@@ -410,7 +410,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate raw data buffer space
-	d_buf = (char *) malloc(sizeof(char) * total_bytes);
+	d_buf = (uint8_t*) malloc(sizeof(uint8_t) * total_bytes);
 	if (d_buf == NULL)
 	{
 		free(header);
