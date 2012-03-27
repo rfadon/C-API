@@ -542,6 +542,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
 	int i;
+	long temp_number;
 	int32_t rate;
 	int32_t sample_size;
 	int32_t if_gain_value;
@@ -857,7 +858,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (strcmp(cmd_words[3], "") == 0) {
 					printf("Missing the gain in dB value. See 'h'.\n");
 				}
-				else if (!string_to_integer(cmd_words[3], &if_gain_value)) {
+				else if (!to_int(cmd_words[3], &temp_number)) {
+					if_gain_value = (int32_t) temp_number;
 					result = wsa_set_gain_if(dev, if_gain_value);
 					if (result == WSA_ERR_INVIFGAIN) {
 						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
