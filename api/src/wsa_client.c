@@ -292,7 +292,7 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 		doutf(DMED, "Data is available now.\n");
 	}
 	else {
-		printf("No data received within %d milliseconds.\n", time_out);
+		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
 		doutf(DMED, "In wsa_sock_recv: select returned %ld\n", ret_val);
 		return WSA_ERR_QUERYNORESP;
 	}
