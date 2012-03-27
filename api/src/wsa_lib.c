@@ -920,9 +920,8 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	// *****
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
-		// WARNING: note the IQ is swapped!!! :(
-		q_buf[j] = (((uint8_t) data_buf[i]) << 8) + ((uint8_t) data_buf[i + 1]); 
-		i_buf[j] = (((uint8_t) data_buf[i + 2]) << 8) + (uint8_t) data_buf[i + 3];
+		i_buf[j] = (((uint8_t) data_buf[i]) << 8) + ((uint8_t) data_buf[i + 1]); 
+		q_buf[j] = (((uint8_t) data_buf[i + 2]) << 8) + (uint8_t) data_buf[i + 3];
 
 		// Do the signed 2-complement on the 14-bit sample
 		if (i_buf[j] > 8191) i_buf[j] -= 16384;

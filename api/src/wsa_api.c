@@ -454,8 +454,9 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
 
 	// to avoid warnings of comparing to large #
 	temp = (uint32_t) (freq / 1000);
-	if ((temp >= 90000 && temp < 450000) ||
-		((temp >= 4300000) && temp < 7450000))
+	if ((temp < 90000) ||
+		((temp >= 450000) && (temp < 4300000)) ||
+		(temp >= 7450000))
 		// then swap i & q
 		result = wsa_decode_frame(data_buf, q_buf, i_buf, sample_size);
 	else
