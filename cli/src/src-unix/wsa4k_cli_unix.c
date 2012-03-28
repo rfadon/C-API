@@ -36,7 +36,7 @@ void generate_file_name(char* file_name, const char* prefix, const char* extensi
 	time_struct = localtime(&(current_time.tv_sec));
 	strftime(time_string, sizeof(time_string), "%Y-%m-%d_%H%M%S", time_struct);
 
-	sprintf(file_name, "CAPTURES\\%s%s%03ld.%s", prefix,
+	sprintf(file_name, "CAPTURES/%s%s%03ld.%s", prefix,
 		time_string,
 		(current_time.tv_nsec / 1000000), /* Convert nanoseconds to milliseconds */
 		extension);
@@ -47,7 +47,7 @@ void open_captures_directory()
 	char dir[500];	// be generous b/c overflow will kill ur program.
 	DIR *temp;
 
-	sprintf(dir, "%s\\CAPTURES", getcwd(NULL, 0));
+	sprintf(dir, "%s/CAPTURES", getcwd(NULL, 0));
 
 	temp = opendir(dir);
 	if (temp == NULL) {
@@ -62,6 +62,6 @@ void open_captures_directory()
 
 void print_captures_directory()
 {
-	printf("File directory is: \"%s\\CAPTURES\\\"\n", 
+	printf("File directory is: \"%s/CAPTURES/\"\n", 
 		getcwd(NULL, 0));
 }
