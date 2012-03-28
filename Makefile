@@ -33,7 +33,7 @@ VERSION=$(shell git describe --dirty='+')
 CC = gcc
 AR = ar
 LD = gcc
-LIBS = -lm
+LIBS = -lm -lrt
 CFLAGS = -std=gnu89 -Wall -Wextra -Werror -DCLI_VERSION="\"${VERSION}\""
 COMPILE_ONLY_FLAG = -c
 OUTPUT_FILE_FLAG = -o 

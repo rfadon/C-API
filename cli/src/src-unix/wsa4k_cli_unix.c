@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include <errno.h>
 #include <time.h>
+#include <unistd.h>
+#include <dirent.h>
 
 #include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
