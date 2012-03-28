@@ -320,19 +320,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result = 0;
 	int32_t read_frame_result = 0;
-	// for acquisition time
-	time_t start_time;	// to capture run time
-	uint16_t start_ms, delta_ms;	// the msec of start time
-	time_t delta_sec;	// time takes to run the data collection
 	int32_t samples;
 	int64_t freq;
-	time_t time_stamp;
-	struct tm *time_struct;
-	char time_str[50];
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
-	TIME_HOLDER msec_buf;
+	// to calculate run time
+	TIME_HOLDER start_time;
+	TIME_HOLDER end_time;
+	double run_time_ms;
+
 
 	// *****
 	// Create parameters and buffers to store the raw data
@@ -373,22 +370,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
 
-
-	// *****
-	// Create the file name string
-	// *****
-
-	
-	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
-	time_stamp = time(NULL);	// call time functions
-	time_struct = localtime(&time_stamp);
-	get_current_time(&msec_buf);
-
-	strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H%M%S", time_struct);
-	sprintf(file_name, "CAPTURES\\%s%s%03d.%s", prefix, time_str, 
-		msec_buf.millitm, ext);
+	generate_file_name(file_name, prefix, ext);
 
 	
 	// create a new file for data capture
@@ -420,9 +404,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("done.\nAcquiring data bytes ");
 	
 	// Get the start time
-	get_current_time(&msec_buf);
-	start_time = msec_buf.time;	// time in seconds
-	start_ms = msec_buf.millitm;// get millisecond
+	get_current_time(&start_time);
 	
 	// Collect the samples for all the _frame_size
 	while(fi < frame_size) {
@@ -455,18 +437,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// get the end time & calculate the throughput rate
-	get_current_time(&msec_buf);
-	delta_sec = msec_buf.time - start_time;
-	delta_ms = msec_buf.millitm - start_ms;
-	// re-adjust the 1 second carry over when start_ms > end_ms
-	if (start_ms > msec_buf.millitm) {
-		delta_sec -= 1;
-		delta_ms += 1000;
-	}
-	//printf("done.\n\t(Run time: %I64d sec %hu msec; Rate: %.03lf bytes/sec).\n", 
-	printf("done.\n\t(Run time: %s sec %hu msec; Rate: %.03lf bytes/sec).\n", 
-		ctime(&delta_sec), delta_ms, 
-		total_bytes / (delta_sec + (delta_ms / 1000.0)));
+	get_current_time(&end_time);
+	run_time_ms = get_time_difference(&start_time, &end_time);
+
+	printf("done.\n\t(Run time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
+		run_time_ms, 
+		total_bytes / run_time_ms);
 
 	
 	

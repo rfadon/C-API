@@ -1,11 +1,6 @@
 #ifndef WSA4K_CLI_IS_SPECIFIC_H
 #define WSA4K_CLI_IS_SPECIFIC_H
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-
-typedef struct timeb TIME_HOLDER;
+typedef struct timespec TIME_HOLDER;
 
 #endif
