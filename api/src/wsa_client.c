@@ -62,7 +62,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
-
+	
 	return 0;
 }
 
@@ -88,7 +88,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	}
 
 	freeaddrinfo(ai_list);
-
+	
 	return 0;
 }
 
@@ -240,18 +240,18 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 
 
 /**
- * Gets incoming control strings from the server socket \b buf_size bytes 
+ * Reads data from the given server socket \b buf_size bytes 
  * at a time.  It does not loop to keep checking \b buf_size of bytes are
  * received. \n
  * This socket receive function makes used of select() function to check for
  * data availability before receiving.
  *
  * @param sock_fd - The socket at which the data will be received.
- * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param rx_buf_ptr - A uint8 pointer buffer to store the incoming bytes.
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
  * 
- * @return Number of bytes read on successful or a negative value on error
+ * @return Number of bytes read on success or a negative value on error
  */
 int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out)
@@ -284,8 +284,8 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 	ret_val = select(sock_fd + 1, &read_fd, NULL, NULL, &timer);
 	// Make reading of socket non-blocking w/ time-out of s.ms sec
 	if (ret_val == -1) {
-		doutf(DMED, "init select() function returned with error");
-		perror("select()");
+		doutf(DHIGH, "init select() function returned with error %d (\"%s\")", errno, strerror(errno));
+
 		return WSA_ERR_SOCKETERROR;
 	}
 	else if (ret_val) {
@@ -294,32 +294,29 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 	else {
 		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
 		doutf(DMED, "In wsa_sock_recv: select returned %ld\n", ret_val);
+
 		return WSA_ERR_QUERYNORESP;
 	}
 
 	// if the socket is read-able, rx packet
 	if (FD_ISSET(sock_fd, &read_fd)) {
-		// read incoming strings at a time
+		// read incoming data buf_size at a time
 		// Need to cast the buffer pointer to char*
 		// since that is the data type on Windows
 		bytes_rxed = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
 		
 		// checked the return value
-		if (bytes_rxed <= 0) {
-			if (bytes_rxed == 0) {
-				// Connection closed
-				doutf(DMED, "Connection is already closed.\n");
-				return WSA_ERR_SOCKETERROR;
-			}
-			else {
-				perror("recv");
-				return WSA_ERR_SOCKETSETFUPFAILED;
-			}
-		}
+		if (bytes_rxed == 0) {
+			// Connection closed
+			doutf(DMED, "Connection is already closed.\n");
 
-		// Terminate the last character in cmd resp string only to 0
-		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
-			rx_buf_ptr[bytes_rxed] = '\0';
+			return WSA_ERR_SOCKETERROR;
+		}
+		else if (bytes_rxed < 0) {
+			doutf(DHIGH, "recv() function returned with error %d (\"%s\")", errno, strerror(errno));
+
+			return WSA_ERR_SOCKETSETFUPFAILED;
+		}
 		
 		doutf(DMED, "Received (%d bytes)\n\n", bytes_rxed);
 	}

@@ -666,10 +666,10 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 				} while (bytes_got < 1);
 
 				if (bytes_got > 0 && bytes_got < MAX_STR_LEN) {
-					temp_resp.output[bytes_got] = 0; // add EOL to the string
+					temp_resp.output[bytes_got] = '\0'; // add EOL to the string
 				}
 				else {
-					temp_resp.output[MAX_STR_LEN - 1] = 0; // add EOL to the string
+					temp_resp.output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
 				}
 
 				break;
