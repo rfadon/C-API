@@ -888,6 +888,143 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 }
 
 
+int16_t wsa_read_iq_packet_raw(struct wsa_device* device, 
+		struct wsa_frame_header* header, 
+		uint8_t* data_buffer, 
+		uint16_t samples_per_packet)
+{
+	uint8_t* vrt_packet_buffer = 0;
+	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE);
+	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
+	int32_t bytes_received = 0;
+	int16_t socket_receive_result = 0;
+
+	uint32_t stream_identifier_word = 0;
+	uint8_t packet_count = 0;
+	uint16_t packet_size = 0;
+
+	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+	if (vrt_packet_buffer == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
+
+	// reset header
+	header->sample_size = 0;
+	header->time_stamp.sec = 0;
+	header->time_stamp.psec = 0;
+
+	// go get the required bytes
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+
+	if (socket_receive_result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		return socket_receive_result;
+	}
+
+	if (bytes_received != vrt_packet_bytes)
+	{
+		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
+			bytes_received, 
+			vrt_packet_bytes);
+		return WSA_ERR_VRTPACKETSIZE;
+	}
+
+	// *****
+	// Handle the 5 header words
+	// *****
+
+	// 1. Check "Pkt Type" & get the Stream identifier word
+	if ((vrt_packet_buffer[0] & 0xf0) == 0x10) 
+	{
+		stream_identifier_word = (((uint32_t) vrt_packet_buffer[4]) << 24) 
+				+ (((uint32_t) vrt_packet_buffer[5]) << 16) 
+				+ (((uint32_t) vrt_packet_buffer[6]) << 8) 
+				+ (uint32_t) vrt_packet_buffer[7];
+			
+		if (stream_identifier_word != 0x90000003)
+		{
+			return WSA_ERR_NOTIQFRAME;
+		}
+	}
+
+	// Class identifier C?
+	// If 1, returns the data pf class c type?
+
+	// 2. Get the 4-bit "Pkt Count" number
+	packet_count = vrt_packet_buffer[1] & 0x0f;
+	doutf(DLOW, "Packet count: %hd 0x%02X\n", packet_count, packet_count);
+
+	// 3. Get the 16-bit "Pkt Size"
+	packet_size = (((uint16_t) vrt_packet_buffer[2]) << 8) + (uint16_t) vrt_packet_buffer[3];
+	doutf(DLOW, "Packet size: %hd 0x%04X\n", packet_size, packet_size);
+
+	if (packet_size != expected_packet_size)
+	{
+		doutf(DHIGH, "Error: Expected %hd words in VRT packet. Received %hd\n", 
+			expected_packet_size, 
+			packet_size);
+		return WSA_ERR_VRTPACKETSIZE;
+	}
+
+	header->sample_size = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
+
+	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
+	if (!((vrt_packet_buffer[1] & 0xC0) >> 6)) 
+	{
+		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
+		return WSA_ERR_INVTIMESTAMP;
+	}
+
+	header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[8]) << 24) +
+							(((uint32_t) vrt_packet_buffer[9]) << 16) +
+							(((uint32_t) vrt_packet_buffer[10]) << 8) + 
+							(uint32_t) vrt_packet_buffer[11];
+	doutf(DLOW, "second: 0x%08X %u\n", 
+		header->time_stamp.sec, 
+		header->time_stamp.sec);
+
+	// 5. Check the TSF field, if present (= 0x10), 
+	// get the picoseconds time stamp at the 4th & 5th words
+	if ((vrt_packet_buffer[1] & 0x30) >> 5) 
+	{
+		header->time_stamp.psec = (((uint64_t) vrt_packet_buffer[12]) << 56) +
+				(((uint64_t) vrt_packet_buffer[13]) << 48) +
+				(((uint64_t) vrt_packet_buffer[14]) << 40) +
+				(((uint64_t) vrt_packet_buffer[15]) << 32) +
+				(((uint64_t) vrt_packet_buffer[16]) << 24) +
+				(((uint64_t) vrt_packet_buffer[17]) << 16) + 
+				(((uint64_t) vrt_packet_buffer[18]) << 8) + 
+				(uint64_t) vrt_packet_buffer[19];
+	}
+	else 
+	{
+		header->time_stamp.psec = 0ULL;
+	}
+
+	doutf(DLOW, "psec: 0x%016llX %llu\n", 
+		header->time_stamp.psec, 
+		header->time_stamp.psec);
+
+	// *****
+	// TODO: Handle the trailer word here once it is available
+	// *****
+	//if (vrt_packet_buffer[0] & 0x04)
+		// handle the trailer here
+
+	// *****
+	// Copy the IQ data payload to the provided buffer
+	// *****
+	memcpy(data_buffer, vrt_packet_buffer + (VRT_HEADER_SIZE * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
+
+	free(vrt_packet_buffer);
+
+	return 0;
+}
+
+
 /**
  * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
  * and returned the I and Q buffers of data with the size determined by the 

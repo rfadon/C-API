@@ -79,6 +79,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SIZESETFAILED, "Failed to set the sample size"},
 		{WSA_ERR_NOTIQFRAME, "Not an IQ packet frame"},
 		{WSA_ERR_INVDECIMATIONRATE, "Invalid decimation rate"},
+		{WSA_ERR_VRTPACKETSIZE, "Did not receive the expected number of bytes in VRT packet"},
+		{WSA_ERR_INVTIMESTAMP, "Not a valid UTC timestamp"},
 
 		//*****
 		// Frequency related

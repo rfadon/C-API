@@ -11,6 +11,7 @@
 
 #define VRT_HEADER_SIZE 5
 #define VRT_TRAILER_SIZE 1
+#define BYTES_PER_VRT_WORD 4
 
 
 // *****
@@ -138,7 +139,7 @@ struct wsa_time {
 
 // Temporary define for now. Will need to be expanded for more details...
 struct wsa_frame_header {
-	uint32_t sample_size; 
+	uint32_t sample_size;
 	struct wsa_time time_stamp;
 };
 
