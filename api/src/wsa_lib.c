@@ -615,6 +615,8 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 {
 	struct wsa_resp temp_resp;
 	int16_t bytes_got = 0;
+	int16_t recv_result = 0;
+	int32_t bytes_rxed = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = strlen(command);
 	int32_t loop_count = 0;
@@ -654,18 +656,18 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			// Read back the output
 			else {
 				do {
-					bytes_got = (int16_t) wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
-						MAX_STR_LEN, TIMEOUT);
-					if (bytes_got > 0)
+					recv_result = wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
+						MAX_STR_LEN, TIMEOUT, &bytes_rxed);
+					if (recv_result > 0)
 						break;
 
 					// Loop to make sure received bytes
 					if (loop_count == 5)
 						break;
 					loop_count++;
-				} while (bytes_got < 1);
+				} while (recv_result < 1);
 
-				if (bytes_got > 0 && bytes_got < MAX_STR_LEN) {
+				if (recv_result == 0 && bytes_got < MAX_STR_LEN) {
 					temp_resp.output[bytes_got] = '\0'; // add EOL to the string
 				}
 				else {

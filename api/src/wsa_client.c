@@ -250,13 +250,13 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
  * @param rx_buf_ptr - A uint8 pointer buffer to store the incoming bytes.
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
+ * @param bytes_rxed - Pointer to int32_t storing number of bytes read (on success)
  * 
- * @return Number of bytes read on success or a negative value on error
+ * @return 0 on success or a negative value on error
  */
-int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
-					  uint32_t time_out)
+int16_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
+					  uint32_t time_out, int32_t* bytes_rxed)
 {
-	int32_t bytes_rxed = 0;
 	fd_set read_fd;		// temp file descriptor for select()
 	int32_t ret_val;	// return value of a function
 
@@ -303,25 +303,26 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 		// read incoming data buf_size at a time
 		// Need to cast the buffer pointer to char*
 		// since that is the data type on Windows
-		bytes_rxed = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
+		ret_val = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
 		
 		// checked the return value
-		if (bytes_rxed == 0) {
+		if (ret_val == 0) {
 			// Connection closed
 			doutf(DMED, "Connection is already closed.\n");
 
 			return WSA_ERR_SOCKETERROR;
 		}
-		else if (bytes_rxed < 0) {
+		else if (ret_val < 0) {
 			doutf(DHIGH, "recv() function returned with error %d (\"%s\")", errno, strerror(errno));
 
 			return WSA_ERR_SOCKETSETFUPFAILED;
 		}
 		
-		doutf(DMED, "Received (%d bytes)\n\n", bytes_rxed);
+		doutf(DMED, "Received (%d bytes)\n\n", ret_val);
 	}
 		
-	return bytes_rxed;
+	*bytes_rxed = ret_val;
+	return 0;
 }
 
 
@@ -340,19 +341,19 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 int32_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
 						   int32_t buf_size, uint32_t time_out)
 {
+	int16_t recv_result = 0;
 	int32_t bytes_rxed = 0;
 	int32_t total_bytes = 0;
 	int32_t bytes_expected = buf_size;
-	uint16_t retry = 1;
+	uint16_t retry = 0;
 
 	do {
-		bytes_rxed = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out);
-		if (bytes_rxed > 0) {
+		recv_result = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out, &bytes_rxed);
+		if (recv_result > 0) {
 			retry = 0;
 			total_bytes += bytes_rxed;
 
 			if (total_bytes < buf_size) {
-				//rx_buf_ptr[bytes_rxed] = '\0'; 
 				rx_buf_ptr += bytes_rxed;
 				bytes_expected -= bytes_rxed;
 			}
@@ -360,12 +361,13 @@ int32_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr,
 				doutf(DLOW, "total rxed: %ld - ", total_bytes);
 				break;
 			}
+
 			doutf(DLOW, "rxed: %ld - ", bytes_rxed);
 		}
 		else {
 			// if got error, try again to make sure?
 			if (retry == 2)
-				return bytes_rxed;
+				return (int32_t) recv_result;
 			retry++;
 		}
 	} while (1);
