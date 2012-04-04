@@ -616,7 +616,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 	struct wsa_resp temp_resp;
 	int16_t bytes_got = 0;
 	int16_t recv_result = 0;
-	int32_t bytes_rxed = 0;
+	int32_t bytes_received = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = strlen(command);
 	int32_t loop_count = 0;
@@ -657,7 +657,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			else {
 				do {
 					recv_result = wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
-						MAX_STR_LEN, TIMEOUT, &bytes_rxed);
+						MAX_STR_LEN, TIMEOUT, &bytes_received);
 					if (recv_result > 0)
 						break;
 
@@ -667,8 +667,8 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					loop_count++;
 				} while (recv_result < 1);
 
-				if (recv_result == 0 && bytes_got < MAX_STR_LEN) {
-					temp_resp.output[bytes_got] = '\0'; // add EOL to the string
+				if (recv_result == 0 && bytes_received < MAX_STR_LEN) {
+					temp_resp.output[bytes_received] = '\0'; // add EOL to the string
 				}
 				else {
 					temp_resp.output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
@@ -679,12 +679,12 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 		}
 
 		// TODO define what result should be
-		if (bytes_got == 0) {
+		if (recv_result == 0) {
 			temp_resp.status = WSA_ERR_QUERYNORESP;
 			return WSA_ERR_QUERYNORESP;
 		}
 		else 
-			temp_resp.status = bytes_got;
+			temp_resp.status = bytes_received;
 	}
 
 	*resp = temp_resp;
@@ -787,9 +787,10 @@ const char *wsa_get_error_msg(int16_t err_code)
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out)
 {
-	int32_t result = 0;
 	uint16_t frame_count = 0, frame_size;
 	int32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
+	int16_t recv_result = 0;
+	int32_t bytes_received = 0;
 	uint32_t stream_identifier_word;
 	uint8_t* dbuf;
 	
@@ -802,17 +803,17 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	header->time_stamp.psec = 0;
 
 	// go get the required bytes
-	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, time_out);
-	doutf(DMED, "In wsa_read_frame: wsa_sock_recv_data returned %ld\n", result);
-	if (result < 0)
+	recv_result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, time_out, &bytes_received);
+	doutf(DMED, "In wsa_read_frame: wsa_sock_recv_data returned %hd\n", recv_result);
+	if (recv_result < 0)
 	{
-		doutf(DHIGH, "Error in wsa_read_frame:  %s\n", wsa_get_error_msg((int16_t) result));
-		return (int16_t) result;
+		doutf(DHIGH, "Error in wsa_read_frame:  %s\n", wsa_get_error_msg(recv_result));
+		return recv_result;
 	}
 
-	if (result > 0) {
+	if (recv_result > 0) {
 		// set sample size to the header
-		header->sample_size = (result/4) - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
+		header->sample_size = (bytes_received/4) - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
 		// *****
 		// Handle the 5 header words
