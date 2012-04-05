@@ -178,6 +178,10 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 						struct wsa_resp *resp);
 int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
 				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out);
+int16_t wsa_read_iq_packet_raw(struct wsa_device* device, 
+		struct wsa_frame_header* header, 
+		uint8_t* data_buffer, 
+		uint16_t samples_per_packet);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 int16_t wsa_read_status(struct wsa_device *dev, char *output);

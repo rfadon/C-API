@@ -888,6 +888,55 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 }
 
 
+/**
+ * Reads one VRT packet containing raw IQ data. 
+ * Each packet consists of a header, a data payload, and a trailer.
+ * The number of samples expected in the packet is indicated by
+ * the /b samples_per_packet parameter.
+ * 
+ * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
+ * The /b data_buffer will be populated with alternatively 2-byte I
+ * followed by 2-byte Q, and so on.  In another words, /b data_buffer
+ * will contain:
+ *
+ * @code 
+ *		data_buffer = IQIQIQIQ... = <2 bytes I><2 bytes Q><...>
+ * @endcode
+ *
+ * The bytes can be decoded like this:
+ * @code
+ *  Let's takes the first 4 bytes of \b data_buffer
+ * 
+ *		int16_t I = data_buffer[0] << 8 + data_buffer[1];
+ *		int16_t Q = data_buffer[2] << 8 + data_buffer[3];
+ *
+ *	And so on for N number of samples:
+ *
+ *		int16_t I[i] = data_buffer[i] << 8 + data_buffer[i + 1];
+ *		int16_t Q[i] = data_buffer[i + 2] << 8 + data_buffer[i + 3];
+ *
+ *	where i = 0, 1, 2, ..., (N - 2), (N - 1).
+ * @endcode
+ * 
+ * @remarks This function does not set the \b samples_per_packet on the WSA.
+ * It is the caller's responsibility to configure the WSA with the correct 
+ * \b samples_per_packet before initiating the capture.  For example, with SCPI, do:
+ * @code
+ * wsa_send_command(dev, "TRACE:SPPACKET 1024\n");
+ * @endcode
+ *
+ * @param device - A pointer to the WSA device structure.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ *		the VRT header information
+ * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
+ * in bytes. Its size is determined by the number of 32-bit \b samples_per_packet 
+ * words multiplied by 4 
+ *		(i.e. sizeof(\b data_buffer) = \b samples_per_packet * 4 bytes per sample).
+ * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
+ * {I, Q} sample pairs) per VRT packet to be captured.
+ *
+ * @return  0 on success or a negative value on error
+ */
 int16_t wsa_read_iq_packet_raw(struct wsa_device* device, 
 		struct wsa_frame_header* header, 
 		uint8_t* data_buffer, 
