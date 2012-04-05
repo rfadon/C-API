@@ -892,11 +892,11 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  * Reads one VRT packet containing raw IQ data. 
  * Each packet consists of a header, a data payload, and a trailer.
  * The number of samples expected in the packet is indicated by
- * the /b samples_per_packet parameter.
+ * the \b samples_per_packet parameter.
  * 
  * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
- * The /b data_buffer will be populated with alternatively 2-byte I
- * followed by 2-byte Q, and so on.  In another words, /b data_buffer
+ * The \b data_buffer will be populated with alternatively 2-byte I
+ * followed by 2-byte Q, and so on.  In another words, \b data_buffer
  * will contain:
  *
  * @code 

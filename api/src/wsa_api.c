@@ -467,13 +467,72 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
 
 
 /**
+ * Instruct the WSA to capture a block of signal data
+ * and store it in internal memory.
+ * \n
+ * Before calling this method, set the size of the block
+ * using the methods \b wsa_set_samples_per_packet
+ * and \b wsa_set_packets_per_block
+ * \n
+ * After this method returns, read the data using
+ * the method \b wsa_read_iq_packet.
+ *
+ * @param device - A pointer to the WSA device structure.
+ *
+ * @return  0 on success or a negative value on error
+ */
+int16_t wsa_capture_block(struct wsa_device* const device)
+{
+	int16_t return_status = 0;
+
+	// ===============================================================
+	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
+
+	return_status = wsa_send_command(device, "TRACE:SPPACKET 1024\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	// END TEMPORARY
+	// ==================================================================
+
+	return_status = wsa_send_command(device, "TRACE:BLOCK:DATA?\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	return 0;
+}
+
+
+/**
  * Reads one VRT packet containing raw IQ data. 
  * Each packet consists of a header, a data payload, and a trailer.
  * The number of samples expected in the packet is indicated by
- * the /b samples_per_packet parameter.
+ * the \b samples_per_packet parameter.
+ *
+ * Note that to read a complete capture block, you must call this
+ * method as many times as you set using the method \b wsa_set_packets_per_block
  *
  * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
- * The /b i_buffer and /b q_buffer pointers will be populated with
+ * The \b i_buffer and \b q_buffer pointers will be populated with
  * the decoded IQ payload data.
  *
  * For example, if the VRT packet contains the payload
@@ -481,7 +540,7 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
  *		I1 Q1 I2 Q2 I3 Q3 I4 Q4 ... = <2 bytes I><2 bytes Q><...>
  * @endcode
  *
- * then /b i_buffer and /b q_buffer will contain:
+ * then \b i_buffer and \b q_buffer will contain:
  * @code 
  *		i_buffer[0] = I1
  *		i_buffer[1] = I2
@@ -498,10 +557,8 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
  *
  * @remarks This function does not set the \b samples_per_packet on the WSA.
  * It is the caller's responsibility to configure the WSA with the correct 
- * \b samples_per_packet before initiating the capture.  For example, with SCPI, do:
- * @code
- * wsa_send_command(dev, "TRACE:SPPACKET 1024\n");
- * @endcode
+ * \b samples_per_packet before initiating the capture by calling the method
+ * \b wsa_set_samples_per_packet
  *
  * @param device - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 

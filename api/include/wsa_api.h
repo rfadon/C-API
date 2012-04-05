@@ -39,6 +39,7 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
 int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
 		*header, int16_t *i_buf, int16_t *q_buf, const int32_t sample_size);
 
+int16_t wsa_capture_block(struct wsa_device* const device);
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_frame_header* const header, 
 		int16_t* const i_buffer, 
