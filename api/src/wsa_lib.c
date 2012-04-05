@@ -937,10 +937,10 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_iq_packet_raw(struct wsa_device* device, 
-		struct wsa_frame_header* header, 
-		uint8_t* data_buffer, 
-		uint16_t samples_per_packet)
+int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		uint8_t* const data_buffer, 
+		const uint16_t samples_per_packet)
 {
 	uint8_t* vrt_packet_buffer = 0;
 	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE);
