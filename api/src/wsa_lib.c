@@ -970,6 +970,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* device,
 	if (socket_receive_result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		free(vrt_packet_buffer);
 		return socket_receive_result;
 	}
 
@@ -978,6 +979,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* device,
 		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
 			bytes_received, 
 			vrt_packet_bytes);
+		free(vrt_packet_buffer);
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 
@@ -995,11 +997,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* device,
 			
 		if (stream_identifier_word != 0x90000003)
 		{
+			free(vrt_packet_buffer);
 			return WSA_ERR_NOTIQFRAME;
 		}
 	}
 
-	// Class identifier C?
+	// TODO: Class identifier C?
 	// If 1, returns the data pf class c type?
 
 	// 2. Get the 4-bit "Pkt Count" number
@@ -1015,6 +1018,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* device,
 		doutf(DHIGH, "Error: Expected %hd words in VRT packet. Received %hd\n", 
 			expected_packet_size, 
 			packet_size);
+		free(vrt_packet_buffer);
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 
@@ -1024,6 +1028,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* device,
 	if (!((vrt_packet_buffer[1] & 0xC0) >> 6)) 
 	{
 		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
+		free(vrt_packet_buffer);
 		return WSA_ERR_INVTIMESTAMP;
 	}
 
