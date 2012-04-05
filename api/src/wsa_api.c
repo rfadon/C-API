@@ -467,6 +467,123 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
 
 
 /**
+ * Reads one VRT packet containing raw IQ data. 
+ * Each packet consists of a header, a data payload, and a trailer.
+ * The number of samples expected in the packet is indicated by
+ * the /b samples_per_packet parameter.
+ *
+ * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
+ * The /b i_buffer and /b q_buffer pointers will be populated with
+ * the decoded IQ payload data.
+ *
+ * For example, if the VRT packet contains the payload
+ * @code 
+ *		I1 Q1 I2 Q2 I3 Q3 I4 Q4 ... = <2 bytes I><2 bytes Q><...>
+ * @endcode
+ *
+ * then /b i_buffer and /b q_buffer will contain:
+ * @code 
+ *		i_buffer[0] = I1
+ *		i_buffer[1] = I2
+ *		i_buffer[2] = I3
+ *		i_buffer[3] = I4
+ *		...
+ *
+ *		q_buffer[0] = Q1
+ *		q_buffer[1] = Q2
+ *		q_buffer[2] = Q3
+ *		q_buffer[3] = Q4
+ *		...
+ * @endcode
+ *
+ * @remarks This function does not set the \b samples_per_packet on the WSA.
+ * It is the caller's responsibility to configure the WSA with the correct 
+ * \b samples_per_packet before initiating the capture.  For example, with SCPI, do:
+ * @code
+ * wsa_send_command(dev, "TRACE:SPPACKET 1024\n");
+ * @endcode
+ *
+ * @param device - A pointer to the WSA device structure.
+ * @param header - A pointer to \b wsa_frame_header structure to store 
+ *		the VRT header information
+ * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
+ *		I data buffer with size specified by samples_per_packet.
+ * @param q_buffer - A 16-bit signed integer pointer for the unscaled 
+ *		Q data buffer with size specified by samples_per_packet.
+ * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
+ *		{I, Q} sample pairs) per VRT packet to be captured.
+ *
+ * @return  0 on success or a negative value on error
+ */
+int16_t wsa_read_iq_packet (struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		int16_t* const i_buffer, 
+		int16_t* const q_buffer,
+		const uint16_t samples_per_packet)
+{
+	uint8_t* data_buffer = 0;
+	int16_t return_status = 0;
+
+	// NEEDED FOR TEMPORARY FIX
+	int64_t frequency = 0;
+	uint32_t scaled_frequency = 0;
+	// END TEMPORARY FIX
+
+	// allocate the data buffer
+	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+
+	return_status = wsa_read_iq_packet_raw(device, header, data_buffer, samples_per_packet);
+	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
+		free(data_buffer);
+		return return_status;
+	}
+
+	// =====================================================
+	// TEMPORARY FIX
+	//
+	// A temporary fix until IQ is swapped in FPGA
+
+	return_status = wsa_get_freq(device, &frequency);
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_read_iq_packet: wsa_get_freq returned %hd (%s)\n", 
+			return_status, 
+			wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	// to avoid warnings of comparing to large #
+	scaled_frequency = (uint32_t) (frequency / 1000);
+
+	if ((scaled_frequency < 90000) ||
+		((scaled_frequency >= 450000) && (scaled_frequency < 4300000)) ||
+		(scaled_frequency >= 7450000))
+	{
+		// then swap I & Q
+		// Note: don't rely on the value of return_status
+		return_status = (int16_t) wsa_decode_frame(data_buffer, q_buffer, i_buffer, samples_per_packet);
+	}
+	else
+	{
+		// NEED TO KEEP THIS LINE AFTER THE TEMPORARY FIX IS REMOVED:
+		// Note: don't rely on the value of return_status
+		return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	}
+
+	// END TEMPORARY FIX
+	// ==============================================
+
+	free(data_buffer);
+
+	return 0;
+}
+
+
+/**
  * Sets the number of samples per frame to be received
  * 
  * @param dev - A pointer to the WSA device structure.

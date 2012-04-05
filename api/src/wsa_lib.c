@@ -929,11 +929,11 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
  * @param header - A pointer to \b wsa_frame_header structure to store 
  *		the VRT header information
  * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
- * in bytes. Its size is determined by the number of 32-bit \b samples_per_packet 
- * words multiplied by 4 
+ *		in bytes. Its size is determined by the number of 
+ *		16-bit \b samples_per_packet words multiplied by 4 
  *		(i.e. sizeof(\b data_buffer) = \b samples_per_packet * 4 bytes per sample).
  * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
- * {I, Q} sample pairs) per VRT packet to be captured.
+ *		{I, Q} sample pairs) per VRT packet to be captured.
  *
  * @return  0 on success or a negative value on error
  */
