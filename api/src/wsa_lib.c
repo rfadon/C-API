@@ -655,17 +655,15 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			}
 			// Read back the output
 			else {
-				do {
-					recv_result = wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
-						MAX_STR_LEN, TIMEOUT, &bytes_received);
-					if (recv_result > 0)
-						break;
+				recv_result = -1;
+				while (recv_result != 0 && loop_count < 5) {
+					recv_result = wsa_sock_recv(dev->sock.cmd, 
+							(uint8_t*) temp_resp.output, 
+							MAX_STR_LEN, TIMEOUT, 
+							&bytes_received);
 
-					// Loop to make sure received bytes
-					if (loop_count == 5)
-						break;
 					loop_count++;
-				} while (recv_result < 1);
+				}
 
 				if (recv_result == 0 && bytes_received < MAX_STR_LEN) {
 					temp_resp.output[bytes_received] = '\0'; // add EOL to the string
@@ -679,12 +677,13 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 		}
 
 		// TODO define what result should be
-		if (recv_result == 0) {
+		if (recv_result != 0) {
 			temp_resp.status = WSA_ERR_QUERYNORESP;
 			return WSA_ERR_QUERYNORESP;
 		}
-		else 
+		else {
 			temp_resp.status = bytes_received;
+		}
 	}
 
 	*resp = temp_resp;

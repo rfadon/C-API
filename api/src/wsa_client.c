@@ -352,7 +352,7 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr,
 
 	do {
 		recv_result = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out, &bytes_received);
-		if (recv_result > 0) {
+		if (recv_result == 0) {
 			retry = 0;
 			*total_bytes += bytes_received;
 
