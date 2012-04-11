@@ -49,6 +49,8 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size);
 int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
 
+int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
+
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 

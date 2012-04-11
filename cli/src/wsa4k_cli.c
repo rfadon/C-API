@@ -351,8 +351,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 
 	//TEMPORARY
-	samples_per_packet = 32768;
-	packets_per_block = 1024;
+	samples_per_packet = 1024;
+	packets_per_block = 1;
+
+	result = wsa_set_samples_per_packet(dev, samples_per_packet);
+	doutf(DMED, "In save_data_to_file: wsa_set_samples_per_packet returned %hd\n", result);
+
+	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+		return result;
+	}
 	//END TEMPORARY
 
 	// Get the centre frequency

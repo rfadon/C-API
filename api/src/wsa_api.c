@@ -492,16 +492,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 	// ===============================================================
 	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
 
-	return_status = wsa_send_command(device, "TRACE:SPPACKET 32768\n");
-	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
-
-	if (return_status < 0)
-	{
-		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
-		return return_status;
-	}
-
-	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1024\n");
+	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -700,6 +691,40 @@ int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
 	}
 
 	*sample_size = (int32_t) temp;
+
+	return 0;
+}
+
+
+/**
+ * Sets the number of samples per packet to be received
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param samples_per_packet - The sample size to set.
+ *
+ * @return 0 if success, or a negative number on error.
+ */
+int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet)
+{
+	int16_t result;
+	char temp_str[50];
+
+	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
+		return WSA_ERR_INVSAMPLESIZE;
+	}
+
+	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_samples_per_packet: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SIZESETFAILED;
+	}
 
 	return 0;
 }
