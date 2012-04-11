@@ -319,7 +319,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result = 0;
 	uint16_t samples_per_packet;
-	int32_t packets_per_block;
+	uint32_t packets_per_block;
 	int64_t freq;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
@@ -340,7 +340,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	int16_t *i_buffer;		// To store the integer I data
 	int16_t *q_buffer;		// To store the integer Q data
-	int i, j;
+	uint32_t i;
+	int j;
 
 	// *****
 	// Get parameters to stored in the file
@@ -351,11 +352,20 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 
 	//TEMPORARY
-	samples_per_packet = 1024;
-	packets_per_block = 1;
+	samples_per_packet = 32768;
+	packets_per_block = 1024;
 
 	result = wsa_set_samples_per_packet(dev, samples_per_packet);
 	doutf(DMED, "In save_data_to_file: wsa_set_samples_per_packet returned %hd\n", result);
+
+	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+		return result;
+	}
+
+	result = wsa_set_packets_per_block(dev, packets_per_block);
+	doutf(DMED, "In save_data_to_file: wsa_set_packets_per_block returned %hd\n", result);
 
 	if (result < 0)
 	{
@@ -441,7 +451,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		if (i == 0)
 		{
-			fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%lld\n", 
+			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
 				1, 
 				freq, 
 				packets_per_block * samples_per_packet, 

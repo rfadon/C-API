@@ -81,6 +81,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVDECIMATIONRATE, "Invalid decimation rate"},
 		{WSA_ERR_VRTPACKETSIZE, "Did not receive the expected number of bytes in VRT packet"},
 		{WSA_ERR_INVTIMESTAMP, "Not a valid UTC timestamp"},
+		{WSA_ERR_INVCAPTURESIZE, "Capture size exceeds amount of memory space available"},
 
 		//*****
 		// Frequency related

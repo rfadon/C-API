@@ -492,15 +492,6 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 	// ===============================================================
 	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
 
-	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1\n");
-	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
-
-	if (return_status < 0)
-	{
-		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
-		return return_status;
-	}
-
 	return_status = wsa_get_freq(device, &frequency);
 	if (return_status < 0)
 	{
@@ -724,6 +715,39 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_
 			result,
 			wsa_get_error_msg(result));
 		return WSA_ERR_SIZESETFAILED;
+	}
+
+	return 0;
+}
+
+
+/**
+ * Sets the number of VRT packets per each capture block.
+ * The number of samples in each packet is set by
+ * the method wsa_set_samples_per_packet.
+ * After capturing the block with the method wsa_capture_block,
+ * read back the data by calling wsa_read_iq_packet
+ * \b packets_per_block number of times
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param packets_per_block - number of packets
+ *
+ * @return 0 if success, or a negative number on error.
+ */
+int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block)
+{
+	int16_t result;
+	char temp_str[50];
+
+	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_packets_per_block: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_INVCAPTURESIZE;
 	}
 
 	return 0;
