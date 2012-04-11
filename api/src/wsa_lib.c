@@ -239,15 +239,19 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
 
 	wsa_send_query(dev, "SYST:ERR?\n", &resp);
 	if (resp.status < 0)
+	{
 		strcpy(output, _wsa_get_err_msg((int16_t) resp.status));
+		return (int16_t) resp.status;
+	}
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
+	{
 		strcpy(output, "");
-	else {
+	}
+	else 
+	{
 		printf("WSA returns: %s\n", resp.output);
-		//return resp.output;
 		strcpy(output, resp.output); // TODO verify this output
-
 	}
 
 	return 0;
@@ -471,7 +475,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = strlen(command);
-	char query_msg[256];
+	char query_msg[MAX_STR_LEN];
 
 	// TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
@@ -497,10 +501,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		}
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		if (strstr(command, "IQ?") == NULL) {
+		if (strstr(command, "DATA?") == NULL) {
 			wsa_query_error(dev, query_msg);
-			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
+			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0)) {
 				return WSA_ERR_QUERYNORESP;
+			}
 
 			if (strcmp(query_msg, "") != 0) {
 				printf("%s: %s", command, query_msg);
@@ -1006,15 +1011,15 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	// 2. Get the 4-bit "Pkt Count" number
 	packet_count = vrt_packet_buffer[1] & 0x0f;
-	doutf(DLOW, "Packet count: %hd 0x%02X\n", packet_count, packet_count);
+	doutf(DLOW, "Packet count: %hu 0x%02X\n", packet_count, packet_count);
 
 	// 3. Get the 16-bit "Pkt Size"
 	packet_size = (((uint16_t) vrt_packet_buffer[2]) << 8) + (uint16_t) vrt_packet_buffer[3];
-	doutf(DLOW, "Packet size: %hd 0x%04X\n", packet_size, packet_size);
+	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
 
 	if (packet_size != expected_packet_size)
 	{
-		doutf(DHIGH, "Error: Expected %hd words in VRT packet. Received %hd\n", 
+		doutf(DHIGH, "Error: Expected %hu words in VRT packet. Received %hu\n", 
 			expected_packet_size, 
 			packet_size);
 		free(vrt_packet_buffer);

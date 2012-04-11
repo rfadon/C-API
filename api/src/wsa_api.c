@@ -52,6 +52,9 @@
 #define MAX_RETRIES_READ_FRAME 5
 
 
+static int64_t _scaled_frequency = 2000000ULL;
+
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -484,11 +487,12 @@ int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_b
 int16_t wsa_capture_block(struct wsa_device* const device)
 {
 	int16_t return_status = 0;
+	int64_t frequency = 0;
 
 	// ===============================================================
 	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
 
-	return_status = wsa_send_command(device, "TRACE:SPPACKET 1024\n");
+	return_status = wsa_send_command(device, "TRACE:SPPACKET 32768\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -497,7 +501,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 		return return_status;
 	}
 
-	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1\n");
+	return_status = wsa_send_command(device, "TRACE:BLOCK:PACKETS 1024\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -505,6 +509,17 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
 		return return_status;
 	}
+
+	return_status = wsa_get_freq(device, &frequency);
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: wsa_get_freq returned %hd (%s)\n", 
+			return_status, 
+			wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	_scaled_frequency = frequency / 1000;
 
 	// END TEMPORARY
 	// ==================================================================
@@ -581,11 +596,6 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
 
-	// NEEDED FOR TEMPORARY FIX
-	int64_t frequency = 0;
-	uint32_t scaled_frequency = 0;
-	// END TEMPORARY FIX
-
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
@@ -604,21 +614,9 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	//
 	// A temporary fix until IQ is swapped in FPGA
 
-	return_status = wsa_get_freq(device, &frequency);
-	if (return_status < 0)
-	{
-		doutf(DHIGH, "Error in wsa_read_iq_packet: wsa_get_freq returned %hd (%s)\n", 
-			return_status, 
-			wsa_get_error_msg(return_status));
-		return return_status;
-	}
-
-	// to avoid warnings of comparing to large #
-	scaled_frequency = (uint32_t) (frequency / 1000);
-
-	if ((scaled_frequency < 90000) ||
-		((scaled_frequency >= 450000) && (scaled_frequency < 4300000)) ||
-		(scaled_frequency >= 7450000))
+	if ((_scaled_frequency < 90000) ||
+		((_scaled_frequency >= 450000) && (_scaled_frequency < 4300000)) ||
+		(_scaled_frequency >= 7450000))
 	{
 		// then swap I & Q
 		// Note: don't rely on the value of return_status
