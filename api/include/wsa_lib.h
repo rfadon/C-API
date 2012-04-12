@@ -1,8 +1,6 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
-#include <limits.h>
-
 #include "wsa_commons.h"
 
 
@@ -69,7 +67,7 @@
 // and also need to allow room for VRT header and trailer bytes
 #define WSA4000_MAX_SAMPLES_PER_PACKET (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
 #define WSA4000_MIN_PACKETS_PER_BLOCK 1
-#define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
+#define WSA4000_MAX_PACKETS_PER_BLOCK UINT_MAX
 
 // *****
 // RFE0440 SPECIFIC
@@ -93,7 +91,7 @@
 #define WSA_RFE0560_MAX_IF_GAIN 34
 #define WSA_RFE0560_MIN_IF_GAIN -10
 #define WSA_RFE0560_MAX_DECIMATION 1023
-#define WSA_RFE0560_MIN_DECIMATION 16
+#define WSA_RFE0560_MIN_DECIMATION 4
 #define WSA_RFE0560_FREQRES	100000ULL // to read in the register
 #define WSA_RFE0560_MAX_ANT_PORT 2
 
