@@ -722,6 +722,48 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_
 
 
 /**
+ * Gets the number of samples that will be returned in each
+ * VRT packet when \b wsa_read_iq_packet is called
+ * 
+ * @param device - A pointer to the WSA device structure.
+ * @param samples_per_packet - A uint16_t pointer to store the samples per packet
+ *
+ * @return 0 if successful, or a negative number on error.
+ */
+int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
+{
+	struct wsa_resp query;		// store query results
+	long temp;
+
+	wsa_send_query(device, "TRACE:SPPACKET?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	// Verify the validity of the return value
+	if ((temp < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(temp > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
+		printf("Error: WSA returned %ld.\n", temp);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*samples_per_packet = (uint16_t) temp;
+
+	return 0;
+}
+
+
+/**
  * Sets the number of VRT packets per each capture block.
  * The number of samples in each packet is set by
  * the method wsa_set_samples_per_packet.
