@@ -111,7 +111,7 @@ void print_cli_menu(struct wsa_device *dev)
 									"prefix string.\n"
 		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
-		   "                        ex: 'sd Test trial ext:xsl' or 'sd'\n");
+		   "                        ex: 'save Test trial ext:xsl' or 'save'\n");
 	printf("\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
@@ -121,11 +121,12 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
-	printf(" get fs                 Show the current frame size per file.\n");
 	printf(" get gain <rf | if [max | min]> \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
-	printf(" get ss [max | min]     Show the current sample size per frame.\n"
+	printf(" get ppb                Show the current packets per block."
+									"\n");
+	printf(" get spp [max | min]    Show the current samples per packet."
 									"\n");
 	printf("\n");
 
@@ -148,19 +149,21 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Resolution %.2f MHz.\n", 
 									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
 									(float) FREQ_RES/MHZ);
-	printf(" set fs <size>          Set the frames size per file (ex: set fs "
-									"1000). \n"
-		   "                        - Maximum allows: %d.\n", MAX_FS);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
 		   "                        - IF range: %d to %d dB, inclusive.\n", 
 									MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set ss <size>          Set the number of samples per frame to be "
+	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
-		   "                        (ex: set ss 2000).\n"
-		   "                        - Maximum allows: %d; Minimum: 128.\n\n", 
-									MAX_SS);
+		   "                        (ex: set ppb 100).\n"
+		   "                        - The maximum value will depend on\n"
+		   "                          the \"samples per packet\" setting\n");
+	printf(" set spp <samples>      Set the number of samples per packet to be "
+									"captured\n"
+		   "                        (ex: set spp 2000).\n"
+		   "                        - Minimum allowed: %hu; Maximum allowed: %hu.\n\n", 
+									WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
 }
 
 
