@@ -1,6 +1,8 @@
 #ifndef __WSA_LIB_H__
 #define __WSA_LIB_H__
 
+#include <limits.h>
+
 #include "wsa_commons.h"
 
 
@@ -67,7 +69,7 @@
 // and also need to allow room for VRT header and trailer bytes
 #define WSA4000_MAX_SAMPLES_PER_PACKET (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
 #define WSA4000_MIN_PACKETS_PER_BLOCK 1
-#define WSA4000_MAX_PACKETS_PER_BLOCK UINT_MAX
+#define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
 
 // *****
 // RFE0440 SPECIFIC
