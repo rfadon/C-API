@@ -506,6 +506,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t rate;
 	int32_t sample_size;
 	int32_t if_gain_value;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -667,6 +669,40 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else 
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
+
+		else if (strcmp(cmd_words[1], "PPB") == 0) {
+			if(num_words > 2) {
+				printf("Extra parameters ignored (max/min not available)!\n");
+			}
+
+			result = wsa_get_packets_per_block(dev, &packets_per_block);
+			if (result >= 0) {
+				printf("Current packets per block: %u\n", packets_per_block);
+			}
+		} // end get PPB
+
+		else if (strcmp(cmd_words[1], "SPP") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum samples per packet: %hu\n", 
+						WSA4000_MAX_SAMPLES_PER_PACKET);
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum samples per packet: %hu\n", 
+						WSA4000_MIN_SAMPLES_PER_PACKET);
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+			else {
+				result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+				if (result >= 0) {
+					printf("Current samples per packet: %hu\n", samples_per_packet);
+				}
+			}
+		} // end get SPP
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
