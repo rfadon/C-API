@@ -797,6 +797,40 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_b
 
 
 /**
+ * Gets the number of VRT packets to be captured
+ * when \b wsa_capture_block is called
+ * 
+ * @param device - A pointer to the WSA device structure.
+ * @param packets_per_block - A uint32_t pointer to store the number of packets
+ *
+ * @return 0 if successful, or a negative number on error.
+ */
+int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
+{
+	struct wsa_resp query;		// store query results
+	long temp;
+
+	wsa_send_query(device, "TRACE:BLOCK:PACKETS?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*packets_per_block = (uint32_t) temp;
+
+	return 0;
+}
+
+
+/**
  * Gets the decimation rate currently set in the WSA. If rate is 0, it means
  * decimation is off (or no decimation).
  * 
