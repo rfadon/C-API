@@ -96,7 +96,6 @@ void print_cli_menu(struct wsa_device *dev)
 {
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
-	uint32_t MAX_SS = dev->descr.max_sample_size;
 	int32_t MAX_IF_GAIN = dev->descr.min_if_gain;
 	int32_t MIN_IF_GAIN = dev->descr.max_if_gain;
 	uint64_t FREQ_RES = dev->descr.freq_resolution;
