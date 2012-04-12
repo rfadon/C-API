@@ -671,7 +671,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get GAIN
 
 		else if (strcmp(cmd_words[1], "PPB") == 0) {
-			if(num_words > 2) {
+			if (num_words > 2) {
 				printf("Extra parameters ignored (max/min not available)!\n");
 			}
 
@@ -871,6 +871,53 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
 			}
 		} // end set GAIN
+
+		else if (strcmp(cmd_words[1], "PPB") == 0) {
+			if (num_words < 3) {
+				printf("Missing the packets per block value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[2], &temp_number);
+
+				if (!result) {
+					
+					if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
+						temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+						sprintf(msg, "\n\t- The integer is out of range.");
+
+						result = WSA_ERR_INVNUMBER;
+					}
+					else {
+						packets_per_block = (uint32_t) temp_number;
+						result = wsa_set_packets_per_block(dev, packets_per_block);
+					}
+				}
+			}
+		} // end set PPB
+
+		else if (strcmp(cmd_words[1], "SPP") == 0) {
+			if (num_words < 3) {
+				printf("Missing the samples per packet value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[2], &temp_number);
+
+				if (!result) {
+					if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
+						temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
+							WSA4000_MIN_SAMPLES_PER_PACKET,
+							WSA4000_MAX_SAMPLES_PER_PACKET);
+
+						result = WSA_ERR_INVSAMPLESIZE;
+					}
+					else {
+						samples_per_packet = (uint16_t) temp_number;
+						result = wsa_set_samples_per_packet(dev, samples_per_packet);
+					}
+				}
+			}
+		} // end set SPP
 
 		else if (strcmp(cmd_words[1], "SS") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) 
