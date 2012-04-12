@@ -318,9 +318,9 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result = 0;
-	uint16_t samples_per_packet;
-	uint32_t packets_per_block;
-	int64_t freq;
+	uint16_t samples_per_packet = 0;
+	uint32_t packets_per_block = 0;
+	int64_t freq = 0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -351,12 +351,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 	printf("Gathering WSA settings... ");
 
-	//TEMPORARY
-	samples_per_packet = 32768;
-	packets_per_block = 1024;
-
-	result = wsa_set_samples_per_packet(dev, samples_per_packet);
-	doutf(DMED, "In save_data_to_file: wsa_set_samples_per_packet returned %hd\n", result);
+	// Get samples per packet
+	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+	doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
 
 	if (result < 0)
 	{
@@ -364,20 +361,21 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return result;
 	}
 
-	result = wsa_set_packets_per_block(dev, packets_per_block);
-	doutf(DMED, "In save_data_to_file: wsa_set_packets_per_block returned %hd\n", result);
+	// Get packets per block
+	result = wsa_get_packets_per_block(dev, &packets_per_block);
+	doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
 
 	if (result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
-	//END TEMPORARY
 
 	// Get the centre frequency
 	result = wsa_get_freq(dev, &freq);
 	if (result < 0)
 	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
 
@@ -401,7 +399,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate i buffer space
-	i_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
@@ -411,7 +409,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	// Allocate q buffer space
-	q_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	q_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (q_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
