@@ -1317,6 +1317,8 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int16_t result;
 	int64_t freq;
 	int32_t value;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
@@ -1344,14 +1346,22 @@ void print_wsa_stat(struct wsa_device *dev) {
 	}
 	else
 		printf("\t\t- Error: Failed getting the gain RF value.\n");
-	/*
-	result = wsa_get_sample_size(dev, &value);
-	if (result >= 0)
-		printf("\t\t- Sample size: %d\n", value);
-	else
-		printf("\t\t- Error: Failed getting the sample size.\n");
-		
-	printf("\t\t- Frame size per file: %d\n", _frame_size);*/
+	
+	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+	if (result >= 0) {
+		printf("\t\t- Samples per packet: %hu\n", samples_per_packet);
+	}
+	else {
+		printf("\t\t- Error: Failed reading the samples per packet value.\n");
+	}
+	
+	result = wsa_get_packets_per_block(dev, &packets_per_block);
+	if (result >= 0) {
+		printf("\t\t- Packets per block: %u\n", packets_per_block);
+	}
+	else {
+		printf("\t\t- Error: Failed reading the packets per bock value.\n");
+	}
 }
 
 
