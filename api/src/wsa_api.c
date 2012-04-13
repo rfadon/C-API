@@ -947,7 +947,7 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
 
-	wsa_send_query(dev, "INP:FILT:PRES:STATE?\n", &query);
+	wsa_send_query(dev, "INP:FILT:PRES?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -986,7 +986,7 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
 
-	sprintf(temp_str, "INPUT:FILT:PRES:STATE %d\n", mode);
+	sprintf(temp_str, "INPUT:FILT:PRES %d\n", mode);
 
 	// set the freq using the selected connect type
 	result = wsa_send_command(dev, temp_str);
