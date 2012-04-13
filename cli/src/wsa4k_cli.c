@@ -67,8 +67,6 @@
 #include "wsa_error.h"
 #include "wsa_commons.h"
 
-static int _frame_size = DEFAULT_FS;
-
 //*****
 // Local functions
 //*****
@@ -604,23 +602,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			print_captures_directory();
 		}
 
-		else if (strcmp(cmd_words[1], "FS") == 0) {
-			if (strcmp(cmd_words[2], "") != 0) {
-				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum frame size is PC dependent.\n");
-					return 0;
-				}
-				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum frame size: 1\n");
-					return 0;
-				}
-				else
-					printf("Did you mean \"min\" or \"max\"?\n");
-			}
-
-			printf("Current # of frames per file: %d\n", _frame_size);
-		} // end get FS
-
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				enum wsa_gain gain;
@@ -787,20 +768,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						(double) dev->descr.max_tune_freq / MHZ);
 			}
 		} // end set FREQ
-
-		else if (strcmp(cmd_words[1], "FS") == 0) {
-			int temp_fs;
-			if (strcmp(cmd_words[2], "") == 0) 
-				printf("Missing the frame size value. See 'h'.\n");
-			else {
-				temp_fs = atoi(cmd_words[2]);
-				if (temp_fs < 1)
-					printf("Invalid number for the frame size."
-						"\n\t- Valid range: 1 or larger\n");
-				else 
-					_frame_size = temp_fs;
-			}
-		} // end set FS
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
