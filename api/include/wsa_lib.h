@@ -185,8 +185,6 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
-int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out);
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_frame_header* const header, 
 		uint8_t* const data_buffer, 
