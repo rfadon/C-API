@@ -239,15 +239,19 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
 
 	wsa_send_query(dev, "SYST:ERR?\n", &resp);
 	if (resp.status < 0)
+	{
 		strcpy(output, _wsa_get_err_msg((int16_t) resp.status));
+		return (int16_t) resp.status;
+	}
 
 	if (strstr(resp.output, "No error") != NULL || strcmp(resp.output, "") == 0)
+	{
 		strcpy(output, "");
-	else {
+	}
+	else 
+	{
 		printf("WSA returns: %s\n", resp.output);
-		//return resp.output;
 		strcpy(output, resp.output); // TODO verify this output
-
 	}
 
 	return 0;
@@ -471,7 +475,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = strlen(command);
-	char query_msg[256];
+	char query_msg[MAX_STR_LEN];
 
 	// TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
@@ -497,10 +501,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 		}
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		if (strstr(command, "IQ?") == NULL) {
+		if (strstr(command, "DATA?") == NULL) {
 			wsa_query_error(dev, query_msg);
-			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
+			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0)) {
 				return WSA_ERR_QUERYNORESP;
+			}
 
 			if (strcmp(query_msg, "") != 0) {
 				printf("%s: %s", command, query_msg);
@@ -615,6 +620,8 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 {
 	struct wsa_resp temp_resp;
 	int16_t bytes_got = 0;
+	int16_t recv_result = 0;
+	int32_t bytes_received = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = strlen(command);
 	int32_t loop_count = 0;
@@ -653,23 +660,21 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			}
 			// Read back the output
 			else {
-				do {
-					bytes_got = (int16_t) wsa_sock_recv(dev->sock.cmd, (uint8_t*) temp_resp.output, 
-						MAX_STR_LEN, TIMEOUT);
-					if (bytes_got > 0)
-						break;
+				recv_result = -1;
+				while (recv_result != 0 && loop_count < 5) {
+					recv_result = wsa_sock_recv(dev->sock.cmd, 
+							(uint8_t*) temp_resp.output, 
+							MAX_STR_LEN, TIMEOUT, 
+							&bytes_received);
 
-					// Loop to make sure received bytes
-					if (loop_count == 5)
-						break;
 					loop_count++;
-				} while (bytes_got < 1);
+				}
 
-				if (bytes_got > 0 && bytes_got < MAX_STR_LEN) {
-					temp_resp.output[bytes_got] = 0; // add EOL to the string
+				if (recv_result == 0 && bytes_received < MAX_STR_LEN) {
+					temp_resp.output[bytes_received] = '\0'; // add EOL to the string
 				}
 				else {
-					temp_resp.output[MAX_STR_LEN - 1] = 0; // add EOL to the string
+					temp_resp.output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
 				}
 
 				break;
@@ -677,12 +682,13 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 		}
 
 		// TODO define what result should be
-		if (bytes_got == 0) {
+		if (recv_result != 0) {
 			temp_resp.status = WSA_ERR_QUERYNORESP;
 			return WSA_ERR_QUERYNORESP;
 		}
-		else 
-			temp_resp.status = bytes_got;
+		else {
+			temp_resp.status = bytes_received;
+		}
 	}
 
 	*resp = temp_resp;
@@ -724,75 +730,76 @@ const char *wsa_get_error_msg(int16_t err_code)
 	return _wsa_get_err_msg(err_code);
 }
 
+
 /**
- * Reads a frame of data. \e Each frame consists of a header and a 
- * buffer of data of length determined by the \b sample_size parameter 
- * (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per sample).
+ * Reads one VRT packet containing raw IQ data. 
+ * Each packet consists of a header, a data payload, and a trailer.
+ * The number of samples expected in the packet is indicated by
+ * the \b samples_per_packet parameter.
  * 
- * Each I and Q samples is 16-bit (2-byte) wide, signed 2-complement.  The raw 
- * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
- * another words, the I & Q samples are distributed in the raw data_buf 
- * as follow:
+ * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
+ * The \b data_buffer will be populated with alternatively 2-byte I
+ * followed by 2-byte Q, and so on.  In another words, \b data_buffer
+ * will contain:
  *
  * @code 
- *		data_buf = IQIQIQIQ... = <2 bytes I><2 bytes Q><...>
+ *		data_buffer = IQIQIQIQ... = <2 bytes I><2 bytes Q><...>
  * @endcode
  *
- * The bytes can be decoded, as an example, as follow:
+ * The bytes can be decoded like this:
  * @code
- *	Let takes the first 4 bytes of the \b data_buf, for example, then:
+ *  Let's takes the first 4 bytes of \b data_buffer
  * 
- *		int16_t I = data_buf[3] << 8 + data_buf[2];
- *		int16_t Q = data_buf[1] << 8 + data_buf[0];
+ *		int16_t I = data_buffer[0] << 8 + data_buffer[1];
+ *		int16_t Q = data_buffer[2] << 8 + data_buffer[3];
  *
  *	And so on for N number of samples:
  *
- *		int16_t I[i] = data_buf[i+3] << 8 + data_buf[i+2];
- *		int16_t Q[i] = data_buf[i+1] << 8 + data_buf[i];
+ *		int16_t I[i] = data_buffer[i] << 8 + data_buffer[i + 1];
+ *		int16_t Q[i] = data_buffer[i + 2] << 8 + data_buffer[i + 3];
  *
  *	where i = 0, 1, 2, ..., (N - 2), (N - 1).
  * @endcode
  * 
- * Alternatively, the \b data_buf can be passed to wsa_decode_frame() to have I
- * and Q splitted up and stored into separate int16_t buffers. The 
- * wsa_decode_frame() function is useful for later needs of decoding the 
- * data bytes when a large amount of raw data (multiple frames) has been 
- * captured for instance. 
- * 
- * @remarks This function does not set the \b sample_size to WSA at each 
- * capture in order to minimize the delay between captures.  The number of 
- * samples per frame must be sent to WSA at least once during the WSA 
- * powered on.  For example, with SCPI, do: @code
- * wsa_send_command(dev, "TRACE:IQ:POINTS 1024\n"); @endcode
+ * @remarks This function does not set the \b samples_per_packet on the WSA.
+ * It is the caller's responsibility to configure the WSA with the correct 
+ * \b samples_per_packet before initiating the capture.  For example, with SCPI, do:
+ * @code
+ * wsa_send_command(dev, "TRACE:SPPACKET 1024\n");
+ * @endcode
  *
- * @param dev - A pointer to the WSA device structure.
+ * @param device - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
- * information for the frame.
- * @param data_buf - A char pointer buffer to store the raw I and Q data in
- * in bytes. Its size is determined by the number of 32-bit \b sample_size 
- * words multiply by 4 (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per 
- * sample, which is automatically done by the function).
- * @param sample_size - A 32-bit unsigned integer sample size (i.e. number of
- * {I, Q} sample pairs) per data frame to be captured. \n
- * The size is limited to a maximum number, \b max_sample_size, listed 
- * in the \b wsa_descriptor structure.
- * @param time_out - The time, in milliseconds, to wait for a packet from
- * a WSA before time out.
+ *		the VRT header information
+ * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
+ *		in bytes. Its size is determined by the number of 
+ *		16-bit \b samples_per_packet words multiplied by 4 
+ *		(i.e. sizeof(\b data_buffer) = \b samples_per_packet * 4 bytes per sample).
+ * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
+ *		{I, Q} sample pairs) per VRT packet to be captured.
  *
- * @return A 4-bit frame count number that starts at 0, or a 16-bit negative 
- * number on error.
+ * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out)
+int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		uint8_t* const data_buffer, 
+		const uint16_t samples_per_packet)
 {
-	int32_t result = 0;
-	uint16_t frame_count = 0, frame_size;
-	int32_t bytes = (sample_size + VRT_HEADER_SIZE + VRT_TRAILER_SIZE) * 4;
-	uint32_t stream_identifier_word;
-	uint8_t* dbuf;
-	
-	// allocate the data buffer
-	dbuf = (uint8_t*) malloc(bytes * sizeof(uint8_t));
+	uint8_t* vrt_packet_buffer = 0;
+	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE);
+	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
+	int32_t bytes_received = 0;
+	int16_t socket_receive_result = 0;
+
+	uint32_t stream_identifier_word = 0;
+	uint8_t packet_count = 0;
+	uint16_t packet_size = 0;
+
+	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+	if (vrt_packet_buffer == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
 
 	// reset header
 	header->sample_size = 0;
@@ -800,88 +807,118 @@ int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header,
 	header->time_stamp.psec = 0;
 
 	// go get the required bytes
-	result = wsa_sock_recv_data(dev->sock.data, dbuf, bytes, time_out);
-	doutf(DMED, "In wsa_read_frame: wsa_sock_recv_data returned %ld\n", result);
-	if (result < 0)
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+
+	if (socket_receive_result < 0)
 	{
-		doutf(DHIGH, "Error in wsa_read_frame:  %s\n", wsa_get_error_msg((int16_t) result));
-		return (int16_t) result;
+		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		free(vrt_packet_buffer);
+		return socket_receive_result;
 	}
 
-	if (result > 0) {
-		// set sample size to the header
-		header->sample_size = (result/4) - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
-
-		// *****
-		// Handle the 5 header words
-		// *****
-#ifndef DUMMY_CONN
-		// 1. Check "Pkt Type" & get the Stream identifier word
-		if ((dbuf[0] & 0xf0) == 0x10) {
-			stream_identifier_word = (((uint32_t) dbuf[4]) << 24) + (((uint32_t) dbuf[5]) << 16) 
-					+ (((uint32_t) dbuf[6]) << 8) + (uint32_t) dbuf[7];
-			if (stream_identifier_word != 0x90000003)
-				return WSA_ERR_NOTIQFRAME;
-		}
-
-		// Class identifier C?
-		// If 1, returns the data pf class c type?
-
-		// 2. Get the 4-bit "Pkt Count" number
-		frame_count = dbuf[1] & 0x0f;
-		doutf(DLOW, "Packet count: %d 0x%02x\n", frame_count, frame_count);
-
-		// 3. Get the 16-bit "Pkt Size"
-		frame_size = (((uint16_t) dbuf[2]) << 8) + (uint16_t) dbuf[3];
-		doutf(DLOW, "Packet size: 0x%04x %d\n", frame_size, frame_size);
-		// TODO: compare the sample size w/ this frame_size, less hdr & trailer
-
-		// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
-		if (!((dbuf[1] & 0xC0) >> 6)) {
-			printf("ERROR: Second timestamp is not of UTC type.\n");
-		}
-
-		header->time_stamp.sec = (((uint32_t) dbuf[8]) << 24) +
-								(((uint32_t) dbuf[9]) << 16) +
-								(((uint32_t) dbuf[10]) << 8) + 
-								(uint32_t) dbuf[11];
-		doutf(DLOW, "second: 0x%08X %u\n", header->time_stamp.sec, 
-			header->time_stamp.sec);
-
-		// 5. Check the TSF field, if presents (= 0x10), 
-		// get the picoseconds time stamp at the 4th & 5th words
-		if ((dbuf[1] & 0x30) >> 5) {
-			header->time_stamp.psec = (((uint64_t) dbuf[12]) << 56) +
-					(((uint64_t) dbuf[13]) << 48) +
-					(((uint64_t) dbuf[14]) << 40) +
-					(((uint64_t) dbuf[15]) << 32) +
-					(((uint64_t) dbuf[16]) << 24) +
-					(((uint64_t) dbuf[17]) << 16) + 
-					(((uint64_t) dbuf[18]) << 8) + 
-					(uint64_t) dbuf[19];
-		}
-		else {
-			header->time_stamp.psec = 0ULL;
-		}
-
-		doutf(DLOW, "psec: 0x%016llX %llu\n", header->time_stamp.psec, 
-			header->time_stamp.psec);
-#endif
-		// *****
-		// Get the data_buf
-		// *****
-		memcpy(data_buf, dbuf + 20, sample_size * 4);
-
-		// *****
-		// TODO: Handle the trailer word here once it is available
-		// *****
-		//if (dbuf[0] & 0x04)
-			// handle the trailer here
+	if (bytes_received != vrt_packet_bytes)
+	{
+		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
+			bytes_received, 
+			vrt_packet_bytes);
+		free(vrt_packet_buffer);
+		return WSA_ERR_VRTPACKETSIZE;
 	}
 
-	free(dbuf);
+	// *****
+	// Handle the 5 header words
+	// *****
 
-	return frame_count;
+	// 1. Check "Pkt Type" & get the Stream identifier word
+	if ((vrt_packet_buffer[0] & 0xf0) == 0x10) 
+	{
+		stream_identifier_word = (((uint32_t) vrt_packet_buffer[4]) << 24) 
+				+ (((uint32_t) vrt_packet_buffer[5]) << 16) 
+				+ (((uint32_t) vrt_packet_buffer[6]) << 8) 
+				+ (uint32_t) vrt_packet_buffer[7];
+			
+		if (stream_identifier_word != 0x90000003)
+		{
+			free(vrt_packet_buffer);
+			return WSA_ERR_NOTIQFRAME;
+		}
+	}
+
+	// TODO: Class identifier C?
+	// If 1, returns the data pf class c type?
+
+	// 2. Get the 4-bit "Pkt Count" number
+	packet_count = vrt_packet_buffer[1] & 0x0f;
+	doutf(DLOW, "Packet count: %hu 0x%02X\n", packet_count, packet_count);
+
+	// 3. Get the 16-bit "Pkt Size"
+	packet_size = (((uint16_t) vrt_packet_buffer[2]) << 8) + (uint16_t) vrt_packet_buffer[3];
+	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
+
+	if (packet_size != expected_packet_size)
+	{
+		doutf(DHIGH, "Error: Expected %hu words in VRT packet. Received %hu\n", 
+			expected_packet_size, 
+			packet_size);
+		free(vrt_packet_buffer);
+		return WSA_ERR_VRTPACKETSIZE;
+	}
+
+	header->sample_size = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
+
+	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
+	if (!((vrt_packet_buffer[1] & 0xC0) >> 6)) 
+	{
+		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
+		free(vrt_packet_buffer);
+		return WSA_ERR_INVTIMESTAMP;
+	}
+
+	header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[8]) << 24) +
+							(((uint32_t) vrt_packet_buffer[9]) << 16) +
+							(((uint32_t) vrt_packet_buffer[10]) << 8) + 
+							(uint32_t) vrt_packet_buffer[11];
+	doutf(DLOW, "second: 0x%08X %u\n", 
+		header->time_stamp.sec, 
+		header->time_stamp.sec);
+
+	// 5. Check the TSF field, if present (= 0x10), 
+	// get the picoseconds time stamp at the 4th & 5th words
+	if ((vrt_packet_buffer[1] & 0x30) >> 5) 
+	{
+		header->time_stamp.psec = (((uint64_t) vrt_packet_buffer[12]) << 56) +
+				(((uint64_t) vrt_packet_buffer[13]) << 48) +
+				(((uint64_t) vrt_packet_buffer[14]) << 40) +
+				(((uint64_t) vrt_packet_buffer[15]) << 32) +
+				(((uint64_t) vrt_packet_buffer[16]) << 24) +
+				(((uint64_t) vrt_packet_buffer[17]) << 16) + 
+				(((uint64_t) vrt_packet_buffer[18]) << 8) + 
+				(uint64_t) vrt_packet_buffer[19];
+	}
+	else 
+	{
+		header->time_stamp.psec = 0ULL;
+	}
+
+	doutf(DLOW, "psec: 0x%016llX %llu\n", 
+		header->time_stamp.psec, 
+		header->time_stamp.psec);
+
+	// *****
+	// TODO: Handle the trailer word here once it is available
+	// *****
+	//if (vrt_packet_buffer[0] & 0x04)
+		// handle the trailer here
+
+	// *****
+	// Copy the IQ data payload to the provided buffer
+	// *****
+	memcpy(data_buffer, vrt_packet_buffer + (VRT_HEADER_SIZE * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
+
+	free(vrt_packet_buffer);
+
+	return 0;
 }
 
 

@@ -6,82 +6,6 @@
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// CONSTANTS                                                                 //
-// ////////////////////////////////////////////////////////////////////////////
-
-
-#ifndef __WSA_LIB_H__
-
-// ////////////////////////////////////////////////////////////////////////////
-// TYPEDEFs                                                                  //
-// ////////////////////////////////////////////////////////////////////////////
-
-typedef enum wsa_gain {
-	WSA_GAIN_HIGH = 1,
-	WSA_GAIN_MED,
-	WSA_GAIN_LOW,
-	WSA_GAIN_VLOW
-};
-
-
-// ////////////////////////////////////////////////////////////////////////////
-// STRUCTS DEFINES                                                           //
-// ////////////////////////////////////////////////////////////////////////////
-
-struct wsa_descriptor {
-	char prod_name[50];
-	char prod_serial[20];
-	char prod_version[20];
-	char rfe_name[50];
-	char rfe_version[20];
-	char fw_version[20];
-	char intf_type[20];
-	uint64_t inst_bw;
-	uint64_t max_sample_size;
-	uint64_t max_tune_freq;
-	uint64_t min_tune_freq;
-	uint64_t freq_resolution;
-	int32_t max_if_gain;
-	int32_t min_if_gain;
-	int32_t min_decimation;
-	int32_t max_decimation;
-	float abs_max_amp[NUM_RF_GAINS];
-};
-
-
-struct wsa_time {
-	uint32_t sec;
-	uint64_t psec;
-};
-
-
-// Temporary define for now. Will need to be expanded for more details...
-struct wsa_frame_header {
-	uint32_t sample_size; 
-	struct wsa_time time_stamp;
-};
-
-struct wsa_socket {
-	SOCKET cmd;
-	SOCKET data;
-};
-
-struct wsa_device {
-	struct wsa_descriptor descr;
-	struct wsa_socket sock;
-	//struct wsa_trig *trig_list;
-};
-
-struct wsa_resp {
-	int64_t status;
-	char output[MAX_STR_LEN];
-};
-
-
-#endif
-
-
-// ////////////////////////////////////////////////////////////////////////////
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
@@ -108,15 +32,17 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, uint8_t* data_buf, const int32_t sample_size);
-int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_buf,
-						 int16_t *q_buf, const int32_t sample_size);
-int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header 
-		*header, int16_t *i_buf, int16_t *q_buf, const int32_t sample_size);
+int16_t wsa_capture_block(struct wsa_device* const device);
+int16_t wsa_read_iq_packet (struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		int16_t* const i_buffer, 
+		int16_t* const q_buffer,
+		const uint16_t samples_per_packet);
 
-int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size);
-int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size);
+int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
+int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
+int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);
+int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
 
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);

@@ -52,6 +52,9 @@
 #define MAX_RETRIES_READ_FRAME 5
 
 
+static int64_t _scaled_frequency = 2000000ULL;
+
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -225,271 +228,185 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
-static uint16_t frame_count = 0;
 
 /**
- * Reads a frame of data. \e Each frame consists of a header, and a 
- * buffer of data of length determine by the \b sample_size parameter
- * (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per sample).
- * 
- * Each I and Q samples is 16-bit (2-byte) wide, signed 2-complement.  The raw 
- * data_buf contains alternatively 2-byte Q follows by 2-byte I, so on.  In 
- * another words, the I & Q samples are distributed in the raw data_buf 
- * as follow:
+ * Instruct the WSA to capture a block of signal data
+ * and store it in internal memory.
+ * \n
+ * Before calling this method, set the size of the block
+ * using the methods \b wsa_set_samples_per_packet
+ * and \b wsa_set_packets_per_block
+ * \n
+ * After this method returns, read the data using
+ * the method \b wsa_read_iq_packet.
  *
- * @code 
- *		data_buf = QIQIQIQI... = <2 bytes Q><2bytes I><...>
- * @endcode
+ * @param device - A pointer to the WSA device structure.
  *
- * The bytes can be decoded as follow:
- * @code
- *	Let takes the first 4 bytes of the data_buf, then:
- * 
- *		int16_t I[0] = data_buf[3] << 8 + data_buf[2];
- *		int16_t Q[0] = data_buf[1] << 8 + data_buf[0];
- *
- *  And so on for N number of samples:
- *
- *		int16_t I[i] = data_buf[i+3] << 8 + data_buf[i+2];
- *		int16_t Q[i] = data_buf[i+1] << 8 + data_buf[i];
- *  for i = 0, 1, 2, ..., (N - 1).
- * @endcode
- *
- * Alternatively, the data_buf can be passed to wsa_frame_decode() to have I
- * and Q splited up and stored into separate int16_t buffers.  Or use
- * wsa_get_frame_int() to do both tasks at once.  Those 2 functions are 
- * useful when delaying in data acquisition time between frames is not a 
- * factor. In addition, the wsa_frame_decode() function is useful for later 
- * needs of decoding the data bytes when a large amount of raw data 
- * (multiple frames) has been captured for instance. 
- * 
- * @remarks This function does not set the \b sample_size to WSA at each 
- * capture in order to minimize the delay between captures.  The number of 
- * samples per frame (\b sample_size) must be set using wsa_set_sample_size()
- * at least once during the WSA powered on.
- *
- * @param dev - A pointer to the WSA device structure.
- * @param header - A pointer to \b wsa_frame_header structure to store 
- * information for the frame.
- * @param data_buf - A uint8 pointer buffer to store the raw I and Q data in
- * in bytes. Its size is determined by the number of 32-bit \b sample_size 
- * words multiply by 4 (i.e. sizeof(\b data_buf) = \b sample_size * 4 bytes per 
- * sample, which is automatically done by the function).
- * @param sample_size - A 32-bit unsigned integer sample size (i.e. number of
- * {I, Q} sample pairs) per data frame to be captured. \n
- * The size is limited to a maximum number, \b max_sample_size, listed 
- * in the \b wsa_descriptor structure.
- *
- * @return The number of data samples read upon success, or a 16-bit negative 
- * number on error.
+ * @return  0 on success or a negative value on error
  */
-int32_t wsa_read_frame_raw(struct wsa_device *dev, struct wsa_frame_header 
-		*header, uint8_t* data_buf, const int32_t sample_size)
+int16_t wsa_capture_block(struct wsa_device* const device)
 {
-	int16_t result = 0;
-	int16_t loop_counter = 0;
-	int16_t loop_done = 0;
-	int32_t samples_count = 0;
-	
-	
-	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
-		(sample_size > (int32_t) dev->descr.max_sample_size))
-		return WSA_ERR_INVSAMPLESIZE;
+	int16_t return_status = 0;
+	int64_t frequency = 0;
 
-	// Query WSA for data using the selected connect type
-	// Allow up to 5 times of trying to get data
-	while (!loop_done) {
-		result = wsa_send_command(dev, "TRACE:IQ?\n");
-		if (result < 0) {
-			doutf(DHIGH, "Error in wsa_read_frame_raw returned by wsa_send_command: %s.\n", 
-				wsa_get_error_msg(result));
-			return result;
-		}
+	// ===============================================================
+	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
 
-		// get data & increment counters
-		result = wsa_read_frame(dev, header, data_buf, sample_size, 2000);
-		if (result < 0) {
-			loop_counter++;
-			doutf(DHIGH, "Error getting data... trying again #%d\n", loop_counter);
-
-			if (loop_counter >= MAX_RETRIES_READ_FRAME) {
-				loop_done = 1;
-			}
-		}
-		else {
-			samples_count += (int32_t) header->sample_size;
-			// increment the buffer location
-			if (samples_count < sample_size) {
-				data_buf += header->sample_size;
-				doutf(DHIGH, "%d, ", samples_count);
-			}
-			else { 
-				loop_done = 1;
-			}
-		}
+	return_status = wsa_get_freq(device, &frequency);
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: wsa_get_freq returned %hd (%s)\n", 
+			return_status, 
+			wsa_get_error_msg(return_status));
+		return return_status;
 	}
 
-	if (result < 0)
-		return result;
-	
-	// TODO: Verify continuity of frame count once available in VRT
+	_scaled_frequency = frequency / 1000;
 
-	// Increment the count for the next in coming frame
-	if (frame_count == 15)
-		frame_count = 0;
-	else 
-		frame_count++;
+	// END TEMPORARY
+	// ==================================================================
 
-	return samples_count;
+	return_status = wsa_send_command(device, "TRACE:BLOCK:DATA?\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(return_status));
+		return return_status;
+	}
+
+	return 0;
 }
 
 
 /**
- * Reads a frame of raw data and return pointers to the decoded 16-bit integer
- * I & Q buffers. \e Each frame consists of a header, and I and Q 
- * buffers of data of length determine by the \b sample_size parameter.
- * This function also checks for the continuity of the frames coming from the
- * WSA.  Warning will be issued if the frame count (tracked local to the 
- * function) is not continuous from the previous read but will still return
- * the frame.
+ * Reads one VRT packet containing raw IQ data. 
+ * Each packet consists of a header, a data payload, and a trailer.
+ * The number of samples expected in the packet is indicated by
+ * the \b samples_per_packet parameter.
  *
- * @remark 1. wsa_read_frame_int() simplily invokes wsa_read_frame_raw() follow 
- * by wsa_frame_decode() for each frame read.  However, if timing between
- * each data acquisition frames is important and needs to be minimized, 
- * it might be more advantageous to use wsa_read_frame_raw() to gather 
- * multiple of frames first and then invokes wsa_frame_decode() separately.
- * \n \n
- * 2. This function does not set the \b sample_size to WSA at each 
- * capture in order to minimize the delay between captures.  The number of 
- * samples per frame (\b sample_size) must be set using wsa_set_sample_size()
- * at least once during the WSA powered on.
+ * Note that to read a complete capture block, you must call this
+ * method as many times as you set using the method \b wsa_set_packets_per_block
  *
- * @param dev - A pointer to the WSA device structure.
+ * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
+ * The \b i_buffer and \b q_buffer pointers will be populated with
+ * the decoded IQ payload data.
+ *
+ * For example, if the VRT packet contains the payload
+ * @code 
+ *		I1 Q1 I2 Q2 I3 Q3 I4 Q4 ... = <2 bytes I><2 bytes Q><...>
+ * @endcode
+ *
+ * then \b i_buffer and \b q_buffer will contain:
+ * @code 
+ *		i_buffer[0] = I1
+ *		i_buffer[1] = I2
+ *		i_buffer[2] = I3
+ *		i_buffer[3] = I4
+ *		...
+ *
+ *		q_buffer[0] = Q1
+ *		q_buffer[1] = Q2
+ *		q_buffer[2] = Q3
+ *		q_buffer[3] = Q4
+ *		...
+ * @endcode
+ *
+ * @remarks This function does not set the \b samples_per_packet on the WSA.
+ * It is the caller's responsibility to configure the WSA with the correct 
+ * \b samples_per_packet before initiating the capture by calling the method
+ * \b wsa_set_samples_per_packet
+ *
+ * @param device - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_frame_header structure to store 
- * information for the frame.
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled 
- * Q data buffer with size specified by the sample_size.
- * @param sample_size - A 32-bit unsigned integer sample size (i.e. {I, Q} 
- * sample pairs) per data frame to be captured. \n
- * The frame size is limited to a maximum number, \b max_sample_size, listed 
- * in the \b wsa_descriptor structure.
+ *		the VRT header information
+ * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
+ *		I data buffer with size specified by samples_per_packet.
+ * @param q_buffer - A 16-bit signed integer pointer for the unscaled 
+ *		Q data buffer with size specified by samples_per_packet.
+ * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
+ *		{I, Q} sample pairs) per VRT packet to be captured.
  *
- * @return The number of data samples read upon success, or a negative 
- * number on error.
+ * @return  0 on success or a negative value on error
  */
-int32_t wsa_read_frame_int(struct wsa_device *dev, struct wsa_frame_header *header, 
-			int16_t *i_buf, int16_t *q_buf, const int32_t sample_size)
-{	
-	int32_t result = 0;
-	uint8_t* dbuf;
-
-	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
-		(sample_size > (int32_t) dev->descr.max_sample_size))
-		return WSA_ERR_INVSAMPLESIZE;
-	
-	// allocate the data buffer
-	dbuf = (uint8_t*) malloc(sample_size * 4 * sizeof(uint8_t));
-
-	result = wsa_read_frame_raw(dev, header, dbuf, sample_size);
-	if (result < 0)
-		return result;
-	
-	result = wsa_frame_decode(dev, dbuf, i_buf, q_buf, sample_size);
-
-	/*int i, j=0;
-	for (i = 0; i < sample_size * 4; i += 4) {		
-		if ((j % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[j], q_buf[j]);
-		
-		j++;
-	}*/
-
-	free(dbuf);
-
-	return result;
-}
-
-/**
- * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
- * and returned the I and Q buffers of data with the size determined by the 
- * \b sample_size parameter.  
- *
- * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
- *
- * @param dev - A pointer to the WSA device structure.
- * @param data_buf - A uint8 pointer buffer containing the raw I and Q data in
- * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
- * be the number of 32-bit sample_size words multiply by 4 (i.e. 
- * sizeof(data_buf) = sample_size * 4 bytes per sample).
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the \b sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled, 
- * Q data buffer with size specified by the \b sample_size.
- * @param sample_size - A 32-bit unsigned integer number of {I, Q} 
- * sample pairs to be decoded from \b data_buf. \n
- * The frame size is limited to a maximum number, \b max_sample_size, listed 
- * in the \b wsa_descriptor structure.
- *
- * @return The number of samples decoded, or a 16-bit negative 
- * number on error.
- */
-int32_t wsa_frame_decode(struct wsa_device *dev, uint8_t* data_buf, int16_t *i_buf, 
-						 int16_t *q_buf, const int32_t sample_size)
+int16_t wsa_read_iq_packet (struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		int16_t* const i_buffer, 
+		int16_t* const q_buffer,
+		const uint16_t samples_per_packet)
 {
-	int32_t result;
-	int64_t freq;
-	uint32_t temp;
-	
-	// TODO need to check for the max value too? but maybe not if 
-	// multiple frames allow
-	if (sample_size < WSA4000_MIN_SAMPLE_SIZE)
-		return WSA_ERR_INVSAMPLESIZE;
-		
-	// A "temporary" (hope so) fix for certain bands that required iq swapped
-	result = wsa_get_freq(dev, &freq);
-	if (result < 0)
-		return result;
+	uint8_t* data_buffer = 0;
+	int16_t return_status = 0;
 
-	// to avoid warnings of comparing to large #
-	temp = (uint32_t) (freq / 1000);
-	if ((temp < 90000) ||
-		((temp >= 450000) && (temp < 4300000)) ||
-		(temp >= 7450000))
-		// then swap i & q
-		result = wsa_decode_frame(data_buf, q_buf, i_buf, sample_size);
+	// allocate the data buffer
+	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+
+	return_status = wsa_read_iq_packet_raw(device, header, data_buffer, samples_per_packet);
+	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
+		free(data_buffer);
+		return return_status;
+	}
+
+	// =====================================================
+	// TEMPORARY FIX
+	//
+	// A temporary fix until IQ is swapped in FPGA
+
+	if ((_scaled_frequency < 90000) ||
+		((_scaled_frequency >= 450000) && (_scaled_frequency < 4300000)) ||
+		(_scaled_frequency >= 7450000))
+	{
+		// then swap I & Q
+		// Note: don't rely on the value of return_status
+		return_status = (int16_t) wsa_decode_frame(data_buffer, q_buffer, i_buffer, samples_per_packet);
+	}
 	else
-		result = wsa_decode_frame(data_buf, i_buf, q_buf, sample_size);
+	{
+		// NEED TO KEEP THIS LINE AFTER THE TEMPORARY FIX IS REMOVED:
+		// Note: don't rely on the value of return_status
+		return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	}
 
-	return result;
+	// END TEMPORARY FIX
+	// ==============================================
+
+	free(data_buffer);
+
+	return 0;
 }
 
 
 /**
- * Sets the number of samples per frame to be received
+ * Sets the number of samples per packet to be received
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param sample_size - The sample size to set.
+ * @param samples_per_packet - The sample size to set.
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
+int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet)
 {
 	int16_t result;
 	char temp_str[50];
 
-	if ((sample_size < WSA4000_MIN_SAMPLE_SIZE) || 
-		(sample_size > (int32_t) dev->descr.max_sample_size))
+	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
 		return WSA_ERR_INVSAMPLESIZE;
+	}
 
-	sprintf(temp_str, "TRACE:IQ:POINTS %d\n", sample_size);
+	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
 
-	// set the ss using the selected connect type
 	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
-			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_samples_per_packet: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
 		return WSA_ERR_SIZESETFAILED;
 	}
 
@@ -498,36 +415,109 @@ int16_t wsa_set_sample_size(struct wsa_device *dev, int32_t sample_size)
 
 
 /**
- * Gets the number of samples per frame.
+ * Gets the number of samples that will be returned in each
+ * VRT packet when \b wsa_read_iq_packet is called
  * 
- * @param dev - A pointer to the WSA device structure.
- * @param sample_size - An integer pointer to store the sample size.
+ * @param device - A pointer to the WSA device structure.
+ * @param samples_per_packet - A uint16_t pointer to store the samples per packet
  *
  * @return 0 if successful, or a negative number on error.
  */
-int16_t wsa_get_sample_size(struct wsa_device *dev, int32_t *sample_size)
+int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	wsa_send_query(dev, "TRACE:IQ:POINTS?\n", &query);
+	wsa_send_query(device, "TRACE:SPPACKET?\n", &query);
 
 	// Handle the query output here 
 	if (query.status <= 0)
+	{
 		return (int16_t) query.status;
+	}
 
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
+	{
 		return WSA_ERR_RESPUNKNOWN;
+	}
 
 	// Verify the validity of the return value
-	if (temp < WSA4000_MIN_SAMPLE_SIZE || 
-		temp > (long) dev->descr.max_sample_size) {
+	if ((temp < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(temp > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
 		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*sample_size = (int32_t) temp;
+	*samples_per_packet = (uint16_t) temp;
+
+	return 0;
+}
+
+
+/**
+ * Sets the number of VRT packets per each capture block.
+ * The number of samples in each packet is set by
+ * the method wsa_set_samples_per_packet.
+ * After capturing the block with the method wsa_capture_block,
+ * read back the data by calling wsa_read_iq_packet
+ * \b packets_per_block number of times
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param packets_per_block - number of packets
+ *
+ * @return 0 if success, or a negative number on error.
+ */
+int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block)
+{
+	int16_t result;
+	char temp_str[50];
+
+	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_packets_per_block: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_INVCAPTURESIZE;
+	}
+
+	return 0;
+}
+
+
+/**
+ * Gets the number of VRT packets to be captured
+ * when \b wsa_capture_block is called
+ * 
+ * @param device - A pointer to the WSA device structure.
+ * @param packets_per_block - A uint32_t pointer to store the number of packets
+ *
+ * @return 0 if successful, or a negative number on error.
+ */
+int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
+{
+	struct wsa_resp query;		// store query results
+	long temp;
+
+	wsa_send_query(device, "TRACE:BLOCK:PACKETS?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*packets_per_block = (uint32_t) temp;
 
 	return 0;
 }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <math.h>
 
 #include "wsa_client_os_specific.h"
@@ -62,7 +63,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
-
+	
 	return 0;
 }
 
@@ -88,7 +89,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	}
 
 	freeaddrinfo(ai_list);
-
+	
 	return 0;
 }
 
@@ -240,23 +241,23 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
 
 
 /**
- * Gets incoming control strings from the server socket \b buf_size bytes 
+ * Reads data from the given server socket \b buf_size bytes 
  * at a time.  It does not loop to keep checking \b buf_size of bytes are
  * received. \n
  * This socket receive function makes used of select() function to check for
  * data availability before receiving.
  *
  * @param sock_fd - The socket at which the data will be received.
- * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
+ * @param rx_buf_ptr - A uint8 pointer buffer to store the incoming bytes.
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
+ * @param bytes_received - Pointer to int32_t storing number of bytes read (on success)
  * 
- * @return Number of bytes read on successful or a negative value on error
+ * @return 0 on success or a negative value on error
  */
-int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
-					  uint32_t time_out)
+int16_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
+					  uint32_t time_out, int32_t* bytes_received)
 {
-	int32_t bytes_rxed = 0;
 	fd_set read_fd;		// temp file descriptor for select()
 	int32_t ret_val;	// return value of a function
 
@@ -284,8 +285,8 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 	ret_val = select(sock_fd + 1, &read_fd, NULL, NULL, &timer);
 	// Make reading of socket non-blocking w/ time-out of s.ms sec
 	if (ret_val == -1) {
-		doutf(DMED, "init select() function returned with error");
-		perror("select()");
+		doutf(DHIGH, "init select() function returned with error %d (\"%s\")", errno, strerror(errno));
+
 		return WSA_ERR_SOCKETERROR;
 	}
 	else if (ret_val) {
@@ -294,37 +295,35 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 	else {
 		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
 		doutf(DMED, "In wsa_sock_recv: select returned %ld\n", ret_val);
+
 		return WSA_ERR_QUERYNORESP;
 	}
 
 	// if the socket is read-able, rx packet
 	if (FD_ISSET(sock_fd, &read_fd)) {
-		// read incoming strings at a time
+		// read incoming data buf_size at a time
 		// Need to cast the buffer pointer to char*
 		// since that is the data type on Windows
-		bytes_rxed = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
+		ret_val = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
 		
 		// checked the return value
-		if (bytes_rxed <= 0) {
-			if (bytes_rxed == 0) {
-				// Connection closed
-				doutf(DMED, "Connection is already closed.\n");
-				return WSA_ERR_SOCKETERROR;
-			}
-			else {
-				perror("recv");
-				return WSA_ERR_SOCKETSETFUPFAILED;
-			}
-		}
+		if (ret_val == 0) {
+			// Connection closed
+			doutf(DMED, "Connection is already closed.\n");
 
-		// Terminate the last character in cmd resp string only to 0
-		if (bytes_rxed > 0 && bytes_rxed < (int32_t) buf_size)
-			rx_buf_ptr[bytes_rxed] = '\0';
+			return WSA_ERR_SOCKETERROR;
+		}
+		else if (ret_val < 0) {
+			doutf(DHIGH, "recv() function returned with error %d (\"%s\")", errno, strerror(errno));
+
+			return WSA_ERR_SOCKETSETFUPFAILED;
+		}
 		
-		doutf(DMED, "Received (%d bytes)\n\n", bytes_rxed);
+		doutf(DMED, "Received (%d bytes)\n\n", ret_val);
 	}
 		
-	return bytes_rxed;
+	*bytes_received = ret_val;
+	return 0;
 }
 
 
@@ -337,43 +336,46 @@ int32_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
  * @param rx_buf_ptr - A char pointer buffer to store the incoming bytes.
  * @param buf_size - The size of the buffer in bytes.
  * @param time_out - Time out in milliseconds.
+ * @param total_bytes - Pointer to int32_t storing number of bytes read (on success)
  * 
- * @return Number of bytes read on successful or a negative value on error
+ * @return 0 on success or a negative value on error
  */
-int32_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
-						   int32_t buf_size, uint32_t time_out)
+int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
+						   int32_t buf_size, uint32_t time_out, int32_t* total_bytes)
 {
-	int32_t bytes_rxed = 0;
-	int32_t total_bytes = 0;
+	int16_t recv_result = 0;
+	int32_t bytes_received = 0;
 	int32_t bytes_expected = buf_size;
-	uint16_t retry = 1;
+	uint16_t retry = 0;
+
+	*total_bytes = 0;
 
 	do {
-		bytes_rxed = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out);
-		if (bytes_rxed > 0) {
+		recv_result = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out, &bytes_received);
+		if (recv_result == 0) {
 			retry = 0;
-			total_bytes += bytes_rxed;
+			*total_bytes += bytes_received;
 
-			if (total_bytes < buf_size) {
-				//rx_buf_ptr[bytes_rxed] = '\0'; 
-				rx_buf_ptr += bytes_rxed;
-				bytes_expected -= bytes_rxed;
+			if (*total_bytes < buf_size) {
+				rx_buf_ptr += bytes_received;
+				bytes_expected -= bytes_received;
 			}
 			else {
-				doutf(DLOW, "total rxed: %ld - ", total_bytes);
+				doutf(DLOW, "total bytes received: %ld - ", *total_bytes);
 				break;
 			}
-			doutf(DLOW, "rxed: %ld - ", bytes_rxed);
+
+			doutf(DLOW, "bytes received: %ld - ", bytes_received);
 		}
 		else {
 			// if got error, try again to make sure?
 			if (retry == 2)
-				return bytes_rxed;
+				return recv_result;
 			retry++;
 		}
 	} while (1);
 
-	return total_bytes;
+	return 0;
 }
 
 

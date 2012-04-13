@@ -59,7 +59,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <sys/timeb.h>
 #include <time.h>
 
 #include "wsa4k_cli_os_specific.h"
@@ -67,8 +66,6 @@
 #include "wsa_api.h"
 #include "wsa_error.h"
 #include "wsa_commons.h"
-
-static int _frame_size = DEFAULT_FS;
 
 //*****
 // Local functions
@@ -97,7 +94,6 @@ void print_cli_menu(struct wsa_device *dev)
 {
 	uint64_t MIN_FREQ = dev->descr.min_tune_freq;
 	uint64_t MAX_FREQ = dev->descr.max_tune_freq;
-	uint32_t MAX_SS = dev->descr.max_sample_size;
 	int32_t MAX_IF_GAIN = dev->descr.min_if_gain;
 	int32_t MIN_IF_GAIN = dev->descr.max_if_gain;
 	uint64_t FREQ_RES = dev->descr.freq_resolution;
@@ -112,7 +108,7 @@ void print_cli_menu(struct wsa_device *dev)
 									"prefix string.\n"
 		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
-		   "                        ex: 'sd Test trial ext:xsl' or 'sd'\n");
+		   "                        ex: 'save Test trial ext:xsl' or 'save'\n");
 	printf("\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
@@ -122,11 +118,12 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
-	printf(" get fs                 Show the current frame size per file.\n");
 	printf(" get gain <rf | if [max | min]> \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
-	printf(" get ss [max | min]     Show the current sample size per frame.\n"
+	printf(" get ppb                Show the current packets per block."
+									"\n");
+	printf(" get spp [max | min]    Show the current samples per packet."
 									"\n");
 	printf("\n");
 
@@ -149,19 +146,21 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Resolution %.2f MHz.\n", 
 									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
 									(float) FREQ_RES/MHZ);
-	printf(" set fs <size>          Set the frames size per file (ex: set fs "
-									"1000). \n"
-		   "                        - Maximum allows: %d.\n", MAX_FS);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
 		   "                        - IF range: %d to %d dB, inclusive.\n", 
 									MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set ss <size>          Set the number of samples per frame to be "
+	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
-		   "                        (ex: set ss 2000).\n"
-		   "                        - Maximum allows: %d; Minimum: 128.\n\n", 
-									MAX_SS);
+		   "                        (ex: set ppb 100).\n"
+		   "                        - The maximum value will depend on\n"
+		   "                          the \"samples per packet\" setting\n");
+	printf(" set spp <samples>      Set the number of samples per packet to be "
+									"captured\n"
+		   "                        (ex: set spp 2000).\n"
+		   "                        - Minimum allowed: %hu; Maximum allowed: %hu.\n\n", 
+									WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
 }
 
 
@@ -319,9 +318,9 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
 	int16_t result = 0;
-	int32_t read_frame_result = 0;
-	int32_t samples;
-	int64_t freq;
+	uint16_t samples_per_packet = 0;
+	uint32_t packets_per_block = 0;
+	int64_t freq = 0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -335,45 +334,54 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Create parameters and buffers to store the raw data
 	// *****
 	struct wsa_frame_header *header;
-	uint8_t* d_buf;		// To store raw data bytes 
-	int fi = 0, next = 0;	// frame index and next index location
-	int frame_size = _frame_size;
-	int32_t total_bytes;
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
 	// *****
-	int16_t *i_buf;		// To store the integer I data
-	int16_t *q_buf;		// To store the integer Q data
-	int i, j;
+	int16_t *i_buffer;		// To store the integer I data
+	int16_t *q_buffer;		// To store the integer Q data
+	uint32_t i;
+	int j;
 
 	// *****
 	// Get parameters to stored in the file
 	// TODO smarter way of saving header is to allow users to enable
 	// which header info to include...
 	// *****
-
-	printf("Gathering WSA settings... ");
-	// Verify sample size
-	result = wsa_get_sample_size(dev, &samples);
-	if (result < 0)
-		return result;
 	
-	if (samples < 128 || samples > (int32_t) dev->descr.max_sample_size) {
-		printf("Error: bad sample size detected. Please check the "
-			"sample size. No data is saved.\n");
-		return WSA_ERR_INVSAMPLESIZE;
+	printf("Gathering WSA settings... ");
+
+	// Get samples per packet
+	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+	doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
+
+	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+		return result;
+	}
+
+	// Get packets per block
+	result = wsa_get_packets_per_block(dev, &packets_per_block);
+	doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
+
+	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+		return result;
 	}
 
 	// Get the centre frequency
 	result = wsa_get_freq(dev, &freq);
 	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
+	}
 
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
-
 	
 	// create a new file for data capture
 	if ((iq_fptr = fopen(file_name, "w")) == NULL) {
@@ -381,58 +389,77 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_FILECREATEFAILED;
 	}
 
-	
-	total_bytes = 4 * _frame_size * samples;
-	
-
 	// Allocate header buffer space
-	header = (struct wsa_frame_header *) 
-		malloc(sizeof(struct wsa_frame_header) * _frame_size);
+	header = (struct wsa_frame_header*) malloc(sizeof(struct wsa_frame_header));
 	if (header == NULL)
 	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate header\n");
+		fclose(iq_fptr); 
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	// Allocate raw data buffer space
-	d_buf = (uint8_t*) malloc(sizeof(uint8_t) * total_bytes);
-	if (d_buf == NULL)
+	// Allocate i buffer space
+	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	if (i_buffer == NULL)
 	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
+		fclose(iq_fptr); 
 		free(header);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
+	// Allocate q buffer space
+	q_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	if (q_buffer == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
+		fclose(iq_fptr);
+		free(header);
+		free(i_buffer);
+		return WSA_ERR_MALLOCFAILED;
+	}
+	
 	printf("done.\nAcquiring data bytes ");
+
+	result = wsa_capture_block(dev);
+	if (result < 0)
+	{
+		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
+		fclose(iq_fptr);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
+		return result;
+	}
 	
 	// Get the start time
 	get_current_time(&start_time);
-	
-	// Collect the samples for all the _frame_size
-	while(fi < frame_size) {
-		//doutf(DLOW, "frame %d: ", fi + 1);
-		next = fi * samples * 4;
-		read_frame_result = wsa_read_frame_raw(dev, &header[fi], &d_buf[next], samples);
-		if (read_frame_result < 1) {
-			result = (int16_t) read_frame_result;
-			frame_size = fi;
-			printf("\nError detected while trying to get frame #%d.\n", 
-				frame_size + 1);
-			break;
-		}
-		printf(".");
-		fi++;
-	}
-	// Determined the total bytes acquired
-	total_bytes = 4 * frame_size * samples;
 
-	// if there are no data to save, exit; else, save.
-	if (result < 1) {
-		if( total_bytes > 1)
-			printf("Collected data will be saved... ");
-		else {
-			fclose(iq_fptr); 
+	for (i = 0; i < packets_per_block; i++)
+	{
+		result = wsa_read_iq_packet(dev, header, i_buffer, q_buffer, samples_per_packet);
+		if (result < 0)
+		{
+			fclose(iq_fptr);
 			free(header);
-			free(d_buf);
+			free(i_buffer);
+			free(q_buffer);
 			return result;
+		}
+
+		if (i == 0)
+		{
+			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
+				1, 
+				freq, 
+				packets_per_block * samples_per_packet, 
+				header->time_stamp.sec, 
+				header->time_stamp.psec);
+		}
+
+		for (j = 0; j < samples_per_packet; j++)
+		{
+			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
 		}
 	}
 
@@ -440,63 +467,20 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	get_current_time(&end_time);
 	run_time_ms = get_time_difference(&start_time, &end_time);
 
-	printf("done.\n\t(Run time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
+	/*printf("done.\n\t(Run time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
 		run_time_ms, 
 		total_bytes / run_time_ms);
-
+		*/
+	printf("\n(Run time: %.3f sec)\n", 
+		run_time_ms);
 	
-	
-
-	// Allocate i buffer space
-	i_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
-	if (i_buf == NULL)
-	{
-		free(header);
-		free(d_buf);
-		return WSA_ERR_MALLOCFAILED;
-	}
-	
-	// Allocate q buffer space
-	q_buf = (int16_t *) malloc(sizeof(int16_t) * _frame_size * samples);
-	if (q_buf == NULL)
-	{
-		free(header);
-		free(d_buf);
-		free(i_buf);
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// Decode all the samples
-	printf("Decoding into I & Q... ");
-	wsa_frame_decode(dev, d_buf, i_buf, q_buf, frame_size * samples);
-	
-	// *****
-	// Save data to the file
-	// *****
-	// Loop to save data into the file
-	printf("done.\nSaving data to: %s ... ", file_name);
-	for (j = 0; j < frame_size; j++) {
-		// Save each header information into the file 
-		fprintf(iq_fptr, "#%d, cf:%lld, ss:%d, sec:%d, pico:%lld\n", j + 1, freq, 
-			samples, header[j].time_stamp.sec, header[j].time_stamp.psec);
-
-		// Save decoded samples to the file	
-		for (i = 0; i < samples; i++) {
-			next = j * samples + i;
-			fprintf(iq_fptr, "%d,%d\n", i_buf[next], q_buf[next]);
-		// For testing purpose only
-		//	if ((i % 4) == 0) printf("\n");
-		//	printf("%04x,%04x ", i_buf[next], q_buf[next]);
-		}
-	}
 	printf("done.\n");
 
 	fclose(iq_fptr); 
 	free(header);
-	free(d_buf);
-	free(i_buf);
-	free(q_buf);
-
+	free(i_buffer);
+	free(q_buffer);
+	
 	return 0;
 }
 
@@ -520,8 +504,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	long temp_number;
 	int32_t rate;
-	int32_t sample_size;
 	int32_t if_gain_value;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -617,23 +602,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			print_captures_directory();
 		}
 
-		else if (strcmp(cmd_words[1], "FS") == 0) {
-			if (strcmp(cmd_words[2], "") != 0) {
-				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum frame size is PC dependent.\n");
-					return 0;
-				}
-				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum frame size: 1\n");
-					return 0;
-				}
-				else
-					printf("Did you mean \"min\" or \"max\"?\n");
-			}
-
-			printf("Current # of frames per file: %d\n", _frame_size);
-		} // end get FS
-
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				enum wsa_gain gain;
@@ -684,27 +652,39 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
 
-		else if (strcmp(cmd_words[1], "SS") == 0) {
+		else if (strcmp(cmd_words[1], "PPB") == 0) {
+			if (num_words > 2) {
+				printf("Extra parameters ignored (max/min not available)!\n");
+			}
+
+			result = wsa_get_packets_per_block(dev, &packets_per_block);
+			if (result >= 0) {
+				printf("Current packets per block: %u\n", packets_per_block);
+			}
+		} // end get PPB
+
+		else if (strcmp(cmd_words[1], "SPP") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum sample size: %d\n", 
-						dev->descr.max_sample_size);
+					printf("Maximum samples per packet: %hu\n", 
+						WSA4000_MAX_SAMPLES_PER_PACKET);
 					return 0;
 				}
 				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum sample size: 128\n");
+					printf("Minimum samples per packet: %hu\n", 
+						WSA4000_MIN_SAMPLES_PER_PACKET);
 					return 0;
 				}
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 			else {
-				int32_t size = 0;
-				result = wsa_get_sample_size(dev, &size);
-				if (result >= 0)
-					printf("The current sample size: %d\n", size);
+				result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+				if (result >= 0) {
+					printf("Current samples per packet: %hu\n", samples_per_packet);
+				}
 			}
-		} // end get SS
+		} // end get SPP
 
 		else {
 			printf("Invalid 'get'. Try 'h'.\n");
@@ -789,20 +769,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set FREQ
 
-		else if (strcmp(cmd_words[1], "FS") == 0) {
-			int temp_fs;
-			if (strcmp(cmd_words[2], "") == 0) 
-				printf("Missing the frame size value. See 'h'.\n");
-			else {
-				temp_fs = atoi(cmd_words[2]);
-				if (temp_fs < 1)
-					printf("Invalid number for the frame size."
-						"\n\t- Valid range: 1 or larger\n");
-				else 
-					_frame_size = temp_fs;
-			}
-		} // end set FS
-
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				enum wsa_gain gain = (enum wsa_gain) NULL;
@@ -852,17 +818,52 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set GAIN
 
-		else if (strcmp(cmd_words[1], "SS") == 0) {
-			if (strcmp(cmd_words[2], "") == 0) 
-				printf("Missing the sample size value. See 'h'.\n");
-			
-			sample_size = (int32_t) atof(cmd_words[2]);
+		else if (strcmp(cmd_words[1], "PPB") == 0) {
+			if (num_words < 3) {
+				printf("Missing the packets per block value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[2], &temp_number);
 
-			result = wsa_set_sample_size(dev, sample_size);
-			if (result == WSA_ERR_INVSAMPLESIZE)
-				sprintf(msg, "\n\t- Valid range: 128 to %d.",
-					dev->descr.max_sample_size);
-		} // end set SS
+				if (!result) {
+					
+					if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
+						temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+						sprintf(msg, "\n\t- The integer is out of range.");
+
+						result = WSA_ERR_INVNUMBER;
+					}
+					else {
+						packets_per_block = (uint32_t) temp_number;
+						result = wsa_set_packets_per_block(dev, packets_per_block);
+					}
+				}
+			}
+		} // end set PPB
+
+		else if (strcmp(cmd_words[1], "SPP") == 0) {
+			if (num_words < 3) {
+				printf("Missing the samples per packet value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[2], &temp_number);
+
+				if (!result) {
+					if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
+						temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
+							WSA4000_MIN_SAMPLES_PER_PACKET,
+							WSA4000_MAX_SAMPLES_PER_PACKET);
+
+						result = WSA_ERR_INVSAMPLESIZE;
+					}
+					else {
+						samples_per_packet = (uint16_t) temp_number;
+						result = wsa_set_samples_per_packet(dev, samples_per_packet);
+					}
+				}
+			}
+		} // end set SPP
 
 		else 
 			printf("Invalid 'set'. See 'h'.\n");
@@ -1333,6 +1334,8 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int16_t result;
 	int64_t freq;
 	int32_t value;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
@@ -1360,14 +1363,22 @@ void print_wsa_stat(struct wsa_device *dev) {
 	}
 	else
 		printf("\t\t- Error: Failed getting the gain RF value.\n");
-
-	result = wsa_get_sample_size(dev, &value);
-	if (result >= 0)
-		printf("\t\t- Sample size: %d\n", value);
-	else
-		printf("\t\t- Error: Failed getting the sample size.\n");
-
-	printf("\t\t- Frame size per file: %d\n", _frame_size);
+	
+	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+	if (result >= 0) {
+		printf("\t\t- Samples per packet: %hu\n", samples_per_packet);
+	}
+	else {
+		printf("\t\t- Error: Failed reading the samples per packet value.\n");
+	}
+	
+	result = wsa_get_packets_per_block(dev, &packets_per_block);
+	if (result >= 0) {
+		printf("\t\t- Packets per block: %u\n", packets_per_block);
+	}
+	else {
+		printf("\t\t- Error: Failed reading the packets per bock value.\n");
+	}
 }
 
 

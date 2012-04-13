@@ -3,6 +3,8 @@
 
 #include "wsa_commons.h"
 
+#include <limits.h>
+
 
 #define MAX_STR_LEN 512
 
@@ -11,6 +13,7 @@
 
 #define VRT_HEADER_SIZE 5
 #define VRT_TRAILER_SIZE 1
+#define BYTES_PER_VRT_WORD 4
 
 
 // *****
@@ -60,6 +63,13 @@
 #define WSA4000_MIN_SAMPLE_SIZE 128
 #define WSA4000_MAX_SAMPLE_SIZE (2560 * 1024) // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
 
+#define WSA4000_MIN_SAMPLES_PER_PACKET 128
+// VRT header field for packet size is 16 bits,
+// so maximum number that can be stored is 2^16 - 1
+// and also need to allow room for VRT header and trailer bytes
+#define WSA4000_MAX_SAMPLES_PER_PACKET (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
+#define WSA4000_MIN_PACKETS_PER_BLOCK 1
+#define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
 
 // *****
 // RFE0440 SPECIFIC
@@ -83,7 +93,7 @@
 #define WSA_RFE0560_MAX_IF_GAIN 34
 #define WSA_RFE0560_MIN_IF_GAIN -10
 #define WSA_RFE0560_MAX_DECIMATION 1023
-#define WSA_RFE0560_MIN_DECIMATION 16
+#define WSA_RFE0560_MIN_DECIMATION 4
 #define WSA_RFE0560_FREQRES	100000ULL // to read in the register
 #define WSA_RFE0560_MAX_ANT_PORT 2
 
@@ -138,7 +148,7 @@ struct wsa_time {
 
 // Temporary define for now. Will need to be expanded for more details...
 struct wsa_frame_header {
-	uint32_t sample_size; 
+	uint32_t sample_size;
 	struct wsa_time time_stamp;
 };
 
@@ -175,8 +185,10 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
-int16_t wsa_read_frame(struct wsa_device *dev, struct wsa_frame_header *header, 
-				 uint8_t* data_buf, int32_t sample_size, uint32_t time_out);
+int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
+		struct wsa_frame_header* const header, 
+		uint8_t* const data_buffer, 
+		const uint16_t samples_per_packet);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
