@@ -506,7 +506,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	long temp_number;
 	int32_t rate;
-	int32_t sample_size;
 	int32_t if_gain_value;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
@@ -706,28 +705,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end get SPP
 
-		else if (strcmp(cmd_words[1], "SS") == 0) {
-			if (strcmp(cmd_words[2], "") != 0) {
-				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum sample size: %d\n", 
-						dev->descr.max_sample_size);
-					return 0;
-				}
-				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum sample size: 128\n");
-					return 0;
-				}
-				else
-					printf("Did you mean \"min\" or \"max\"?\n");
-			}
-			else {
-				int32_t size = 0;
-				result = wsa_get_sample_size(dev, &size);
-				if (result >= 0)
-					printf("The current sample size: %d\n", size);
-			}
-		} // end get SS
-
 		else {
 			printf("Invalid 'get'. Try 'h'.\n");
 		}
@@ -920,18 +897,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end set SPP
-
-		else if (strcmp(cmd_words[1], "SS") == 0) {
-			if (strcmp(cmd_words[2], "") == 0) 
-				printf("Missing the sample size value. See 'h'.\n");
-			
-			sample_size = (int32_t) atof(cmd_words[2]);
-
-			result = wsa_set_sample_size(dev, sample_size);
-			if (result == WSA_ERR_INVSAMPLESIZE)
-				sprintf(msg, "\n\t- Valid range: 128 to %d.",
-					dev->descr.max_sample_size);
-		} // end set SS
 
 		else 
 			printf("Invalid 'set'. See 'h'.\n");
