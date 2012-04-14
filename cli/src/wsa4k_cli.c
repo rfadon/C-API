@@ -419,7 +419,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
-	printf("done.\nAcquiring data bytes ");
+	printf("done.\nAcquiring data bytes\n");
 
 	result = wsa_capture_block(dev);
 	if (result < 0)
@@ -461,20 +461,29 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
 		}
+		
+		if (!((i + 1) % 10))
+		{
+			printf("Saved packet #%u\n", i + 1);
+		}
+		else 
+		{
+			printf(".");
+		}
 	}
 
 	// get the end time & calculate the throughput rate
 	get_current_time(&end_time);
 	run_time_ms = get_time_difference(&start_time, &end_time);
+	
+	printf("\ndone.\n");
 
 	/*printf("done.\n\t(Run time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
 		run_time_ms, 
 		total_bytes / run_time_ms);
 		*/
-	printf("\n(Run time: %.3f sec)\n", 
+	printf("(Run time: %.3f sec)\n", 
 		run_time_ms);
-	
-	printf("done.\n");
 
 	fclose(iq_fptr); 
 	free(header);
