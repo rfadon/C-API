@@ -52,9 +52,6 @@
 #define MAX_RETRIES_READ_FRAME 5
 
 
-static int64_t _scaled_frequency = 2000000ULL;
-
-
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -249,23 +246,6 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 	int16_t return_status = 0;
 	int64_t frequency = 0;
 
-	// ===============================================================
-	// TEMPORARY UNTIL THE SET METHODS ARE IMPLEMENTED
-
-	return_status = wsa_get_freq(device, &frequency);
-	if (return_status < 0)
-	{
-		doutf(DHIGH, "Error in wsa_capture_block: wsa_get_freq returned %hd (%s)\n", 
-			return_status, 
-			wsa_get_error_msg(return_status));
-		return return_status;
-	}
-
-	_scaled_frequency = frequency / 1000;
-
-	// END TEMPORARY
-	// ==================================================================
-
 	return_status = wsa_send_command(device, "TRACE:BLOCK:DATA?\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
@@ -351,28 +331,8 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		return return_status;
 	}
 
-	// =====================================================
-	// TEMPORARY FIX
-	//
-	// A temporary fix until IQ is swapped in FPGA
-
-	if ((_scaled_frequency < 90000) ||
-		((_scaled_frequency >= 450000) && (_scaled_frequency < 4300000)) ||
-		(_scaled_frequency >= 7450000))
-	{
-		// then swap I & Q
-		// Note: don't rely on the value of return_status
-		return_status = (int16_t) wsa_decode_frame(data_buffer, q_buffer, i_buffer, samples_per_packet);
-	}
-	else
-	{
-		// NEED TO KEEP THIS LINE AFTER THE TEMPORARY FIX IS REMOVED:
-		// Note: don't rely on the value of return_status
-		return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
-	}
-
-	// END TEMPORARY FIX
-	// ==============================================
+	// Note: don't rely on the value of return_status
+	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
 
 	free(data_buffer);
 

@@ -957,15 +957,36 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	// *****
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
-		i_buf[j] = (((uint8_t) data_buf[i]) << 8) + ((uint8_t) data_buf[i + 1]); 
-		q_buf[j] = (((uint8_t) data_buf[i + 2]) << 8) + (uint8_t) data_buf[i + 3];
 
-		// Do the signed 2-complement on the 14-bit sample
-		if (i_buf[j] > 8191) i_buf[j] -= 16384;
-		if (q_buf[j] > 8191) q_buf[j] -= 16384;
-		
-		/*if ((j % 4) == 0) printf("\n");
-		printf("%04x,%04x ", i_buf[j], q_buf[j]);*/
+		// TEMPORARY WORKAROUND
+		// WSA returns a signed 14-bit integer padded with 2 most significant 0-bits
+		// to encode the number in 16 bits.
+		// Need to sign-extend by copying the value of bit 13 to bits 14 and 15
+		// so that the number can be treated as a signed 16-bit integer
+		// This workaround can be removed after the WSA firmware is updated
+		// to perform the sign-extension in the embedded firmware
+
+		if (data_buf[i] & 0x20)
+		{
+			i_buf[j] = (((int16_t) (data_buf[i] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 1]);
+		}
+		else
+		{
+			// Need to keep this line after temporary workaround is removed
+			i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
+		}
+
+		if (data_buf[i + 2] & 0x20)
+		{
+			q_buf[j] = (((int16_t) (data_buf[i + 2] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 3]);
+		}
+		else
+		{
+			// Need to keep this line after temporary workaround is removed
+			q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
+		}
+
+		// END TEMPORARY WORKAROUND
 		
 		j++;
 	}
