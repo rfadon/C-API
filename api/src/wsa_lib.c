@@ -769,7 +769,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  * @endcode
  *
  * @param device - A pointer to the WSA device structure.
- * @param header - A pointer to \b wsa_frame_header structure to store 
+ * @param header - A pointer to \b wsa_vrt_packet_header structure to store 
  *		the VRT header information
  * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
  *		in bytes. Its size is determined by the number of 
@@ -781,7 +781,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  * @return  0 on success or a negative value on error
  */
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
-		struct wsa_frame_header* const header, 
+		struct wsa_vrt_packet_header* const header, 
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet)
 {

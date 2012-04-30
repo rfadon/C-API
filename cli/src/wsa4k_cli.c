@@ -333,7 +333,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Create parameters and buffers to store the raw data
 	// *****
-	struct wsa_frame_header *header;
+	struct wsa_vrt_packet_header *header;
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -392,7 +392,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate header buffer space
-	header = (struct wsa_frame_header*) malloc(sizeof(struct wsa_frame_header));
+	header = (struct wsa_vrt_packet_header*) malloc(sizeof(struct wsa_vrt_packet_header));
 	if (header == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate header\n");

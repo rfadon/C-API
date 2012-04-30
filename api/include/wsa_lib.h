@@ -148,8 +148,7 @@ struct wsa_time {
 };
 
 
-// Temporary define for now. Will need to be expanded for more details...
-struct wsa_frame_header {
+struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
 	uint32_t samples_per_packet;
 	struct wsa_time time_stamp;
@@ -189,7 +188,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
-		struct wsa_frame_header* const header, 
+		struct wsa_vrt_packet_header* const header, 
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
