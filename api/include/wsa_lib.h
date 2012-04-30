@@ -154,6 +154,14 @@ struct wsa_vrt_packet_header {
 	struct wsa_time time_stamp;
 };
 
+// These values will be defined in a future release
+struct wsa_vrt_packet_trailer {
+	uint8_t valid_data_indicator;
+	uint8_t ref_lock_indicator;
+	uint8_t over_range_indicator;
+	uint8_t sample_loss_indicator;
+};
+
 
 struct wsa_socket {
 	int32_t cmd;
@@ -189,6 +197,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 						struct wsa_resp *resp);
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 

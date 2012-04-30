@@ -771,6 +771,8 @@ const char *wsa_get_error_msg(int16_t err_code)
  * @param device - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_vrt_packet_header structure to store 
  *		the VRT header information
+ * @param trailer - A pointer to \b wsa_vrt_packet_trailer structure to store 
+ *		the VRT trailer information
  * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
  *		in bytes. Its size is determined by the number of 
  *		16-bit \b samples_per_packet words multiplied by 4 
@@ -782,6 +784,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  */
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet)
 {
@@ -913,7 +916,11 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	// TODO: Handle the trailer word here once it is available
 	// *****
 	//if (vrt_packet_buffer[0] & 0x04)
-		// handle the trailer here
+	// Placeholder values for now:
+	trailer->valid_data_indicator = 0;
+	trailer->ref_lock_indicator = 0;
+	trailer->over_range_indicator = 0;
+	trailer->sample_loss_indicator = 0;
 
 	// *****
 	// Copy the IQ data payload to the provided buffer
