@@ -244,7 +244,6 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 int16_t wsa_capture_block(struct wsa_device* const device)
 {
 	int16_t return_status = 0;
-	int64_t frequency = 0;
 
 	return_status = wsa_send_command(device, "TRACE:BLOCK:DATA?\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
