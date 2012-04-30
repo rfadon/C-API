@@ -140,14 +140,14 @@
 	 */
 
 
-/** @struct wsa_frame_header
+/** @struct wsa_vrt_packet_header
  * @brief This structure contains header information related to each frame read
  * by wsa_read_frame().
  */
-	/** @var uint32_t wsa_frame_header::sample_size
+	/** @var uint32_t wsa_vrt_packet_header::sample_size
 	 * Number of {I, Q} samples pairs per WSA data frame.
 	 */
-	/** @var struct wsa_time wsa_frame_header::time_stamp
+	/** @var struct wsa_time wsa_vrt_packet_header::time_stamp
 	 * The time when a data frame capture begins, stored in wsa_time structure.
 	 */
 

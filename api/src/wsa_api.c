@@ -297,7 +297,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  * \b wsa_set_samples_per_packet
  *
  * @param device - A pointer to the WSA device structure.
- * @param header - A pointer to \b wsa_frame_header structure to store 
+ * @param header - A pointer to \b wsa_vrt_packet_header structure to store 
  *		the VRT header information
  * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
  *		I data buffer with size specified by samples_per_packet.
@@ -309,7 +309,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  * @return  0 on success or a negative value on error
  */
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
-		struct wsa_frame_header* const header, 
+		struct wsa_vrt_packet_header* const header, 
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
 		const uint16_t samples_per_packet)
