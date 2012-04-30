@@ -71,6 +71,7 @@
 #define WSA_ERR_VRTPACKETSIZE (LNEG_NUM - 407)
 #define WSA_ERR_INVTIMESTAMP (LNEG_NUM - 408)
 #define WSA_ERR_INVCAPTURESIZE (LNEG_NUM - 409)
+#define WSA_ERR_PACKETOUTOFORDER (LNEG_NUM - 410)
 
 
 // ///////////////////////////////
