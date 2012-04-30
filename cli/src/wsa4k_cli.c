@@ -340,6 +340,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	int16_t *i_buffer;		// To store the integer I data
 	int16_t *q_buffer;		// To store the integer Q data
+	
+	uint8_t expected_packet_order_indicator;
 	uint32_t i;
 	int j;
 
@@ -434,6 +436,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 	// Get the start time
 	get_current_time(&start_time);
+	expected_packet_order_indicator = 0;
 
 	for (i = 0; i < packets_per_block; i++)
 	{
@@ -445,6 +448,20 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(i_buffer);
 			free(q_buffer);
 			return result;
+		}
+		if (header->packet_order_indicator != expected_packet_order_indicator)
+		{
+			fclose(iq_fptr);
+			free(header);
+			free(i_buffer);
+			free(q_buffer);
+			return WSA_ERR_PACKETOUTOFORDER;
+		}
+
+		expected_packet_order_indicator++;
+		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+		{
+			expected_packet_order_indicator = 0;
 		}
 
 		if (i == 0)

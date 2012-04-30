@@ -15,6 +15,8 @@
 #define VRT_TRAILER_SIZE 1
 #define BYTES_PER_VRT_WORD 4
 
+#define MAX_PACKET_ORDER_INDICATOR 15
+
 
 // *****
 // SCPI related registers/bits
@@ -148,7 +150,8 @@ struct wsa_time {
 
 // Temporary define for now. Will need to be expanded for more details...
 struct wsa_frame_header {
-	uint32_t sample_size;
+	uint8_t packet_order_indicator;
+	uint32_t samples_per_packet;
 	struct wsa_time time_stamp;
 };
 

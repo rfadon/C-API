@@ -792,7 +792,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int16_t socket_receive_result = 0;
 
 	uint32_t stream_identifier_word = 0;
-	uint8_t packet_count = 0;
+	uint8_t packet_order_indicator = 0;
 	uint16_t packet_size = 0;
 
 	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
@@ -802,7 +802,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	}
 
 	// reset header
-	header->sample_size = 0;
+	header->packet_order_indicator = 0;
+	header->samples_per_packet = 0;
 	header->time_stamp.sec = 0;
 	header->time_stamp.psec = 0;
 
@@ -848,9 +849,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	// TODO: Class identifier C?
 	// If 1, returns the data pf class c type?
 
-	// 2. Get the 4-bit "Pkt Count" number
-	packet_count = vrt_packet_buffer[1] & 0x0f;
-	doutf(DLOW, "Packet count: %hu 0x%02X\n", packet_count, packet_count);
+	// 2. Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
+	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
+	// It provides a simple verification that packets are arriving in the right order
+	packet_order_indicator = vrt_packet_buffer[1] & 0x0f;
+	doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
+	header->packet_order_indicator = packet_order_indicator;
 
 	// 3. Get the 16-bit "Pkt Size"
 	packet_size = (((uint16_t) vrt_packet_buffer[2]) << 8) + (uint16_t) vrt_packet_buffer[3];
@@ -865,7 +869,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 
-	header->sample_size = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
+	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
 	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
 	if (!((vrt_packet_buffer[1] & 0xC0) >> 6)) 
