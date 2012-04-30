@@ -333,7 +333,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Create parameters and buffers to store the raw data
 	// *****
-	struct wsa_vrt_packet_header *header;
+	struct wsa_vrt_packet_header* header;
+	struct wsa_vrt_packet_trailer* trailer;
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -400,6 +401,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
+	// Allocate trailer buffer space
+	trailer = (struct wsa_vrt_packet_trailer*) malloc(sizeof(struct wsa_vrt_packet_trailer));
+	if (trailer == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
+		fclose(iq_fptr); 
+		free(header);
+		return WSA_ERR_MALLOCFAILED;
+	}
+
 	// Allocate i buffer space
 	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (i_buffer == NULL)
@@ -407,6 +418,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
 		fclose(iq_fptr); 
 		free(header);
+		free(trailer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -417,6 +429,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
 		free(header);
+		free(trailer);
 		free(i_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -429,6 +442,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
 		fclose(iq_fptr);
 		free(header);
+		free(trailer);
 		free(i_buffer);
 		free(q_buffer);
 		return result;
@@ -440,11 +454,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	for (i = 0; i < packets_per_block; i++)
 	{
-		result = wsa_read_iq_packet(dev, header, i_buffer, q_buffer, samples_per_packet);
+		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
 		{
 			fclose(iq_fptr);
 			free(header);
+			free(trailer);
 			free(i_buffer);
 			free(q_buffer);
 			return result;
@@ -453,6 +468,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			fclose(iq_fptr);
 			free(header);
+			free(trailer);
 			free(i_buffer);
 			free(q_buffer);
 			return WSA_ERR_PACKETOUTOFORDER;
@@ -504,6 +520,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	fclose(iq_fptr); 
 	free(header);
+	free(trailer);
 	free(i_buffer);
 	free(q_buffer);
 	

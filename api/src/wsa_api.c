@@ -299,6 +299,8 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  * @param device - A pointer to the WSA device structure.
  * @param header - A pointer to \b wsa_vrt_packet_header structure to store 
  *		the VRT header information
+ * @param trailer - A pointer to \b wsa_vrt_packet_trailer structure to store 
+ *		the VRT trailer information
  * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
  *		I data buffer with size specified by samples_per_packet.
  * @param q_buffer - A 16-bit signed integer pointer for the unscaled 
@@ -310,6 +312,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  */
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
 		const uint16_t samples_per_packet)
@@ -320,7 +323,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
-	return_status = wsa_read_iq_packet_raw(device, header, data_buffer, samples_per_packet);
+	return_status = wsa_read_iq_packet_raw(device, header, trailer, data_buffer, samples_per_packet);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
