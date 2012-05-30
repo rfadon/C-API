@@ -5,28 +5,24 @@ endif
 
 ifeq ($(BUILD_PLATFORM), windows)
 PATH_SEPARATOR = \\
-MKDIR_COMMAND = mkdir -p
-REMOVE_COMMAND = rm -fR
 
-VERSION=$(shell C:\Program Files\Git\bin\git.exe describe --dirty='+')
+VERSION=${shell git describe --dirty='+'}
 
 CC = cl
 AR = lib
 LD = link
 LIBS = WS2_32.Lib
-CFLAGS = -Wall -W3 -WX -D_CRT_SECURE_NO_WARNINGS -DCLI_VERSION\#\"$(VERSION)\"
+CFLAGS = -Wall -W3 -D_CRT_SECURE_NO_WARNINGS -DCLI_VERSION\#\"$(VERSION)\"
 COMPILE_ONLY_FLAG = -c
 OUTPUT_FILE_FLAG = -Fo
-ARFLAGS = -WX
+ARFLAGS =
 OUTPUT_LIBRARY_FILE_FLAG = -OUT:
-LDFLAGS = -WX
+LDFLAGS =
 OUTPUT_EXECUTABLE_FILE_FLAG = -OUT:
 
 else
 
 PATH_SEPARATOR = /
-MKDIR_COMMAND = mkdir -p
-REMOVE_COMMAND = rm -fR
 
 VERSION=$(shell git describe --dirty='+')
 
@@ -72,14 +68,14 @@ all : init $(API_TARGET) $(CLI_TARGET)
 
 .PHONY: init
 init : 
-	-$(MKDIR_COMMAND) $(BUILD_DIRECTORIES)
+	-mkdir -p $(BUILD_DIRECTORIES)
 
 $(API_OBJECT_FILES):$(API_BUILD_DIR)/%.o:$(API_SOURCE_DIR)/%.c $(API_INCLUDE_FILES)
-	-$(MKDIR_COMMAND) $(subst /,$(PATH_SEPARATOR),$(dir $@))
+	-mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(API_INCLUDE_FLAGS) $(COMPILE_ONLY_FLAG) $(OUTPUT_FILE_FLAG)$@ $<
 
 $(CLI_OBJECT_FILES):$(CLI_BUILD_DIR)/%.o:$(CLI_SOURCE_DIR)/%.c $(CLI_INCLUDE_FILES)
-	-$(MKDIR_COMMAND) $(subst /,$(PATH_SEPARATOR),$(dir $@))
+	-mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CLI_INCLUDE_FLAGS) $(COMPILE_ONLY_FLAG) $(OUTPUT_FILE_FLAG)$@ $<
 
 $(API_TARGET) : $(API_OBJECT_FILES)
@@ -97,4 +93,4 @@ doc : init
 
 .PHONY: clean
 clean : 
-	-$(REMOVE_COMMAND) $(subst /,$(PATH_SEPARATOR),$(BUILD_DIRECTORIES))
+	-rm -fR $(BUILD_DIRECTORY)

@@ -1,2 +1,5 @@
-CALL "C:\Program Files\Microsoft Visual Studio 10.0\VC\vcvarsall.bat"
+cd /d "C:\"
+call "%MSSdk%\Bin\SetEnv.Cmd" /x64 /Release
+cd /d %~dp0
+set PATH=%PATH:Program Files (x86)=ProgramFiles86%
 make %1 BUILD_PLATFORM=windows
