@@ -56,6 +56,9 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq);
 int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq);
 
+int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift);
+int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift);
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //

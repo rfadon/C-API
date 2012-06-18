@@ -115,9 +115,10 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
 	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
-	printf(" get freq [max | min]   Show the current running centre frequency "
-									"(in MHz).\n");
 	printf(" get dir                List the captured file path.\n");
+	printf(" get freq [max | min]   Show the current running centre frequency "
+									"(in MHz).\n");	
+	printf(" get fshift [max | min] Get the frequency shift value (in MHz).\n");
 	printf(" get gain <rf | if [max | min]> \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
@@ -139,13 +140,17 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set dec <rate>	        Set decimation rate.\n"
 		   "                        - Range: 0 (for off), %d - %d.\n", 
 		   dev->descr.min_decimation, dev->descr.max_decimation);
-	printf(" set freq <freq>        Set the centre frequency in MHz (ex: set "
-									"freq 441.5).\n"
-		   "                        - Range: %.2f - %.2f MHz inclusively,\n"
-		   "                          but excluding 40.1 - 89.9 MHz.\n"
+	printf(" set freq <freq>        Set the centre frequency in MHz \n"
+		   "                        (ex: set freq 441.5).\n"
+		   "                        - Range: %.2f - %.2f MHz inclusively, but\n"
+		   "                          excluding 40.1 - 89.9 MHz.\n"
 		   "                        - Resolution %.2f MHz.\n", 
 									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
 									(float) FREQ_RES/MHZ);
+	printf(" set fshift <freq>      Set the frequency shift in MHz \n"
+		   "                        (ex: set fshift 14.5).\n"
+		   "                        - Range: %f - %f MHz inclusively,\n", 
+									0.0, (float) dev->descr.inst_bw/MHZ);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
@@ -154,13 +159,14 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
 		   "                        (ex: set ppb 100).\n"
-		   "                        - The maximum value will depend on\n"
-		   "                          the \"samples per packet\" setting\n");
-	printf(" set spp <samples>      Set the number of samples per packet to be "
-									"captured\n"
+		   "                        - The maximum value will depend on the\n"
+		   "                          \"samples per packet\" setting\n");
+	printf(" set spp <samples>      Set the number of samples per packet to be"
+									" captured\n"
 		   "                        (ex: set spp 2000).\n"
-		   "                        - Minimum allowed: %hu; Maximum allowed: %hu.\n\n", 
-									WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
+		   "                        - Range: %hu - %hu, inclusive.\n\n", 
+									WSA4000_MIN_SAMPLES_PER_PACKET, 
+									WSA4000_MAX_SAMPLES_PER_PACKET);
 }
 
 
@@ -541,6 +547,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 {
 	int16_t result = 0;			// result returned from a function
 	int64_t freq = 0;
+	float fshift = 0;
 	int int_result = 0;
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
@@ -637,6 +644,27 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					(float) freq / MHZ);
 		} // end get FREQ
 
+		else if (strcmp(cmd_words[1], "FSHIFT") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "MAX") == 0) {
+					printf("Maximum shift: %0.2f MHz\n", 
+						(float) dev->descr.inst_bw / MHZ);
+					return 0;
+				}
+				else if (strcmp(cmd_words[2], "MIN") == 0) {
+					printf("Minimum frequency: %0.2f MHz\n", 0.0);
+					return 0;
+				}
+				else
+					printf("Did you mean \"min\" or \"max\"?\n");
+			}
+
+			result = wsa_get_freq_shift(dev, &fshift);
+			if (result >= 0)
+				printf("Current frequency shift: %0.8f MHz\n", 
+					(float) fshift / MHZ);
+		} // end get FSHIFT
+
 		
 		else if (strcmp(cmd_words[1], "DIR") == 0) {
 			if(num_words > 2)
@@ -724,7 +752,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else {
 				result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 				if (result >= 0) {
-					printf("Current samples per packet: %hu\n", samples_per_packet);
+					printf("Current samples per packet: %hu\n", 
+					samples_per_packet);
 				}
 			}
 		} // end get SPP
@@ -774,7 +803,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
 				if (result == WSA_ERR_INVANTENNAPORT)
-					sprintf(msg, "\n\t- Valid ports: 1 to %d.", WSA_RFE0560_MAX_ANT_PORT);
+					sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
+					WSA_RFE0560_MAX_ANT_PORT);
 		} // end set ANT
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {
@@ -811,6 +841,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						(double) dev->descr.max_tune_freq / MHZ);
 			}
 		} // end set FREQ
+
+		else if (strcmp(cmd_words[1], "FSHIFT") == 0) {
+			if (strcmp(cmd_words[2], "") == 0) {
+				printf("Missing the frequency value. See 'h'.\n");
+			}
+			else {
+				fshift = (float) (atof(cmd_words[2]) * MHZ);
+				result = wsa_set_freq_shift(dev, fshift);
+				if (result == WSA_ERR_FREQOUTOFBOUND)
+					sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
+						0.0, (float) dev->descr.inst_bw / MHZ);
+			}
+		} // end set FSHIFT
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
@@ -878,7 +921,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else {
 						packets_per_block = (uint32_t) temp_number;
-						result = wsa_set_packets_per_block(dev, packets_per_block);
+						result = wsa_set_packets_per_block(dev,	
+									packets_per_block);
 					}
 				}
 			}
@@ -902,7 +946,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else {
 						samples_per_packet = (uint16_t) temp_number;
-						result = wsa_set_samples_per_packet(dev, samples_per_packet);
+						result = wsa_set_samples_per_packet(dev, 
+									samples_per_packet);
 					}
 				}
 			}

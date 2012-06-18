@@ -613,7 +613,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq) // get vco vsn?
+int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 {
 	int16_t result = 0;
 	char temp_str[50];
@@ -648,12 +648,83 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 	
-	// TODO resolution for different WSA!
+	// TODO won't need this once freq shift is in place... ???
 	residue = freq - ((freq / dev->descr.freq_resolution) * 
 		dev->descr.freq_resolution);
 	if (residue > 0) {
 		return WSA_ERR_INVFREQRES;
 	}
+
+	return 0;
+}
+
+/**
+ * Retrieves the frequency shift value
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param fshift - A float pointer to store the frequency in Hz.
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, "FREQ:SHIFT?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value TODO
+	if (temp < 0 || temp > dev->descr.inst_bw) {
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*fshift = (float) temp;
+
+	return 0;
+}
+
+
+/**
+ * Sets frequency shift value
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param fshift - The center frequency to set, in Hz
+ * @return 0 on success, or a negative number on error.
+ * @par Errors:
+ * - Frequency out of range.
+ * - Set frequency when WSA is in trigger mode.
+ * - Incorrect frequency resolution (check with data sheet).
+ */
+int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
+{
+	int16_t result = 0;
+	char temp_str[50];
+
+	// verify the value bwn 0-125MHz?
+	if (fshift < 0 || fshift > dev->descr.inst_bw)	{
+		return WSA_ERR_FREQOUTOFBOUND;
+	}
+
+	sprintf(temp_str, "FREQ:SHIFt %f Hz\n", fshift);
+
+	// set the freq shift using the selected connect type
+	result = wsa_send_command(dev, temp_str);
+	if (result == WSA_ERR_SETFAILED){
+		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
+		return WSA_ERR_FREQSETFAILED;
+	}
+	else if (result < 0) 
+		return result;
 
 	return 0;
 }
