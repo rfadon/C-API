@@ -104,12 +104,15 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
+	printf(" run cmdf <scpi | cli> <file name> \n"
+		   "                        Run commands stored in a text file.\n"
+		   "                        Note: Process only set or get commands.\n");
 	printf(" save [name] [ext:<type>] Save data to a file with optional "
 									"prefix string.\n"
 		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
 		   "                        ex: 'save Test trial ext:xsl' or 'save'\n");
-	printf("\n");
+	printf("\n\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
@@ -126,12 +129,7 @@ void print_cli_menu(struct wsa_device *dev)
 									"\n");
 	printf(" get spp [max | min]    Show the current samples per packet."
 									"\n");
-	printf("\n");
-
-	printf(" run cmdf <scpi | cli> <file name> \n"
-		   "                        Run commands stored in a text file.\n"
-		   "                        Note: Process only set or get commands.\n");
-	printf("\n");
+	printf("\n\n");
 
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
@@ -149,7 +147,7 @@ void print_cli_menu(struct wsa_device *dev)
 									(float) FREQ_RES/MHZ);
 	printf(" set fshift <freq>      Set the frequency shift in MHz \n"
 		   "                        (ex: set fshift 14.5).\n"
-		   "                        - Range: %f - %f MHz inclusively,\n", 
+		   "                        - Range: %f - %f MHz, inclusive.\n", 
 									0.0, (float) dev->descr.inst_bw/MHZ);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
