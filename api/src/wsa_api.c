@@ -1123,7 +1123,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 		
 	strtok_result = strtok(query.output, ",");
 	// Convert the number & make sure no error
-	if (to_double(query.output, &temp) < 0)
+	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -1138,7 +1138,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 		
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
-	if (to_double(query.output, &temp) < 0)
+	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -1153,7 +1153,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
-	if (to_double(query.output, &temp) < 0)
+	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
