@@ -1096,3 +1096,69 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 	return 0;
 }
 
+
+/**
+ * Retrieves the basic level trigger settings
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param start_frequency - A long integer pointer to store the start frequency in Hz.
+ * @param stop_frequency - A long integer pointer to store the stop frequency in Hz.
+ * @param amplitude - A long integer pointer to store the signal amplitude in dBm.
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char* strtok_result;
+
+	wsa_send_query(dev, ":TRIG:LEVEL?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+		
+	strtok_result = strtok(query.output, ",");
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*start_frequency = (int64_t) temp;
+		
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*stop_frequency = (int64_t) temp;
+	
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	*amplitude = (int64_t) temp;
+
+	return 0;
+}
