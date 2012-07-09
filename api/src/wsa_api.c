@@ -1032,3 +1032,67 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	return 0;
 }
 
+
+// ////////////////////////////////////////////////////////////////////////////
+// TRIGGER CONTROL SECTION                                                   //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Sets the WSA to use basic a level trigger
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param start_frequency - The lowest frequency at which a signal should be detected
+ * @param stop_frequency - The highest frequency at which a signal should be detected
+ * @param amplitude - The minimum amplitutde of a signal that will satisfy the trigger
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude)
+{
+	int16_t result = 0;
+	char temp_str[50];
+
+	result = wsa_verify_freq(dev, start_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STARTOOB;
+	}
+	else if (result == WSA_ERR_INVFREQRES)
+	{
+		return WSA_ERR_INVSTARTRES;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	result = wsa_verify_freq(dev, stop_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STOPOOB;
+	}
+	else if (result == WSA_ERR_INVFREQRES)
+	{
+		return WSA_ERR_INVSTOPRES;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%lld\n", start_frequency, stop_frequency, amplitude);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result == WSA_ERR_SETFAILED)
+	{
+		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
+		return WSA_ERR_TRIGGERSETFAILED;
+	}
+	else if (result < 0) 
+	{
+		return result;
+	}
+
+	return 0;
+}
+
