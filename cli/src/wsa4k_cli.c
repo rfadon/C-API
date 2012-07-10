@@ -762,7 +762,22 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get SPP
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "LEVEL") == 0) {
+			if (strcmp(cmd_words[2], "ENABLED") == 0) {
+				result = wsa_get_trigger_enabled(dev, &int_result);
+				if (result >= 0) {
+					printf("Trigger mode: ");
+					if (int_result == 1) {
+						printf("On\n");
+					}
+					else if (int_result == 0) {
+						printf("Off\n");
+					}
+					else {
+						printf("Unknown state\n");
+					}
+				}
+			}
+			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
 				result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
 				if (result >= 0) {
 					printf("Trigger configuration:\n");
