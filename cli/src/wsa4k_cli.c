@@ -796,9 +796,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
 				if (result >= 0) {
 					printf("Trigger configuration:\n");
-					printf("   Start frequency: %lld\n", start_frequency);
-					printf("   Stop frequency: %lld\n", stop_frequency);
-					printf("   Amplitude: %lld\n", amplitude);
+					printf("   Start frequency: %f MHz\n", (float) (start_frequency / MHZ));
+					printf("   Stop frequency: %f MHz\n", (float) (stop_frequency / MHZ));
+					printf("   Amplitude: %lld dBm\n", amplitude);
 				}
 			}
 			else {
@@ -1023,14 +1023,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Start frequency must be a valid number\n");
 					}
 					else {
-						start_frequency = (int64_t) temp_double;
+						start_frequency = (int64_t) (temp_double * MHZ);
 						
 						strtok_result = strtok(NULL, ",");
 						if (to_double(strtok_result, &temp_double) < 0) {
 							printf("Stop frequency must be a valid number\n");
 						}
 						else {
-							stop_frequency = (int64_t) temp_double;
+							stop_frequency = (int64_t) (temp_double * MHZ);
 						
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
