@@ -1032,3 +1032,133 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	return 0;
 }
 
+
+// ////////////////////////////////////////////////////////////////////////////
+// TRIGGER CONTROL SECTION                                                   //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Sets the WSA to use basic a level trigger
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param start_frequency - The lowest frequency at which a signal should be detected
+ * @param stop_frequency - The highest frequency at which a signal should be detected
+ * @param amplitude - The minimum amplitutde of a signal that will satisfy the trigger
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude)
+{
+	int16_t result = 0;
+	char temp_str[50];
+
+	result = wsa_verify_freq(dev, start_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STARTOOB;
+	}
+	else if (result == WSA_ERR_INVFREQRES)
+	{
+		return WSA_ERR_INVSTARTRES;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	result = wsa_verify_freq(dev, stop_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STOPOOB;
+	}
+	else if (result == WSA_ERR_INVFREQRES)
+	{
+		return WSA_ERR_INVSTOPRES;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%lld\n", start_frequency, stop_frequency, amplitude);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result == WSA_ERR_SETFAILED)
+	{
+		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
+		return WSA_ERR_TRIGGERSETFAILED;
+	}
+	else if (result < 0) 
+	{
+		return result;
+	}
+
+	return 0;
+}
+
+
+/**
+ * Retrieves the basic level trigger settings
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param start_frequency - A long integer pointer to store the start frequency in Hz.
+ * @param stop_frequency - A long integer pointer to store the stop frequency in Hz.
+ * @param amplitude - A long integer pointer to store the signal amplitude in dBm.
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char* strtok_result;
+
+	wsa_send_query(dev, ":TRIG:LEVEL?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+		
+	strtok_result = strtok(query.output, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*start_frequency = (int64_t) temp;
+		
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*stop_frequency = (int64_t) temp;
+	
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	*amplitude = (int64_t) temp;
+
+	return 0;
+}

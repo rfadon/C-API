@@ -119,6 +119,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 			"Invalid trigger range between the start & stop frequencies"},
 		{WSA_ERR_INVDWELL, "Invalid trigger dwell time"},
 		{WSA_ERR_INVNUMFRAMES, "Invalid number of frames to capture"},
+		{WSA_ERR_TRIGGERSETFAILED, "Failed setting the trigger in the WSA"},
 
 		//*****
 		// CONTROL/COMMAND ERRORS

@@ -110,6 +110,7 @@
 #define WSA_ERR_INVTRIGRANGE	(LNEG_NUM - 1207)
 #define WSA_ERR_INVDWELL		(LNEG_NUM - 1208)
 #define WSA_ERR_INVNUMFRAMES	(LNEG_NUM - 1209)
+#define WSA_ERR_TRIGGERSETFAILED	(LNEG_NUM - 1209)
 
 
 // ///////////////////////////////
