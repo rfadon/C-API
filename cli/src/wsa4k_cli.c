@@ -555,6 +555,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t if_gain_value;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
+	int64_t start_frequency;
+	int64_t stop_frequency;
+	int64_t amplitude;
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -620,6 +623,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("The current decimation rate: %d\n", rate);
 		} // end get decimation rate
 
+		
+		else if (strcmp(cmd_words[1], "DIR") == 0) {
+			if(num_words > 2)
+				printf("Extra parameters ignored!\n");
+
+			print_captures_directory();
+		}
+
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -662,14 +673,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Current frequency shift: %0.8f MHz\n", 
 					(float) fshift / MHZ);
 		} // end get FSHIFT
-
-		
-		else if (strcmp(cmd_words[1], "DIR") == 0) {
-			if(num_words > 2)
-				printf("Extra parameters ignored!\n");
-
-			print_captures_directory();
-		}
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
@@ -755,6 +758,26 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end get SPP
+		
+		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
+			if (strcmp(cmd_words[2], "") != 0) {
+				if (strcmp(cmd_words[2], "LEVEL") == 0) {
+					result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+					if (result >= 0) {
+						printf("Trigger configuration:\n");
+						printf("   Start frequency: %lld\n", start_frequency);
+						printf("   Stop frequency: %lld\n", stop_frequency);
+						printf("   Amplitude: %lld\n", amplitude);
+					}
+				}
+				else {
+					printf("Did you mean \"get trigger level\" or \"get trigger enabled\"?\n");
+				}
+			}
+			else {
+				printf("Usage: 'get trigger <level | enabled>'");
+			}
+		} // end get TRIGGER
 
 		else {
 			printf("Invalid 'get'. Try 'h'.\n");
