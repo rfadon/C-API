@@ -1193,3 +1193,41 @@ int16_t wsa_set_trigger_enabled(struct wsa_device* dev, int32_t enabled)
 
 	return 0;
 }
+
+
+/**
+ * Gets the current capture mode of the WSA
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer to store the current mode: 
+ * 1 = triggered (trigger on), 0 = freerun (trigger off).
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_trigger_enabled(struct wsa_device* dev, int32_t* enabled)
+{
+	struct wsa_resp query;		// store query results
+	long temp;
+
+	wsa_send_query(dev, ":TRIG:ENABLE?\n", &query);
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	// Verify the validity of the return value
+	if (temp < 0 || temp > 1) {
+		printf("Error: WSA returned %ld.\n", temp);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+		
+	*enabled = (int16_t) temp;
+
+	return 0;
+}
