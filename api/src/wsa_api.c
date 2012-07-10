@@ -708,9 +708,11 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 {
 	int16_t result = 0;
 	char temp_str[50];
+	int64_t range = dev->descr.inst_bw;
 
 	// verify the value bwn 0-125MHz?
-	if (fshift < (-1 * dev->descr.inst_bw) || fshift > dev->descr.inst_bw)	{
+	if (fshift < (-range) || fshift > range)	{
+		printf("got here %f, %lld\n", fshift, -range);
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 
