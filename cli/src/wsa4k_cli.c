@@ -101,39 +101,37 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive, < > required, "
 		"[ ] optional):\n\n");
+	printf(" dir                    List the captured file path.\n");
 	printf(" h                      Show the list of available options.\n");
 	printf(" o                      Open the folder of captured file(s).\n");
 	printf(" q                      Quit or exit this console.\n");
 	printf(" run cmdf <scpi | cli> <file name> \n"
 		   "                        Run commands stored in a text file.\n"
 		   "                        Note: Process only set or get commands.\n");
-	printf(" save [name] [ext:<type>] Save data to a file with optional "
+	printf(" save [name] [ext:<type>]\n"
+		   "                        Save data to a file with optional "
 									"prefix string.\n"
 		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
-		   "                        ex: 'save Test trial ext:xsl' or 'save'\n");
+		   "                        ex: save Test trial ext:xsl\n"
+		   "                            save\n");
 	printf("\n\n");
 
 	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
 	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
-	printf(" get dir                List the captured file path.\n");
 	printf(" get freq [max | min]   Show the current running centre frequency "
 									"(in MHz).\n");	
 	printf(" get fshift [max | min] Get the frequency shift value (in MHz).\n");
-	printf(" get gain <rf | if [max | min]> \n"
+	printf(" get gain <rf | if> [max | min] \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
-	printf(" get ppb                Show the current packets per block."
-									"\n");
-	printf(" get spp [max | min]    Show the current samples per packet."
-									"\n");
-	printf(" get trigger <level | enabled>\n"
-		   "                        Show the current trigger settings and whether\n"
-		   "                        trigger mode is enabled\n"
-									"\n");
-	printf("\n\n");
+	printf(" get ppb                Show the current packets per block.\n");
+	printf(" get spp [max | min]    Show the current samples per packet.\n");
+	printf(" get trigger level      Show the current level trigger settings\n");
+	printf(" get trigger enabled    Check whether the trigger mode is enabled\n");
+	printf("\n");
 
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
@@ -143,43 +141,41 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Range: 0 (for off), %d - %d.\n", 
 		   dev->descr.min_decimation, dev->descr.max_decimation);
 	printf(" set freq <freq>        Set the centre frequency in MHz \n"
-		   "                        (ex: set freq 441.5).\n"
 		   "                        - Range: %.2f - %.2f MHz inclusively, but\n"
 		   "                          excluding 40.1 - 89.9 MHz.\n"
-		   "                        - Resolution %.2f MHz.\n", 
-									(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ,
-									(float) FREQ_RES/MHZ);
+		   "                        - Resolution %.2f MHz.\n"
+		   "                        ex: set freq 441.5\n", 
+		   (float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ, (float) FREQ_RES/MHZ);
 	printf(" set fshift <freq>      Set the frequency shift in MHz \n"
-		   "                        (ex: set fshift 14.5).\n"
-		   "                        - Range: %f - %f MHz, inclusive.\n", 
-									0.0, (float) dev->descr.inst_bw/MHZ);
+		   "                        - Range: %f - %f MHz, \"exclusive\".\n"
+		   "                        ex: set fshift 14.5\n", 
+		   (float) dev->descr.inst_bw/MHZ * -1, (float) dev->descr.inst_bw/MHZ);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
-		   "                        (ex: set gain rf HIGH; set gain if -20).\n"
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
-		   "                        - IF range: %d to %d dB, inclusive.\n", 
-									MIN_IF_GAIN, MAX_IF_GAIN);
+		   "                        - IF range: %d to %d dBm, inclusive.\n"
+		   "                        ex: set gain rf HIGH;\n"
+		   "                            set gain if -20.\n", 
+		   MIN_IF_GAIN, MAX_IF_GAIN);
 	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
-		   "                        (ex: set ppb 100).\n"
 		   "                        - The maximum value will depend on the\n"
-		   "                          \"samples per packet\" setting\n");
+		   "                          \"samples per packet\" setting\n"
+		   "                        ex: set ppb 100\n");
 	printf(" set spp <samples>      Set the number of samples per packet to be"
 									" captured\n"
-		   "                        (ex: set spp 2000).\n"
-		   "                        - Range: %hu - %hu, inclusive.\n\n", 
-									WSA4000_MIN_SAMPLES_PER_PACKET, 
-									WSA4000_MAX_SAMPLES_PER_PACKET);
-	printf(" set trigger <level <start>,<stop>,<amplitude> | enabled <on | off>>\n"
-		   "                        Set the trigger configuration options\n"
-		   "                        or set trigger mode on/off\n"
-		   "                        - The trigger configuration consists of 3 numbers:\n"
-		   "                          1) Start frequnecy (in MHz)\n"\
+		   "                        - Range: %hu - %hu, inclusive.\n"
+		   "                        ex: set spp 2000\n",
+		   WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
+	printf(" set trigger enabled <on | off>\n"
+		   "                        Set trigger mode on or off.\n"
+		   "                        - When set to off, WSA will be freerun\n");
+	printf(" set trigger level <start,stop,amplitude>\n"
+		   "                        Configure the level trigger options:\n"
+		   "                          1) Start frequnecy (in MHz)\n"
 		   "                          2) Stop frequnecy (in MHz)\n"
 		   "                          3) Amplitude (in dBm)\n"
-		   "                        - The WSA can run in triggered mode\n"
-		   "                          ie. 'set trigger enabled on'\n"
-		   "                          or freerun mode\n"
-		   "                          ie. 'set trigger enabled off'\n");
+		   "                        ex: set trigger level 2410,2450,-50\n");
+	printf("\n");
 }
 
 
@@ -655,14 +651,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("The current decimation rate: %d\n", rate);
 		} // end get decimation rate
 
-		
-		else if (strcmp(cmd_words[1], "DIR") == 0) {
-			if(num_words > 2)
-				printf("Extra parameters ignored!\n");
-
-			print_captures_directory();
-		}
-
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -825,7 +813,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			printf("Invalid 'get'. Try 'h'.\n");
 		}
 	} // end GET
-
+	
 	else if (strcmp(cmd_words[0], "RUN") == 0) {
 		if (strcmp(cmd_words[1], "CMDF") == 0) {
 			if (strcmp(cmd_words[2], "") == 0) 
@@ -1073,8 +1061,15 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	// Handle non-get/set commands
 	//*****
-	else {
-		if (strlen(cmd_words[0]) == 1 && strspn(cmd_words[0], "H?") > 0) {
+	else {	
+		if (strcmp(cmd_words[0], "DIR") == 0) {
+			if(num_words > 1)
+				printf("Extra parameters ignored!\n");
+
+			print_captures_directory();
+		}
+
+		else if (strlen(cmd_words[0]) == 1 && strspn(cmd_words[0], "H?") > 0) {
 			print_cli_menu(dev);
 		} // end print help
 
