@@ -129,6 +129,10 @@ void print_cli_menu(struct wsa_device *dev)
 									"\n");
 	printf(" get spp [max | min]    Show the current samples per packet."
 									"\n");
+	printf(" get trigger <level | enabled>\n"
+		   "                        Show the current trigger settings and whether\n"
+		   "                        trigger mode is enabled\n"
+									"\n");
 	printf("\n\n");
 
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
@@ -165,6 +169,17 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Range: %hu - %hu, inclusive.\n\n", 
 									WSA4000_MIN_SAMPLES_PER_PACKET, 
 									WSA4000_MAX_SAMPLES_PER_PACKET);
+	printf(" set trigger <level <start>,<stop>,<amplitude> | enabled <on | off>>\n"
+		   "                        Set the trigger configuration options\n"
+		   "                        or set trigger mode on/off\n"
+		   "                        - The trigger configuration consists of 3 numbers:\n"
+		   "                          1) Start frequnecy (in MHz)\n"\
+		   "                          2) Stop frequnecy (in MHz)\n"
+		   "                          3) Amplitude (in dBm)\n"
+		   "                        - The WSA can run in triggered mode\n"
+		   "                          ie. 'set trigger enabled on'\n"
+		   "                          or freerun mode\n"
+		   "                          ie. 'set trigger enabled off'\n");
 }
 
 
