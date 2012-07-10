@@ -129,6 +129,10 @@ void print_cli_menu(struct wsa_device *dev)
 									"\n");
 	printf(" get spp [max | min]    Show the current samples per packet."
 									"\n");
+	printf(" get trigger <level | enabled>\n"
+		   "                        Show the current trigger settings and whether\n"
+		   "                        trigger mode is enabled\n"
+									"\n");
 	printf("\n\n");
 
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
@@ -165,6 +169,17 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - Range: %hu - %hu, inclusive.\n\n", 
 									WSA4000_MIN_SAMPLES_PER_PACKET, 
 									WSA4000_MAX_SAMPLES_PER_PACKET);
+	printf(" set trigger <level <start>,<stop>,<amplitude> | enabled <on | off>>\n"
+		   "                        Set the trigger configuration options\n"
+		   "                        or set trigger mode on/off\n"
+		   "                        - The trigger configuration consists of 3 numbers:\n"
+		   "                          1) Start frequnecy (in MHz)\n"\
+		   "                          2) Stop frequnecy (in MHz)\n"
+		   "                          3) Amplitude (in dBm)\n"
+		   "                        - The WSA can run in triggered mode\n"
+		   "                          ie. 'set trigger enabled on'\n"
+		   "                          or freerun mode\n"
+		   "                          ie. 'set trigger enabled off'\n");
 }
 
 
@@ -777,13 +792,28 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get SPP
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "LEVEL") == 0) {
+			if (strcmp(cmd_words[2], "ENABLED") == 0) {
+				result = wsa_get_trigger_enabled(dev, &int_result);
+				if (result >= 0) {
+					printf("Trigger mode: ");
+					if (int_result == 1) {
+						printf("On\n");
+					}
+					else if (int_result == 0) {
+						printf("Off\n");
+					}
+					else {
+						printf("Unknown state\n");
+					}
+				}
+			}
+			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
 				result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
 				if (result >= 0) {
 					printf("Trigger configuration:\n");
-					printf("   Start frequency: %lld\n", start_frequency);
-					printf("   Stop frequency: %lld\n", stop_frequency);
-					printf("   Amplitude: %lld\n", amplitude);
+					printf("   Start frequency: %f MHz\n", (float) (start_frequency / MHZ));
+					printf("   Stop frequency: %f MHz\n", (float) (stop_frequency / MHZ));
+					printf("   Amplitude: %lld dBm\n", amplitude);
 				}
 			}
 			else {
@@ -987,9 +1017,20 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end set SPP
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "LEVEL") == 0) {
+			if (strcmp(cmd_words[2], "ENABLED") == 0) {
+				if (strcmp(cmd_words[3], "ON") == 0) {
+					result = wsa_set_trigger_enabled(dev, 1);
+				}
+				else if (strcmp(cmd_words[3], "OFF") == 0) {
+					result = wsa_set_trigger_enabled(dev, 0);
+				}
+				else {
+					printf("Usage: 'set enabled <on | off>'\n");
+				}
+			}
+			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
 				if (num_words < 4) {
-					printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enabled>'");
+					printf("Usage: 'set trigger level <start>,<stop>,<amplitude>'\n");
 				}
 				else {
 					strtok_result = strtok(cmd_words[3], ",");
@@ -997,14 +1038,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Start frequency must be a valid number\n");
 					}
 					else {
-						start_frequency = (int64_t) temp_double;
+						start_frequency = (int64_t) (temp_double * MHZ);
 						
 						strtok_result = strtok(NULL, ",");
 						if (to_double(strtok_result, &temp_double) < 0) {
 							printf("Stop frequency must be a valid number\n");
 						}
 						else {
-							stop_frequency = (int64_t) temp_double;
+							stop_frequency = (int64_t) (temp_double * MHZ);
 						
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
@@ -1020,7 +1061,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 			else {
-				printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enabled>'");
+				printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enabled <on | off>>'\n");
 			}
 		} // end set TRIGGER
 

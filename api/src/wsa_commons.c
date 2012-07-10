@@ -120,6 +120,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVDWELL, "Invalid trigger dwell time"},
 		{WSA_ERR_INVNUMFRAMES, "Invalid number of frames to capture"},
 		{WSA_ERR_TRIGGERSETFAILED, "Failed setting the trigger in the WSA"},
+		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
 
 		//*****
 		// CONTROL/COMMAND ERRORS
