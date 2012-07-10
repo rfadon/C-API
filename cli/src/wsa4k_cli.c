@@ -551,6 +551,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	char msg[100];
 	int i;
 	long temp_number;
+	double temp_double;
+	char* strtok_result;
 	int32_t rate;
 	int32_t if_gain_value;
 	uint16_t samples_per_packet;
@@ -760,18 +762,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		} // end get SPP
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "") != 0) {
-				if (strcmp(cmd_words[2], "LEVEL") == 0) {
-					result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
-					if (result >= 0) {
-						printf("Trigger configuration:\n");
-						printf("   Start frequency: %lld\n", start_frequency);
-						printf("   Stop frequency: %lld\n", stop_frequency);
-						printf("   Amplitude: %lld\n", amplitude);
-					}
-				}
-				else {
-					printf("Did you mean \"get trigger level\" or \"get trigger enabled\"?\n");
+			if (strcmp(cmd_words[2], "LEVEL") == 0) {
+				result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+				if (result >= 0) {
+					printf("Trigger configuration:\n");
+					printf("   Start frequency: %lld\n", start_frequency);
+					printf("   Stop frequency: %lld\n", stop_frequency);
+					printf("   Amplitude: %lld\n", amplitude);
 				}
 			}
 			else {
@@ -973,6 +970,44 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end set SPP
+		
+		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
+			if (strcmp(cmd_words[2], "LEVEL") == 0) {
+				if (num_words < 4) {
+					printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enabled>'");
+				}
+				else {
+					strtok_result = strtok(cmd_words[3], ",");
+					if (to_double(strtok_result, &temp_double) < 0) {
+						printf("Start frequency must be a valid number\n");
+					}
+					else {
+						start_frequency = (int64_t) temp_double;
+						
+						strtok_result = strtok(NULL, ",");
+						if (to_double(strtok_result, &temp_double) < 0) {
+							printf("Stop frequency must be a valid number\n");
+						}
+						else {
+							stop_frequency = (int64_t) temp_double;
+						
+							strtok_result = strtok(NULL, ",");
+							if (to_double(strtok_result, &temp_double) < 0) {
+								printf("Amplitude must be a valid number\n");
+							}
+							else {
+								amplitude = (int64_t) temp_double;
+								
+								result = wsa_set_trigger_level(dev, start_frequency, stop_frequency, amplitude);
+							}
+						}
+					}
+				}
+			}
+			else {
+				printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enabled>'");
+			}
+		} // end set TRIGGER
 
 		else 
 			printf("Invalid 'set'. See 'h'.\n");
