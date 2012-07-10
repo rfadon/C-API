@@ -329,9 +329,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	FILE *iq_fptr;
 
 	// to calculate run time
-	TIME_HOLDER start_time;
-	TIME_HOLDER end_time;
-	double run_time_ms;
+	TIME_HOLDER run_start_time;
+	TIME_HOLDER run_end_time;
+	double run_time_ms = 0;
+	
+	// to calculate data capture time
+	TIME_HOLDER capture_start_time;
+	TIME_HOLDER capture_end_time;
+	double capture_time_ms = 0;
 
 
 	// *****
@@ -452,13 +457,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return result;
 	}
 	
-	// Get the start time
-	get_current_time(&start_time);
 	expected_packet_order_indicator = 0;
+
+	// Get the start time
+	get_current_time(&run_start_time);
 
 	for (i = 0; i < packets_per_block; i++)
 	{
+		// Get the start time
+		get_current_time(&capture_start_time);
+
 		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet);
+		// get the end time of each data capture
+		get_current_time(&capture_end_time);
+		// sum it up
+		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
+		
 		if (result < 0)
 		{
 			fclose(iq_fptr);
@@ -468,6 +482,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(q_buffer);
 			return result;
 		}
+
 		if (header->packet_order_indicator != expected_packet_order_indicator)
 		{
 			fclose(iq_fptr);
@@ -508,18 +523,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			printf(".");
 		}
 	}
-
-	// get the end time & calculate the throughput rate
-	get_current_time(&end_time);
-	run_time_ms = get_time_difference(&start_time, &end_time);
 	
+	// get the total run end time
+	get_current_time(&run_end_time);
+	run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 	printf("\ndone.\n");
 
-	/*printf("done.\n\t(Run time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
+	/*printf("(capture time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
 		run_time_ms, 
 		total_bytes / run_time_ms);
 		*/
-	printf("(Run time: %.3f sec)\n", 
+	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
+		capture_time_ms,
 		run_time_ms);
 
 	fclose(iq_fptr); 

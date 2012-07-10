@@ -710,7 +710,7 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 	char temp_str[50];
 
 	// verify the value bwn 0-125MHz?
-	if (fshift < 0 || fshift > dev->descr.inst_bw)	{
+	if (fshift < (-1 * dev->descr.inst_bw) || fshift > dev->descr.inst_bw)	{
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 
