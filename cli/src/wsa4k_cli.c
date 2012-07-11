@@ -148,12 +148,12 @@ void print_cli_menu(struct wsa_device *dev)
 		   (float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ, (float) FREQ_RES/MHZ);
 	printf(" set fshift <freq>      Set the frequency shift in MHz \n"
 		   "                        - Range: %f - %f MHz, \"exclusive\".\n"
-		   "                        ex: set fshift 14.5\n", 
+		   "                        ex: set fshift 10\n", 
 		   (float) dev->descr.inst_bw/MHZ * -1, (float) dev->descr.inst_bw/MHZ);
 	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
 		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
 		   "                        - IF range: %d to %d dBm, inclusive.\n"
-		   "                        ex: set gain rf HIGH;\n"
+		   "                        ex: set gain rf high;\n"
 		   "                            set gain if -20.\n", 
 		   MIN_IF_GAIN, MAX_IF_GAIN);
 	printf(" set ppb <packets>      Set the number of packets per block to be "
@@ -168,7 +168,8 @@ void print_cli_menu(struct wsa_device *dev)
 		   WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
 	printf(" set trigger enabled <on | off>\n"
 		   "                        Set trigger mode on or off.\n"
-		   "                        - When set to off, WSA will be freerun\n");
+		   "                        - When set to off, WSA will be freerun\n"
+		   "                        ex: set trigger enabled on\n");
 	printf(" set trigger level <start,stop,amplitude>\n"
 		   "                        Configure the level trigger options:\n"
 		   "                          1) Start frequnecy (in MHz)\n"
@@ -681,7 +682,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					return 0;
 				}
 				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum frequency: %0.2f MHz\n", 0.0);
+					printf("Minimum frequency: %0.2f MHz\n", 
+					(float) dev->descr.inst_bw / MHZ * (-1.0) - 0.1);
 					return 0;
 				}
 				else

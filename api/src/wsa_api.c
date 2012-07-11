@@ -710,9 +710,8 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 	char temp_str[50];
 	int64_t range = dev->descr.inst_bw;
 
-	// verify the value bwn 0-125MHz?
-	if (fshift < (-range) || fshift > range)	{
-		printf("got here %f, %lld\n", fshift, -range);
+	// verify the value bwn -125 to 125MHz, "exclusive"
+	if (fshift <= (-range) || fshift >= range)	{
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 
@@ -720,7 +719,7 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 
 	// set the freq shift using the selected connect type
 	result = wsa_send_command(dev, temp_str);
-	if (result == WSA_ERR_SETFAILED){
+	if (result == WSA_ERR_SETFAILED) {
 		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
