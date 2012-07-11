@@ -236,12 +236,15 @@ int16_t to_int(char *num_str, long int *val)
 {
 	char *temp;
 	long int temp_val;
+	
+	if (num_str == NULL) {
+		return WSA_ERR_INVNUMBER;
+	}
 
 	errno = 0; // to distinguish success/failure after calling strtol
 	temp_val = strtol(num_str, &temp, 0);
 	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN))
 		|| (errno != 0 && temp_val == 0)) {
-		perror("strtol");
 		return WSA_ERR_INVNUMBER;
 	}
 	else if (temp == num_str) {
@@ -260,11 +263,14 @@ int16_t to_double(char *num_str, double *val)
 {
 	char *temp;
 	double temp_val;
+	
+	if (num_str == NULL) {
+		return WSA_ERR_INVNUMBER;
+	}
 
 	errno = 0; // to distinguish success/failure after calling strtol
 	temp_val = strtod(num_str, &temp);
 	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str) {
-		perror("strtod");
 		return WSA_ERR_INVNUMBER;
 	}
 
