@@ -642,17 +642,9 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 // Verify if the frequency is valid (within allowed range)
 int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 {
-	int64_t residue; 
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)	{
 		return WSA_ERR_FREQOUTOFBOUND;
-	}
-	
-	// TODO won't need this once freq shift is in place... ???
-	residue = freq - ((freq / dev->descr.freq_resolution) * 
-		dev->descr.freq_resolution);
-	if (residue > 0) {
-		return WSA_ERR_INVFREQRES;
 	}
 
 	return 0;
@@ -1057,10 +1049,6 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 	{
 		return WSA_ERR_STARTOOB;
 	}
-	else if (result == WSA_ERR_INVFREQRES)
-	{
-		return WSA_ERR_INVSTARTRES;
-	}
 	else if (result < 0)
 	{
 		return result;
@@ -1070,10 +1058,6 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 	{
 		return WSA_ERR_STOPOOB;
-	}
-	else if (result == WSA_ERR_INVFREQRES)
-	{
-		return WSA_ERR_INVSTOPRES;
 	}
 	else if (result < 0)
 	{
