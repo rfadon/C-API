@@ -1154,20 +1154,20 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
  * or freerun (trigger off).
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param enabled - Trigger mode of selection: 0 - Off, 1 - On.
+ * @param enable - Trigger mode of selection: 0 - Off, 1 - On.
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_enabled(struct wsa_device* dev, int32_t enabled)
+int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable)
 {
 	int16_t result = 0;
 	char temp_str[50];
 
-	if (enabled < 0 || enabled > 1) {
+	if (enable < 0 || enable > 1) {
 		return WSA_ERR_INVTRIGGERMODE;
 	}
 
-	sprintf(temp_str, ":TRIGGER:ENABLE %d\n", enabled);
+	sprintf(temp_str, ":TRIGGER:ENABLE %d\n", enable);
 
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
@@ -1184,12 +1184,12 @@ int16_t wsa_set_trigger_enabled(struct wsa_device* dev, int32_t enabled)
  * Gets the current capture mode of the WSA
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer pointer to store the current mode: 
+ * @param enable - An integer pointer to store the current mode: 
  * 1 = triggered (trigger on), 0 = freerun (trigger off).
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_trigger_enabled(struct wsa_device* dev, int32_t* enabled)
+int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1212,7 +1212,7 @@ int16_t wsa_get_trigger_enabled(struct wsa_device* dev, int32_t* enabled)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 		
-	*enabled = (int16_t) temp;
+	*enable = (int16_t) temp;
 
 	return 0;
 }

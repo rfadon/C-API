@@ -88,8 +88,8 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
 int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude);
 int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude);
-int16_t wsa_set_trigger_enabled(struct wsa_device* dev, int32_t enabled);
-int16_t wsa_get_trigger_enabled(struct wsa_device* dev, int32_t* enabled);
+int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable);
+int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
 
 #endif
 
