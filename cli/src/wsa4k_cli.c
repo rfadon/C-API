@@ -1051,7 +1051,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 			else {
-				printf("Usage: 'set trigger <level <start>,<stop>,<amplitude> | enable <on | off>>'\n");
+				printf("Usage: 'set trigger level <start,stop,amplitude>'\n"
+				       "    or 'set enable <on | off>'\n");
 			}
 		} // end set TRIGGER
 
