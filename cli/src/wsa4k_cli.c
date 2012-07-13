@@ -1015,7 +1015,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_set_trigger_enable(dev, 0);
 				}
 				else {
-					printf("Usage: 'set enable <on | off>'\n");
+					printf("Usage: 'set trigger enable <on | off>'\n");
 				}
 			}
 			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
@@ -1052,7 +1052,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else {
 				printf("Usage: 'set trigger level <start,stop,amplitude>'\n"
-				       "    or 'set enable <on | off>'\n");
+				       "    or 'set trigger enable <on | off>'\n");
 			}
 		} // end set TRIGGER
 
