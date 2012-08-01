@@ -37,16 +37,16 @@
 
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
+#include <stdlib.h>//library for general functions like random number generators integer arithmatic
+#include <string.h>//functions to manage strings
+#include <math.h>// sins cosines abs
+#include <time.h>//used to manipulate header and time information
 
-#include "thinkrf_stdint.h"
-#include "wsa_error.h"
-#include "wsa_commons.h"
+#include "thinkrf_stdint.h"//declare all the different types of signed and unsigned integers
+#include "wsa_error.h"//contains a list of all the errors
+#include "wsa_commons.h"//common functions used
 #include "wsa_lib.h"
-#include "wsa_api.h"
+#include "wsa_api.h"//calls on itself
 
 
 #define MAX_RETRIES_READ_FRAME 5
@@ -718,7 +718,7 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 	}
 	else if (result < 0) 
 		return result;
-
+	
 	return 0;
 }
 

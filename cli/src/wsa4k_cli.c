@@ -54,7 +54,6 @@
  * connect to the box.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -176,6 +175,8 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                          2) Stop frequnecy (in MHz)\n"
 		   "                          3) Amplitude (in dBm)\n"
 		   "                        ex: set trigger level 2410,2450,-50\n");
+
+	
 	printf("\n");
 }
 
@@ -337,6 +338,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint16_t samples_per_packet = 0;
 	uint32_t packets_per_block = 0;
 	int64_t freq = 0;
+	int64_t start_frequency=0;
+	int64_t stop_frequency=0;
+	int64_t amplitude=0;
+	int32_t enable=0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -402,7 +407,28 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
+	result = wsa_get_trigger_enable(dev,&enable);
+		
+		if(enable==1)
+		{ 
+			result = wsa_get_trigger_level(dev,&start_frequency,&stop_frequency,&amplitude);
+			if (result < 0)
+	{
+		printf("\n error retrieving trigger level \n");
+		
+		}else{
+			int64_t lower_end = freq/MHZ -start_frequency/MHZ;
+			int64_t higher_end = freq/MHZ -stop_frequency/MHZ;
+				if(lower_end<-62.5 ||higher_end>62.5)
+			{
+		
+				
+		printf("\n Warning Centre Frequency is out of range of the triggers \n ");
+			return 0;
+			}
+		  }
 
+	   }
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
