@@ -591,8 +591,12 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 		printf("Error: WSA returned %s.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
+	
+		*cfreq = (int64_t) temp/MHZ;
+		
+	   
 
-	*cfreq = (int64_t) temp;
+	
 
 	return 0;
 }

@@ -112,6 +112,9 @@
 #define WSA_ERR_INVNUMFRAMES	(LNEG_NUM - 1209)
 #define WSA_ERR_TRIGGERSETFAILED	(LNEG_NUM - 1210)
 #define WSA_ERR_INVTRIGGERMODE	(LNEG_NUM - 1211)
+#define WSA_ERR_CFREQRANGE		(LNEG_NUM - 1212)
+#define WSA_ERR_FREQLOW			(LNEG_NUM - 1213)
+
 
 
 // ///////////////////////////////

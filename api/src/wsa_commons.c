@@ -121,6 +121,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVNUMFRAMES, "Invalid number of frames to capture"},
 		{WSA_ERR_TRIGGERSETFAILED, "Failed setting the trigger in the WSA"},
 		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
+		{WSA_ERR_CFREQRANGE, "Center Frequency is out of range"},
+		{WSA_ERR_FREQLOW, "Frequency is too low"},
 
 		//*****
 		// CONTROL/COMMAND ERRORS

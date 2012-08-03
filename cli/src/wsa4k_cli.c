@@ -402,6 +402,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	// Get the centre frequency
 	result = wsa_get_freq(dev, &freq);
+	
 	if (result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
@@ -417,18 +418,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		printf("\n error retrieving trigger level \n");
 		
 		}else{
-			int64_t lower_end = freq/MHZ -start_frequency/MHZ;
-			int64_t higher_end = freq/MHZ -stop_frequency/MHZ;
+			int64_t lower_end = freq -start_frequency/MHZ;
+			int64_t higher_end = freq -stop_frequency/MHZ;
 				if(lower_end<-62.5 ||higher_end>62.5)
 			{
 		
-				
-		printf("\n Warning Centre Frequency is out of range of the triggers \n ");
+				return WSA_ERR_CFREQRANGE;
+		//printf("\n Centre Frequency is out of range of the triggers, no Data is available \n ");
 			return 0;
 			}
-		  }
-
-	   }
+		  else if(freq<90){
+			  	return WSA_ERR_FREQLOW;	
+			return 0;
+		}
+		
+			}
+		}
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
@@ -695,9 +700,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 
 			result = wsa_get_freq(dev, &freq);
+	
 			if (result >= 0)
 				printf("Current centre frequency: %0.3f MHz\n", 
-					(float) freq / MHZ);
+					(float) freq);
 		} // end get FREQ
 
 		else if (strcmp(cmd_words[1], "FSHIFT") == 0) {
@@ -1568,8 +1574,9 @@ void print_wsa_stat(struct wsa_device *dev) {
 
 	// TODO handle the errors
 	result = wsa_get_freq(dev, &freq);
+
 	if (result >= 0)
-		printf("\t\t- Frequency: %0.3lf MHz\n", (float) freq / MHZ);
+		printf("\t\t- Frequency: %0.3lf MHz\n", (float) freq);
 	else
 		printf("\t\t- Error: Failed getting the frequency value.\n");
 
