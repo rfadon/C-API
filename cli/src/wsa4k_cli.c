@@ -342,8 +342,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t stop_frequency=0;
 	int64_t amplitude=0;
 	int32_t enable=0;
+	int32_t dec=0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
+
+
+
 
 	// to calculate run time
 	TIME_HOLDER run_start_time;
@@ -412,11 +416,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 		if(enable==1)
 		{ 
+			result = wsa_get_decimation(dev, &dec);
+
 			result = wsa_get_trigger_level(dev,&start_frequency,&stop_frequency,&amplitude);
 			if (result < 0)
 	{
 		printf("\n error retrieving trigger level \n");
-		
+		return 0;
 		}else{
 			int64_t lower_end = freq -start_frequency/MHZ;
 			int64_t higher_end = freq -stop_frequency/MHZ;
@@ -425,13 +431,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 				return WSA_ERR_CFREQRANGE;
 		//printf("\n Centre Frequency is out of range of the triggers, no Data is available \n ");
-			return 0;
+			
 			}
 		  else if(freq<90){
 			  	return WSA_ERR_FREQLOW;	
-			return 0;
-		}
-		
+			
+		  }else if(dec>0){
+			  if(freq <start_frequency/MHZ || freq>stop_frequency/MHZ){
+				  printf("\n Decimation must be 0 when Center Frequency is outside of the Trigger Levels");
+				  return 0;
+			  }
+		  }
+
 			}
 		}
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
@@ -1566,6 +1577,10 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int32_t value;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
+    int64_t start_frequency=0;
+	int64_t stop_frequency=0;
+	int64_t amplitude=0;
+	int32_t enable=0;
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
@@ -1610,7 +1625,28 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else {
 		printf("\t\t- Error: Failed reading the packets per bock value.\n");
 	}
-}
+	result = wsa_get_trigger_enable(dev, &enable);
+		if (result >= 0) {
+
+		if(enable==0){
+		printf("\t\t- Triggers are disabled\n");
+		}
+		else if(enable ==1){
+		printf("\t\t- Triggers are enabled\n");
+		}
+		}else{
+		printf("\t\t- Error: Failed reading if the triggers are enabled.\n");
+		}
+		result = wsa_get_trigger_level(dev, &start_frequency,&stop_frequency,&amplitude);
+		if (result >= 0) {
+		printf("\t\t- Start Frequency of Triggers: %u\n", start_frequency/MHZ);
+		printf("\t\t- Stop Frequency of Triggers: %u\n", stop_frequency/MHZ);
+		printf("\t\t- Amplitude of Triggers: %lld dBm\n", amplitude);
+		}else{
+			printf("\t\t- Error: Failed reading trigger levels.\n");
+		}
+
+} 
 
 
 /**
