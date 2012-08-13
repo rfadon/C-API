@@ -47,7 +47,6 @@
 #include "wsa_commons.h"//common functions used
 #include "wsa_lib.h"
 #include "wsa_api.h"//calls on itself
-#include "wsa_client.h"
 
 
 #define MAX_RETRIES_READ_FRAME 5
@@ -917,7 +916,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 
 	// Verify the validity of the return value
 	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) {
-		printf("Error: WSA returned %ld.\n", temp); 
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1220,164 +1219,4 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 	*enable = (int16_t) temp;
 
 	return 0;
-}
-// ////////////////////////////////////////////////////////////////////////////
-// Context Packet Function                                                 //
-// ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Retrieve Reciever Context Packets
- *
- * @param dev - A pointer to the WSA device structure.	
- * @param Reference Point 
- * @param RF Reference Frequency
- * @param Gain
- * @param Temperature
- * @return 0 on success, or a negative number on error.
- */
-
-int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_per_block, int32_t samples_per_packet)
-
-{
-	uint8_t* vrt_packet_buffer = 0;
-	uint16_t expected_header_size = 1;//size of a context header
-	int32_t vrt_packet_bytes = expected_header_size * BYTES_PER_VRT_WORD;
-	int32_t vrt_iq_packet_size = samples_per_packet + VRT_HEADER_SIZE +VRT_TRAILER_SIZE-1;
-	int32_t vrt_iq_packet_size_bytes =  vrt_iq_packet_size*BYTES_PER_VRT_WORD;
-	uint8_t* vrt_iq_packet_buffer = 0;
-	int32_t bytes_received = 0;
-	int32_t bytes_expected=0;
-	int16_t socket_receive_result = 0;
-	int16_t result=0;
-	uint32_t context_indicator_field = 0;
-	uint8_t packet_order_indicator = 0;
-	uint32_t i=0;
-	uint32_t stream_identifier_word = 0;
-    int64_t dig_bandwidth=0;
-	int32_t dig_ref_level=0;
-	int32_t pkt_size=0;
-	uint8_t* temp_buffer = 0;
-	uint16_t temp_size=0;
-	int32_t temp_size_bytes=0;
-	uint32_t timer = 300;
-
-	
-	printf("\nFinding Context Packets...\n");
-	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
-	vrt_iq_packet_buffer = (uint8_t*) malloc(vrt_iq_packet_size_bytes * sizeof(uint8_t));
-	if (vrt_packet_buffer == NULL)
-	{
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-
-
-	result = wsa_capture_block(dev);
-
-	
-		for (i = 1; i < packets_per_block+1; i++)
-	{
-
-
-	socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		if (socket_receive_result < 0)
-	{
-		printf("\nError in the Socket Recieve Function...\n");
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
-		free(temp_buffer);
-		free(vrt_iq_packet_buffer);
-		free(vrt_packet_buffer);
-		return socket_receive_result;
-	}
-				pkt_size =(((uint16_t) vrt_packet_buffer[2]) << 8) 
-				+ (((uint16_t) vrt_packet_buffer[3])); 
-
-				//if(pkt_size>1000000){
-				//pkt_size =(((uint16_t) vrt_packet_buffer[3]) << 8) 
-				//+ (((uint16_t) vrt_packet_buffer[2])); 
-				//
-	
-	   //}
-
-
-
-	 if ((vrt_packet_buffer[0] & 0xf0) == 0x10){
-		printf("\n IQ PACKET DETECTED\n");
-		
-		printf("Packet Size: %u\n",pkt_size);
-	
-		bytes_expected = (pkt_size-1)*4;
-
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_iq_packet_buffer, vrt_iq_packet_size_bytes, timer, &bytes_received);
-				
-		
-		
-		stream_identifier_word = (((uint32_t)  vrt_iq_packet_buffer[0]) << 24) 
-		+ (((uint32_t)  vrt_iq_packet_buffer[1]) << 16) 
-		+ (((uint32_t)  vrt_iq_packet_buffer[2]) << 8) 
-		+ (uint32_t)  vrt_iq_packet_buffer[3];			
-		printf("Stream Identifier Word: %hu\n",stream_identifier_word);
-			
-	   printf("Number of bytes recieved: %u\n",bytes_received);
-	   if(bytes_received != bytes_expected){
-		   printf("DID NOT RECEIVE EXPECTED NUMBER OF BYTES \n");
-		   while(temp_size_bytes !=bytes_received){
-		   free(temp_buffer);
-			temp_size_bytes = bytes_expected-bytes_received;
-			bytes_expected = temp_size_bytes;
-			temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
-		printf("Number of bytes recieved: %u\n",bytes_received);
-		printf("Number of bytes expected: %u\n",temp_size_bytes);
-		if(bytes_received==0){
-			temp_size_bytes=0;
-		}
-		   }
-		   
-	   }
-		}
-
-		
-	 else	if ((vrt_packet_buffer[0] & 0xf0) == 0x40){
-			
-		 i--;
-		printf("\n CONTEXT DETECTED \n");
-		printf("Packet Size: %u\n",pkt_size);
-		temp_size = pkt_size-1;
-		temp_size_bytes = temp_size * BYTES_PER_VRT_WORD;	
-		temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		printf("Number of bytes recieved: %u\n",bytes_received);
-		
-		
-		
-		stream_identifier_word = (((uint32_t) temp_buffer[0]) << 24) 
-		+ (((uint32_t) temp_buffer[1]) << 16) 
-		+ (((uint32_t) temp_buffer[2]) << 8) 
-		+ (uint32_t) temp_buffer[3];			
-		printf("Stream Identifier Word: %u\n",stream_identifier_word);
-	
-		
-
-				context_indicator_field = (((uint32_t) temp_buffer[16]) << 24) 
-				+ (((uint32_t) temp_buffer[17]) << 16) 
-				+ (((uint32_t) temp_buffer[18]) << 8) 
-				+ (uint32_t) temp_buffer[19];
-	
-			
-			
-			printf("Context Field Indicator: %u\n",context_indicator_field);
-		
-		}
-	
-		}
-		free(temp_buffer);
-		free(vrt_iq_packet_buffer);
-		free(vrt_packet_buffer);
-		return 0;
-	
-	
-	
-	
-
 }
