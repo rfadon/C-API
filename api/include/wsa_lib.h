@@ -12,6 +12,7 @@
 #define MHZ 1000000ULL
 
 #define VRT_HEADER_SIZE 5
+
 #define VRT_TRAILER_SIZE 1
 #define BYTES_PER_VRT_WORD 4
 
@@ -154,6 +155,8 @@ struct wsa_vrt_packet_header {
 	struct wsa_time time_stamp;
 };
 
+
+
 // These values will be defined in a future release
 struct wsa_vrt_packet_trailer {
 	uint8_t valid_data_indicator;
@@ -161,6 +164,8 @@ struct wsa_vrt_packet_trailer {
 	uint8_t over_range_indicator;
 	uint8_t sample_loss_indicator;
 };
+
+
 
 
 struct wsa_socket {

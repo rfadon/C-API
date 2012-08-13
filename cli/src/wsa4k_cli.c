@@ -629,6 +629,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
+
+
+
+	
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -798,7 +802,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result >= 0) {
 				printf("Current packets per block: %u\n", packets_per_block);
 			}
-		} // end get PPB
+			} // end get PPB
+
+
 
 		else if (strcmp(cmd_words[1], "SPP") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
@@ -823,7 +829,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end get SPP
-		
+
+				//get context packet	
+		else if (strcmp(cmd_words[1], "CONT") == 0) {
+			
+			result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+			result = wsa_get_packets_per_block(dev, &packets_per_block);
+			
+				result = wsa_get_context_digitizer(dev,packets_per_block,samples_per_packet);
+			
+		return 0;	
+		}
+
+
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
 			if (strcmp(cmd_words[2], "ENABLE") == 0) {
 				result = wsa_get_trigger_enable(dev, &int_result);
