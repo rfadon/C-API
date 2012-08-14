@@ -1032,8 +1032,51 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 
 
 // ////////////////////////////////////////////////////////////////////////////
+// DEVICE SETTINGS					                                         //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_firm_v(struct wsa_device *dev)
+{
+	struct wsa_resp query;		// store query results
+
+
+	int16_t i = 0;
+
+	
+	
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+	
+	wsa_send_query(dev, "*IDN?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	printf("\t\t- Firmware Version: ");
+	for(i=44; i<49;i++){
+		
+		printf("%c", query.output[i]);
+		
+
+	}
+	printf("\n");
+	
+
+	
+
+
+	return 0;
+}
+
+
+
+// ////////////////////////////////////////////////////////////////////////////
 // TRIGGER CONTROL SECTION                                                   //
 // ////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
 
 /**
  * Sets the WSA to use basic a level trigger
@@ -1252,6 +1295,8 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	uint32_t context_indicator_field = 0;
 	uint8_t packet_order_indicator = 0;
 	uint32_t i=0;
+	uint32_t x =0;
+	uint32_t end_buffer =0;
 	uint32_t stream_identifier_word = 0;
     int64_t dig_bandwidth=0;
 	int32_t dig_ref_level=0;
@@ -1259,7 +1304,8 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	uint8_t* temp_buffer = 0;
 	uint16_t temp_size=0;
 	int32_t temp_size_bytes=0;
-	uint32_t timer = 300;
+	uint32_t timer = 3600;
+	uint32_t buffer_index=0;
 
 	
 	printf("\nFinding Context Packets...\n");
@@ -1277,6 +1323,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	
 		for (i = 1; i < packets_per_block+1; i++)
 	{
+			  
 
 
 	socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
@@ -1289,19 +1336,12 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 		free(vrt_packet_buffer);
 		return socket_receive_result;
 	}
-				pkt_size =(((uint16_t) vrt_packet_buffer[2]) << 8) 
-				+ (((uint16_t) vrt_packet_buffer[3])); 
-
-				//if(pkt_size>1000000){
-				//pkt_size =(((uint16_t) vrt_packet_buffer[3]) << 8) 
-				//+ (((uint16_t) vrt_packet_buffer[2])); 
-				//
-	
-	   //}
+				pkt_size =(((uint32_t) vrt_packet_buffer[2]) << 8) 
+				+ (((uint32_t) vrt_packet_buffer[3])); 
 
 
 
-	 if ((vrt_packet_buffer[0] & 0xf0) == 0x10){
+				if ((vrt_packet_buffer[0] & 0xf0) == 0x10){
 		printf("\n IQ PACKET DETECTED\n");
 		
 		printf("Packet Size: %u\n",pkt_size);
@@ -1321,21 +1361,40 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	   printf("Number of bytes recieved: %u\n",bytes_received);
 	   if(bytes_received != bytes_expected){
 		   printf("DID NOT RECEIVE EXPECTED NUMBER OF BYTES \n");
+		   buffer_index = bytes_received;
 		   while(temp_size_bytes !=bytes_received){
-		   free(temp_buffer);
+		   
+	
 			temp_size_bytes = bytes_expected-bytes_received;
 			bytes_expected = temp_size_bytes;
 			temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
+		
+		
 		printf("Number of bytes recieved: %u\n",bytes_received);
 		printf("Number of bytes expected: %u\n",temp_size_bytes);
+		end_buffer=vrt_iq_packet_size_bytes;
+
+		for (x = buffer_index; x<end_buffer;x++)
+		
+		{
+		vrt_iq_packet_buffer[x] = temp_buffer[x-buffer_index];
+
+
+		   
+		   }
+		buffer_index = buffer_index + bytes_received;
 		if(bytes_received==0){
 			temp_size_bytes=0;
+		
 		}
+	
 		   }
 		   
 	   }
-		}
+		
+
+				}
 
 		
 	 else	if ((vrt_packet_buffer[0] & 0xf0) == 0x40){
@@ -1355,7 +1414,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 		+ (((uint32_t) temp_buffer[1]) << 16) 
 		+ (((uint32_t) temp_buffer[2]) << 8) 
 		+ (uint32_t) temp_buffer[3];			
-		printf("Stream Identifier Word: %u\n",stream_identifier_word);
+		printf("Stream Identifier Word: %hu\n",stream_identifier_word);
 	
 		
 
@@ -1369,9 +1428,9 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 			printf("Context Field Indicator: %u\n",context_indicator_field);
 		
 		}
-	
+
 		}
-		free(temp_buffer);
+					free(temp_buffer);
 		free(vrt_iq_packet_buffer);
 		free(vrt_packet_buffer);
 		return 0;

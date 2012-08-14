@@ -1599,10 +1599,14 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int64_t stop_frequency=0;
 	int64_t amplitude=0;
 	int32_t enable=0;
+	char dig1=0;
+	char dig2=0;
+	char dig3=0;
+	
+	
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
-	printf("\t- Firmware version: %s\n", dev->descr.fw_version);
 	printf("\t- Current settings: \n");
 
 	// TODO handle the errors
@@ -1619,6 +1623,16 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else
 		printf("\t\t- Error: Failed getting the gain IF value.\n");
 	
+	
+	result = wsa_get_firm_v(dev);
+	if (result < 0)
+		printf("\t\t- Error: Failed getting the firmware version.\n");
+	
+
+		
+	
+
+
 	result = wsa_get_gain_rf(dev, &gain);
 	if (result >= 0) {
 		char temp[10];
