@@ -316,15 +316,17 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet)
+		const uint16_t samples_per_packet,
+		uint8_t* context_is)
 {
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
+	uint8_t context_present = 0;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, data_buffer, samples_per_packet);
+	return_status = wsa_read_iq_packet_raw(device, header, trailer, data_buffer, samples_per_packet, &context_present);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -332,6 +334,9 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
 		return return_status;
+	}if(context_present ==1){
+		*context_is = 1;
+		return 0;
 	}
 
 	// Note: don't rely on the value of return_status

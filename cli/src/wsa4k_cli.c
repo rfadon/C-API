@@ -343,6 +343,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t amplitude=0;
 	int32_t enable=0;
 	int32_t dec=0;
+	uint8_t context_is=0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -521,7 +522,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet);
+		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
 		get_current_time(&capture_end_time);
 		// sum it up
@@ -535,6 +536,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(i_buffer);
 			free(q_buffer);
 			return result;
+		}
+		if(context_is==1){
+			
+			i--;
+			continue;
 		}
 
 		if (header->packet_order_indicator != expected_packet_order_indicator)

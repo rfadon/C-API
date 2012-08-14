@@ -786,17 +786,32 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet)
+		const uint16_t samples_per_packet,
+		uint8_t* context_present)
 {
+	uint32_t timer = 3600;
+	uint8_t* vrt_header_buffer = 0;
+	uint8_t* temp_buffer=0;
+	uint16_t temp_size=0;
+	int32_t temp_size_bytes=0;
+	uint16_t expected_header_size = 2;
+	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
+	
+
 	uint8_t* vrt_packet_buffer = 0;
-	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE);
+	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE-2);
 	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
 	int32_t bytes_received = 0;
 	int16_t socket_receive_result = 0;
-
+	
 	uint32_t stream_identifier_word = 0;
 	uint8_t packet_order_indicator = 0;
 	uint16_t packet_size = 0;
+	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
+		if (vrt_header_buffer == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
 
 	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
 	if (vrt_packet_buffer == NULL)
@@ -810,8 +825,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	header->time_stamp.sec = 0;
 	header->time_stamp.psec = 0;
 
-	// go get the required bytes
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, timer, &bytes_received);
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 	if (socket_receive_result < 0)
@@ -821,7 +836,56 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return socket_receive_result;
 	}
 
-	if (bytes_received != vrt_packet_bytes)
+	
+
+	// *****
+	// Handle the 5 header words
+	// *****
+
+    // Check "Pkt Type" & get the Stream identifier word, determine if this is a context packet or an iq backet
+	
+	
+	if((vrt_header_buffer[0] & 0xf0) != 0x40 &&(vrt_header_buffer[0] & 0xf0) !=0x10){
+					free(vrt_packet_buffer);
+			return WSA_ERR_NOTIQFRAME;
+	}
+
+			stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
+				+ (((uint32_t) vrt_header_buffer[5]) << 16) 
+				+ (((uint32_t) vrt_header_buffer[6]) << 8) 
+				+ (uint32_t) vrt_header_buffer[7];		
+		if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
+		{
+			
+			free(vrt_packet_buffer);
+			return WSA_ERR_NOTIQFRAME;
+		}
+	else if((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)){
+		printf("CONTEXT FOUND\n");
+		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
+		*context_present =1;
+		temp_size_bytes = (packet_size-2)*4;
+		temp_buffer = (uint8_t*) malloc(temp_size_bytes * sizeof(uint8_t));
+		printf("Packet Size: %u\n",packet_size);
+		
+		if (temp_buffer == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
+		
+		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
+		
+		printf("bytes received: %u\n",bytes_received);
+		printf("packet size: %u\n",packet_size);
+		free(vrt_packet_buffer);
+		free(temp_buffer);
+		free(vrt_header_buffer);
+		return 0;
+
+	}
+
+
+		if (bytes_received != vrt_header_bytes)
 	{
 		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
 			bytes_received, 
@@ -830,78 +894,82 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 
-	// *****
-	// Handle the 5 header words
-	// *****
-
-	// 1. Check "Pkt Type" & get the Stream identifier word
-	if ((vrt_packet_buffer[0] & 0xf0) == 0x10) 
-	{
-		stream_identifier_word = (((uint32_t) vrt_packet_buffer[4]) << 24) 
-				+ (((uint32_t) vrt_packet_buffer[5]) << 16) 
-				+ (((uint32_t) vrt_packet_buffer[6]) << 8) 
-				+ (uint32_t) vrt_packet_buffer[7];
-			
-		if (stream_identifier_word != 0x90000003)
-		{
-			free(vrt_packet_buffer);
-			return WSA_ERR_NOTIQFRAME;
-		}
-	}
-
 	// TODO: Class identifier C?
-	// If 1, returns the data pf class c type?
 
+
+	
+		
+		
+	
 	// 2. Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 	// It provides a simple verification that packets are arriving in the right order
-	packet_order_indicator = vrt_packet_buffer[1] & 0x0f;
+	packet_order_indicator = vrt_header_buffer[1] & 0x0f;
 	doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
 	header->packet_order_indicator = packet_order_indicator;
 
 	// 3. Get the 16-bit "Pkt Size"
-	packet_size = (((uint16_t) vrt_packet_buffer[2]) << 8) + (uint16_t) vrt_packet_buffer[3];
+	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
-
-	if (packet_size != expected_packet_size)
+	printf("Packet Size: %u\n",packet_size);
+	printf("Expected Packet Size: %u\n",expected_packet_size);
+	if (packet_size != (expected_packet_size+2))
 	{
+		
 		doutf(DHIGH, "Error: Expected %hu words in VRT packet. Received %hu\n", 
 			expected_packet_size, 
 			packet_size);
 		free(vrt_packet_buffer);
 		return WSA_ERR_VRTPACKETSIZE;
 	}
-
+	
+	
 	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
+
+
 	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
-	if (!((vrt_packet_buffer[1] & 0xC0) >> 6)) 
+	if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
 	{
 		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
-		free(vrt_packet_buffer);
+		free(vrt_header_buffer);
 		return WSA_ERR_INVTIMESTAMP;
 	}
 
-	header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[8]) << 24) +
-							(((uint32_t) vrt_packet_buffer[9]) << 16) +
-							(((uint32_t) vrt_packet_buffer[10]) << 8) + 
-							(uint32_t) vrt_packet_buffer[11];
+	
+	printf("READING: %u\n",vrt_packet_bytes);
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, timer, &bytes_received);
+		printf("break point\n");
+	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+
+	if (socket_receive_result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		free(vrt_packet_buffer);
+		return socket_receive_result;
+	}
+
+
+		header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[0]) << 24) +
+							(((uint32_t) vrt_packet_buffer[1]) << 16) +
+							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
+							(uint32_t) vrt_packet_buffer[3];
 	doutf(DLOW, "second: 0x%08X %u\n", 
 		header->time_stamp.sec, 
 		header->time_stamp.sec);
 
 	// 5. Check the TSF field, if present (= 0x10), 
 	// get the picoseconds time stamp at the 4th & 5th words
-	if ((vrt_packet_buffer[1] & 0x30) >> 5) 
+	if ((vrt_header_buffer[1] & 0x30) >> 5) 
 	{
-		header->time_stamp.psec = (((uint64_t) vrt_packet_buffer[12]) << 56) +
-				(((uint64_t) vrt_packet_buffer[13]) << 48) +
-				(((uint64_t) vrt_packet_buffer[14]) << 40) +
-				(((uint64_t) vrt_packet_buffer[15]) << 32) +
-				(((uint64_t) vrt_packet_buffer[16]) << 24) +
-				(((uint64_t) vrt_packet_buffer[17]) << 16) + 
-				(((uint64_t) vrt_packet_buffer[18]) << 8) + 
-				(uint64_t) vrt_packet_buffer[19];
+		header->time_stamp.psec = (((uint64_t) vrt_packet_buffer[4]) << 56) +
+				(((uint64_t) vrt_packet_buffer[5]) << 48) +
+				(((uint64_t) vrt_packet_buffer[6]) << 40) +
+				(((uint64_t) vrt_packet_buffer[7]) << 32) +
+				(((uint64_t) vrt_packet_buffer[8]) << 24) +
+				(((uint64_t) vrt_packet_buffer[9]) << 16) + 
+				(((uint64_t) vrt_packet_buffer[10]) << 8) + 
+				(uint64_t) vrt_packet_buffer[11];
 	}
 	else 
 	{
@@ -925,12 +993,13 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	// *****
 	// Copy the IQ data payload to the provided buffer
 	// *****
-	memcpy(data_buffer, vrt_packet_buffer + (VRT_HEADER_SIZE * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
+	memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
 
 	free(vrt_packet_buffer);
 
 	return 0;
-}
+
+	}
 
 
 /**

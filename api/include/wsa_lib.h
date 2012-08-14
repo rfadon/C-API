@@ -204,7 +204,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet);
+		const uint16_t samples_per_packet, uint8_t* context_present);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 int16_t wsa_read_status(struct wsa_device *dev, char *output);

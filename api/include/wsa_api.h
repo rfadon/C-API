@@ -38,7 +38,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet);
+		const uint16_t samples_per_packet, uint8_t* context_is);
 
 int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
 int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
