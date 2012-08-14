@@ -81,6 +81,12 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
 int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode);
 int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
+// ////////////////////////////////////////////////////////////////////////////
+// DEVICE STATUS SECTION                                                     //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_firm_v(struct wsa_device *dev);
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER SECTION                                                           //

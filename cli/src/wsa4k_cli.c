@@ -1584,8 +1584,14 @@ void print_wsa_stat(struct wsa_device *dev) {
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
-	printf("\t- Firmware version: %s\n", dev->descr.fw_version);
+	
 	printf("\t- Current settings: \n");
+
+	
+	result = wsa_get_firm_v(dev);
+	if (result < 0)
+		printf("\t\t- Error: Failed getting the firmware version.\n");
+
 
 	// TODO handle the errors
 	result = wsa_get_freq(dev, &freq);

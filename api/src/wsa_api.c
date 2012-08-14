@@ -1029,7 +1029,41 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	return 0;
 }
 
+// ////////////////////////////////////////////////////////////////////////////
+// DEVICE SETTINGS					                                         //
+// ////////////////////////////////////////////////////////////////////////////
 
+int16_t wsa_get_firm_v(struct wsa_device *dev)
+{
+	struct wsa_resp query;		// store query results
+
+
+	int16_t i = 0;
+
+	
+	
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+	
+	wsa_send_query(dev, "*IDN?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	printf("\t\t- Firmware Version: ");
+	for(i=44; i<49;i++){
+		
+		printf("%c", query.output[i]);
+		
+
+	}
+	printf("\n");
+	
+
+	
+
+
+	return 0;
+}
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER CONTROL SECTION                                                   //
 // ////////////////////////////////////////////////////////////////////////////
