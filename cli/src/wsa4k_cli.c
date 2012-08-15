@@ -1103,7 +1103,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						}
 						else {
 							stop_frequency = (int64_t) (temp_double * MHZ);
-						
+							
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
 								printf("Amplitude must be a valid number\n");
