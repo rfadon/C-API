@@ -414,7 +414,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	result = wsa_get_trigger_enable(dev,&enable);
 		
-		if(enable==1)
+	if (enable==1)
 		{ 
 			result = wsa_get_decimation(dev, &dec);
 
@@ -1173,11 +1173,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	} // End handling non get/set cmds.
 
 	// Print out the errors
+
+	
 	if (result < 0) {
-		printf("ERROR %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
-		if (result == WSA_ERR_QUERYNORESP) {
-			printf("Possibly due to loss of Ethernet connection.\n\n");
-			user_quit = TRUE;
+		if (result <= (LNEG_NUM - 4000)) {
+			printf("WARNING %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
+		} else {
+			printf("ERROR %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
+			if  (result == WSA_ERR_QUERYNORESP) {
+				printf("Possibly due to loss of Ethernet connection.\n\n");
+				user_quit = TRUE;
+			}
 		}
 	}
 

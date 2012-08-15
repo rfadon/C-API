@@ -114,6 +114,7 @@
 #define WSA_ERR_INVTRIGGERMODE	(LNEG_NUM - 1211)
 #define WSA_ERR_CFREQRANGE		(LNEG_NUM - 1212)
 #define WSA_ERR_FREQLOW			(LNEG_NUM - 1213)
+	 
 
 
 
@@ -155,6 +156,13 @@
 #define WSA_ERR_INVREGADDR		(LNEG_NUM - 2001)
 #define WSA_ERR_MALLOCFAILED	(LNEG_NUM - 2002)
 #define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
+
+
+
+// ///////////////////////////////
+// WARNINGS						//
+// ///////////////////////////////
+#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 4000)	
 
 
 const char *_wsa_get_err_msg(int16_t err_id);
