@@ -66,12 +66,17 @@
 #define WSA4000_MAX_SAMPLE_SIZE (2560 * 1024) // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
 
 #define WSA4000_MIN_SAMPLES_PER_PACKET 128
+
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
 #define WSA4000_MAX_SAMPLES_PER_PACKET (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
 #define WSA4000_MIN_PACKETS_PER_BLOCK 1
 #define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
+
+//PLL Values
+#define PLL_ENT 1
+#define PLL_EXT 2
 
 // *****
 // RFE0440 SPECIFIC

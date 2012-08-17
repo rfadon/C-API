@@ -1086,6 +1086,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 	int16_t result = 0;
 	char temp_str[50];
 
+
 	result = wsa_verify_freq(dev, start_frequency);
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 	{
@@ -1261,4 +1262,109 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 	*enable = (int16_t) temp;
 
 	return 0;
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// PLL Reference CONTROL SECTION                                                   //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the PLL Reference Source
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param pll_ref - An integer pointer to store the current PLL Source
+  * @return 0 on success, or a negative number on error.
+ */
+
+int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
+{
+	struct wsa_resp query;
+	char* strtok_result;
+	char* intern = "I";
+	char* ext = "E";
+
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0){
+	    return WSA_ERR_INVRFESETTING;
+		
+	}
+	  
+
+
+	wsa_send_query(dev, "SOURCE:REFERENCE:PLL?\n", &query);
+	
+	if (query.status <= 0){
+		
+		return (int16_t) query.status;
+	}
+	
+	
+	strtok_result = strtok(query.output, ",");
+	
+	
+	
+	if (*strtok_result == *intern) {
+	  
+		*pll_ref = 1;
+		
+	
+	
+	} else if( *strtok_result == *ext) {
+			
+			*pll_ref = 2;
+		
+			
+	}
+	return 0;
+
+		
+		
+		
+
+
+}
+
+/**
+ * Sets the PLL Reference Source
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param pll_ref - An integer used to store the value of the reference source to be set
+  * @return 0 on success, or a negative number on error.
+ */
+
+int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref)
+{
+
+	int16_t result = 0;
+	char temp_str[30];
+	if (pll_ref ==1) {
+
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL INT\n");
+
+	} else if(pll_ref ==2) {
+
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL EXT\n");
+	// set the freq using the selected connect type
+	}
+	result = wsa_send_command(dev, temp_str);
+	return result;
+}
+
+
+
+/**
+ * Reset the PLL Reference Source
+ *
+
+ */
+
+int16_t wsa_reset_reference_pll(struct wsa_device* dev){
+	
+	int16_t result = 0;
+	char temp_str[30];
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
+	result = wsa_send_command(dev, temp_str);
+	return result;
+
+
 }

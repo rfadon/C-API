@@ -126,6 +126,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get gain <rf | if> [max | min] \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
+	printf(" get ref pll                Show the current PLL reference source.\n");
 	printf(" get ppb                Show the current packets per block.\n");
 	printf(" get spp [max | min]    Show the current samples per packet.\n");
 	printf(" get trigger level      Show the current level trigger settings\n");
@@ -155,6 +156,8 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        ex: set gain rf high;\n"
 		   "                            set gain if -20.\n", 
 		   MIN_IF_GAIN, MAX_IF_GAIN);
+	printf(" set ref pll <INT | EXT>        Select the PLL reference source, available 1 to "
+									"2.\n");
 	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
 		   "                        - The maximum value will depend on the\n"
@@ -175,6 +178,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                          2) Stop frequnecy (in MHz)\n"
 		   "                          3) Amplitude (in dBm)\n"
 		   "                        ex: set trigger level 2410,2450,-50\n");
+
 
 	
 	printf("\n");
@@ -789,6 +793,33 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
 
+
+		else if (strcmp(cmd_words[1], "REF") == 0)	{
+			
+			 if (strcmp(cmd_words[2], "PLL") == 0){
+				result = wsa_get_reference_pll(dev, &int_result);
+				
+				if (result >= 0) {
+					
+					if (int_result ==1) {
+					printf("Current PLL Reference Source: INT");
+			
+					} else if (int_result == 2) {
+					printf("Current PLL Reference Source: EXT");
+
+					}
+				}
+
+			}else{
+				printf("Did you mean 'get ref pll'\n");
+			 
+			 }
+
+
+
+		}//end get ref PLL
+
+
 		else if (strcmp(cmd_words[1], "PPB") == 0) {
 			if (num_words > 2) {
 				printf("Extra parameters ignored (max/min not available)!\n");
@@ -1000,6 +1031,32 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set GAIN
 
+		else if (strcmp(cmd_words[1], "REF") == 0) {
+			if (strcmp(cmd_words[2], "PLL") == 0) {
+			
+				if (num_words < 4) {
+				printf("Missing the PLL Reference Source, see 'h'. \n");
+				} else {
+					if (strcmp(cmd_words[3], "INT") == 0) {
+					int_result = PLL_ENT;
+					result = wsa_set_reference_pll(dev, PLL_ENT);
+							} else if (strcmp(cmd_words[3], "EXT") == 0) {
+							int_result = PLL_EXT;
+							result = wsa_set_reference_pll(dev, PLL_EXT);
+					
+							} else {
+							printf("Improper PLL Source see 'h'. \n");
+							}
+					}
+
+				}
+			}
+
+
+		//end set PLL
+					
+					
+
 		else if (strcmp(cmd_words[1], "PPB") == 0) {
 			if (num_words < 3) {
 				printf("Missing the packets per block value. See 'h'.\n");
@@ -1101,8 +1158,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else 
 			printf("Invalid 'set'. See 'h'.\n");
-	} // end SET
+		// end SET
 
+
+
+	
+	} else if (strcmp(cmd_words[0], "RESET") == 0 ){
+		if (strcmp(cmd_words[1], "REF") == 0){
+			if (strcmp(cmd_words[2], "PLL") == 0){
+				result = wsa_reset_reference_pll(dev);
+			}
+		}
+	}
 
 	//*****
 	// Handle non-get/set commands
@@ -1639,26 +1706,33 @@ void print_wsa_stat(struct wsa_device *dev) {
 	}
 	result = wsa_get_trigger_enable(dev, &enable);
 		if (result >= 0) {
-
-		if(enable==0){
-		printf("\t\t- Triggers are disabled\n");
-		}
-		else if(enable ==1){
-		printf("\t\t- Triggers are enabled\n");
-		}
-		}else{
-		printf("\t\t- Error: Failed reading if the triggers are enabled.\n");
-		}
+		
 		result = wsa_get_trigger_level(dev, &start_frequency,&stop_frequency,&amplitude);
-		if (result >= 0) {
-		printf("\t\t- Start Frequency of Triggers: %u\n", start_frequency/MHZ);
-		printf("\t\t- Stop Frequency of Triggers: %u\n", stop_frequency/MHZ);
-		printf("\t\t- Amplitude of Triggers: %lld dBm\n", amplitude);
-		}else{
-			printf("\t\t- Error: Failed reading trigger levels.\n");
-		}
+		printf("\t\t- Trigger Settings\n");
+			
+		
+			if (enable == 0) {
+			printf("\t\t\t- disabled\n");
+			}
+		
+			else if (enable == 1) {
+			printf("\t\t\t- Triggers are enabled\n");
+			}
 
-} 
+		result = wsa_get_trigger_level(dev, &start_frequency,&stop_frequency,&amplitude);
+		
+		if (result >= 0) {
+			printf("\t\t\t- Start Frequency: %u\n", start_frequency/MHZ);
+			printf("\t\t\t- Stop Frequency: %u\n", stop_frequency/MHZ);
+			printf("\t\t\t- Amplitude: %lld dBm\n", amplitude);
+		
+		}else{
+			
+			printf("\t\t- Error: Failed reading trigger levels.\n");
+			 }
+
+		} 
+}
 
 
 /**
