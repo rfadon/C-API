@@ -860,7 +860,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			free(vrt_packet_buffer);
 			return WSA_ERR_NOTIQFRAME;
 		}
-	else if((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)){
+	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
+		
 		printf("CONTEXT FOUND\n");
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		*context_present =1;
@@ -894,7 +895,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 
-	// TODO: Class identifier C?
 
 
 	
@@ -939,7 +939,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	printf("READING: %u\n",vrt_packet_bytes);
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, timer, &bytes_received);
-		printf("break point\n");
+		
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 	if (socket_receive_result < 0)

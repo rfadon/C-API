@@ -1311,6 +1311,8 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	int32_t temp_size_bytes=0;
 	uint32_t timer = 3600;
 	uint32_t buffer_index=0;
+	int32_t rf_frequency1 =0;
+	int32_t rf_frequency2 =0;
 
 	
 	printf("\nFinding Context Packets...\n");
@@ -1431,6 +1433,25 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 			
 			
 			printf("Context Field Indicator: %u\n",context_indicator_field);
+
+						rf_frequency1 = (((int32_t) temp_buffer[20]) << 24) 
+				+ (((int32_t) temp_buffer[21]) << 16) 
+				+ (((int32_t) temp_buffer[22]) << 8) 
+				+ (int32_t) temp_buffer[23];
+
+
+				rf_frequency2 = (((int32_t) temp_buffer[24]) << 24) 
+				+ (((int32_t) temp_buffer[25]) << 16) 
+				+ (((int32_t) temp_buffer[26]) << 8) 
+				+ (int32_t) temp_buffer[27];
+	
+	
+			
+			
+			printf("First RF frequency is: %u\n",rf_frequency1);
+			printf("Second RF frequency is: %u\n",rf_frequency2);
+
+
 		
 		}
 
