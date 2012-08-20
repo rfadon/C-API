@@ -22,6 +22,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
+int16_t extract_reciever_packet_frequency(uint8_t* temp_buffer, int64_t* reciever_frequency);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -732,7 +733,10 @@ const char *wsa_get_error_msg(int16_t err_code)
 
 
 /**
- * Reads one VRT packet containing raw IQ data. 
+ * Reads one VRT packet containing raw IQ data or a Context Packet.
+ *if a Context Packet is detected, the information inside the packet will be returned
+ *
+ *if an IQ Packet is detected, the IQ data will be returned
  * Each packet consists of a header, a data payload, and a trailer.
  * The number of samples expected in the packet is indicated by
  * the \b samples_per_packet parameter.
@@ -796,13 +800,17 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int32_t temp_size_bytes=0;
 	uint16_t expected_header_size = 2;
 	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
-	
-
 	uint8_t* vrt_packet_buffer = 0;
 	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE-2);
 	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
+	int32_t context_indicator_field = 0;
 	int32_t bytes_received = 0;
 	int16_t socket_receive_result = 0;
+	int64_t reciever_frequency = 0;
+	int16_t result = 0;
+
+
+
 	
 	uint32_t stream_identifier_word = 0;
 	uint8_t packet_order_indicator = 0;
@@ -842,42 +850,69 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	// Handle the 5 header words
 	// *****
 
-    // Check "Pkt Type" & get the Stream identifier word, determine if this is a context packet or an iq backet
-	
+    // Check "Pkt Type" and determine if this is neither an IQ packet or a context packet
 	
 	if((vrt_header_buffer[0] & 0xf0) != 0x40 &&(vrt_header_buffer[0] & 0xf0) !=0x10){
 					free(vrt_packet_buffer);
 			return WSA_ERR_NOTIQFRAME;
 	}
 
+
+	//Store the Stream Identifier to determine if the packet is an IQ packet or a context packet
+
 			stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
 				+ (((uint32_t) vrt_header_buffer[5]) << 16) 
 				+ (((uint32_t) vrt_header_buffer[6]) << 8) 
 				+ (uint32_t) vrt_header_buffer[7];		
+
 		if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
 		{
 			
 			free(vrt_packet_buffer);
 			return WSA_ERR_NOTIQFRAME;
 		}
+
+		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
 		
-		printf("CONTEXT FOUND\n");
+	
+
+		//retrieve the packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
+		
+		//indicate that a context is present
 		*context_present =1;
+
+		//allocate memory for the context packet
 		temp_size_bytes = (packet_size-2)*4;
 		temp_buffer = (uint8_t*) malloc(temp_size_bytes * sizeof(uint8_t));
-		printf("Packet Size: %u\n",packet_size);
+	
 		
 		if (temp_buffer == NULL)
 	{
 		return WSA_ERR_MALLOCFAILED;
 	}
-		
+		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
 		
-		printf("bytes received: %u\n",bytes_received);
-		printf("packet size: %u\n",packet_size);
+		if (stream_identifier_word == 0x90000001) {
+			
+			
+			if ( temp_buffer[12] & 0x08) {
+					result = extract_reciever_packet_frequency(temp_buffer, &reciever_frequency);
+
+					printf("Frequency Changed to:  %u\n", reciever_frequency);
+			
+			}
+
+		
+			
+		}
+
+
+
+
+	
 		free(vrt_packet_buffer);
 		free(temp_buffer);
 		free(vrt_header_buffer);
@@ -885,7 +920,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	}
 
-
+		//determine if the bytes recieved match the amount that were indicated in the header
 		if (bytes_received != vrt_header_bytes)
 	{
 		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
@@ -897,18 +932,18 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 
 
-	
+	//if the packet is an IQ packet this stage is reached
 		
 		
 	
-	// 2. Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
+	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 	// It provides a simple verification that packets are arriving in the right order
 	packet_order_indicator = vrt_header_buffer[1] & 0x0f;
 	doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
 	header->packet_order_indicator = packet_order_indicator;
 
-	// 3. Get the 16-bit "Pkt Size"
+	//Get the 16-bit "Pkt Size"
 	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
 	printf("Packet Size: %u\n",packet_size);
@@ -982,7 +1017,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	// *****
 	// TODO: Handle the trailer word here once it is available
-	// *****
+	// *****s
 	//if (vrt_packet_buffer[0] & 0x04)
 	// Placeholder values for now:
 	trailer->valid_data_indicator = 0;
@@ -1074,3 +1109,22 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	return (i / 4); //sample_size
 }
 
+int16_t extract_reciever_packet_frequency(uint8_t* temp_buffer, int64_t* reciever_frequency){
+
+	uint32_t word1 = 0;
+	uint32_t word2 = 0;
+
+	word1 = (((uint32_t) temp_buffer[16]) << 24) +
+							(((uint32_t) temp_buffer[17]) << 16) +
+							(((uint32_t) temp_buffer[18]) << 8) + 
+							(uint32_t) temp_buffer[19];
+
+	 word2 = ((uint32_t) temp_buffer[20]<<8) +(uint32_t) temp_buffer[21];
+		
+	printf("Word1 is: %u \n", word1);
+	printf("Word2 is: %u \n", word2);
+		*reciever_frequency =1205;
+
+		return 0;
+
+}
