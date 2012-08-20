@@ -802,10 +802,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (result >= 0) {
 					
 					if (int_result ==1) {
-					printf("Current PLL Reference Source: INT");
+					printf("Current PLL Reference Source: INT \n");
 			
 					} else if (int_result == 2) {
-					printf("Current PLL Reference Source: EXT");
+					printf("Current PLL Reference Source: EXT\n");
 
 					}
 				}

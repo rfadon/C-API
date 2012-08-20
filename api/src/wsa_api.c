@@ -1281,10 +1281,10 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 {
 	struct wsa_resp query;
 	char* strtok_result;
-	char* intern1 = "I";
+	char* intern = "INT";
 
 
-	char* ext = "E";
+	char* ext = "EXT";
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0){
 	    return WSA_ERR_INVRFESETTING;
