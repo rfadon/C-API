@@ -1281,7 +1281,9 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 {
 	struct wsa_resp query;
 	char* strtok_result;
-	char* intern = "I";
+	char* intern1 = "I";
+
+
 	char* ext = "E";
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0){
