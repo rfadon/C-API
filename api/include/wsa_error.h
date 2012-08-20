@@ -157,6 +157,12 @@
 #define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
 
 
+// ///////////////////////////////
+// Context Errors				//
+// ///////////////////////////////
+
+
+
 const char *_wsa_get_err_msg(int16_t err_id);
 
 #endif

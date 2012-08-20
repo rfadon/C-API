@@ -208,7 +208,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
-int16_t extract_reciever_frequency( uint8_t* temp_buffer, int64_t reciever_frequency); 
+int16_t extract_reciever_frequency( uint8_t* temp_buffer, int64_t* reciever_frequency); 
 
 const char *wsa_get_error_msg(int16_t err_code);
 
