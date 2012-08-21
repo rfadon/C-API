@@ -126,13 +126,14 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get gain <rf | if> [max | min] \n"
 		   "                        Show the current RF front end or IF gain "
 									"level.\n");
+	printf(" get lock ref pll	      get lock the pll reference\n");
 	printf(" get ref pll                Show the current PLL reference source.\n");
 	printf(" get ppb                Show the current packets per block.\n");
 	printf(" get spp [max | min]    Show the current samples per packet.\n");
 	printf(" get trigger level      Show the current level trigger settings\n");
 	printf(" get trigger enable     Check whether trigger mode is enabled\n");
 	printf("\n");
-
+		printf(" reset ref pll	        reset the pll reference\n");
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
@@ -156,7 +157,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        ex: set gain rf high;\n"
 		   "                            set gain if -20.\n", 
 		   MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set ref pll <INT | EXT>        Select the PLL reference source, available 1 to "
+	printf(" set ref pll <INT | EXT> Select the PLL reference source, available 1 to "
 									"2.\n");
 	printf(" set ppb <packets>      Set the number of packets per block to be "
 									"captured\n"
@@ -793,6 +794,37 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
 
+		else if (strcmp(cmd_words[1], "LOCK") == 0 ) {
+		if (strcmp(cmd_words[2], "REF") == 0 ) {
+			if (strcmp(cmd_words[3], "PLL") == 0 ){
+				
+				result = wsa_get_lock_ref_pll(dev, &int_result);
+				if (result >= 0) {
+					
+					if (int_result ==1) {
+					printf("Current Lock Reference Source: INT \n");
+			
+					} else if (int_result == 2) {
+					printf("Current Lock Reference Source: EXT\n");
+
+					}
+				}
+
+			
+
+			} else {
+				printf("Did you mean 'lock ref pll', see 'h'.");
+		
+			}
+		} else {
+				printf("Did you mean 'lock ref pll', see 'h'.");
+
+		}
+		
+		}
+
+	//end get LOCK REF
+
 
 		else if (strcmp(cmd_words[1], "REF") == 0)	{
 			
@@ -1163,16 +1195,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 
 	
-	} else if (strcmp(cmd_words[0], "RESET") == 0 ){
-		if (strcmp(cmd_words[1], "REF") == 0){
-			if (strcmp(cmd_words[2], "PLL") == 0){
+	} else if (strcmp(cmd_words[0], "RESET") == 0 ) {
+		if (strcmp(cmd_words[1], "REF") == 0) {
+			if (strcmp(cmd_words[2], "PLL") == 0) {
 				result = wsa_reset_reference_pll(dev);
 			}
 		}
-	}
+	
+		}
+
+
+
+
 
 	//*****
-	// Handle non-get/set commands
+	// Handle non wsa commands
 	//*****
 	else {	
 		if (strcmp(cmd_words[0], "DIR") == 0) {

@@ -105,5 +105,6 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
 int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref);
 int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref);
 int16_t wsa_reset_reference_pll(struct wsa_device* dev);
+int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t *lock_ref);
 #endif
 
