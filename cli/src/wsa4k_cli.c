@@ -96,7 +96,7 @@ void print_cli_menu(struct wsa_device *dev)
 	int32_t MAX_IF_GAIN = dev->descr.min_if_gain;
 	int32_t MIN_IF_GAIN = dev->descr.max_if_gain;
 	uint64_t FREQ_RES = dev->descr.freq_resolution;
-
+	//display help
 	printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive, < > required, "
 		"[ ] optional):\n\n");
@@ -799,25 +799,26 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (strcmp(cmd_words[3], "PLL") == 0 ){
 				
 				result = wsa_get_lock_ref_pll(dev, &int_result);
+				
 				if (result >= 0) {
 					
-					if (int_result ==1) {
-					printf("Current Lock Reference Source: INT \n");
+					if (int_result == 0) {
+					printf("The Reference PLL is currently unlocked \n");
 			
-					} else if (int_result == 2) {
-					printf("Current Lock Reference Source: EXT\n");
+					} else if (int_result == 1) {
+					printf("The reference PLL is currently locked\n");
 
 					}
-				}
+				}//
 
 			
 
 			} else {
-				printf("Did you mean 'lock ref pll', see 'h'.");
+				printf("Did you mean 'get lock ref pll', see 'h'.");
 		
 			}
 		} else {
-				printf("Did you mean 'lock ref pll', see 'h'.");
+				printf("Did you mean 'get lock ref pll', see 'h'.");
 
 		}
 		

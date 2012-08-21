@@ -1302,14 +1302,8 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 	
 	
 	strtok_result = strtok(query.output, ",");
-	
-	
-	
 	if (*strtok_result == *intern) {
-	  
 		*pll_ref = 1;
-		
-	
 	
 	} else if( *strtok_result == *ext) {
 			
@@ -1319,9 +1313,7 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 	}
 	return 0;
 
-		
-		
-		
+	
 
 
 }
@@ -1373,7 +1365,7 @@ int16_t wsa_reset_reference_pll(struct wsa_device* dev){
 
 
 /**
-* Lock the PLL Reference Source
+* get Lock the PLL Reference, returns a 0 if it is unlocked, and a 1 if it is locked.
 */
 
 int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
@@ -1381,37 +1373,21 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
 	char* strtok_result;
 	int16_t result = 0;
 	char temp_str[30];
-	char* intern = "INT";
-	char* ext = "EXT";
+	double temp;
 
 	
 
-	wsa_send_query(dev, "SOURCE:REFERENCE:PLL?\n", &query);
+	wsa_send_query(dev, "LOCK:REFerence?\n", &query);
 
-		if (query.status <= 0){
-		
+	if (query.status <= 0){
 		return (int16_t) query.status;
 	}
+		if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
 
-	strtok_result = strtok(query.output, ",");
-	
-	
-
-	if (*strtok_result == *intern) {
-
-		*lock_ref = 1;
-		return 0;
-
-	} else if (*strtok_result == *ext) {
-
-		*lock_ref = 2;
-		return 0;
-
-	} else {
-
+		*lock_ref = temp;
 	return 0;
 
 }
 
 
-}
