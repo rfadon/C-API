@@ -22,7 +22,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-int16_t extract_reciever_packet_frequency(uint8_t* temp_buffer, int64_t* reciever_frequency);
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int32_t* gain);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -808,6 +808,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int16_t socket_receive_result = 0;
 	int64_t reciever_frequency = 0;
 	int16_t result = 0;
+	int32_t reciever_gain =0;
 
 
 
@@ -815,17 +816,14 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint32_t stream_identifier_word = 0;
 	uint8_t packet_order_indicator = 0;
 	uint16_t packet_size = 0;
+
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 		if (vrt_header_buffer == NULL)
 	{
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
-	if (vrt_packet_buffer == NULL)
-	{
-		return WSA_ERR_MALLOCFAILED;
-	}
+
 
 	// reset header
 	header->packet_order_indicator = 0;
@@ -840,7 +838,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	if (socket_receive_result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
-		free(vrt_packet_buffer);
+		free(vrt_header_buffer);
 		return socket_receive_result;
 	}
 
@@ -874,14 +872,14 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
-		
-	
+		printf("CONTEXT PACKET DETECTED \n \n");
+		*context_present =1;
 
 		//retrieve the packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		
 		//indicate that a context is present
-		*context_present =1;
+		
 
 		//allocate memory for the context packet
 		temp_size_bytes = (packet_size-2)*4;
@@ -896,17 +894,13 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
 		
 		if (stream_identifier_word == 0x90000001) {
-			context_indicator_field = (((int32_t) temp_buffer[12]) << 24) +
-							(((int32_t) temp_buffer[13]) << 16) +
-							(((int32_t) temp_buffer[14]) << 8) + 
-							(int32_t) temp_buffer[15];
+				
+			
+		
+			
+					result = extract_reciever_packet_data(temp_buffer, &reciever_frequency, &reciever_gain);
+				
 
-			printf("Context Field Indicator:  %u\n", context_indicator_field);
-			if ( (temp_buffer[12] & 0x0f) == 0x08) {
-					printf("found frequency \n");
-					result = extract_reciever_packet_frequency(temp_buffer, &reciever_frequency);
-					printf("Frequency Changed to:  %u\n", reciever_frequency);
-			}// else if (	temp_buffer[13] & 0x80	*/
 		}
 
 		free(vrt_packet_buffer);
@@ -914,21 +908,16 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		free(vrt_header_buffer);
 		return 0;
 
-	}
-		//determine if the bytes recieved match the amount that were indicated in the header
-		if (bytes_received != vrt_header_bytes)
-	{
-		doutf(DHIGH, "Error: Expected %d bytes in VRT packet. Received %d\n", 
-			bytes_received, 
-			vrt_packet_bytes);
-		free(vrt_packet_buffer);
-		return WSA_ERR_VRTPACKETSIZE;
-	}
+	} else if (stream_identifier_word == 0x90000003){ 
+					printf("IQ PACKET DETECTED \n \n");
+			*context_present =0;
+
+
+
 
 
 
 	//if the packet is an IQ packet this stage is reached
-		
 		
 	
 	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
@@ -941,8 +930,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	//Get the 16-bit "Pkt Size"
 	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
-	printf("Packet Size: %u\n",packet_size);
-	printf("Expected Packet Size: %u\n",expected_packet_size);
+
 	if (packet_size != (expected_packet_size+2))
 	{
 		
@@ -967,9 +955,21 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	}
 
 	
-	printf("READING: %u\n",vrt_packet_bytes);
+	
+
+	
+	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
+	vrt_packet_bytes = 4 * (packet_size-2);
+	
+	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+	
+	if (vrt_packet_buffer == NULL)
+	{
+		return WSA_ERR_MALLOCFAILED;
+	}
+	printf("reading here \n \n");
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, timer, &bytes_received);
-		
+	printf("read everything \n \n");
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 	if (socket_receive_result < 0)
@@ -979,7 +979,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return socket_receive_result;
 	}
 
-
+		
 		header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[0]) << 24) +
 							(((uint32_t) vrt_packet_buffer[1]) << 16) +
 							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
@@ -1028,6 +1028,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	free(vrt_packet_buffer);
 
 	return 0;
+	}
 
 	}
 
@@ -1104,30 +1105,63 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	return (i / 4); //sample_size
 }
 
-int16_t extract_reciever_packet_frequency(uint8_t* temp_buffer, int64_t* reciever_frequency){
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int32_t* reciever_gain){
 
 	int64_t freq_word1 = 0;
 	int64_t freq_word2 = 0;
+	int32_t gain_word = 0;
 	int64_t freq_dec=0;
 	int64_t freq = 0;
+	int8_t freq_present =0;
+
+	//check if the reciever packet contains frequency
+	if ((temp_buffer[12] & 0x0f) == 0x08) {
+
+		
+		freq_word1 = 4096*((((int64_t) temp_buffer[16]) << 24) +
+								(((int64_t) temp_buffer[17]) << 16) +
+								(((int64_t) temp_buffer[18]) << 8) + 
+								(int64_t) temp_buffer[19]);
+
+		freq_word2 =  ((((int64_t) temp_buffer[20]) << 24) +
+								(((int64_t) temp_buffer[21]) << 16) +
+								(((int64_t) temp_buffer[22]) << 8) + 
+								(int64_t) temp_buffer[23]);
+		
+		freq_dec = (freq_word2 & 0x000fffff)/1000000;
+		freq = freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
+		*reciever_frequency = freq/MHZ;
+		freq_present =1;
+
+	} else { 
+	 *reciever_frequency = -20000;
 	
-	freq_word1 = 4096*((((int64_t) temp_buffer[16]) << 24) +
-							(((int64_t) temp_buffer[17]) << 16) +
-							(((int64_t) temp_buffer[18]) << 8) + 
-							(int64_t) temp_buffer[19]);
+	}
 
-	freq_word2 =  ((((int64_t) temp_buffer[20]) << 24) +
-							(((int64_t) temp_buffer[21]) << 16) +
-							(((int64_t) temp_buffer[22]) << 8) + 
-							(int64_t) temp_buffer[23]);
-	
-	
-	freq_dec = (freq_word2 & 0x000fffff)/1000000;
+	if ((temp_buffer[13] & 0xf0) == 0x80) {
+		if (freq_present == 0) {
+		gain_word = (((int32_t) temp_buffer[16]) << 24) +
+								(((int32_t) temp_buffer[17]) << 16) +
+								(((int32_t) temp_buffer[18]) << 8) + 
+								(int32_t) temp_buffer[19];
+								
 
-	freq = freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
+		} else if (freq_present == 1) {
+					gain_word = (((int32_t) temp_buffer[24]) << 24) +
+								(((int32_t) temp_buffer[25]) << 16) +
+								(((int32_t) temp_buffer[26]) << 8) + 
+								(int32_t) temp_buffer[27];
+					*reciever_gain = gain_word;
+			
 
 
-	*reciever_frequency = freq/MHZ;
+
+		}
+
+
+
+
+	}
 
 	return 0;
 

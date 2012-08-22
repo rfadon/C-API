@@ -327,24 +327,29 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
 	return_status = wsa_read_iq_packet_raw(device, header, trailer, data_buffer, samples_per_packet, &context_present);
+	
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
 	{
+	
 		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
 		return return_status;
-	}if(context_present ==1){
+	} 
+	
+	if (context_present == 1) {
 		*context_is = 1;
 		return 0;
-	}
+	} else if (context_present == 0) {
 
 	// Note: don't rely on the value of return_status
 	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
-
+	*context_is = 0;
 	free(data_buffer);
-
+	
 	return 0;
+	}
 }
 
 
@@ -1291,7 +1296,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	uint16_t expected_header_size = 1;//size of a context header
 	int32_t vrt_packet_bytes = expected_header_size * BYTES_PER_VRT_WORD;
 	int32_t vrt_iq_packet_size = samples_per_packet + VRT_HEADER_SIZE +VRT_TRAILER_SIZE-1;
-	int32_t vrt_iq_packet_size_bytes =  vrt_iq_packet_size*BYTES_PER_VRT_WORD;
+	int32_t vrt_iq_packet_size_bytes =  vrt_iq_packet_size * BYTES_PER_VRT_WORD;
 	uint8_t* vrt_iq_packet_buffer = 0;
 	int32_t bytes_received = 0;
 	int32_t bytes_expected=0;

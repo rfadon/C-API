@@ -517,17 +517,19 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Get the start time
 	get_current_time(&run_start_time);
 
-	for (i = 0; i < packets_per_block; i++)
+	for (i = 1; i < packets_per_block+1; i++)
 	{
+		
 		// Get the start time
 		get_current_time(&capture_start_time);
 
 		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
+	
 		get_current_time(&capture_end_time);
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
-		
+
 		if (result < 0)
 		{
 			fclose(iq_fptr);
@@ -538,13 +540,15 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}
 		if(context_is==1){
-			
+				printf("got here \n");
 			i--;
 			continue;
+				
 		}
-
+			
 		if (header->packet_order_indicator != expected_packet_order_indicator)
 		{
+				
 			fclose(iq_fptr);
 			free(header);
 			free(trailer);
@@ -552,15 +556,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(q_buffer);
 			return WSA_ERR_PACKETOUTOFORDER;
 		}
-
+	
+		
 		expected_packet_order_indicator++;
+		
 		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
 		{
 			expected_packet_order_indicator = 0;
 		}
-
-		if (i == 0)
+			
+		if (i == 1)
 		{
+			
 			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
 				1, 
 				freq, 
@@ -568,7 +575,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				header->time_stamp.sec, 
 				header->time_stamp.psec);
 		}
-
+			
 		for (j = 0; j < samples_per_packet; j++)
 		{
 			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
@@ -588,7 +595,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	get_current_time(&run_end_time);
 	run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 	printf("\ndone.\n");
-
+		
 	/*printf("(capture time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
 		run_time_ms, 
 		total_bytes / run_time_ms);
