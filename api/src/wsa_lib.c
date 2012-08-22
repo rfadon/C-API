@@ -896,30 +896,25 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
 		
 		if (stream_identifier_word == 0x90000001) {
-			
-			
-			if ( temp_buffer[12] & 0x08) {
+			context_indicator_field = (((int32_t) temp_buffer[12]) << 24) +
+							(((int32_t) temp_buffer[13]) << 16) +
+							(((int32_t) temp_buffer[14]) << 8) + 
+							(int32_t) temp_buffer[15];
+
+			printf("Context Field Indicator:  %u\n", context_indicator_field);
+			if ( (temp_buffer[12] & 0x0f) == 0x08) {
+					printf("found frequency \n");
 					result = extract_reciever_packet_frequency(temp_buffer, &reciever_frequency);
-
 					printf("Frequency Changed to:  %u\n", reciever_frequency);
-			
-			}
-
-		
-			
+			}// else if (	temp_buffer[13] & 0x80	*/
 		}
 
-
-
-
-	
 		free(vrt_packet_buffer);
 		free(temp_buffer);
 		free(vrt_header_buffer);
 		return 0;
 
 	}
-
 		//determine if the bytes recieved match the amount that were indicated in the header
 		if (bytes_received != vrt_header_bytes)
 	{
@@ -1111,20 +1106,29 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 
 int16_t extract_reciever_packet_frequency(uint8_t* temp_buffer, int64_t* reciever_frequency){
 
-	uint32_t word1 = 0;
-	uint32_t word2 = 0;
+	int64_t freq_word1 = 0;
+	int64_t freq_word2 = 0;
+	int64_t freq_dec=0;
+	int64_t freq = 0;
+	
+	freq_word1 = 4096*((((int64_t) temp_buffer[16]) << 24) +
+							(((int64_t) temp_buffer[17]) << 16) +
+							(((int64_t) temp_buffer[18]) << 8) + 
+							(int64_t) temp_buffer[19]);
 
-	word1 = (((uint32_t) temp_buffer[16]) << 24) +
-							(((uint32_t) temp_buffer[17]) << 16) +
-							(((uint32_t) temp_buffer[18]) << 8) + 
-							(uint32_t) temp_buffer[19];
+	freq_word2 =  ((((int64_t) temp_buffer[20]) << 24) +
+							(((int64_t) temp_buffer[21]) << 16) +
+							(((int64_t) temp_buffer[22]) << 8) + 
+							(int64_t) temp_buffer[23]);
+	
+	
+	freq_dec = (freq_word2 & 0x000fffff)/1000000;
 
-	 word2 = ((uint32_t) temp_buffer[20]<<8) +(uint32_t) temp_buffer[21];
-		
-	printf("Word1 is: %u \n", word1);
-	printf("Word2 is: %u \n", word2);
-		*reciever_frequency =1205;
+	freq = freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
 
-		return 0;
+
+	*reciever_frequency = freq/MHZ;
+
+	return 0;
 
 }
