@@ -156,6 +156,24 @@ struct wsa_vrt_packet_header {
 };
 
 
+//structure to hold reciever packet data
+struct wsa_reciever_packet {
+	int64_t reciever_frequency;
+	int16_t reciever_gain_if;
+	int16_t reciever_gain_rf;
+	int32_t reciever_temperature;
+};
+
+
+struct wsa_digitizer_packet {
+	int64_t digitizer_bandwidth;
+	int32_t digitizer_reference_level;
+	int64_t digitizer_rf_frequency_offset;
+};
+
+
+
+
 
 // These values will be defined in a future release
 struct wsa_vrt_packet_trailer {
@@ -203,6 +221,8 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
+		struct wsa_reciever_packet* const reciever,
+		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet, uint8_t* context_present);
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 

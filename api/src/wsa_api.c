@@ -314,6 +314,8 @@ int16_t wsa_capture_block(struct wsa_device* const device)
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
+		struct wsa_reciever_packet* const reciever,
+		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
 		const uint16_t samples_per_packet,
@@ -326,7 +328,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, data_buffer, samples_per_packet, &context_present);
+	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer data_buffer, samples_per_packet, &context_present);
 	
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 

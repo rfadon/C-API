@@ -362,10 +362,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 
 	// *****
-	// Create parameters and buffers to store the raw data
+	// Create parameters and buffers to store the raw data and context information
 	// *****
 	struct wsa_vrt_packet_header* header;
 	struct wsa_vrt_packet_trailer* trailer;
+	struct wsa_reciever_packet* reciever;
+	struct wsa_reciever_packet* digitizer;
+
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -523,7 +526,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_is);
+		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
 	
 		get_current_time(&capture_end_time);
@@ -540,7 +543,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}
 		if(context_is==1){
-				printf("got here \n");
+		
 			i--;
 			continue;
 				

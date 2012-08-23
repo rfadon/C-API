@@ -22,7 +22,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int32_t* gain);
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int16_t* reciever_gain_if, int16_t* reciever_gain_rf, int32_t* reciever_temperature);
+int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, int64_t* digitizer_bandwidth, int32_t* digitizer_reference_level, int64_t* digitizer_rf_frequency_offset);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -789,11 +790,13 @@ const char *wsa_get_error_msg(int16_t err_code)
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
+		struct wsa_reciever_packet* const reciever,
+		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet,
 		uint8_t* context_present)
 {
-	uint32_t timer = 3600;
+	
 	uint8_t* vrt_header_buffer = 0;
 	uint8_t* temp_buffer=0;
 	uint16_t temp_size=0;
@@ -807,15 +810,17 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int32_t bytes_received = 0;
 	int16_t socket_receive_result = 0;
 	int64_t reciever_frequency = 0;
+	int32_t reciever_temperature = 0;
+	int16_t reciever_gain_if = 0;
+	int16_t receiver_gain_rf = 0;
 	int16_t result = 0;
-	int32_t reciever_gain =0;
-
-
-
-	
 	uint32_t stream_identifier_word = 0;
 	uint8_t packet_order_indicator = 0;
 	uint16_t packet_size = 0;
+	int64_t digitizer_bandwidth = 0;
+	int32_t digitizer_reference_level = 0;
+	int64_t digitizer_rf_frequency_offset = 0;
+	
 
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 		if (vrt_header_buffer == NULL)
@@ -832,7 +837,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	header->time_stamp.psec = 0;
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, timer, &bytes_received);
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 	if (socket_receive_result < 0)
@@ -891,34 +896,30 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_MALLOCFAILED;
 	}
 		//store the rest of the packet inside the buffer
-		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
+		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
 		
 		if (stream_identifier_word == 0x90000001) {
-				
+			
+			result = extract_reciever_packet_data(temp_buffer, &reciever_frequency, &reciever_gain_if, &receiver_gain_rf, &reciever_temperature);
 			
 		
-			
-					result = extract_reciever_packet_data(temp_buffer, &reciever_frequency, &reciever_gain);
-				
+		} else if (stream_identifier_word == 0x90000002) {
+
+			result = extract_digitizer_packet_data(temp_buffer, &digitizer_bandwidth, &digitizer_reference_level, &digitizer_rf_frequency_offset);
 
 		}
+
 
 		free(vrt_packet_buffer);
 		free(temp_buffer);
 		free(vrt_header_buffer);
 		return 0;
-
+	
+		//if the packet is an IQ packet this stage is reached
 	} else if (stream_identifier_word == 0x90000003){ 
-					printf("IQ PACKET DETECTED \n \n");
+			printf("IQ PACKET DETECTED \n \n");
 			*context_present =0;
-
-
-
-
-
-
-	//if the packet is an IQ packet this stage is reached
-		
+					
 	
 	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
@@ -941,11 +942,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_VRTPACKETSIZE;
 	}
 	
-	
 	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
-
-
+	
 	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
 	if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
 	{
@@ -953,9 +952,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		free(vrt_header_buffer);
 		return WSA_ERR_INVTIMESTAMP;
 	}
-
-	
-	
 
 	
 	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
@@ -968,7 +964,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_MALLOCFAILED;
 	}
 	printf("reading here \n \n");
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, timer, &bytes_received);
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
 	printf("read everything \n \n");
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
@@ -1105,33 +1101,52 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	return (i / 4); //sample_size
 }
 
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int32_t* reciever_gain){
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int16_t* reciever_gain_if, int16_t* reciever_gain_rf, int32_t* reciever_temperature)
+{
 
+
+	int8_t gain_if_byte1 = 0;
+	int8_t gain_if_byte2 = 0;
+	int8_t gain_rf_byte1 = 0;
+	int8_t gain_rf_byte2 = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
 	int64_t freq_word1 = 0;
 	int64_t freq_word2 = 0;
-	int32_t gain_word = 0;
-	int64_t freq_dec=0;
-	int64_t freq = 0;
-	int8_t freq_present =0;
+	int64_t freq_holder = 0;
+	int64_t freq_dec = 0;
+	int8_t data_pos = 16;
+		int32_t context_fields = 0;
+
+	context_fields = ((((int32_t) temp_buffer[12]) << 24) +
+								(((int32_t) temp_buffer[13]) << 16) +
+								(((int32_t) temp_buffer[14]) << 8) + 
+								(int32_t) temp_buffer[15]);
+	
+	printf("Context Field Indicator: %u \n", context_fields);
 
 	//check if the reciever packet contains frequency
 	if ((temp_buffer[12] & 0x0f) == 0x08) {
 
 		
-		freq_word1 = 4096*((((int64_t) temp_buffer[16]) << 24) +
-								(((int64_t) temp_buffer[17]) << 16) +
-								(((int64_t) temp_buffer[18]) << 8) + 
-								(int64_t) temp_buffer[19]);
+		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 3]);
 
-		freq_word2 =  ((((int64_t) temp_buffer[20]) << 24) +
-								(((int64_t) temp_buffer[21]) << 16) +
-								(((int64_t) temp_buffer[22]) << 8) + 
-								(int64_t) temp_buffer[23]);
+		freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 7]);
 		
+
+
 		freq_dec = (freq_word2 & 0x000fffff)/1000000;
-		freq = freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
-		*reciever_frequency = freq/MHZ;
-		freq_present =1;
+		freq_holder = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
+		*reciever_frequency = freq_holder/MHZ;
+		data_pos = data_pos + 8;
+		
 
 	} else { 
 	 *reciever_frequency = -20000;
@@ -1139,30 +1154,80 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_fre
 	}
 
 	if ((temp_buffer[13] & 0xf0) == 0x80) {
-		if (freq_present == 0) {
-		gain_word = (((int32_t) temp_buffer[16]) << 24) +
-								(((int32_t) temp_buffer[17]) << 16) +
-								(((int32_t) temp_buffer[18]) << 8) + 
-								(int32_t) temp_buffer[19];
-								
+	
+		
+		gain_if_byte1 = (int8_t) temp_buffer[data_pos]; 
+		gain_if_byte2 = (int8_t) temp_buffer[data_pos + 1]; 
+		gain_rf_byte1 = (int8_t) temp_buffer[data_pos + 2];
+		gain_rf_byte2 = (int8_t) temp_buffer[data_pos + 3];
 
-		} else if (freq_present == 1) {
-					gain_word = (((int32_t) temp_buffer[24]) << 24) +
-								(((int32_t) temp_buffer[25]) << 16) +
-								(((int32_t) temp_buffer[26]) << 8) + 
-								(int32_t) temp_buffer[27];
-					*reciever_gain = gain_word;
-			
+		gain_rf = (2 * gain_rf_byte1) + (gain_rf_byte2 & 0x8)/128;
+		gain_if = (2 * gain_if_byte1) + (gain_if_byte2 & 0x8)/128;
+
+		*reciever_gain_if = gain_if;
+		*reciever_gain_rf = gain_rf;
+		data_pos = data_pos + 4;
+	} else {
+		*reciever_gain_if = -20000;
+		*reciever_gain_rf = -20000;
+	}
+
+	if ((temp_buffer[13] & 0x0f) == 0x04) {
+				temperature = ((((int32_t) temp_buffer[data_pos]) << 24) +
+								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+								(int32_t) temp_buffer[data_pos + 3]);
+				*reciever_temperature = temperature;
+
+	} else {
+		*reciever_temperature = -20000;
+	}
 
 
+	return 0;
 
-		}
+}
 
 
+int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, int64_t* digitizer_bandwidth, int32_t* digitizer_reference_level, int64_t* digitizer_rf_frequency_offset){
 
+	int64_t bandwidth = 0;
+	int8_t data_pos = 16;
+	int32_t context_fields = 0;
+
+	context_fields = ((((int32_t) temp_buffer[12]) << 24) +
+								(((int32_t) temp_buffer[13]) << 16) +
+								(((int32_t) temp_buffer[14]) << 8) + 
+								(int32_t) temp_buffer[15]);
+	
+		
+	if ((temp_buffer[12] & 0xf0) == 0xA0) {
+		
+		bandwidth = ((((int64_t) temp_buffer[data_pos]) << 56) +
+					(((int64_t) temp_buffer[data_pos + 1]) << 48) +
+					(((int64_t) temp_buffer[data_pos + 2]) << 40) +
+					(((int64_t) temp_buffer[data_pos + 3]) << 32) +
+					(((int64_t) temp_buffer[data_pos + 4]) << 24) +
+					(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+					(int64_t) temp_buffer[data_pos + 7]);
+		
+		*digitizer_bandwidth = bandwidth;
+
+	} else {
+		*digitizer_bandwidth = -20000;
 
 	}
 
+
+
+	*digitizer_reference_level = 2;
+	*digitizer_rf_frequency_offset = 3;
+
+
 	return 0;
+
+
+
 
 }
