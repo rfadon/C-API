@@ -158,17 +158,18 @@ struct wsa_vrt_packet_header {
 
 //structure to hold reciever packet data
 struct wsa_reciever_packet {
-	int64_t reciever_frequency;
-	int16_t reciever_gain_if;
-	int16_t reciever_gain_rf;
-	int32_t reciever_temperature;
+	int32_t present_data;
+	int64_t frequency;
+	int16_t gain_if;
+	int16_t gain_rf;
+	int32_t temperature;
 };
 
 
 struct wsa_digitizer_packet {
-	int64_t digitizer_bandwidth;
-	int32_t digitizer_reference_level;
-	int64_t digitizer_rf_frequency_offset;
+	int64_t bandwidth;
+	int32_t reference_level;
+	int64_t rf_frequency_offset;
 };
 
 

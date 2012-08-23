@@ -22,8 +22,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int16_t* reciever_gain_if, int16_t* reciever_gain_rf, int32_t* reciever_temperature);
-int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, int64_t* digitizer_bandwidth, int32_t* digitizer_reference_level, int64_t* digitizer_rf_frequency_offset);
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_packet* const reciever);
+int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -809,17 +809,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int32_t context_indicator_field = 0;
 	int32_t bytes_received = 0;
 	int16_t socket_receive_result = 0;
-	int64_t reciever_frequency = 0;
-	int32_t reciever_temperature = 0;
-	int16_t reciever_gain_if = 0;
-	int16_t receiver_gain_rf = 0;
 	int16_t result = 0;
+	int64_t frequency1 = 0;
 	uint32_t stream_identifier_word = 0;
 	uint8_t packet_order_indicator = 0;
 	uint16_t packet_size = 0;
-	int64_t digitizer_bandwidth = 0;
-	int32_t digitizer_reference_level = 0;
-	int64_t digitizer_rf_frequency_offset = 0;
+
 	
 
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
@@ -900,12 +895,14 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		
 		if (stream_identifier_word == 0x90000001) {
 			
-			result = extract_reciever_packet_data(temp_buffer, &reciever_frequency, &reciever_gain_if, &receiver_gain_rf, &reciever_temperature);
-			
+			result = extract_reciever_packet_data(temp_buffer, reciever);
+			frequency1 = reciever->frequency;
+			printf("The frequency is: %u \n", frequency1);
+
 		
 		} else if (stream_identifier_word == 0x90000002) {
 
-			result = extract_digitizer_packet_data(temp_buffer, &digitizer_bandwidth, &digitizer_reference_level, &digitizer_rf_frequency_offset);
+			result = extract_digitizer_packet_data(temp_buffer,digitizer);
 
 		}
 
@@ -1101,7 +1098,7 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	return (i / 4); //sample_size
 }
 
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_frequency, int16_t* reciever_gain_if, int16_t* reciever_gain_rf, int32_t* reciever_temperature)
+int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_packet* const reciever)
 {
 
 
@@ -1144,12 +1141,12 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_fre
 
 		freq_dec = (freq_word2 & 0x000fffff)/1000000;
 		freq_holder = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
-		*reciever_frequency = freq_holder/MHZ;
+		reciever->frequency = freq_holder/MHZ;
 		data_pos = data_pos + 8;
 		
 
 	} else { 
-	 *reciever_frequency = -20000;
+	 reciever->frequency = 20000;
 	
 	}
 
@@ -1164,12 +1161,12 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_fre
 		gain_rf = (2 * gain_rf_byte1) + (gain_rf_byte2 & 0x8)/128;
 		gain_if = (2 * gain_if_byte1) + (gain_if_byte2 & 0x8)/128;
 
-		*reciever_gain_if = gain_if;
-		*reciever_gain_rf = gain_rf;
+		reciever->gain_if = gain_if;
+		reciever->gain_rf = gain_rf;
 		data_pos = data_pos + 4;
 	} else {
-		*reciever_gain_if = -20000;
-		*reciever_gain_rf = -20000;
+		reciever->gain_if = -20000;
+		reciever->gain_rf = -20000;
 	}
 
 	if ((temp_buffer[13] & 0x0f) == 0x04) {
@@ -1177,19 +1174,20 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, int64_t* reciever_fre
 								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
 								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
 								(int32_t) temp_buffer[data_pos + 3]);
-				*reciever_temperature = temperature;
+				reciever->temperature = temperature;
 
 	} else {
-		*reciever_temperature = -20000;
+		reciever->temperature = -20000;
 	}
 
 
 	return 0;
 
 }
+		
+		
 
-
-int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, int64_t* digitizer_bandwidth, int32_t* digitizer_reference_level, int64_t* digitizer_rf_frequency_offset){
+int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer){
 
 	int64_t bandwidth = 0;
 	int8_t data_pos = 16;
@@ -1212,17 +1210,17 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, int64_t* digitizer_b
 					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 					(int64_t) temp_buffer[data_pos + 7]);
 		
-		*digitizer_bandwidth = bandwidth;
+		digitizer->bandwidth = bandwidth;
 
 	} else {
-		*digitizer_bandwidth = -20000;
+		digitizer->bandwidth = -20000;
 
 	}
 
 
 
-	*digitizer_reference_level = 2;
-	*digitizer_rf_frequency_offset = 3;
+	digitizer->reference_level = 2;
+	digitizer->rf_frequency_offset = 3;
 
 
 	return 0;

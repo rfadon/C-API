@@ -344,6 +344,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t enable=0;
 	int32_t dec=0;
 	uint8_t context_is=0;
+	int8_t title_print =0;
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -367,7 +368,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_vrt_packet_header* header;
 	struct wsa_vrt_packet_trailer* trailer;
 	struct wsa_reciever_packet* reciever;
-	struct wsa_reciever_packet* digitizer;
+	struct wsa_digitizer_packet* digitizer;
 
 
 	// *****
@@ -478,14 +479,40 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
+	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
+	if (reciever == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
+		fclose(iq_fptr); 
+		free(trailer);
+		free(header);
+		return WSA_ERR_MALLOCFAILED;
+	}
+
+	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
+	if (reciever == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
+		fclose(iq_fptr); 
+		free(reciever);
+		free(trailer);
+		free(header);
+		return WSA_ERR_MALLOCFAILED;
+	}
+
+
+
 	// Allocate i buffer space
 	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
 		fclose(iq_fptr); 
-		free(header);
+		fclose(iq_fptr); 
+		free(reciever);
+		free(digitizer);
 		free(trailer);
+		free(header);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -495,8 +522,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
-		free(header);
+		fclose(iq_fptr); 
+		free(reciever);
+		free(digitizer);
 		free(trailer);
+		free(header);
 		free(i_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -508,8 +538,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
 		fclose(iq_fptr);
-		free(header);
+		fclose(iq_fptr); 
+		free(reciever);
+		free(digitizer);
 		free(trailer);
+		free(header);
 		free(i_buffer);
 		free(q_buffer);
 		return result;
@@ -522,6 +555,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	for (i = 1; i < packets_per_block+1; i++)
 	{
+		if (i == 1 && title_print == 0)
+		{
+			title_print =1;
+			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
+				1, 
+				freq, 
+				packets_per_block * samples_per_packet, 
+				header->time_stamp.sec, 
+				header->time_stamp.psec);
+		}
+
+		
 		
 		// Get the start time
 		get_current_time(&capture_start_time);
@@ -536,14 +581,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (result < 0)
 		{
 			fclose(iq_fptr);
-			free(header);
+			free(reciever);
+			free(digitizer);
 			free(trailer);
+			free(header);
 			free(i_buffer);
 			free(q_buffer);
 			return result;
 		}
 		if(context_is==1){
-		
+			freq = reciever->frequency;
+			printf("The frequency is: %u \n",freq);
 			i--;
 			continue;
 				
@@ -553,6 +601,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 				
 			fclose(iq_fptr);
+			free(digitizer);
+		
+			free(reciever);
 			free(header);
 			free(trailer);
 			free(i_buffer);
@@ -568,16 +619,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			expected_packet_order_indicator = 0;
 		}
 			
-		if (i == 1)
-		{
-			
-			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
-				1, 
-				freq, 
-				packets_per_block * samples_per_packet, 
-				header->time_stamp.sec, 
-				header->time_stamp.psec);
-		}
+
+
 			
 		for (j = 0; j < samples_per_packet; j++)
 		{
@@ -603,15 +646,23 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		run_time_ms, 
 		total_bytes / run_time_ms);
 		*/
+
 	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 		capture_time_ms,
 		run_time_ms);
 
-	fclose(iq_fptr); 
-	free(header);
+	fclose(iq_fptr);
 	free(trailer);
+		
+	free(header);
+	free(digitizer);
+	free(reciever);
+
+	
+	
 	free(i_buffer);
 	free(q_buffer);
+
 	
 	return 0;
 }
