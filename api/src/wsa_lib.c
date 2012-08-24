@@ -781,6 +781,8 @@ const char *wsa_get_error_msg(int16_t err_code)
  *		the VRT trailer information
  *@param reciever - a pointer to \b wsa_reciever_packet strucuture to store
  *		the Context data
+ *@param digitizer - a pointer to \b wsa_digitizer_packet strucuture to store
+ *		the Context data
  * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
  *		in bytes. Its size is determined by the number of 
  *		16-bit \b samples_per_packet words multiplied by 4 
@@ -888,12 +890,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
 		
 
-		//if the context packet contains reciever data, the data is stored inside the reciever structure
+		//store reciever data in the reciever structure
 		if (stream_identifier_word == 0x90000001) {
 			*context_present =1;
 			result = extract_reciever_packet_data(temp_buffer, reciever);
 		
-		//
+		//store digitizer data in the digitizer structure
 		} else if (stream_identifier_word == 0x90000002) {
 			*context_present =2;
 			result = extract_digitizer_packet_data(temp_buffer,digitizer);
@@ -906,7 +908,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		free(vrt_header_buffer);
 		return 0;
 	
-		//if the packet is an IQ packet this stage is reached
+	//if the packet is an IQ packet proceed with the method from previous release
 	} else if (stream_identifier_word == 0x90000003){ 
 			printf("IQ PACKET DETECTED \n \n");
 			*context_present =0;
@@ -936,7 +938,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
 	
-	// 4. Check TSI field for 01 & get sec time stamp at the 3rd word
+	//Check TSI field for 01 & get sec time stamp at the 3rd word
 	if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
 	{
 		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
@@ -975,7 +977,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		header->time_stamp.sec, 
 		header->time_stamp.sec);
 
-	// 5. Check the TSF field, if present (= 0x10), 
+	//Check the TSF field, if present (= 0x10), 
 	// get the picoseconds time stamp at the 4th & 5th words
 	if ((vrt_header_buffer[1] & 0x30) >> 5) 
 	{
@@ -1092,6 +1094,17 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	return (i / 4); //sample_size
 }
 
+
+/**
+ * Decodes the raw reciever context packet and store it in the reciever 
+ * structure 
+ *
+ * @param temp_buffer - pointer that points to the header of the reciever packet
+ *note: the first two words are not included, the first word that temp points to is the 
+ * timestamp. please review the program's guide for further information on how context packets are stored
+ * @param reciever - a pointer structure to store the reciever data 
+ * @return 0 if the data was stored succesfully, return a negative 16 bit integer otherwise 
+ */
 int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_packet* const reciever)
 {
 
@@ -1110,14 +1123,15 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 	int64_t freq_dec = 0;
 	int8_t data_pos = 16;
 		int32_t context_fields = 0;
-
+	
+	//store the indicator field, which contains the content of the packet
 	reciever->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 	
 	
-
+	//determine if reference point data is present
 	if (( temp_buffer[12] & 0xf0) == 0xc0) {
 		
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
@@ -1126,14 +1140,10 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 								(int32_t) temp_buffer[data_pos + 3]);
 		data_pos = data_pos + 4;
 		reciever->reference_point = reference_point;
-		printf("The reference point is: %u \n",reference_point);
-
-	
 	}
-
 	
 	
-	
+	//determine if frequency data is present
 	if ((temp_buffer[12] & 0x0f) == 0x08) {
 
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
@@ -1154,7 +1164,8 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		data_pos = data_pos + 8;
 		
 	}
-
+	
+	//determine if gain data is present
 	if ((temp_buffer[13] & 0xf0) == 0x80) {
 	
 		
@@ -1170,7 +1181,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		reciever->gain_rf = gain_rf;
 		data_pos = data_pos + 4;
 	}
-
+	//determine of temperature data is present
 	if ((temp_buffer[13] & 0x0f) == 0x04) {
 				temperature = ((((int32_t) temp_buffer[data_pos]) << 24) +
 								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1186,7 +1197,16 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 }
 		
 		
-
+/**
+ * Decodes the raw digitizer context packet and store it in the digitizer 
+ * structure 
+ *
+ * @param temp_buffer - pointer that points to the header of the digitizer packet
+ *note: the first two words are not included, the first word that temp points to is the 
+ * timestamp. please review the program's guide for further information on how context packets are stored
+ * @param digitizer - a pointer structure to store the digitizer data 
+ * @return 0 if the data was stored succesfully, return a negative 16 bit integer otherwise 
+ */
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer){
 
 	int64_t bandwidth = 0;
@@ -1195,12 +1215,13 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 	int64_t rf_freq_offset = 0;
 	int32_t reference_level = 0;
 
+	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 	
-		
+	//determine if bandwidth data is present	
 	if ((temp_buffer[12] & 0xf0) == 0xA0) {
 		
 		bandwidth = ((((int64_t) temp_buffer[data_pos]) << 56) +
@@ -1214,9 +1235,9 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 		
 		digitizer->bandwidth = bandwidth;
 		data_pos = data_pos + 8;
-		printf("BANDWIDTH IS: %%0.3f \n", bandwidth);
 	}
 
+	//determine if rf frequency offset data is present
 	if (( temp_buffer[12] & 0x0f) == 0x05 || (temp_buffer[12] & 0x0f) == 0x04) {
 			
 			rf_freq_offset = ((((int64_t) temp_buffer[data_pos]) << 56) +
@@ -1232,7 +1253,7 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 	digitizer->rf_frequency_offset = rf_freq_offset;
 	
 	}
-
+	//determine if the reference level is present
 	if (( temp_buffer[12] & 0x0f) == 0x05 || (temp_buffer[12] & 0x0f) == 0x01) {
 					
 		reference_level = ((((int32_t) temp_buffer[data_pos + 4]) << 24) +
