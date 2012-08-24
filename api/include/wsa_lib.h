@@ -158,7 +158,8 @@ struct wsa_vrt_packet_header {
 
 //structure to hold reciever packet data
 struct wsa_reciever_packet {
-	int32_t present_data;
+	int32_t indicator_field;
+	int32_t reference_point;
 	int64_t frequency;
 	int16_t gain_if;
 	int16_t gain_rf;
@@ -167,6 +168,7 @@ struct wsa_reciever_packet {
 
 
 struct wsa_digitizer_packet {
+	int32_t indicator_field;
 	int64_t bandwidth;
 	int32_t reference_level;
 	int64_t rf_frequency_offset;

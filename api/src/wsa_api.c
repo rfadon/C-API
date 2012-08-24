@@ -343,7 +343,12 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	if (context_present == 1) {
 		*context_is = 1;
 		return 0;
-	} else if (context_present == 0) {
+	} else if (context_present == 2) {
+		*context_is = 2;
+		return 0;
+	} else if (context_present ==0) {
+
+
 
 	// Note: don't rely on the value of return_status
 	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);

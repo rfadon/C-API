@@ -334,17 +334,32 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  */
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
-	int16_t result = 0;
-	uint16_t samples_per_packet = 0;
-	uint32_t packets_per_block = 0;
-	int64_t freq = 0;
-	int64_t start_frequency=0;
-	int64_t stop_frequency=0;
-	int64_t amplitude=0;
-	int32_t enable=0;
-	int32_t dec=0;
-	uint8_t context_is=0;
+	uint8_t context_is = 0;
 	int8_t title_print =0;
+	int16_t result = 0;
+	int16_t reciever_rf_gain = 0;
+	int16_t reciever_if_gain = 0;
+	uint16_t samples_per_packet = 0;
+	int32_t field_indicator = 0;	
+	uint32_t packets_per_block = 0;
+	int32_t enable = 0;
+	int32_t dec = 0;
+	int32_t reciever_temperature = 0;
+	int32_t reciever_reference_point = 0;
+	int32_t digitizer_reference_level = 0;
+	int64_t freq = 0;
+	int64_t start_frequency = 0;
+	int64_t stop_frequency = 0;
+	int64_t amplitude = 0;
+	int64_t reciever_frequency = 0;
+	int64_t digitizer_bandwidth = 0;
+	int64_t digitizer_rf_frequency_offset = 0;
+
+
+	
+
+	
+
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
@@ -419,37 +434,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	result = wsa_get_trigger_enable(dev,&enable);
 		
-		if(enable==1)
-		{ 
-			result = wsa_get_decimation(dev, &dec);
-
-			result = wsa_get_trigger_level(dev,&start_frequency,&stop_frequency,&amplitude);
-			if (result < 0)
-	{
-		printf("\n error retrieving trigger level \n");
-		return 0;
-		}else{
-			int64_t lower_end = freq -start_frequency/MHZ;
-			int64_t higher_end = freq -stop_frequency/MHZ;
-				if(lower_end<-62.5 ||higher_end>62.5)
-			{
 		
-				return WSA_ERR_CFREQRANGE;
-		//printf("\n Centre Frequency is out of range of the triggers, no Data is available \n ");
-			
-			}
-		  else if(freq<90){
-			  	return WSA_ERR_FREQLOW;	
-			
-		  }else if(dec>0){
-			  if(freq <start_frequency/MHZ || freq>stop_frequency/MHZ){
-				  printf("\n Decimation must be 0 when Center Frequency is outside of the Trigger Levels");
-				  return 0;
-			  }
-		  }
 
-			}
-		}
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
@@ -589,12 +575,65 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(q_buffer);
 			return result;
 		}
-		if(context_is==1){
-			freq = reciever->frequency;
-			printf("The frequency is: %u \n",freq);
+		if (context_is == 1) {
+					printf("FOUND Reciever \n");
+			printf("Field indicator is: %x \n \n", field_indicator);
+			fprintf(iq_fptr, "Reciever Packet Found\n");
+			field_indicator = reciever->indicator_field;
+
+			if((field_indicator & 0xf0000000) == 0xc0000000) {
+				reciever_reference_point = reciever->reference_point;
+				fprintf(iq_fptr, "Reference Point: %u\n", reciever_reference_point);
+			
+			}
+			if ((field_indicator & 0x0f000000) == 0x08000000) {
+				reciever_frequency = reciever->frequency;
+				fprintf(iq_fptr, "Frequency: %0.3f\n", reciever_frequency);
+		
+			}
+
+			if ((field_indicator & 0x00f00000) == 0x00800000) {
+				reciever_if_gain= reciever->gain_if;
+				reciever_rf_gain= reciever->gain_rf;
+				fprintf(iq_fptr, "Reference IF Gain: %u\n", reciever_if_gain);
+				fprintf(iq_fptr, "Reference RF Gain: %u\n", reciever_rf_gain);
+
+			} 	
+			
+			if ((field_indicator & 0x0f000000) == 0x04000000) {
+				
+				reciever_temperature = reciever->temperature;
+				fprintf(iq_fptr, "Frequency: %u\n", reciever_temperature);
+			
+			} 
 			i--;
 			continue;
 				
+		} else if (context_is == 2) {
+
+			field_indicator = digitizer->indicator_field;
+
+			fprintf(iq_fptr, "Digitizer Packet Found\n");
+			printf("FOUND DIGITIZER \n");
+			printf("Field indicator is: %x \n \n", field_indicator);
+			if ((field_indicator & 0xf0000000) == 0xa0000000) {
+				digitizer_bandwidth = digitizer->bandwidth;
+				fprintf(iq_fptr, "Bandwidth: %u\n", digitizer_bandwidth);
+		
+			} 			
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) {
+				digitizer_rf_frequency_offset = digitizer->rf_frequency_offset;
+				fprintf(iq_fptr, "RF Frequency Offset: %0.3f\n", digitizer_rf_frequency_offset);
+		
+			} 
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
+				digitizer_reference_level = digitizer->reference_level;
+				fprintf(iq_fptr, "Reference Level: %u\n", digitizer_reference_level);
+		
+			} 
+			i--;
+			continue;
+
 		}
 			
 		if (header->packet_order_indicator != expected_packet_order_indicator)
