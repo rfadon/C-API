@@ -357,6 +357,19 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 
 	
+	int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+	int64_t bandwidth = 0;
+	int32_t reference_level = 0;
+	int64_t rf_frequency_offset = 0;
+
 
 	
 
@@ -557,6 +570,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
+
+
+
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
 	
@@ -576,8 +592,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}
 		if (context_is == 1) {
-					printf("FOUND Reciever \n");
-			printf("Field indicator is: %x \n \n", field_indicator);
+
 			fprintf(iq_fptr, "Reciever Packet Found\n");
 			field_indicator = reciever->indicator_field;
 
@@ -614,8 +629,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			field_indicator = digitizer->indicator_field;
 
 			fprintf(iq_fptr, "Digitizer Packet Found\n");
-			printf("FOUND DIGITIZER \n");
-			printf("Field indicator is: %x \n \n", field_indicator);
 			if ((field_indicator & 0xf0000000) == 0xa0000000) {
 				digitizer_bandwidth = digitizer->bandwidth;
 				fprintf(iq_fptr, "Bandwidth: %u\n", digitizer_bandwidth);

@@ -360,6 +360,85 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 }
 
 
+
+
+int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device, 
+		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
+		int16_t* const i_buffer, 
+		int16_t* const q_buffer,
+		const uint16_t samples_per_packet,
+		uint8_t* context_is, int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf, int32_t* rec_temperature,
+	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
+{
+
+	int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+	int64_t bandwidth = 0;
+	int32_t reference_level = 0;
+	int64_t rf_frequency_offset = 0;
+	uint8_t* data_buffer = 0;
+
+	printf("GOT TO READ MATLAB \n");
+
+	// allocate the data buffer
+	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+
+	return_status = wsa_read_iq_packet_raw_matlab(device, header, trailer, data_buffer, samples_per_packet, &context_present, &indicator_fieldr, &reference_point, &frequency, &gain_if,
+		&gain_rf, &temperature, &indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
+	
+	
+
+	*rec_indicator_field = indicator_fieldr;
+	*rec_reference_point = reference_point;
+	*rec_frequency = frequency;
+	*rec_gain_if = gain_if;
+	*rec_gain_rf = gain_rf;
+	*rec_temperature = temperature;
+	*dig_indicator_field = indicator_fieldd;
+	*dig_bandwidth = bandwidth;
+	*dig_reference_level = reference_level;
+	*dig_rf_frequency_offset = rf_frequency_offset;
+
+	
+
+
+	
+	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+	
+		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
+		free(data_buffer);
+		return return_status;
+	} 
+	
+	if (context_present == 1) {
+		*context_is = 1;
+		return 0;
+	} else if (context_present == 2) {
+		*context_is = 2;
+		return 0;
+	} else if (context_present == 0) {
+
+
+
+	// Note: don't rely on the value of return_status
+	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	*context_is = 0;
+	free(data_buffer);
+	
+	return 0;
+	}
+}
 /**
  * Sets the number of samples per packet to be received
  * 
@@ -1361,9 +1440,9 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 
 
 				if ((vrt_packet_buffer[0] & 0xf0) == 0x10){
-		printf("\n IQ PACKET DETECTED\n");
+	
 		
-		printf("Packet Size: %u\n",pkt_size);
+		
 	
 		bytes_expected = (pkt_size-1)*4;
 
@@ -1375,11 +1454,11 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 		+ (((uint32_t)  vrt_iq_packet_buffer[1]) << 16) 
 		+ (((uint32_t)  vrt_iq_packet_buffer[2]) << 8) 
 		+ (uint32_t)  vrt_iq_packet_buffer[3];			
-		printf("Stream Identifier Word: %hu\n",stream_identifier_word);
+	
 			
-	   printf("Number of bytes recieved: %u\n",bytes_received);
+
 	   if(bytes_received != bytes_expected){
-		   printf("DID NOT RECEIVE EXPECTED NUMBER OF BYTES \n");
+		
 		   buffer_index = bytes_received;
 		   while(temp_size_bytes !=bytes_received){
 		   
@@ -1390,8 +1469,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
 		
 		
-		printf("Number of bytes recieved: %u\n",bytes_received);
-		printf("Number of bytes expected: %u\n",temp_size_bytes);
+
 		end_buffer=vrt_iq_packet_size_bytes;
 
 		for (x = buffer_index; x<end_buffer;x++)
@@ -1419,13 +1497,13 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	 else	if ((vrt_packet_buffer[0] & 0xf0) == 0x40){
 			
 		 i--;
-		printf("\n CONTEXT DETECTED \n");
-		printf("Packet Size: %u\n",pkt_size);
+
+	
 		temp_size = pkt_size-1;
 		temp_size_bytes = temp_size * BYTES_PER_VRT_WORD;	
 		temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		printf("Number of bytes recieved: %u\n",bytes_received);
+
 		
 		
 		
@@ -1433,7 +1511,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 		+ (((uint32_t) temp_buffer[1]) << 16) 
 		+ (((uint32_t) temp_buffer[2]) << 8) 
 		+ (uint32_t) temp_buffer[3];			
-		printf("Stream Identifier Word: %hu\n",stream_identifier_word);
+	
 	
 		
 
@@ -1444,7 +1522,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	
 			
 			
-			printf("Context Field Indicator: %u\n",context_indicator_field);
+
 
 						rf_frequency1 = (((int32_t) temp_buffer[20]) << 24) 
 				+ (((int32_t) temp_buffer[21]) << 16) 
@@ -1459,9 +1537,6 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	
 	
 			
-			
-			printf("First RF frequency is: %u\n",rf_frequency1);
-			printf("Second RF frequency is: %u\n",rf_frequency2);
 
 
 		
