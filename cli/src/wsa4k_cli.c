@@ -337,8 +337,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint8_t context_is = 0;
 	int8_t title_print =0;
 	int16_t result = 0;
-	int16_t reciever_rf_gain = 0;
-	int16_t reciever_if_gain = 0;
+	double reciever_rf_gain = 0;
+	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 0;
 	int32_t field_indicator = 0;	
 	uint32_t packets_per_block = 0;
@@ -346,29 +346,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t dec = 0;
 	int32_t reciever_temperature = 0;
 	int32_t reciever_reference_point = 0;
-	int32_t digitizer_reference_level = 0;
+	double digitizer_reference_level = 0;
 	int64_t freq = 0;
 	int64_t start_frequency = 0;
 	int64_t stop_frequency = 0;
 	int64_t amplitude = 0;
-	int64_t reciever_frequency = 0;
-	int64_t digitizer_bandwidth = 0;
-	int64_t digitizer_rf_frequency_offset = 0;
+	long double reciever_frequency = 0;
+	long double digitizer_bandwidth = 0;
+	long double digitizer_rf_frequency_offset = 0;
 
 
-	
-	int16_t return_status = 0;
-	uint8_t context_present = 0;
-	int32_t indicator_fieldr = 0;
-	int32_t reference_point = 0;
-	int64_t frequency = 0;
-	int16_t gain_if = 0;
-	int16_t gain_rf = 0;
-	int32_t temperature = 0;
-	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;
 
 
 	
@@ -512,6 +499,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(digitizer);
 		free(trailer);
 		free(header);
+		free(i_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -521,12 +509,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
-		fclose(iq_fptr); 
-		free(reciever);
+		
 		free(digitizer);
+		free(reciever);
 		free(trailer);
 		free(header);
 		free(i_buffer);
+		free(q_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -537,9 +526,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
 		fclose(iq_fptr);
-		fclose(iq_fptr); 
-		free(reciever);
 		free(digitizer);
+		free(reciever);
 		free(trailer);
 		free(header);
 		free(i_buffer);
@@ -603,22 +591,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			}
 			if ((field_indicator & 0x0f000000) == 0x08000000) {
 				reciever_frequency = reciever->frequency;
-				fprintf(iq_fptr, "Frequency: %0.3f\n", reciever_frequency);
+				fprintf(iq_fptr, "Frequency: %.12E \n", reciever_frequency);
 		
 			}
 
 			if ((field_indicator & 0x00f00000) == 0x00800000) {
 				reciever_if_gain= reciever->gain_if;
 				reciever_rf_gain= reciever->gain_rf;
-				fprintf(iq_fptr, "Reference IF Gain: %u\n", reciever_if_gain);
-				fprintf(iq_fptr, "Reference RF Gain: %u\n", reciever_rf_gain);
+				fprintf(iq_fptr, "Reference IF Gain: %E\n", reciever_if_gain);
+				fprintf(iq_fptr, "Reference RF Gain: %E\n", reciever_rf_gain);
 
 			} 	
 			
 			if ((field_indicator & 0x0f000000) == 0x04000000) {
 				
 				reciever_temperature = reciever->temperature;
-				fprintf(iq_fptr, "Frequency: %u\n", reciever_temperature);
+				fprintf(iq_fptr, "Temperature: %u\n", reciever_temperature);
 			
 			} 
 			i--;
@@ -631,17 +619,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			fprintf(iq_fptr, "Digitizer Packet Found\n");
 			if ((field_indicator & 0xf0000000) == 0xa0000000) {
 				digitizer_bandwidth = digitizer->bandwidth;
-				fprintf(iq_fptr, "Bandwidth: %u\n", digitizer_bandwidth);
+				fprintf(iq_fptr, "Bandwidth: %.12E \n", digitizer_bandwidth);
 		
 			} 			
 			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) {
 				digitizer_rf_frequency_offset = digitizer->rf_frequency_offset;
-				fprintf(iq_fptr, "RF Frequency Offset: %0.3f\n", digitizer_rf_frequency_offset);
+				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_frequency_offset);
 		
 			} 
 			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
 				digitizer_reference_level = digitizer->reference_level;
-				fprintf(iq_fptr, "Reference Level: %u\n", digitizer_reference_level);
+				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);
 		
 			} 
 			i--;
@@ -654,7 +642,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				
 			fclose(iq_fptr);
 			free(digitizer);
-		
 			free(reciever);
 			free(header);
 			free(trailer);

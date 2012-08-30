@@ -324,6 +324,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
 	uint8_t context_present = 0;
+	int64_t frequency = 0;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
@@ -342,9 +343,12 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	
 	if (context_present == 1) {
 		*context_is = 1;
+		free(data_buffer);
 		return 0;
+
 	} else if (context_present == 2) {
 		*context_is = 2;
+		free(data_buffer);
 		return 0;
 	} else if (context_present ==0) {
 
@@ -1378,178 +1382,30 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_per_block, int32_t samples_per_packet)
 
 {
-	uint8_t* vrt_packet_buffer = 0;
-	uint16_t expected_header_size = 1;//size of a context header
-	int32_t vrt_packet_bytes = expected_header_size * BYTES_PER_VRT_WORD;
-	int32_t vrt_iq_packet_size = samples_per_packet + VRT_HEADER_SIZE +VRT_TRAILER_SIZE-1;
-	int32_t vrt_iq_packet_size_bytes =  vrt_iq_packet_size * BYTES_PER_VRT_WORD;
-	uint8_t* vrt_iq_packet_buffer = 0;
-	int32_t bytes_received = 0;
-	int32_t bytes_expected=0;
-	int16_t socket_receive_result = 0;
-	int16_t result=0;
-	uint32_t context_indicator_field = 0;
-	uint8_t packet_order_indicator = 0;
-	uint32_t i=0;
-	uint32_t x =0;
-	uint32_t end_buffer =0;
-	uint32_t stream_identifier_word = 0;
-    int64_t dig_bandwidth=0;
-	int32_t dig_ref_level=0;
-	int32_t pkt_size=0;
-	uint8_t* temp_buffer = 0;
-	uint16_t temp_size=0;
-	int32_t temp_size_bytes=0;
-	uint32_t timer = 3600;
-	uint32_t buffer_index=0;
-	int32_t rf_frequency1 =0;
-	int32_t rf_frequency2 =0;
 
 	
-	printf("\nFinding Context Packets...\n");
-	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
-	vrt_iq_packet_buffer = (uint8_t*) malloc(vrt_iq_packet_size_bytes * sizeof(uint8_t));
-	if (vrt_packet_buffer == NULL)
-	{
-		return WSA_ERR_MALLOCFAILED;
+	int16_t result = 0;	
+	clock_t sec = 5;
+	int32_t i = 0;
+
+	for (i = 0; i<100 ; i++) {
+
+	int64_t freq = 2414*MHZ;
+	clock_t start_time = clock();
+	clock_t end_time = sec * 1000 + start_time;
+	result = wsa_set_freq(dev, freq);	
+	while(clock() != end_time);
+	
+
+	
+	freq =8000*MHZ;
+	 start_time = clock();
+	 end_time = sec * 1000 + start_time;
+	result = wsa_set_freq(dev, freq);	
+	while(clock() != end_time);
+
+	
+	
+	
 	}
-
-
-
-	result = wsa_capture_block(dev);
-
-	
-		for (i = 1; i < packets_per_block+1; i++)
-	{
-			  
-
-
-	socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		if (socket_receive_result < 0)
-	{
-		printf("\nError in the Socket Recieve Function...\n");
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
-		free(temp_buffer);
-		free(vrt_iq_packet_buffer);
-		free(vrt_packet_buffer);
-		return socket_receive_result;
-	}
-				pkt_size =(((uint32_t) vrt_packet_buffer[2]) << 8) 
-				+ (((uint32_t) vrt_packet_buffer[3])); 
-
-
-
-				if ((vrt_packet_buffer[0] & 0xf0) == 0x10){
-	
-		
-		
-	
-		bytes_expected = (pkt_size-1)*4;
-
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_iq_packet_buffer, vrt_iq_packet_size_bytes, timer, &bytes_received);
-				
-		
-		
-		stream_identifier_word = (((uint32_t)  vrt_iq_packet_buffer[0]) << 24) 
-		+ (((uint32_t)  vrt_iq_packet_buffer[1]) << 16) 
-		+ (((uint32_t)  vrt_iq_packet_buffer[2]) << 8) 
-		+ (uint32_t)  vrt_iq_packet_buffer[3];			
-	
-			
-
-	   if(bytes_received != bytes_expected){
-		
-		   buffer_index = bytes_received;
-		   while(temp_size_bytes !=bytes_received){
-		   
-	
-			temp_size_bytes = bytes_expected-bytes_received;
-			bytes_expected = temp_size_bytes;
-			temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, timer, &bytes_received);
-		
-		
-
-		end_buffer=vrt_iq_packet_size_bytes;
-
-		for (x = buffer_index; x<end_buffer;x++)
-		
-		{
-		vrt_iq_packet_buffer[x] = temp_buffer[x-buffer_index];
-
-
-		   
-		   }
-		buffer_index = buffer_index + bytes_received;
-		if(bytes_received==0){
-			temp_size_bytes=0;
-		
-		}
-	
-		   }
-		   
-	   }
-		
-
-				}
-
-		
-	 else	if ((vrt_packet_buffer[0] & 0xf0) == 0x40){
-			
-		 i--;
-
-	
-		temp_size = pkt_size-1;
-		temp_size_bytes = temp_size * BYTES_PER_VRT_WORD;	
-		temp_buffer = (uint8_t*) malloc(temp_size_bytes  * sizeof(uint8_t));
-		socket_receive_result = wsa_sock_recv_data(dev->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-
-		
-		
-		
-		stream_identifier_word = (((uint32_t) temp_buffer[0]) << 24) 
-		+ (((uint32_t) temp_buffer[1]) << 16) 
-		+ (((uint32_t) temp_buffer[2]) << 8) 
-		+ (uint32_t) temp_buffer[3];			
-	
-	
-		
-
-				context_indicator_field = (((uint32_t) temp_buffer[16]) << 24) 
-				+ (((uint32_t) temp_buffer[17]) << 16) 
-				+ (((uint32_t) temp_buffer[18]) << 8) 
-				+ (uint32_t) temp_buffer[19];
-	
-			
-			
-
-
-						rf_frequency1 = (((int32_t) temp_buffer[20]) << 24) 
-				+ (((int32_t) temp_buffer[21]) << 16) 
-				+ (((int32_t) temp_buffer[22]) << 8) 
-				+ (int32_t) temp_buffer[23];
-
-
-				rf_frequency2 = (((int32_t) temp_buffer[24]) << 24) 
-				+ (((int32_t) temp_buffer[25]) << 16) 
-				+ (((int32_t) temp_buffer[26]) << 8) 
-				+ (int32_t) temp_buffer[27];
-	
-	
-			
-
-
-		
-		}
-
-		}
-					free(temp_buffer);
-		free(vrt_iq_packet_buffer);
-		free(vrt_packet_buffer);
-		return 0;
-	
-	
-	
-	
-
 }

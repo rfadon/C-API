@@ -160,18 +160,18 @@ struct wsa_vrt_packet_header {
 struct wsa_reciever_packet {
 	int32_t indicator_field;
 	int32_t reference_point;
-	int64_t frequency;
-	int16_t gain_if;
-	int16_t gain_rf;
-	int32_t temperature;
+	long double frequency;
+	double gain_if;
+	double gain_rf;
+	double temperature;
 };
 
 
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
-	int64_t bandwidth;
-	int32_t reference_level;
-	int64_t rf_frequency_offset;
+	long double bandwidth;
+	double reference_level;
+	long double rf_frequency_offset;
 };
 
 
