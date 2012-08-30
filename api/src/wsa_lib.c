@@ -26,7 +26,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_p
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
 
-int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int64_t* bandwidth, int32_t* reference_level, int64_t* rf_frequency_offset);
+int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, long double* bandwidth, double* reference_level, long double* rf_frequency_offset);
 
 int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int32_t* reference_point, int64_t* frequency, int16_t* gain_if, int16_t* gain_rf, int32_t* temperature);
 
@@ -1038,7 +1038,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet,
 		uint8_t* context_present,	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
-	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
+	int32_t* dig_indicator_field, long double* dig_bandwidth, double* dig_reference_level, long double* dig_rf_frequency_offset)
 {
 	
 	uint8_t* vrt_header_buffer = 0;
@@ -1067,9 +1067,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
 	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
 
 	
 	//allocate space for the header buffer
@@ -1561,14 +1561,14 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 		holder = (integer_holder*1000000 + band_dec)/1000000000000;
 		digitizer->bandwidth = holder;
 		data_pos = data_pos + 8;
-		printf("Bandwidth holder is: %.12E \n", digitizer->bandwidth);
+		
 
 
 	}
 
 	//determine if rf frequency offset data is present
 	if ( (temp_buffer[12] & 0xff) == 0x84) {
-			printf("found rf offset \n");
+			
 		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
 								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
@@ -1588,13 +1588,7 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 	
 		digitizer->rf_frequency_offset = rf_freq_holder;
 		data_pos = data_pos + 8;
-		printf("Frequency offset is: %.12E \n", rf_freq_holder); 
-		printf("Frequency offset integer is: %.12E \n", integer_holder/1000000); 
-		printf("Frequency offset integer is: %.12E \n", dec_holder/100000000000); 
 
-
-
-	
 	}
 	//determine if the reference level is present
 	if ((temp_buffer[12] & 0x0f) == 0x01) {
@@ -1610,11 +1604,6 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 				dec_holder = reference_level_holder;
 				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
 				digitizer->reference_level = reference_level1;
-				printf(" reference level is: %f \n", reference_level1);
-				printf(" reference level integer is: %f \n", integer_holder);
-				printf(" reference level integer is: %f \n", dec_holder);
-	
-
 	}
 
 	return 0;
@@ -1721,14 +1710,27 @@ int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indic
 }
 
 
-int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int64_t* bandwidth, int32_t* reference_level, int64_t* rf_frequency_offset)
+int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, long double* bandwidth, double* reference_level, long double* rf_frequency_offset)
 {
 
-	int64_t bandwidth1 = 0;
+	
 	int8_t data_pos = 16;
 	int32_t context_fields = 0;
-	int64_t rf_freq_offset1 = 0;
-	int32_t reference_levelq = 0;
+	int32_t reference_level_holder = 0;
+	int32_t reference_level2 = 0;
+	int64_t band_word1 = 0;
+	int64_t band_word2 = 0;
+	int64_t rf_freq_word1 = 0;
+	int64_t rf_freq_word2 = 0;
+	int64_t rf_freq_dec = 0;
+	int64_t rf_freq_int = 0;
+	int64_t band_holder = 0;
+	long double rf_freq_holder = 0;
+	int64_t band_dec = 0;
+	long double holder = 0;
+	double dec_holder = 0;
+	double integer_holder = 0;
+	double reference_level1 = 0;
 
 	////store the indicator field, which contains the content of the packet
 	*indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
@@ -1736,48 +1738,70 @@ int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indi
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 	
+	
 	//determine if bandwidth data is present	
 	if ((temp_buffer[12] & 0xf0) == 0xA0) {
 		
-		bandwidth1 = ((((int64_t) temp_buffer[data_pos]) << 56) +
-					(((int64_t) temp_buffer[data_pos + 1]) << 48) +
-					(((int64_t) temp_buffer[data_pos + 2]) << 40) +
-					(((int64_t) temp_buffer[data_pos + 3]) << 32) +
-					(((int64_t) temp_buffer[data_pos + 4]) << 24) +
-					(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-					(int64_t) temp_buffer[data_pos + 7]);
+		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 3]);
+
+		band_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 7]);
 		
-		*bandwidth = bandwidth1;
+
+
+		band_dec = (band_word2 & 0x000fffff);
+		dec_holder = band_dec;
+		
+		band_holder = 4096 * band_word1 + (band_word2 & 0xfff00000)/1048576;;
+		integer_holder = band_holder;
+		holder = (integer_holder*1000000 + band_dec)/1000000000000;
 		data_pos = data_pos + 8;
+		*bandwidth = holder;
+		
+		
 	}
 
 	//determine if rf frequency offset data is present
-	if (( temp_buffer[12] & 0x0f) == 0x05 || (temp_buffer[12] & 0x0f) == 0x04) {
+	if ( (temp_buffer[12] & 0xff) == 0x84) {
 			
-			rf_freq_offset1 = ((((int64_t) temp_buffer[data_pos]) << 56) +
-					(((int64_t) temp_buffer[data_pos + 1]) << 48) +
-					(((int64_t) temp_buffer[data_pos + 2]) << 40) +
-					(((int64_t) temp_buffer[data_pos + 3]) << 32) +
-					(((int64_t) temp_buffer[data_pos + 4]) << 24) +
-					(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-					(int64_t) temp_buffer[data_pos + 7]);	
+		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 3]);
 
-	data_pos = data_pos + 8;
-	*rf_frequency_offset = rf_freq_offset1;
-	
+		rf_freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 7]);
+
+		rf_freq_holder = 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;;
+		integer_holder = rf_freq_holder;
+		rf_freq_holder = (rf_freq_word2 & 0x000fffff);
+		dec_holder = rf_freq_holder;
+		rf_freq_holder = (integer_holder/1000000) + (dec_holder/100000000000);
+		*rf_frequency_offset = rf_freq_holder;
+		data_pos = data_pos + 8;
+
 	}
 	//determine if the reference level is present
-	if (( temp_buffer[12] & 0x0f) == 0x05 || (temp_buffer[12] & 0x0f) == 0x01) {
+	if ((temp_buffer[12] & 0x0f) == 0x01) {
 					
-		reference_levelq = ((((int32_t) temp_buffer[data_pos + 4]) << 24) +
-						(((int32_t) temp_buffer[data_pos + 5]) << 16) +
-						(((int32_t) temp_buffer[data_pos + 6]) << 8) + 
-						(int32_t) temp_buffer[data_pos + 7]);	
-		*reference_level = reference_levelq;
-	
+		reference_level2 = ((((int32_t) temp_buffer[data_pos]) << 24) +
+						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int32_t) temp_buffer[data_pos + 3]);	
 
+						reference_level_holder = (reference_level2 & 0x0000ffc0);
+				integer_holder = reference_level_holder;
+				reference_level_holder = (reference_level2 & 0x0000003f);
+				dec_holder = reference_level_holder;
+				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
+				*reference_level = reference_level1;
 	}
 
 	return 0;
@@ -1788,7 +1812,3 @@ int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indi
 }
 
 
-	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;

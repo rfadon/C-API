@@ -373,7 +373,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 		int16_t* const q_buffer,
 		const uint16_t samples_per_packet,
 		uint8_t* context_is, int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf, int32_t* rec_temperature,
-	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
+	int32_t* dig_indicator_field, long double* dig_bandwidth, double* dig_reference_level, long double* dig_rf_frequency_offset)
 {
 
 	int16_t return_status = 0;
@@ -385,11 +385,13 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
 	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;
-	uint8_t* data_buffer = 0;
 
+	
+
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
+	uint8_t* data_buffer = 0;
 	printf("GOT TO READ MATLAB \n");
 
 	// allocate the data buffer
@@ -408,6 +410,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	*rec_temperature = temperature;
 	*dig_indicator_field = indicator_fieldd;
 	*dig_bandwidth = bandwidth;
+	printf("band width is %0.12E \n", bandwidth);
 	*dig_reference_level = reference_level;
 	*dig_rf_frequency_offset = rf_frequency_offset;
 

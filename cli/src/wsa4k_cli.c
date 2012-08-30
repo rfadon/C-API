@@ -356,6 +356,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	long double digitizer_rf_frequency_offset = 0;
 
 
+		int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
 
 
 	
@@ -559,7 +571,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		get_current_time(&capture_start_time);
 
 
-
+		 result = wsa_read_iq_packet_matlab (dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_present, &indicator_fieldr, &reference_point, &frequency, &gain_if,
+		&gain_rf, &temperature, &indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
+		
+		 
+		 printf("bandwidth is: %0.12f \n", bandwidth);
 
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
@@ -737,7 +753,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t amplitude;
 
 
+	
 
+		int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+
+
+
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
 	
 	//DIR *temp;
 
