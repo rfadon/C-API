@@ -355,21 +355,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
 
-
-		int16_t return_status = 0;
-	uint8_t context_present = 0;
-	int32_t indicator_fieldr = 0;
-	int32_t reference_point = 0;
-	int64_t frequency = 0;
-	int16_t gain_if = 0;
-	int16_t gain_rf = 0;
-	int32_t temperature = 0;
-	int32_t indicator_fieldd = 0;
-	long double bandwidth = 0;
-	double reference_level = 0;
-	long double rf_frequency_offset = 0;
-
-
 	
 
 	char file_name[MAX_STRING_LEN];
@@ -506,7 +491,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
 		fclose(iq_fptr); 
-		fclose(iq_fptr); 
 		free(reciever);
 		free(digitizer);
 		free(trailer);
@@ -521,7 +505,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
-		
 		free(digitizer);
 		free(reciever);
 		free(trailer);
@@ -570,13 +553,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-
-		 result = wsa_read_iq_packet_matlab (dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_present, &indicator_fieldr, &reference_point, &frequency, &gain_if,
-		&gain_rf, &temperature, &indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
-		
-		 
-		 printf("bandwidth is: %0.12f \n", bandwidth);
-
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
 	
@@ -586,13 +562,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		if (result < 0)
 		{
-			fclose(iq_fptr);
-			free(reciever);
-			free(digitizer);
-			free(trailer);
-			free(header);
-			free(i_buffer);
-			free(q_buffer);
+		fclose(iq_fptr);
+		free(digitizer);
+		free(reciever);
+		free(trailer);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
 			return result;
 		}
 		if (context_is == 1) {
@@ -656,13 +632,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (header->packet_order_indicator != expected_packet_order_indicator)
 		{
 				
-			fclose(iq_fptr);
-			free(digitizer);
-			free(reciever);
-			free(header);
-			free(trailer);
-			free(i_buffer);
-			free(q_buffer);
+		fclose(iq_fptr);
+		free(digitizer);
+		free(reciever);
+		free(trailer);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
 			return WSA_ERR_PACKETOUTOFORDER;
 		}
 	
@@ -706,17 +682,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		capture_time_ms,
 		run_time_ms);
 
-	fclose(iq_fptr);
-	free(trailer);
-		
-	free(header);
-	free(digitizer);
-	free(reciever);
-
-	
-	
-	free(i_buffer);
-	free(q_buffer);
+		fclose(iq_fptr);
+		free(digitizer);
+		free(reciever);
+		free(trailer);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
 
 	
 	return 0;

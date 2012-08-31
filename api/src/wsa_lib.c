@@ -973,6 +973,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	{
 		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_packet_buffer);
+		free(vrt_header_buffer);
 		return socket_receive_result;
 	}
 
@@ -981,7 +982,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 							(((uint32_t) vrt_packet_buffer[1]) << 16) +
 							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
 							(uint32_t) vrt_packet_buffer[3];
-	doutf(DLOW, "second: 0x%08X %u\n", 
+	doutf(DLOW, "second: 0x%08X %u\n",
 		header->time_stamp.sec, 
 		header->time_stamp.sec);
 
@@ -1038,7 +1039,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		uint8_t* const data_buffer, 
 		const uint16_t samples_per_packet,
 		uint8_t* context_present,	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
-	int32_t* dig_indicator_field, long double* dig_bandwidth, double* dig_reference_level, long double* dig_rf_frequency_offset)
+	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
 {
 	
 	uint8_t* vrt_header_buffer = 0;
@@ -1067,9 +1068,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
 	int32_t indicator_fieldd = 0;
-	long double bandwidth = 0;
-	double reference_level = 0;
-	long double rf_frequency_offset = 0;
+	int64_t bandwidth = 0;
+	int32_t reference_level = 0;
+	int64_t rf_frequency_offset = 0;
 
 	
 	//allocate space for the header buffer
@@ -1672,7 +1673,7 @@ int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indic
 		freq_dec = (freq_word2 & 0x000fffff)/1000000;
 		freq_holder = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
 		
-		*frequency = freq_holder/MHZ;
+		*frequency = freq_holder;
 		
 		data_pos = data_pos + 8;
 		
@@ -1710,7 +1711,7 @@ int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indic
 }
 
 
-int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, long double* bandwidth, double* reference_level, long double* rf_frequency_offset)
+int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int64_t* bandwidth, int32_t* reference_level, int32_t* rf_frequency_offset)
 {
 
 	
@@ -1725,12 +1726,12 @@ int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indi
 	int64_t rf_freq_dec = 0;
 	int64_t rf_freq_int = 0;
 	int64_t band_holder = 0;
-	long double rf_freq_holder = 0;
+	int64_t rf_freq_holder = 0;
 	int64_t band_dec = 0;
-	long double holder = 0;
-	double dec_holder = 0;
-	double integer_holder = 0;
-	double reference_level1 = 0;
+	int64_t holder = 0;
+	int64_t dec_holder = 0;
+	int64_t integer_holder = 0;
+	int32_t reference_level1 = 0;
 
 	////store the indicator field, which contains the content of the packet
 	*indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
@@ -1757,11 +1758,10 @@ int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indi
 		band_dec = (band_word2 & 0x000fffff);
 		dec_holder = band_dec;
 		
-		band_holder = 4096 * band_word1 + (band_word2 & 0xfff00000)/1048576;;
-		integer_holder = band_holder;
-		holder = (integer_holder*1000000 + band_dec)/1000000000000;
+		band_holder = (4096 * band_word1) + ((band_word2 & 0xfff00000)/1048576);
+		integer_holder = band_holder*1000;
 		data_pos = data_pos + 8;
-		*bandwidth = holder;
+		*bandwidth = integer_holder;
 		
 		
 	}
