@@ -390,26 +390,33 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	int64_t rf_frequency_offset = 0;
 	uint8_t* data_buffer = 0;
 
-	printf("GOT TO READ MATLAB \n");
+	struct wsa_reciever_packet* reciever;
+	struct wsa_digitizer_packet* digitizer;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
-	return_status = wsa_read_iq_packet_raw_matlab(device, header, trailer, data_buffer, samples_per_packet, &context_present, &indicator_fieldr, &reference_point, &frequency, &gain_if,
-		&gain_rf, &temperature, &indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
-	
+
+
+	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
+
+	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
+
+	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
 	
 
-	*rec_indicator_field = indicator_fieldr;
-	*rec_reference_point = reference_point;
-	*rec_frequency = frequency;
-	*rec_gain_if = gain_if;
-	*rec_gain_rf = gain_rf;
-	*rec_temperature = temperature;
-	*dig_indicator_field = indicator_fieldd;
-	*dig_bandwidth = bandwidth;
-	*dig_reference_level = reference_level;
-	*dig_rf_frequency_offset = rf_frequency_offset;
+	
+
+	*rec_indicator_field =(int) reciever->indicator_field;
+	*rec_reference_point =(int) reciever->reference_point;
+	*rec_frequency =(long long) reciever->frequency;
+	*rec_gain_if = (unsigned short) reciever->gain_if;
+	*rec_gain_rf = (unsigned short) reciever->gain_rf;
+	*rec_temperature = (int)reciever->temperature;
+	*dig_indicator_field = (int) digitizer->indicator_field;
+	*dig_bandwidth = (long long)digitizer-> bandwidth;
+	*dig_reference_level = (int)digitizer->reference_level;
+	*dig_rf_frequency_offset = (long long)digitizer->rf_frequency_offset;
 
 	
 

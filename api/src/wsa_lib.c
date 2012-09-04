@@ -26,11 +26,6 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_p
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
 
-int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, long double* bandwidth, double* reference_level, long double* rf_frequency_offset);
-
-int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int32_t* reference_point, int64_t* frequency, int16_t* gain_if, int16_t* gain_rf, int32_t* temperature);
-
-
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
@@ -834,8 +829,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-
-
 	// reset header
 	header->packet_order_indicator = 0;
 	header->samples_per_packet = 0;
@@ -853,8 +846,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		free(vrt_header_buffer);
 		return socket_receive_result;
 	}
-
-	
 
 	//determine if the packet is neither context or iq	 using the pkt type
 	if((vrt_header_buffer[0] & 0xf0) != 0x40 &&(vrt_header_buffer[0] & 0xf0) !=0x10){
@@ -918,10 +909,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	//if the packet is an IQ packet proceed with the method from previous release
 	} else if (stream_identifier_word == 0x90000003){ 
-		
+			
 			*context_present =0;
-					
-	
+
 	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 	// It provides a simple verification that packets are arriving in the right order
@@ -1033,265 +1023,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 
 
-	int16_t wsa_read_iq_packet_raw_matlab(struct wsa_device* const device, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet,
-		uint8_t* context_present,	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
-	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
-{
-	
-	uint8_t* vrt_header_buffer = 0;
-	uint8_t* temp_buffer=0;
-	uint8_t packet_order_indicator = 0;
-	uint16_t temp_size=0;
-	int32_t temp_size_bytes=0;
-	uint16_t expected_header_size = 2;
-	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
-	uint8_t* vrt_packet_buffer = 0;
-	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE-2);
-	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
-	int32_t context_indicator_field = 0;
-	int32_t bytes_received = 0;
-	int16_t socket_receive_result = 0;
-	int16_t result = 0;
-	int64_t frequency1 = 0;
-	uint32_t stream_identifier_word = 0;
-	uint16_t packet_size = 0;
-
-
-	int32_t indicator_fieldr = 0;
-	int32_t reference_point = 0;
-	int64_t frequency = 0;
-	int16_t gain_if = 0;
-	int16_t gain_rf = 0;
-	int32_t temperature = 0;
-	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;
-
-	
-	//allocate space for the header buffer
-	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
-		if (vrt_header_buffer == NULL)
-	{
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-
-
-	// reset header
-	header->packet_order_indicator = 0;
-	header->samples_per_packet = 0;
-	header->time_stamp.sec = 0;
-	header->time_stamp.psec = 0;
-
-	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
-
-
-	if (socket_receive_result < 0)
-	{
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
-		free(vrt_header_buffer);
-		return socket_receive_result;
-	}
-
-	
-
-	//determine if the packet is neither context or iq	 using the pkt type
-	if((vrt_header_buffer[0] & 0xf0) != 0x40 &&(vrt_header_buffer[0] & 0xf0) !=0x10){
-					free(vrt_packet_buffer);
-					free(vrt_header_buffer);
-			return WSA_ERR_NOTIQFRAME;
-	}
-
-
-	//Store the Stream Identifier to determine if the packet is an IQ packet or a context packet
-				stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
-				+ (((uint32_t) vrt_header_buffer[5]) << 16) 
-				+ (((uint32_t) vrt_header_buffer[6]) << 8) 
-				+ (uint32_t) vrt_header_buffer[7];		
-
-		if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
-		{
-			
-			free(vrt_packet_buffer);
-			free(vrt_header_buffer);
-			return WSA_ERR_NOTIQFRAME;
-		}
-
-		//Determine if this is a Context packet
-	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
-	
-		
-
-		//retrieve the packet size
-		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
-
-		//allocate memory for the context packet
-		temp_size_bytes = (packet_size-2)*4;
-		temp_buffer = (uint8_t*) malloc(temp_size_bytes * sizeof(uint8_t));
-	
-		if (temp_buffer == NULL)
-	{
-		return WSA_ERR_MALLOCFAILED;
-	}
-		//store the rest of the packet inside the buffer
-		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		
-
-		//store reciever data in the reciever structure
-		if (stream_identifier_word == 0x90000001) {
-			*context_present =1;
-			result = extract_reciever_packet_data_matlab(temp_buffer, &indicator_fieldr, &reference_point, &frequency1, &gain_if, &gain_rf, &temperature);
-	*rec_indicator_field = indicator_fieldr;
-	*rec_reference_point = reference_point;
-	*rec_frequency = frequency1;
-	*rec_gain_if = gain_if;
-	*rec_gain_rf = gain_rf;
-	*rec_temperature = temperature;
-	
-		
-		//store digitizer data in the digitizer structure
-		} else if (stream_identifier_word == 0x90000002) {
-			*context_present =2;
-			result = extract_digitizer_packet_data_matlab(temp_buffer,	&indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
-				*dig_indicator_field = indicator_fieldd;
-	*dig_bandwidth = bandwidth;
-	*dig_reference_level = reference_level;
-	*dig_rf_frequency_offset = rf_frequency_offset;
-		
-		}
-
-
-		free(vrt_packet_buffer);
-		free(temp_buffer);
-		free(vrt_header_buffer);
-		return 0;
-	
-	//if the packet is an IQ packet proceed with the method from previous release
-	} else if (stream_identifier_word == 0x90000003){ 
-			
-			*context_present =0;
-					
-	
-	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
-	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
-	// It provides a simple verification that packets are arriving in the right order
-	packet_order_indicator = vrt_header_buffer[1] & 0x0f;
-	doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
-	header->packet_order_indicator = packet_order_indicator;
-
-	//Get the 16-bit "Pkt Size"
-	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
-	doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
-
-	if (packet_size != (expected_packet_size+2))
-	{
-		
-		doutf(DHIGH, "Error: Expected %hu words in VRT packet. Received %hu\n", 
-			expected_packet_size, 
-			packet_size);
-	
-		free(vrt_header_buffer);
-		return WSA_ERR_VRTPACKETSIZE;
-	}
-	
-	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
-
-	
-	//Check TSI field for 01 & get sec time stamp at the 3rd word
-	if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
-	{
-		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
-		free(vrt_header_buffer);
-	
-		return WSA_ERR_INVTIMESTAMP;
-	}
-
-	
-	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
-	vrt_packet_bytes = 4 * (packet_size-2);
-	
-	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
-	
-	if (vrt_packet_buffer == NULL)
-	{
-		free(vrt_header_buffer);
-		free(vrt_packet_buffer);
-		return WSA_ERR_MALLOCFAILED;
-	}
-	printf("reading here \n \n");
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-	printf("read everything \n \n");
-	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
-
-	if (socket_receive_result < 0)
-	{
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
-		free(vrt_header_buffer);
-		free(vrt_packet_buffer);
-		return socket_receive_result;
-	}
-
-		
-		header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[0]) << 24) +
-							(((uint32_t) vrt_packet_buffer[1]) << 16) +
-							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
-							(uint32_t) vrt_packet_buffer[3];
-	doutf(DLOW, "second: 0x%08X %u\n", 
-		header->time_stamp.sec, 
-		header->time_stamp.sec);
-
-	//Check the TSF field, if present (= 0x10), 
-	// get the picoseconds time stamp at the 4th & 5th words
-	if ((vrt_header_buffer[1] & 0x30) >> 5) 
-	{
-		header->time_stamp.psec = (((uint64_t) vrt_packet_buffer[4]) << 56) +
-				(((uint64_t) vrt_packet_buffer[5]) << 48) +
-				(((uint64_t) vrt_packet_buffer[6]) << 40) +
-				(((uint64_t) vrt_packet_buffer[7]) << 32) +
-				(((uint64_t) vrt_packet_buffer[8]) << 24) +
-				(((uint64_t) vrt_packet_buffer[9]) << 16) + 
-				(((uint64_t) vrt_packet_buffer[10]) << 8) + 
-				(uint64_t) vrt_packet_buffer[11];
-	}
-	else 
-	{
-		header->time_stamp.psec = 0ULL;
-	}
-
-	doutf(DLOW, "psec: 0x%016llX %llu\n", 
-		header->time_stamp.psec, 
-		header->time_stamp.psec);
-
-	// *****
-	// TODO: Handle the trailer word here once it is available
-	// *****s
-	//if (vrt_packet_buffer[0] & 0x04)
-	// Placeholder values for now:
-	trailer->valid_data_indicator = 0;
-	trailer->ref_lock_indicator = 0;
-	trailer->over_range_indicator = 0;
-	trailer->sample_loss_indicator = 0;
-
-	// *****
-	// Copy the IQ data payload to the provided buffer
-	// *****
-	memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
-
-		free(vrt_header_buffer);
-		free(vrt_packet_buffer);
-
-	return 0;
-	}
-
-	}
-
 
 /**
  * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
@@ -1392,15 +1123,14 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 	int32_t reference_point = 0;
 	int64_t freq_word1 = 0;
 	int64_t freq_word2 = 0;
+	int64_t freq_holder1 = 0;
 	long double freq_holder = 0;
 	int64_t freq_dec = 0;
 	int8_t data_pos = 16;
 	double dec_holder = 0;
 	double integer_holder = 0;
 
-	
 	int32_t context_fields = 0;
-
 	
 	//store the indicator field, which contains the content of the packet
 	reciever->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
@@ -1417,7 +1147,15 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
 								(int32_t) temp_buffer[data_pos + 3]);
 		data_pos = data_pos + 4;
-		reciever->reference_point = reference_point;
+		
+				if (reference_point == 16777217) {
+
+		reciever->reference_point = 1;
+
+		} else if (reference_point == 16777218) {
+		
+			reciever->reference_point = 2;
+		}
 	}
 	
 	
@@ -1435,16 +1173,17 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 								(int64_t) temp_buffer[data_pos + 7]);
 		
 
-		freq_holder = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576;;
+		freq_holder1 = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576;
+		freq_holder = (double) freq_holder1;
 		integer_holder = freq_holder;
 		freq_dec = (freq_word2 & 0x000fffff);
-		dec_holder = freq_dec;
+		dec_holder = (double) freq_dec;
 		freq_holder = integer_holder + dec_holder/1000000;
-	
 		data_pos = data_pos + 8;
+		
 		reciever->frequency = freq_holder/MHZ;
-		data_pos = data_pos + 8;
-
+		
+		
 		
 
 		
@@ -1475,9 +1214,9 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		reciever->gain_if = gain_if;
 		reciever->gain_rf = gain_rf; 
 		data_pos = data_pos + 4;
-
-
+		
 	}
+
 	//determine of temperature data is present
 	if ((temp_buffer[13] & 0x0f) == 0x04) {
 				temperature = ((((int32_t) temp_buffer[data_pos]) << 24) +
@@ -1489,7 +1228,6 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 				integer_holder = temperature_holder;
 				temperature_holder = (temperature & 0x0000003f);
 				dec_holder = temperature_holder;
-
 				reciever->temperature = temperature;
 
 	}
@@ -1525,13 +1263,12 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 	int64_t rf_freq_dec = 0;
 	int64_t rf_freq_int = 0;
 	int64_t band_holder = 0;
-	long double rf_freq_holder = 0;
 	int64_t band_dec = 0;
-	long double holder = 0;
 	double dec_holder = 0;
 	double integer_holder = 0;
 	double reference_level1 = 0;
-
+	long double holder = 0;
+	long double rf_freq_holder = 0;
 	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
@@ -1555,16 +1292,13 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 
 
 		band_dec = (band_word2 & 0x000fffff);
-		dec_holder = band_dec;
+		dec_holder = (double) band_dec;
 		
-		band_holder = 4096 * band_word1 + (band_word2 & 0xfff00000)/1048576;;
-		integer_holder = band_holder;
+		band_holder = 4096 * band_word1 + (band_word2 & 0xfff00000)/1048576;
+		integer_holder = (double) band_holder;
 		holder = (integer_holder*1000000 + band_dec)/1000000000000;
 		digitizer->bandwidth = holder;
 		data_pos = data_pos + 8;
-		
-
-
 	}
 
 	//determine if rf frequency offset data is present
@@ -1605,203 +1339,6 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 				dec_holder = reference_level_holder;
 				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
 				digitizer->reference_level = reference_level1;
-	}
-
-	return 0;
-
-
-
-
-}
-
-
-int16_t extract_reciever_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, 
-	int32_t* reference_point, int64_t* frequency, int16_t* gain_if, int16_t* gain_rf, int32_t* temperature)
-{
-
-
-	int8_t gain_if_byte1 = 0;
-	int8_t gain_if_byte2 = 0;
-	int8_t gain_rf_byte1 = 0;
-	int8_t gain_rf_byte2 = 0;
-	int16_t gain_if1 = 0;
-	int16_t gain_rf1 = 0;
-	int32_t temperatureq = 0;
-	int32_t reference_pointq = 0;
-	int64_t freq_word1 = 0;
-	int64_t freq_word2 = 0;
-	int64_t freq_holder = 0;
-	int64_t freq_dec = 0;
-	int8_t data_pos = 16;
-		int32_t context_fields = 0;
-	
-	//store the indicator field, which contains the content of the packet
-	*indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
-								(((int32_t) temp_buffer[13]) << 16) +
-								(((int32_t) temp_buffer[14]) << 8) + 
-								(int32_t) temp_buffer[15]);
-	
-	
-	//determine if reference point data is present
-	if (( temp_buffer[12] & 0xf0) == 0xc0) {
-		
-		reference_pointq = ((((int32_t) temp_buffer[data_pos]) << 24) +
-								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int32_t) temp_buffer[data_pos + 3]);
-		*reference_point = reference_pointq; 
-		data_pos = data_pos + 4;
-		
-	}
-	
-	
-	//determine if frequency data is present
-	if ((temp_buffer[12] & 0x0f) == 0x08) {
-
-		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
-
-		freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
-		
-
-
-		freq_dec = (freq_word2 & 0x000fffff)/1000000;
-		freq_holder = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576 +freq_dec;
-		
-		*frequency = freq_holder;
-		
-		data_pos = data_pos + 8;
-		
-	}
-	
-	//determine if gain data is present
-	if ((temp_buffer[13] & 0xf0) == 0x80) {
-	
-		
-		gain_if_byte1 = (int8_t) temp_buffer[data_pos]; 
-		gain_if_byte2 = (int8_t) temp_buffer[data_pos + 1]; 
-		gain_rf_byte1 = (int8_t) temp_buffer[data_pos + 2];
-		gain_rf_byte2 = (int8_t) temp_buffer[data_pos + 3];
-
-		gain_rf1 = (2 * gain_rf_byte1) + (gain_rf_byte2 & 0x8)/128;
-		gain_if1 = (2 * gain_if_byte1) + (gain_if_byte2 & 0x8)/128;
-
-		*gain_if = gain_if1;
-		*gain_rf = gain_rf1;
-		data_pos = data_pos + 4;
-	}
-	//determine of temperature data is present
-	if ((temp_buffer[13] & 0x0f) == 0x04) {
-				temperatureq = ((((int32_t) temp_buffer[data_pos]) << 24) +
-								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int32_t) temp_buffer[data_pos + 3]);
-				*temperature = temperatureq;
-
-	}
-
-
-	return 0;
-
-}
-
-
-int16_t extract_digitizer_packet_data_matlab(uint8_t* temp_buffer, int32_t* indicator_field, int64_t* bandwidth, int32_t* reference_level, int32_t* rf_frequency_offset)
-{
-
-	
-	int8_t data_pos = 16;
-	int32_t context_fields = 0;
-	int32_t reference_level_holder = 0;
-	int32_t reference_level2 = 0;
-	int64_t band_word1 = 0;
-	int64_t band_word2 = 0;
-	int64_t rf_freq_word1 = 0;
-	int64_t rf_freq_word2 = 0;
-	int64_t rf_freq_dec = 0;
-	int64_t rf_freq_int = 0;
-	int64_t band_holder = 0;
-	int64_t rf_freq_holder = 0;
-	int64_t band_dec = 0;
-	int64_t holder = 0;
-	int64_t dec_holder = 0;
-	int64_t integer_holder = 0;
-	int32_t reference_level1 = 0;
-
-	////store the indicator field, which contains the content of the packet
-	*indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
-								(((int32_t) temp_buffer[13]) << 16) +
-								(((int32_t) temp_buffer[14]) << 8) + 
-								(int32_t) temp_buffer[15]);
-	
-	
-	//determine if bandwidth data is present	
-	if ((temp_buffer[12] & 0xf0) == 0xA0) {
-		
-		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
-
-		band_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
-		
-
-
-		band_dec = (band_word2 & 0x000fffff);
-		dec_holder = band_dec;
-		
-		band_holder = (4096 * band_word1) + ((band_word2 & 0xfff00000)/1048576);
-		integer_holder = band_holder*1000;
-		data_pos = data_pos + 8;
-		*bandwidth = integer_holder;
-		
-		
-	}
-
-	//determine if rf frequency offset data is present
-	if ( (temp_buffer[12] & 0xff) == 0x84) {
-			
-		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
-
-		rf_freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
-
-		rf_freq_holder = 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;;
-		integer_holder = rf_freq_holder;
-		rf_freq_holder = (rf_freq_word2 & 0x000fffff);
-		dec_holder = rf_freq_holder;
-		rf_freq_holder = (integer_holder/1000000) + (dec_holder/100000000000);
-		*rf_frequency_offset = rf_freq_holder;
-		data_pos = data_pos + 8;
-
-	}
-	//determine if the reference level is present
-	if ((temp_buffer[12] & 0x0f) == 0x01) {
-					
-		reference_level2 = ((((int32_t) temp_buffer[data_pos]) << 24) +
-						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int32_t) temp_buffer[data_pos + 3]);	
-
-						reference_level_holder = (reference_level2 & 0x0000ffc0);
-				integer_holder = reference_level_holder;
-				reference_level_holder = (reference_level2 & 0x0000003f);
-				dec_holder = reference_level_holder;
-				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
-				*reference_level = reference_level1;
 	}
 
 	return 0;

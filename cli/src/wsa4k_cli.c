@@ -344,7 +344,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint32_t packets_per_block = 0;
 	int32_t enable = 0;
 	int32_t dec = 0;
-	int32_t reciever_temperature = 0;
+	double reciever_temperature = 0;
 	int32_t reciever_reference_point = 0;
 	double digitizer_reference_level = 0;
 	int64_t freq = 0;
@@ -556,6 +556,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
 	
+
+
+
+
 		get_current_time(&capture_end_time);
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);

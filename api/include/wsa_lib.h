@@ -231,15 +231,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 		
 		
-int16_t wsa_read_iq_packet_raw_matlab(struct wsa_device* const device, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet, uint8_t* context_present,
-	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
-	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* digrf_frequency_offset);		
-		
-		
+
 		
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
