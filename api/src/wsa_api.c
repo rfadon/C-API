@@ -1402,6 +1402,13 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	clock_t end_time = sec * 1000 + start_time;
 	result = wsa_set_freq(dev, freq);	
 	while(clock() != end_time);
+
+
+	freq =5000*MHZ;
+	 start_time = clock();
+	 end_time = sec * 1000 + start_time;
+	result = wsa_set_freq(dev, freq);	
+	while(clock() != end_time);
 	
 
 	
