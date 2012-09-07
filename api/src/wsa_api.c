@@ -1378,7 +1378,8 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 
 
 /**
- * Enter a new sweep entryv
+ * Get the antenna in the user's sweep list
+ * 
  * @param dev - A pointer to the WSA device structure.
  * @param enable - An integer pointer to store the current mode: 
  * 1 = triggered (trigger on), 0 = freerun (trigger off).
@@ -1386,11 +1387,51 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
  * @return 0 on success, or a negative number on error.
  */
 
+int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num) 
+{
+
+
+	*port_num = 5;
+	return 0;
+}
 
 
 
+int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
+{
+
+	*gain = 5;
+	return 0;
 
 
+}
+
+int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, int32_t *gain)
+{
+
+	*gain = 5;
+	return 0;
+
+
+}
+
+
+
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
+{
+
+
+	*samples_per_packet = 12;
+	return 0;
+}
+
+int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint16_t* packet_per_block)
+{
+
+
+	*packet_per_block = 12;
+	return 0;
+}
 
 
 
