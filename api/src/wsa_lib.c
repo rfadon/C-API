@@ -1298,6 +1298,8 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 		integer_holder = (double) band_holder;
 		holder = (integer_holder*1000000 + band_dec)/1000000000000;
 		digitizer->bandwidth = holder;
+		
+
 		data_pos = data_pos + 8;
 	}
 
@@ -1314,13 +1316,12 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 								(int64_t) temp_buffer[data_pos + 7]);
 
-		rf_freq_holder = 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;;
-		integer_holder = rf_freq_holder;
+		rf_freq_holder = 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;
+		integer_holder = (double) rf_freq_holder;
 		rf_freq_holder = (rf_freq_word2 & 0x000fffff);
-		dec_holder = rf_freq_holder;
+		dec_holder = (double) rf_freq_holder;
 		rf_freq_holder = (integer_holder/1000000) + (dec_holder/100000000000);
-	
-	
+
 		digitizer->rf_frequency_offset = rf_freq_holder;
 		data_pos = data_pos + 8;
 

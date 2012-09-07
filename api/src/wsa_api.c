@@ -1371,8 +1371,35 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 
 	return 0;
 }
+
 // ////////////////////////////////////////////////////////////////////////////
-// Context Packet Function                                                 //
+// Sweep Functions				                                             //
+// ////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Enter a new sweep entryv
+ * @param dev - A pointer to the WSA device structure.
+ * @param enable - An integer pointer to store the current mode: 
+ * 1 = triggered (trigger on), 0 = freerun (trigger off).
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// Context Packet test Function                                               //
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -1423,3 +1450,6 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	
 	}
 }
+
+
+
