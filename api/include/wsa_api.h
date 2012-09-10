@@ -130,8 +130,8 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
 
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint32_t* samples_per_packet);
-int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint32_t samples_per_packet);
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
 
@@ -149,17 +149,19 @@ int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
 
 int16_t wsa_get_sweep_status(struct wsa_device *dev, int32_t *status);
 
-int16_t wsa_sweep_new(struct wsa_device *dev);
+int16_t wsa_sweep_entry_new(struct wsa_device *dev);
 
-int16_t wsa_sweep_copy(struct wsa_device *dev, int16_t position);
+int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position);
 
-int16_t wsa_sweep_save(struct wsa_device *dev, int16_t positon);
+int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
 
-int16_t wsa_sweep_delete(struct wsa_device *dev, int16_t position);
+int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position);
 
 //int16_t wsa_sweep_read(struct wsa_device *dev, int16_t position);
 
-int16_t wsa_sweep_list(struct wsa_device *dev, int16_t *position);
+int16_t wsa_sweep_list(struct wsa_device *dev, int32_t *position);
+
+int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t *size);
 
 int16_t wsa_sweep_start(struct wsa_device *dev);
 

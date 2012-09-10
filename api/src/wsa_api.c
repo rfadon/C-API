@@ -1398,8 +1398,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
 {
 
-
-	printf("Recieved %d \n", port_num);
+	printf("Recieved %u \n", port_num);
 	return 0;
 }
 
@@ -1446,7 +1445,7 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
    
 
 
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint32_t* samples_per_packet)
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
 {
 
 
@@ -1454,7 +1453,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint32_t* sa
 	return 0;
 }
 
-int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint32_t samples_per_packet)
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint16_t samples_per_packet)
 {
 
 
@@ -1552,8 +1551,48 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 	return 0;
 }
 
+int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t* size)
+{
 
 
+	*size = 12;
+	return 0;
+}
+
+int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position) {
+	printf("got to delete \n");
+return 0;
+}
+
+int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
+	printf("got to copy\n");
+	return 0;
+}
+
+int16_t wsa_sweep_start(struct wsa_device *dev) {
+	printf("got to start\n");
+	return 0;
+}
+
+int16_t wsa_sweep_stop(struct wsa_device *dev) {
+	printf("got to stop\n");
+	return 0;
+}
+
+int16_t wsa_sweep_resume(struct wsa_device *dev) {
+	printf("got to resume\n");
+	return 0;
+}
+
+int16_t wsa_sweep_entry_new(struct wsa_device *dev) {
+		printf("got to new entry\n");
+	return 0;
+}
+
+int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon) {
+	printf("got to save\n");
+	return 0;
+}
 // ////////////////////////////////////////////////////////////////////////////
 // Context Packet test Function                                               //
 // ////////////////////////////////////////////////////////////////////////////
