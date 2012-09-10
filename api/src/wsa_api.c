@@ -1381,8 +1381,8 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
  * Get the antenna in the user's sweep list
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param enable - An integer pointer to store the current mode: 
- * 1 = triggered (trigger on), 0 = freerun (trigger off).
+ * @param port_num - An integer pointer to store the antenna location: 
+ * 1 = antenna 1, 2 = antenna 2.
  *
  * @return 0 on success, or a negative number on error.
  */
@@ -1392,6 +1392,14 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 
 
 	*port_num = 5;
+	return 0;
+}
+
+int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
+{
+
+
+	printf("Recieved %d \n", port_num);
 	return 0;
 }
 
@@ -1406,10 +1414,10 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 
 }
 
-int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, int32_t *gain)
+int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 {
 
-	*gain = 5;
+	printf("Recieved %d \n",gain);
 	return 0;
 
 
@@ -1417,7 +1425,28 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, int32_t *gain)
 
 
 
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
+int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
+{
+
+	*gain = WSA_GAIN_HIGH;
+	return 0;
+
+
+}
+
+
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
+{
+
+	printf("Recieved gain rf \n");
+	return 0;
+}
+   
+   
+   
+
+
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint32_t* samples_per_packet)
 {
 
 
@@ -1425,17 +1454,103 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* sa
 	return 0;
 }
 
-int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint16_t* packet_per_block)
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint32_t samples_per_packet)
 {
 
 
-	*packet_per_block = 12;
+	printf("Recieved %d \n",samples_per_packet);
+	return 0;
+}
+
+int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
+{
+
+
+	*packets_per_block = 12;
+	return 0;
+}
+
+int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t packets_per_block)
+{
+
+
+	printf("Recieved %d \n",packets_per_block);
+	return 0;
+}
+
+int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
+{
+
+
+	*rate = 12;
 	return 0;
 }
 
 
+int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
+{
 
 
+	printf("Recieved %d \n",rate);
+	return 0;
+}
+
+int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* freq)
+{
+
+
+	*freq = 12;
+	return 0;
+}
+
+int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t freq)
+{
+
+
+	printf("Recieved %0.12f \n", (float) freq);
+	return 0;
+}
+
+
+int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
+{
+
+
+	*fshift = 12;
+	return 0;
+}
+
+int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
+{
+
+
+	printf("Recieved %0.12f \n", fshift);
+	return 0;
+}
+
+int16_t wsa_get_sweep_iteration(struct wsa_device* device, int32_t* iterat)
+{
+
+
+	*iterat = 12;
+	return 0;
+}
+
+int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
+{
+
+
+	printf("Recieved %u \n", iterat);
+	return 0;
+}
+
+int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
+{
+
+
+	*status = 12;
+	return 0;
+}
 
 
 

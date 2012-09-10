@@ -1039,15 +1039,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Currently using antenna port %d in the user's sweep list\n", int_result);
 				}
 			} else if (strcmp(cmd_words[2], "GAIN") == 0) {
+				
 				if (strcmp(cmd_words[3], "IF") == 0) {
 				result = wsa_get_sweep_gain_if(dev, &int_result);
 					if (result >= 0) {
 					printf("Currently using %d as the IF Gain in the user's sweep list\n", int_result);
 					}
 				} else if (strcmp(cmd_words[3], "RF") == 0) {
-					result = wsa_get_sweep_gain_rf(dev, &int_result);
+					enum wsa_gain gain;
+					result = wsa_get_sweep_gain_rf(dev, &gain);
 					if (result >= 0) {
-					printf("Currently using %d as the RF Gain in the user's sweep list\n", int_result);
+					printf("Currently using %d as the RF Gain in the user's sweep list\n", gain);
 					}
 				} else {
 					printf("Invalid 'get'. Try 'h'.\n");
@@ -1062,9 +1064,34 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (result >= 0) {
 					printf("Currently the packets per block in the user's sweep list is %d \n", packets_per_block);
 				}
+			} else if (strcmp(cmd_words[2], "DEC") == 0) {
+				result = wsa_get_sweep_decimation(dev, &int_result);
+				if (result >= 0) {
+					printf("Currently using %d as the decimation in the user's sweep list\n", int_result);
+				}
+			} else if (strcmp(cmd_words[2], "FREQ") == 0) {
+				result = wsa_get_sweep_freq(dev, &freq);
+				if (result >= 0) {
+					printf("Currently using %d as the center frequency in the user's sweep list\n", freq);
+				}
+			} else if (strcmp(cmd_words[2], "FSHIFT") == 0) {
+				result = wsa_get_sweep_freq_shift(dev, &fshift);
+				if (result >= 0) {
+					printf("Currently using %d as the frequency shift in the user's sweep list\n", fshift);
+				}
+			}  else if (strcmp(cmd_words[2], "ITER") == 0) {
+				result = wsa_get_sweep_iteration(dev, &int_result);
+				if (result >= 0) {
+					printf("The Sweep list will be repeated %d times \n",int_result);
+				}
+			} else if (strcmp(cmd_words[2], "stat") == 0) {
+				result = wsa_get_sweep_iteration(dev, &int_result);
+				if (result >= 0) {
+					printf("The Sweep status is: %d\n",int_result);
+				}
+			} else {
+				printf("Invalid 'get'. Try 'h'.\n");
 			}
-
-
 		}
 		
 		else {
@@ -1310,12 +1337,187 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Usage: 'set trigger level <start,stop,amplitude>'\n"
 				       "    or 'set trigger enable <on | off>'\n");
 			}
-		} // end set TRIGGER
+		}// end set TRIGGER
+		
+		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
+			if (strcmp(cmd_words[2], "ANT") == 0) {
+			if (strcmp(cmd_words[3], "") == 0) 
+				printf("Missing the antenna port value. See 'h'.\n");
+			else
+				result = wsa_set_antenna(dev, atoi(cmd_words[3]));
+				if (result == WSA_ERR_INVANTENNAPORT)
+					sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
+					WSA_RFE0560_MAX_ANT_PORT);
+			}
+		//end set ANT
+			else if (strcmp(cmd_words[2], "GAIN") == 0) {
+			if (strcmp(cmd_words[3], "RF") == 0) {
+				enum wsa_gain gain = (enum wsa_gain) NULL;
+				uint8_t valid = TRUE;
 
-		else 
+				// Convert to wsa_gain type
+				if (strstr(cmd_words[4], "HIGH") != NULL)
+					gain = WSA_GAIN_HIGH;
+				else if (strstr(cmd_words[4], "MED") != NULL)
+					gain = WSA_GAIN_MED;
+				else if (strstr(cmd_words[4], "VLOW") != NULL)
+					gain = WSA_GAIN_VLOW;
+				else if (strstr(cmd_words[4], "LOW") != NULL)
+					gain = WSA_GAIN_LOW;
+				else if (strcmp(cmd_words[4], "") == 0) {
+					printf("Missing the gain paramter. See 'h'.\n");
+					valid = FALSE;
+				}
+				else { 
+					printf("Invalid RF gain setting. See 'h'.\n");
+					valid = FALSE;
+				}
+
+				if (valid)
+					result = wsa_set_sweep_gain_rf(dev, gain);
+			} // end set GAIN RF
+
+			else if (strcmp(cmd_words[3], "IF") == 0) {
+				if (strcmp(cmd_words[4], "") == 0) {
+					printf("Missing the gain in dB value. See 'h'.\n");
+				}
+				else if (!to_int(cmd_words[4], &temp_number)) {
+					if_gain_value = (int32_t) temp_number;
+					result = wsa_set_sweep_gain_if(dev, if_gain_value);
+					if (result == WSA_ERR_INVIFGAIN) {
+						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
+							dev->descr.min_if_gain, dev->descr.max_if_gain);
+					}
+				}
+				else {
+					printf("The IF gain value must be an integer. See 'h'.\n");
+				}
+			} // end set GAIN IF
+			
+			else {
+				printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
+			}
+		} // end set GAIN
+			else if (strcmp(cmd_words[2], "DEC") == 0) {
+			if (strcmp(cmd_words[3], "") == 0) 
+				printf("Missing the decimation rate. See 'h'.\n");
+			
+			rate = (int32_t) atof(cmd_words[3]);
+
+			result = wsa_set_sweep_decimation(dev, rate);
+			if (result == WSA_ERR_INVDECIMATIONRATE)
+				sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+				dev->descr.min_decimation, dev->descr.max_decimation);
+		} // end set decimation rate
+
+		else if (strcmp(cmd_words[2], "FREQ") == 0) {
+			if (strcmp(cmd_words[3], "") == 0) {
+				printf("Missing the frequency value. See 'h'.\n");
+			}
+			else {
+				freq = (int64_t) (atof(cmd_words[3]) * MHZ);
+				result = wsa_set_sweep_freq(dev, freq);
+				if (result == WSA_ERR_FREQOUTOFBOUND)
+					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+						(double) dev->descr.min_tune_freq / MHZ, 
+						(double) dev->descr.max_tune_freq / MHZ);
+			}
+		} // end set FREQ
+
+		else if (strcmp(cmd_words[2], "FSHIFT") == 0) {
+			if (strcmp(cmd_words[3], "") == 0) {
+				printf("Missing the frequency value. See 'h'.\n");
+			}
+			else {
+				fshift = (float) (atof(cmd_words[3]) * MHZ);
+				result = wsa_set_sweep_freq_shift(dev, fshift);
+				if (result == WSA_ERR_FREQOUTOFBOUND)
+					sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
+						0.0, (float) dev->descr.inst_bw / MHZ);
+			}
+		} // end set FSHIFT
+		
+		else if (strcmp(cmd_words[2], "PPB") == 0) {
+			if (num_words < 3) {
+				printf("Missing the packets per block value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[3], &temp_number);
+
+				if (!result) {
+					
+					if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
+						temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+						sprintf(msg, "\n\t- The integer is out of range.");
+
+						result = WSA_ERR_INVNUMBER;
+					}
+					else {
+						packets_per_block = (uint32_t) temp_number;
+						result = wsa_set_packets_per_block(dev,	
+									packets_per_block);
+					}
+				}
+			}
+		} // end set PPB
+
+		else if (strcmp(cmd_words[2], "SPP") == 0) {
+			if (num_words < 3) {
+				printf("Missing the samples per packet value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[3], &temp_number);
+
+				if (!result) {
+					if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
+						temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
+							WSA4000_MIN_SAMPLES_PER_PACKET,
+							WSA4000_MAX_SAMPLES_PER_PACKET);
+
+						result = WSA_ERR_INVSAMPLESIZE;
+					}
+					else {
+						samples_per_packet = (uint16_t) temp_number;
+						result = wsa_set_sweep_samples_per_packet(dev, 
+									samples_per_packet);
+					}
+				}
+			}
+		} // end set SPP
+
+		else if (strcmp(cmd_words[2], "ITERAT") == 0) {
+						if (num_words < 3) {
+				printf("Missing the iteration value. See 'h'.\n");
+			}
+			else {
+				result = to_int(cmd_words[3], &temp_number);
+				if (!result) {	
+					if (temp_number < WSA4000_MIN_SWEEP_ITERATION ||
+						temp_number > WSA4000_MAX_SWEEP_ITERATION) {
+						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
+							WSA4000_MIN_SWEEP_ITERATION,
+							WSA4000_MAX_SWEEP_ITERATION);
+
+						result = WSA_ERR_INVSAMPLESIZE;
+					} else {
+						int_result = (uint32_t) temp_number;
+					result = wsa_set_sweep_iteration(dev, int_result);
+					}
+				}
+			}
+		}//end ITERAT
+
+
+		
+		}//END SWEEP
+		
+		
+
+		else {
 			printf("Invalid 'set'. See 'h'.\n");
 	} // end SET
-
+}
 
 	//*****
 	// Handle non-get/set commands

@@ -130,8 +130,8 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
 
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
-int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint32_t* samples_per_packet);
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint32_t samples_per_packet);
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
 
@@ -145,7 +145,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift);
 int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
-int16_t wsa_set_sweep_gain_iteration(struct wsa_device *dev, int32_t iteration);
+int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
 
 int16_t wsa_get_sweep_status(struct wsa_device *dev, int32_t *status);
 
