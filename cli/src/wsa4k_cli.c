@@ -1545,8 +1545,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	// Handle SWEEP commands
 	//*****
 	 else if  (strcmp(cmd_words[0], "SWEEP") == 0) {
-		 if (strcmp(cmd_words[1], "LIST") == 1) {
-			if (strcmp(cmd_words[2], "DELETE") == 2) {
+		
+		 if (strcmp(cmd_words[1], "LIST") == 0) {
+			
+			 if (strcmp(cmd_words[2], "DELETE") == 0) {
 				if (num_words < 4) {
 				printf("Missing the position of the entry. See 'h'.\n");
 				}else {
@@ -1556,6 +1558,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				result = wsa_sweep_list_delete(dev,temp_number);
 				}
 			} else if(strcmp(cmd_words[2], "COPY") == 0) {
+			
 				if (num_words < 3) {
 				printf("Missing the position of the entry. See 'h'.\n");
 				}else {
@@ -1564,6 +1567,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int_result = (uint32_t) temp_number;
 				result = wsa_sweep_list_copy(dev,temp_number);
 				}
+			} else {
+				printf("Invalid 'Sweep List' Command. See 'h'.\n");
 			}
 		 } else if  (strcmp(cmd_words[1], "START") == 0) {
 			 wsa_sweep_start(dev);
@@ -1586,11 +1591,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int_result = (uint32_t) temp_number;
 				result = wsa_sweep_entry_save(dev,temp_number);
 				}
-			}
+			} else {
+			printf("Invalid 'Sweep entry' Command. See 'h'.\n");
 		}
+		
+		} else {
+			printf("Invalid 'Sweep' Command. See 'h'.\n");
+		}
+	 }
+		
 
-				
-	}
 
 
 	//*****5

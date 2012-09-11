@@ -1379,26 +1379,63 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 
 /**
  * Get the antenna in the user's sweep list
- * 
+ *
  * @param dev - A pointer to the WSA device structure.
  * @param port_num - An integer pointer to store the antenna location: 
- * 1 = antenna 1, 2 = antenna 2.
+ * 1 = antenna1, 2 = antenna2.
  *
  * @return 0 on success, or a negative number on error.
  */
 
 int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num) 
 {
+	struct wsa_resp query;		// store query results
+	long temp;
 
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
 
-	*port_num = 5;
+	wsa_send_query(dev, "SWEEP:ENTRY:ANTENNA?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value
+	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) {
+		printf("Error: WSA returned %ld.\n", temp); 
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*port_num = (int16_t) temp;
+
 	return 0;
 }
 
+
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
 {
+	int16_t result = 0;
+	char temp_str[30];
 
-	printf("Recieved %u \n", port_num);
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
+	if (port_num < 1 || port_num > WSA_RFE0560_MAX_ANT_PORT) // TODO replace the max
+		return WSA_ERR_INVANTENNAPORT;
+
+	sprintf(temp_str, "SWEEP:ENTRY:ANTENNA %d\n", port_num);
+
+	// set the freq using the selected connect type
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_ANTENNASETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_ANTENNASETFAILED));
+		return WSA_ERR_ANTENNASETFAILED;
+	}
+
 	return 0;
 }
 
@@ -1406,8 +1443,28 @@ int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num)
 
 int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 {
+	struct wsa_resp query;		// store query results
+	long int temp;
 
-	*gain = 5;
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
+	wsa_send_query(dev, "SWEEP:ENTRY:GAIN:IF?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+	
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) {
+		printf("Error: WSA returned %ld.\n", temp);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	*gain = (int32_t) temp;
+
 	return 0;
 
 
@@ -1415,29 +1472,87 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 
 int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 {
+	int16_t result = 0;
+	char temp_str[50];
 
-	printf("Recieved %d \n",gain);
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
+		return WSA_ERR_INVRFESETTING;
+
+	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
+		return WSA_ERR_INVIFGAIN;
+
+	sprintf(temp_str, "SWEEP:ENTRY:GAIN:IF %d dB\n", gain);
+
+	// set the freq using the selected connect type
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_IFGAINSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_IFGAINSETFAILED));
+		return WSA_ERR_IFGAINSETFAILED;
+	}
+
 	return 0;
-
 
 }
 
 
 
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
-{
+{	
+	
+	struct wsa_resp query;		// store query results
 
-	*gain = WSA_GAIN_HIGH;
+	wsa_send_query(dev, "SWEEP:ENTRY:GAIN:RF?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	// Convert to wsa_gain type
+	if (strstr(query.output, "HIGH") != NULL) {
+		*gain = WSA_GAIN_HIGH;
+	}
+	else if (strstr(query.output, "MED") != NULL) {
+		*gain = WSA_GAIN_MED;
+	}
+	else if (strstr(query.output, "VLOW") != NULL) {
+		*gain = WSA_GAIN_VLOW;
+	}
+	else if (strstr(query.output, "LOW") != NULL) {
+		*gain = WSA_GAIN_LOW;
+	}
+	else
+		*gain = (enum wsa_gain) NULL;
+
 	return 0;
-
 
 }
 
 
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
 {
+	int16_t result = 0;
+	char temp_str[50];
 
-	printf("Recieved gain rf \n");
+	if (gain > WSA_GAIN_VLOW || gain < WSA_GAIN_HIGH)
+		return WSA_ERR_INVRFGAIN;
+
+	strcpy(temp_str, "SWEEP:ENTRY:GAIN:RF ");
+	switch(gain) {
+		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
+		case(WSA_GAIN_MED):	strcat(temp_str, "MED"); break;
+		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
+		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
+		default:		strcat(temp_str, "ERROR"); break;
+	}
+	strcat(temp_str, "\n");
+
+	// set the freq using the selected connect type
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_RFGAINSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_RFGAINSETFAILED));
+		return WSA_ERR_RFGAINSETFAILED;
+	}
+
 	return 0;
 }
    
@@ -1447,150 +1562,465 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
 
 int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
 {
+	struct wsa_resp query;		// store query results
+	long temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:SPPACKET?\n", &query);
 
-	*samples_per_packet = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	// Verify the validity of the return value
+	if ((temp < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(temp > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
+		printf("Error: WSA returned %ld.\n", temp);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*samples_per_packet = (uint16_t) temp;
+
 	return 0;
 }
 
 int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint16_t samples_per_packet)
 {
+	int16_t result;
+	char temp_str[50];
 
+	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
+		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
+	{
+		return WSA_ERR_INVSAMPLESIZE;
+	}
 
-	printf("Recieved %d \n",samples_per_packet);
+	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
+
+	result = wsa_send_command(device, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_samples_per_packet: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SIZESETFAILED;
+	}
+
 	return 0;
 }
 
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
 {
+	struct wsa_resp query;		// store query results
+	long temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:PACKETS?\n", &query);
 
-	*packets_per_block = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*packets_per_block = (uint32_t) temp;
+
 	return 0;
 }
 
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t packets_per_block)
 {
+	int16_t result;
+	char temp_str[50];
 
+	sprintf(temp_str, "SWEEP:ENTRY:PACKETS %u\n", packets_per_block);
 
-	printf("Recieved %d \n",packets_per_block);
+	result = wsa_send_command(device, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In wsa_set_packets_per_block: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_INVCAPTURESIZE;
+	}
+
 	return 0;
 }
 
 int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
 {
+	struct wsa_resp query;		// store query results
+	long temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:DEC?\n", &query);
 
-	*rate = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// convert & make sure no error
+	if (to_int(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// make sure the returned value is valid
+	if (((temp != 0) && (temp < device->descr.min_decimation)) || 
+		(temp > device->descr.max_decimation)) {
+		printf("Error: WSA returned %ld.\n", temp);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*rate = (int32_t) temp;
+
 	return 0;
 }
 
 
 int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
 {
+	int16_t result;
+	char temp_str[50];
 
+	// TODO get min & max rate
+	if (((rate != 0) && (rate < device->descr.min_decimation)) || 
+		(rate > device->descr.max_decimation))
+		return WSA_ERR_INVDECIMATIONRATE;
 
-	printf("Recieved %d \n",rate);
+	sprintf(temp_str, "SWEEP:ENTRY:DEC %d", rate);
+	
+	// set the rate using the selected connect type
+	result = wsa_send_command(device, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
+		return WSA_ERR_SETFAILED;
+	}
+
 	return 0;
 }
 
 int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* freq)
 {
+	struct wsa_resp query;		// store query results
+	double temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:FREQ:CENT?\n", &query);
 
-	*freq = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value
+	if (temp < device->descr.min_tune_freq || temp > device->descr.max_tune_freq) {
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+		*freq = (int64_t) temp/MHZ;
+
 	return 0;
 }
 
 int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t freq)
 {
+	int16_t result = 0;
+	char temp_str[50];
 
+	result = wsa_verify_freq(device, freq);
+	if (result < 0)
+		return result;
 
-	printf("Recieved %0.12f \n", (float) freq);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz\n", freq);
+
+	// set the freq using the selected connect type
+	result = wsa_send_command(device, temp_str);
+	if (result == WSA_ERR_SETFAILED){
+		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
+		return WSA_ERR_FREQSETFAILED;
+	}
+	else if (result < 0) 
+		return result;
+
 	return 0;
 }
 
 
 int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
 {
+	struct wsa_resp query;		// store query results
+	double temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:FREQ:SHIFT?\n", &query);
 
-	*fshift = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value TODO
+	if (temp < 0 || temp > device->descr.inst_bw) {
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*fshift = (float) temp;
+
 	return 0;
 }
 
 int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
 {
+	int16_t result = 0;
+	char temp_str[50];
+	int64_t range = device->descr.inst_bw;
 
+	// verify the value bwn -125 to 125MHz, "exclusive"
+	if (fshift <= (-range) || fshift >= range)	{
+		return WSA_ERR_FREQOUTOFBOUND;
+	}
 
-	printf("Recieved %0.12f \n", fshift);
+	sprintf(temp_str, "SWEEP:ENTRYFREQ:SHIFt %f Hz\n", fshift);
+
+	// set the freq shift using the selected connect type
+	result = wsa_send_command(device, temp_str);
+	if (result == WSA_ERR_SETFAILED) {
+		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
+		return WSA_ERR_FREQSETFAILED;
+	}
+	else if (result < 0) 
+		return result;
+	
 	return 0;
 }
 
 int16_t wsa_get_sweep_iteration(struct wsa_device* device, int32_t* iterat)
 {
+	struct wsa_resp query;		// store query results
+	double temp;
 
+	wsa_send_query(device, "SWEEP:LIST:ITERATION?\n", &query);
 
-	*iterat = 12;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	
+	*iterat = (int32_t) temp;
 	return 0;
 }
 
 int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
 {
 
+	int16_t result;
+	char temp_str[50];
 
-	printf("Recieved %u \n", iterat);
+	if ((iterat < WSA4000_MIN_SWEEP_ITERATION) || 
+		(iterat > WSA4000_MAX_SWEEP_ITERATION))
+	{
+		return WSA_ERR_INVSAMPLESIZE;
+	}
+
+	sprintf(temp_str, "SWEEP:LIST:ITERATION %hu\n", iterat);
+
+	result = wsa_send_command(device, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In iterat: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SIZESETFAILED;
+	}
+
 	return 0;
 }
 
 int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 {
+	struct wsa_resp query;		// store query results
+	double temp;
 
+	wsa_send_query(device, "SWEEP:LIST:ITERATION?\n", &query);
 
-	*status = 12;
-	return 0;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	
+		*status = (int32_t) temp;
+		return 0;
 }
 
 int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t* size)
 {
+	struct wsa_resp query;		// store query results
+	double temp;
 
+	wsa_send_query(device, "SWEEP:ENTRY:COUNT?\n", &query);
 
-	*size = 12;
-	return 0;
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	
+		*size = (int32_t) temp;
+		return 0;
 }
 
 int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position) {
-	printf("got to delete \n");
-return 0;
+	int16_t result;
+	char temp_str[50];
+
+
+
+	sprintf(temp_str, "SWEEP:LIST:DELETE %hu\n", position);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In delete: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SWEEPDELETEFAIL;
+	}
+
+	return 0;
 }
 
 int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
-	printf("got to copy\n");
+	int16_t result;
+	char temp_str[50];
+
+
+
+	sprintf(temp_str, "SWEEP:LIST:COPY %hu\n", position);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In copy: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SWEEPCOPYFAIL;
+	}
+
 	return 0;
 }
 
-int16_t wsa_sweep_start(struct wsa_device *dev) {
-	printf("got to start\n");
+int16_t wsa_sweep_start(struct wsa_device *device) {
+	int16_t return_status = 0;
+
+	return_status = wsa_send_command(device, "SWEEP:LIST:START\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in sweep start: %s\n", wsa_get_error_msg(return_status));
+		return WSA_ERR_SWEEPSTARTFAIL;
+	}
+
+	
 	return 0;
 }
 
-int16_t wsa_sweep_stop(struct wsa_device *dev) {
-	printf("got to stop\n");
+int16_t wsa_sweep_stop(struct wsa_device *device) {
+	int16_t return_status = 0;
+
+	return_status = wsa_send_command(device, "SWEEP:LIST:STOP\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
+		return WSA_ERR_SWEEPSTOPFAIL;
+	}
+
+	
 	return 0;
 }
 
-int16_t wsa_sweep_resume(struct wsa_device *dev) {
-	printf("got to resume\n");
+int16_t wsa_sweep_resume(struct wsa_device *device) {
+	int16_t return_status = 0;
+
+	return_status = wsa_send_command(device, "SWEEP:LIST:RESUME\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in sweep resume: %s\n", wsa_get_error_msg(return_status));
+		return WSA_ERR_SWEEPRESUMEFAIL;
+	}
+
+	
 	return 0;
 }
 
-int16_t wsa_sweep_entry_new(struct wsa_device *dev) {
-		printf("got to new entry\n");
+int16_t wsa_sweep_entry_new(struct wsa_device *device) {
+	int16_t return_status = 0;
+
+	return_status = wsa_send_command(device, "SWEEP:LIST:NEW\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in sweep new: %s\n", wsa_get_error_msg(return_status));
+		return WSA_ERR_SWEEPNEWFAIL;
+	}
+
+	
 	return 0;
 }
 
-int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon) {
-	printf("got to save\n");
+int16_t wsa_sweep_entry_save(struct wsa_device *device, int32_t position) {
+	int16_t result;
+	char temp_str[50];
+
+
+
+	sprintf(temp_str, "SWEEP:LIST:SAVE %hu\n", position);
+
+	result = wsa_send_command(device, temp_str);
+	if (result < 0) 
+	{
+		doutf(DHIGH, "In save: wsa_send_command returned %hd: %s.\n",
+			result,
+			wsa_get_error_msg(result));
+		return WSA_ERR_SWEEPSAVEFAIL;
+	}
+
 	return 0;
 }
 // ////////////////////////////////////////////////////////////////////////////
