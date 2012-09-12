@@ -1041,13 +1041,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			
 	
-			}  else if (strcmp(cmd_words[2], "ITER") == 0) {
+			}  else if (strcmp(cmd_words[2], "ITERAT") == 0) {
 				result = wsa_get_sweep_iteration(dev, &int_result);
 				if (result >= 0) {
 					printf("The Sweep list will be repeated %d times \n",int_result);
 				}
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
-				 if (strcmp(cmd_words[2], "SIZE") == 0) {
+				 if (strcmp(cmd_words[3], "SIZE") == 0) {
 					
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
@@ -1105,10 +1105,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			
 			} else {
-			printf("Invalid 'get'. Try 'h'.\n");
+			printf("Invalid 'get sweep entry'. Try 'h'.\n");
 			}
 			
-		}
+		}else {
+			printf("Invalid 'get sweep'. Try 'h'.\n");
+			}
 		
 		}
 		else {
@@ -1454,6 +1456,20 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						0.0, (float) dev->descr.inst_bw / MHZ);
 			}
 		} // end set FSHIFT
+
+		else if (strcmp(cmd_words[3], "FSTEP") == 0) {
+			if (strcmp(cmd_words[4], "") == 0) {
+				printf("Missing the frequency step value. See 'h'.\n");
+			}
+			else {
+				freq = (int64_t) (atof(cmd_words[4]) * MHZ);
+				result = wsa_set_sweep_freq_step(dev, freq);
+				if (result == WSA_ERR_FREQOUTOFBOUND)
+					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+						(double) dev->descr.min_tune_freq / MHZ, 
+						(double) dev->descr.max_tune_freq / MHZ);
+			}
+		} // end set FREQ
 		
 		else if (strcmp(cmd_words[3], "PPB") == 0) {
 			if (num_words < 4) {
