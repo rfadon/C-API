@@ -133,22 +133,22 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get trigger level      Show the current level trigger settings\n");
 	printf(" get trigger enable     Check whether trigger mode is enabled\n");
 	printf("\n");
-	printf(" get sweep ant          Show the current antenna port used in \n"
+	printf(" get sweep entry ant          Show the current antenna port used in \n"
 		   "                        the user's working sweep entry\n");
-	printf(" get sweep dec          Get the decimation rate used in\n"
+	printf(" get sweep entry dec          Get the decimation rate used in\n"
 		   "                        the user's working sweep entry\n");
-	printf(" get sweep gain <rf | if> \n"
+	printf(" get sweep entry gain <rf | if> \n"
 		   "                        Show the current RF front end or IF gain level in\n"
 		   "                        the user's working sweep entry\n");
-	printf(" get sweep freq         Show the current running centre frequency used in\n"
+	printf(" get sweep entry freq         Show the current running centre frequency used in\n"
 	       "                        the user's sweep working entry.\n");
-	printf(" get sweep fshift       Get the frequency shift value in\n"
+	printf(" get sweep entry fshift       Get the frequency shift value in\n"
 		   "                        the user's working sweep entry\n");
-	printf(" get sweep iteration	Show the number of iterations that the WSA will sweep\n");	
-	printf(" get sweep ppb          Show the current packets per block in\n"
+	printf(" get sweep entry ppb          Show the current packets per block in\n"
 		   "                        the user's working sweep entry.\n");
-	printf(" get sweep spp          Show the current samples per packet in\n"
-		   "                        the user's working sweep entry\n");	
+	printf(" get sweep entry spp          Show the current samples per packet in\n"
+		   "                        the user's working sweep entry\n");
+	printf(" get sweep iterat       Show the number of iterations that the WSA will sweep\n");	
 	printf(" get sweep status       Show the sweep status\n");		
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
@@ -194,22 +194,22 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                          3) Amplitude (in dBm)\n"
 		   "                        ex: set trigger level 2410,2450,-50\n");
 
-	printf(" set sweep ant <1 | 2>  Set the current antenna port used in\n"
+	printf(" set sweep entry ant <1 | 2>  Set the current antenna port used in\n"
 		   "                        the user's sweep working entry\n");
-	printf(" set sweep dec <rate>   Set the decimation rate used in\n"
+	printf(" set sweep entry dec <rate>   Set the decimation rate used in\n"
 		   "                        the the user's working sweep entry\n");
-	printf(" set sweep gain <rf | if> \n"
+	printf(" set sweep entry gain <rf | if> \n"
 		   "                        Set the current RF front end or IF gain level in\n"
 		   "                        the the user's working sweep entry\n");
-	printf(" set sweep freq <freq>  Set the current running centre frequency used in\n"
+	printf(" set sweep entry freq <freq>  Set the current running centre frequency used in\n"
 		   "                        the user's working sweep entry \n");
-	printf(" set sweep fshift<freq> Set the frequency shift value in\n"
+	printf(" set sweep entry fshift<freq> Set the frequency shift value in\n"
 		   "                        the user's working sweep entry\n");
-	printf(" set sweep ppb <packets> Set the current packets per block in\n"
+	printf(" set sweep entry ppb <packets> Set the current packets per block in\n"
 		   "                        the user's working sweep entry\n");
-	printf(" set sweep spp <samples> Set the current samples per packet in\n"
+	printf(" set sweep entry spp <samples> Set the current samples per packet in\n"
 		   "                        the user's working sweep entry\n");	
-	printf(" set sweep iteration	Set the number of sweep iterations\n");			
+	printf(" set sweep iteat        Set the number of sweep iterations\n");			
 	printf(" sweep copy	<sweep entry> Copy a sweep entry into the user's working entry\n");	
 	printf(" sweep delete <sweep entry> Delete a sweep entry\n");
 	printf(" sweep size             Shows the size of the sweep list\n");
@@ -398,6 +398,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t start_frequency = 0;
 	int64_t stop_frequency = 0;
 	int64_t amplitude = 0;
+	int8_t count = 0;
 	long double reciever_frequency = 0;
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
@@ -679,10 +680,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			continue;
 
 		}
-			
+
+		if (count == 0) {
+			count = 1;
+			expected_packet_order_indicator = header->packet_order_indicator;
+		}
 		if (header->packet_order_indicator != expected_packet_order_indicator)
 		{
-				
+
 		fclose(iq_fptr);
 		free(digitizer);
 		free(reciever);
@@ -1118,6 +1123,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (result >= 0) {
 					printf("Currently using %d as the frequency shift in the user's sweep list\n", fshift);
 				} // end get sweep frequency shift
+
+			} else if (strcmp(cmd_words[3], "FSTEP") == 0) {
+				result = wsa_get_sweep_freq_step(dev, &freq);
+				if (result >= 0) {
+					printf("Currently using %d as the frequency step in the user's sweep list\n", fshift);
+				} // end get sweep frequency step
 				
 			} else if (strcmp(cmd_words[3], "TRIGGER") == 0) {
 			if (strcmp(cmd_words[4], "ENABLE") == 0) {
@@ -1590,7 +1601,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						(double) dev->descr.min_tune_freq / MHZ, 
 						(double) dev->descr.max_tune_freq / MHZ);
 			}
-		} // end set FREQ
+		} // end set FSTEP
 		
 		else if (strcmp(cmd_words[3], "PPB") == 0) {
 			if (num_words < 4) {

@@ -1964,6 +1964,31 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 	return 0;
 }
 
+int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(device, "SWEEP:ENTRY:FREQ:STEP?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+	// Verify the validity of the return value TODO
+	if (temp < 0 || temp > device->descr.inst_bw) {
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*fstep = (int64_t) temp;
+
+	return 0;
+}
 
 int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t dwell_seconds_value, int32_t dwell_miliseconds_value)
 {

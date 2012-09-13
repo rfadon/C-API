@@ -869,7 +869,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
-	
+	printf("context detected \n");
 		
 
 		//retrieve the packet size
@@ -909,7 +909,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	//if the packet is an IQ packet proceed with the method from previous release
 	} else if (stream_identifier_word == 0x90000003){ 
-			
+			printf("iq detected \n");
 			*context_present =0;
 
 	//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
