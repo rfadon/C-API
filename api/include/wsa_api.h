@@ -135,7 +135,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint16_t sample
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
 
-int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate);
+int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t* rate);
 int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
 
 int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *cfreq);
@@ -146,6 +146,15 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift);
 
 int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *step);
 int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step);
+
+int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *dwell_seconds_value, int32_t *dwell_miliseconds_value);
+int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t dwell_seconds_value, int32_t dwell_miliseconds_value);
+
+int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, int32_t *type);
+int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, int32_t type);
+
+int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude);
+int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t *start_frequency, int64_t *stop_frequency, int64_t *amplitude);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);

@@ -1219,7 +1219,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 		return result;
 	}
 
-	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%lld\n", start_freqgxfuency, stop_frequency, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%lld\n", start_frequency, stop_frequency, amplitude);
 
 	result = wsa_send_command(dev, temp_str);
 	if (result == WSA_ERR_SETFAILED)
@@ -1948,12 +1948,30 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 	int16_t result = 0;
 	char temp_str[50];
 
-	result = wsa_verify_freq(device, freq);
-	if (result < 0)
+	
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
+
+	// set the freq step using the selected connect type
+	result = wsa_send_command(device, temp_str);
+	if (result == WSA_ERR_SETFAILED){
+		
+			wsa_get_error_msg(WSA_ERR_FREQSETFAILED);
+		return WSA_ERR_FREQSETFAILED;
+	}
+	else if (result < 0) 
 		return result;
 
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", freq);
+	return 0;
+}
 
+
+int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t dwell_seconds_value, int32_t dwell_miliseconds_value)
+{
+	int16_t result = 0;
+	char temp_str[50];
+
+	sprintf(temp_str, "SWEEP:ENTRY:DWELL %u,%u\n", dwell_seconds_value, dwell_miliseconds_value);
+	printf("the temp string is: %s \n", temp_str);
 	// set the freq using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result == WSA_ERR_SETFAILED){
@@ -1963,6 +1981,253 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 	}
 	else if (result < 0) 
 		return result;
+
+	return 0;
+}
+
+
+int16_t wsa_get_sweep_dwell(struct wsa_device* device, int32_t* dwell_seconds_value, int32_t* dwell_miliseconds_value)
+{
+	struct wsa_resp query;		// store query results
+	double temp =5;
+	char* strtok_result;
+	wsa_send_query(device, "SWEEP:ENTRY:DWELL?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	
+
+	strtok_result = strtok(query.output, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+
+	*dwell_seconds_value = (int32_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	*dwell_miliseconds_value = (int32_t) temp;
+	
+	return 0;
+	
+
+}
+
+
+/**
+ * Sets the user's sweep entry to use basic a level trigger
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param start_frequency - The lowest frequency at which a signal should be detected
+ * @param stop_frequency - The highest frequency at which a signal should be detected
+ * @param amplitude - The minimum amplitutde of a signal that will satisfy the trigger
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude)
+{
+	
+	int16_t result = 0;
+	char temp_str[50];
+	printf("got to set level\n");
+	result = wsa_verify_freq(dev, start_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STARTOOB;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	result = wsa_verify_freq(dev, stop_frequency);
+	if (result == WSA_ERR_FREQOUTOFBOUND)
+	{
+		return WSA_ERR_STOPOOB;
+	}
+	else if (result < 0)
+	{
+		return result;
+	}
+
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld MHZ,%lld MHZ,%lld DB\n", start_frequency, stop_frequency, amplitude);
+
+	result = wsa_send_command(dev, temp_str);
+	if (result == WSA_ERR_SETFAILED)
+	{
+		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
+		return WSA_ERR_TRIGGERSETFAILED;
+	}
+	else if (result < 0) 
+	{
+		return result;
+	}
+
+	return 0;
+}
+
+
+/**
+ * Retrieves the user's sweep entry basic level trigger settings
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param start_frequency - A long integer pointer to store the start frequency in Hz.
+ * @param stop_frequency - A long integer pointer to store the stop frequency in Hz.
+ * @param amplitude - A long integer pointer to store the signal amplitude in dBm.
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude)
+{
+	
+	struct wsa_resp query;		// store query results
+	double temp;
+	char* strtok_result;
+	printf("got to get level \n");
+	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:LEVEL?\n", &query);
+
+	// Handle the query output here 
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+		
+	strtok_result = strtok(query.output, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*start_frequency = (int64_t) temp;
+	printf("   Start frequency: %f MHz\n", (float) (*start_frequency / MHZ));
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	// Verify the validity of the return value
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	{
+		printf("Error: WSA returned %s.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}	
+	
+	*stop_frequency = (int64_t) temp;
+	
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	*amplitude = (int64_t) temp;
+
+	return 0;
+}
+
+
+/**
+ * Sets the user's sweep entry capture mode to triggered (trigger on)
+ * or freerun (trigger off).
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param enable - Trigger mode of selection: 0 - Off, 1 - On.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
+{
+	
+	int16_t result = 0;
+	char temp_str[50];
+	printf("got to set type \n");
+	if (enable < 0 || enable > 1) {
+		return WSA_ERR_INVTRIGGERMODE;
+	}
+
+	if ( enable == 0) {
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE NONE\n");
+
+	} else if ( enable == 1) {
+		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE LEVEL\n");
+	}
+
+
+	result = wsa_send_command(dev, temp_str);
+	if (result < 0) {
+		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
+			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
+		return WSA_ERR_TRIGGERSETFAILED;
+	}
+
+	return 0;
+}
+
+
+/**
+ * Gets the current user's sweep entry capture mode of the WSA
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param enable - An integer pointer to store the current mode: 
+ * 1 = triggered (trigger on), 0 = freerun (trigger off).
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
+{
+
+	
+	struct wsa_resp query;		// store query results
+	long temp;
+	printf("got to get type \n");
+	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:TYPE?\n", &query);
+	if (query.status <= 0)
+	{
+		return (int16_t) query.status;
+	}
+	 if (strcmp(query.output, "LEVEL") == 0) {
+		 printf("ENABLE IS ON \n");
+		 *enable = 1;
+		 return 0;
+	 } else if
+		 (strcmp(query.output, "NONE") == 0) {
+		 printf("ENABLE IS OFF \n");
+		 *enable = 0;
+		 return 0;
+	 }
+	 return 0;
+
+	// Convert the number & make sure no error
+	//if (to_int(query.output, &temp) < 0)
+	//{
+	//	return WSA_ERR_RESPUNKNOWN;
+	//}
+	//
+	//// Verify the validity of the return value
+	//if (temp < 0 || temp > 1) {
+	//	printf("Error: WSA returned %ld.\n", temp);
+	//	return WSA_ERR_RESPUNKNOWN;
+	//}
+	//	
+	//*enable = (int16_t) temp;
 
 	return 0;
 }
