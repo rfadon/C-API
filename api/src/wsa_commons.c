@@ -123,6 +123,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
 		{WSA_ERR_CFREQRANGE, "Center Frequency is out of range"},
 		{WSA_ERR_FREQLOW, "Frequency is too low"},
+		{WSA_WARNING_TRIGGER_CONFLICT, "Trigger Setting Conflict"},
 
 		//*****
 		// CONTROL/COMMAND ERRORS

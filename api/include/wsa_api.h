@@ -93,7 +93,6 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
 int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode);
 int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
-
 // ////////////////////////////////////////////////////////////////////////////
 // DEVICE STATUS SECTION                                                     //
 // ////////////////////////////////////////////////////////////////////////////
@@ -108,6 +107,7 @@ int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_frequency, i
 int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude);
 int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable);
 int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
+
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
 
 int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position);
 
-//int16_t wsa_sweep_read(struct wsa_device *dev, int16_t position);
+
 
 int16_t wsa_sweep_list(struct wsa_device *dev, int32_t *position);
 
@@ -182,6 +182,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev);
 int16_t wsa_sweep_resume(struct wsa_device *dev);
 
 int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position);
+
 
 #endif
 

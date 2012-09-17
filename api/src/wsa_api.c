@@ -47,7 +47,6 @@
 #include "wsa_commons.h"//common functions used
 #include "wsa_lib.h"
 #include "wsa_api.h"//calls on itself
-#include "wsa_client.h"
 
 
 #define MAX_RETRIES_READ_FRAME 5
@@ -737,12 +736,16 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
 
 	// set the freq using the selected connect type
+		
 	result = wsa_send_command(dev, temp_str);
-	if (result == WSA_ERR_SETFAILED){
+	
+
+	 if (result == WSA_ERR_SETFAILED){
 		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
 	}
+
 	else if (result < 0) 
 		return result;
 
@@ -1024,7 +1027,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 
 	// Verify the validity of the return value
 	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) {
-		printf("Error: WSA returned %ld.\n", temp); 
+		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1226,7 +1229,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_frequency, i
 	{
 		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
-		return WSA_ERR_TRIGGERSETFAILED;
+		return result;
 	}
 	else if (result < 0) 
 	{
@@ -1325,11 +1328,15 @@ int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable)
 	sprintf(temp_str, ":TRIGGER:ENABLE %d\n", enable);
 
 	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
+
+
+	 if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_TRIGGERSETFAILED));
-		return WSA_ERR_TRIGGERSETFAILED;
+		return result;
 	}
+
+
 
 	return 0;
 }
@@ -1371,6 +1378,7 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 
 	return 0;
 }
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Sweep Functions				                                             //
@@ -2634,6 +2642,7 @@ int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_
 	
 	}
 }
+
 
 
 

@@ -510,8 +510,11 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				return WSA_ERR_QUERYNORESP;
 			}
 
+			
 			if (strcmp(query_msg, "") != 0) {
-				printf("%s: %s", command, query_msg);
+				if (strstr(query_msg, "-221") != NULL) {
+					return WSA_WARNING_TRIGGER_CONFLICT;
+				}
 				return WSA_ERR_SETFAILED;
 			}
 		}
