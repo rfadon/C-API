@@ -80,6 +80,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
+int16_t print_sweep_entry(struct wsa_device *dev);
 
 
 /**
@@ -785,21 +786,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 	
 
-		int16_t return_status = 0;
-	uint8_t context_present = 0;
-	int32_t indicator_fieldr = 0;
-	int32_t reference_point = 0;
-	int64_t frequency = 0;
-	int16_t gain_if = 0;
-	int16_t gain_rf = 0;
-	int32_t temperature = 0;
-	int32_t indicator_fieldd = 0;
 
 
 
-	long double bandwidth = 0;
-	double reference_level = 0;
-	long double rf_frequency_offset = 0;
 	
 	//DIR *temp;
 
@@ -1058,111 +1047,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
-				 } else {
-					printf("Invalid 'get sweep'. Try 'h'.\n");
-				 }
+
+				}
+			
 			}
 			else if (strcmp(cmd_words[2], "ENTRY") == 0) {
-			if (strcmp(cmd_words[3], "ANT") == 0) {
-				result = wsa_get_sweep_antenna(dev, &int_result);
-				if (result >= 0) {
-					printf("Currently using antenna port %d in the user's sweep list\n", int_result);
-				}// end get sweep entry antenna
-
-			} else if (strcmp(cmd_words[3], "GAIN") == 0) {
-				
-				if (strcmp(cmd_words[4], "IF") == 0) {
-				result = wsa_get_sweep_gain_if(dev, &int_result);
-					if (result >= 0) {
-					printf("Currently using %d as the IF Gain in the user's sweep list\n", int_result);
-					}// end get sweep gain if
-
-				} else if (strcmp(cmd_words[4], "RF") == 0) {
-					enum wsa_gain gain;
-					result = wsa_get_sweep_gain_rf(dev, &gain);
-					if (result >= 0) {
-					printf("Currently using %d as the RF Gain in the user's sweep list\n", gain);
-					}// end get sweep gain rf
-
-				} else {
-					printf("Invalid 'get sweep entry gain'. Try 'h'.\n");
-				}// end get sweep gain
-
-			} else if (strcmp(cmd_words[3], "SPP") == 0) {
-				result = wsa_get_sweep_samples_per_packet(dev, &samples_per_packet);
-				if (result >= 0) {
-					printf("Currently the samples per packet in the user's sweep list is %d \n", samples_per_packet);
-				}// end get sweep samples per packet
-
-			} else if (strcmp(cmd_words[3], "PPB") == 0) {
-				result = wsa_get_sweep_packets_per_block(dev, &packets_per_block);
-				if (result >= 0) {
-					printf("Currently the packets per block in the user's sweep list is %d \n", packets_per_block);
-				}// end get sweep gain packets per block
-
-			} else if (strcmp(cmd_words[3], "DEC") == 0) {
-				result = wsa_get_sweep_decimation(dev, &int_result);
-				if (result >= 0) {
-					printf("Currently using %d as the decimation in the user's sweep list\n", int_result);
-				}// end get sweep gain decimation
-
-			} else if (strcmp(cmd_words[3], "DWELL") == 0) {
-				result = wsa_get_sweep_dwell(dev, &dwell_seconds_value, &dwell_miliseconds_value);
-				if (result >= 0) {
-					printf("The user's sweep entry's dwell value is: %u.%u seconds\n", dwell_seconds_value, dwell_miliseconds_value);
-				}// end get sweep gain decimation
-
-			} else if (strcmp(cmd_words[3], "FREQ") == 0) {
-				result = wsa_get_sweep_freq(dev, &freq);
-				if (result >= 0) {
-					printf("Currently using %d as the center frequency in the user's sweep list\n", freq);
-				} // end get sweep gain center frequency
-
-			} else if (strcmp(cmd_words[3], "FSHIFT") == 0) {
-				result = wsa_get_sweep_freq_shift(dev, &fshift);
-				if (result >= 0) {
-					printf("Currently using %d as the frequency shift in the user's sweep list\n", fshift);
-				} // end get sweep frequency shift
-
-			} else if (strcmp(cmd_words[3], "FSTEP") == 0) {
-				result = wsa_get_sweep_freq_step(dev, &freq);
-				if (result >= 0) {
-					printf("Currently using %d as the frequency step in the user's sweep list\n", fshift);
-				} // end get sweep frequency step
-				
-			} else if (strcmp(cmd_words[3], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[4], "ENABLE") == 0) {
-				result = wsa_get_sweep_trigger_type(dev, &int_result);
-				if (result >= 0) {
-					printf("Trigger mode: ");
-					if (int_result == 1) {
-						printf("On\n");
-					}
-					else if (int_result == 0) {
-						printf("Off\n");
-					}
-					else {
-						printf("Unknown state\n");
-					}
-				}
-			}//// end get sweep entry trigger level
-			else if (strcmp(cmd_words[4], "LEVEL") == 0) {
-				result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
-				if (result >= 0) {
-					printf("Trigger configuration:\n");
-					printf("   Start frequency: %f MHz\n", (float) (start_frequency / MHZ));
-					printf("   Stop frequency: %f MHz\n", (float) (stop_frequency / MHZ));
-					printf("   Amplitude: %lld dBm\n", amplitude);
-				}
-			}
-			else {
-				printf("Usage: 'get sweep trigger <level | enable>'");
-			}
-		} // end get sweep entry trigger level
-			else {
-			printf("Invalid 'get sweep entry'. Try 'h'.\n");
-			}
 			
+			result = print_sweep_entry(dev);
+
 		}else {
 			printf("Invalid 'get sweep'. Try 'h'.\n");
 			}
@@ -1531,14 +1423,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Start frequency must be a valid number\n");
 					}
 					else {
-						start_frequency = (int64_t) (temp_double * MHZ);
+						start_frequency = (int64_t) (temp_double);
 						
 						strtok_result = strtok(NULL, ",");
 						if (to_double(strtok_result, &temp_double) < 0) {
 							printf("Stop frequency must be a valid number\n");
 						}
 						else {
-							stop_frequency = (int64_t) (temp_double * MHZ);
+							stop_frequency = (int64_t) (temp_double);
 							
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
@@ -2331,5 +2223,120 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
 		default: strcpy(gain_str, "Unknown"); break;
 	}
 	
+	return 0;
+}
+
+/**
+ * Print the settings of the user's sweep entry
+ * 
+ * @param dev - a pointer to the wsa device
+ * 
+ * 
+ * @return 0 if successful, else a negative value
+ */
+int16_t print_sweep_entry(struct wsa_device *dev) {
+	
+	int16_t result = 0;			// result returned from a function
+	int64_t freq = 0;
+	float fshift = 0;
+	int int_result = 0;
+	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
+	int32_t dwell_seconds_value = 15;
+	int32_t dwell_miliseconds_value = 16;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
+	int64_t start_frequency;
+	int64_t stop_frequency;
+	int64_t amplitude;
+	enum wsa_gain gain;
+
+	//print antenna sweep value
+	printf("Sweep Entry Settings:\n");
+	result = wsa_get_sweep_antenna(dev, &int_result);
+		if (result >= 0) {
+			printf("   Antenna Port: %d \n", int_result);
+		}
+
+	//print gain if sweep value		
+	result = wsa_get_sweep_gain_if(dev, &int_result);
+		if (result >= 0) {
+			printf("   IF Gain: %d dBm \n", int_result);
+		}
+
+	//print gain rf sweep value		
+	
+	result = wsa_get_sweep_gain_rf(dev, &gain);
+		if (result >= 0) {
+			printf("   RF Gain: %d dBm \n", gain);
+		}
+
+	//print samples per packets sweep value
+	result = wsa_get_sweep_samples_per_packet(dev, &samples_per_packet);
+		if (result >= 0) {
+		printf("   Samples Per Packet: %d \n", samples_per_packet);
+		}
+
+	//print packets per block
+	result = wsa_get_sweep_packets_per_block(dev, &packets_per_block);
+		if (result >= 0) {
+			printf("   Packets Per Block: %d \n", packets_per_block);
+		}
+
+	//print decimation sweep value
+	result = wsa_get_sweep_decimation(dev, &int_result);
+		if (result >= 0) {
+			printf("   Decimation: %d \n", int_result);
+		}
+
+	//print dwell sweep value
+	result = wsa_get_sweep_dwell(dev, &dwell_seconds_value, &dwell_miliseconds_value);
+		if (result >= 0) {
+			printf("   Dwell Value: %u.%u Seconds\n", dwell_seconds_value, dwell_miliseconds_value);
+	}
+
+	//print frequency sweep value
+	result = wsa_get_sweep_freq(dev, &freq);
+		if (result >= 0) {
+			printf("   Center Frequecy %0.3d MHz \n", freq/MHZ);
+		}
+	
+	//print fstep sweep value	
+	result = wsa_get_sweep_freq_shift(dev, &fshift);
+				if (result >= 0) {
+					printf("   Frequency Shift: %0.3f MHz \n", fshift);
+				}
+
+	//print fstep sweep value
+	result = wsa_get_sweep_freq_step(dev, &freq);
+		if (result >= 0) {
+			printf("   Frequency Step: %0.3f mHz \n", freq/MHZ);
+		}
+
+	//print trigger status sweep value
+	printf("   Trigger configuration:\n");
+	result = wsa_get_sweep_trigger_type(dev, &int_result);
+				if (result >= 0) {
+					printf("      Trigger mode: ");
+					if (int_result == 1) {
+						printf("On\n");
+					}
+					else if (int_result == 0) {
+						printf("Off\n");
+					}
+					else {
+						printf("Unknown state\n");
+					}
+				}
+
+	//print trigger level sweep value		
+	result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+				if (result >= 0) {
+					
+					printf("      Start frequency: %d MHz\n", (start_frequency / MHZ));
+					printf("      Stop frequency: %d MHz\n", (stop_frequency / MHZ));
+					printf("      Amplitude: %d dBm\n", amplitude);
+				}
+			
+			
 	return 0;
 }

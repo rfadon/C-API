@@ -154,7 +154,7 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, int32_t *type);
 int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, int32_t type);
 
 int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude);
-int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t *start_frequency, int64_t *stop_frequency, int64_t *amplitude);
+int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);

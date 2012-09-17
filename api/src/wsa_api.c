@@ -1833,7 +1833,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* freq)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-		*freq = (int64_t) temp/MHZ;
+		*freq = (int64_t) temp;
 
 	return 0;
 }
@@ -1897,11 +1897,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	// Verify the validity of the return value TODO
-	if (temp < 0 || temp > device->descr.inst_bw) {
-		printf("Error: WSA returned %s.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
+	
 
 	*fshift = (float) temp;
 
@@ -1950,7 +1946,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 
 	
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
-
+	printf("sending: %s \n", temp_str);
 	// set the freq step using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result == WSA_ERR_SETFAILED){
@@ -1979,12 +1975,9 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-	// Verify the validity of the return value TODO
-	if (temp < 0 || temp > device->descr.inst_bw) {
-		printf("Error: WSA returned %s.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
 
+	
+	
 	*fstep = (int64_t) temp;
 
 	return 0;
@@ -2062,10 +2055,10 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freque
 	
 	int16_t result = 0;
 	char temp_str[50];
-	printf("got to set level\n");
 	result = wsa_verify_freq(dev, start_frequency);
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 	{
+	
 		return WSA_ERR_STARTOOB;
 	}
 	else if (result < 0)
@@ -2083,7 +2076,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freque
 		return result;
 	}
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld MHZ,%lld MHZ,%lld DB\n", start_frequency, stop_frequency, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%lld\n", start_frequency, stop_frequency, amplitude);
 
 	result = wsa_send_command(dev, temp_str);
 	if (result == WSA_ERR_SETFAILED)
@@ -2117,30 +2110,27 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	struct wsa_resp query;		// store query results
 	double temp;
 	char* strtok_result;
-	printf("got to get level \n");
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:LEVEL?\n", &query);
-
+	 
 	// Handle the query output here 
 	if (query.status <= 0)
 	{
+		
 		return (int16_t) query.status;
 	}
-		
+	
 	strtok_result = strtok(query.output, ",");
+
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
-	{
-		printf("Error: WSA returned %s.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}	
+	
 	
 	*start_frequency = (int64_t) temp;
-	printf("   Start frequency: %f MHz\n", (float) (*start_frequency / MHZ));
+
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
@@ -2148,11 +2138,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
-	{
-		printf("Error: WSA returned %s.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}	
+
 	
 	*stop_frequency = (int64_t) temp;
 	
@@ -2163,7 +2149,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*amplitude = (int64_t) temp;
+	*amplitude = (int64_t) temp/1000;
 
 	return 0;
 }
@@ -2183,7 +2169,6 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
 	
 	int16_t result = 0;
 	char temp_str[50];
-	printf("got to set type \n");
 	if (enable < 0 || enable > 1) {
 		return WSA_ERR_INVTRIGGERMODE;
 	}
@@ -2222,37 +2207,20 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
 	
 	struct wsa_resp query;		// store query results
 	long temp;
-	printf("got to get type \n");
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:TYPE?\n", &query);
 	if (query.status <= 0)
 	{
 		return (int16_t) query.status;
 	}
 	 if (strcmp(query.output, "LEVEL") == 0) {
-		 printf("ENABLE IS ON \n");
 		 *enable = 1;
 		 return 0;
 	 } else if
 		 (strcmp(query.output, "NONE") == 0) {
-		 printf("ENABLE IS OFF \n");
-		 *enable = 0;
+		  *enable = 0;
 		 return 0;
 	 }
 	 return 0;
-
-	// Convert the number & make sure no error
-	//if (to_int(query.output, &temp) < 0)
-	//{
-	//	return WSA_ERR_RESPUNKNOWN;
-	//}
-	//
-	//// Verify the validity of the return value
-	//if (temp < 0 || temp > 1) {
-	//	printf("Error: WSA returned %ld.\n", temp);
-	//	return WSA_ERR_RESPUNKNOWN;
-	//}
-	//	
-	//*enable = (int16_t) temp;
 
 	return 0;
 }
