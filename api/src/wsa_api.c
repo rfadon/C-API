@@ -1923,7 +1923,7 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
 		return WSA_ERR_FREQOUTOFBOUND;
 	}
 
-	sprintf(temp_str, "SWEEP:ENTRYFREQ:SHIFt %f Hz\n", fshift);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:SHIFt %f Hz\n", fshift);
 
 	// set the freq shift using the selected connect type
 	result = wsa_send_command(device, temp_str);
@@ -1946,7 +1946,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 
 	
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
-	printf("sending: %s \n", temp_str);
+	
 	// set the freq step using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result == WSA_ERR_SETFAILED){
@@ -1979,7 +1979,6 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
 	
 	
 	*fstep = (int64_t) temp;
-
 	return 0;
 }
 

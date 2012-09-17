@@ -2303,13 +2303,13 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	//print fstep sweep value	
 	result = wsa_get_sweep_freq_shift(dev, &fshift);
 				if (result >= 0) {
-					printf("   Frequency Shift: %0.3f MHz \n", fshift);
+					printf("   Frequency Shift: %0.3f MHz \n", fshift/MHZ);
 				}
 
 	//print fstep sweep value
 	result = wsa_get_sweep_freq_step(dev, &freq);
 		if (result >= 0) {
-			printf("   Frequency Step: %0.3f mHz \n", freq/MHZ);
+			printf("   Frequency Step: %0.3d MHz \n", freq/MHZ);
 		}
 
 	//print trigger status sweep value
