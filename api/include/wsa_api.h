@@ -138,7 +138,7 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets
 int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t* rate);
 int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
 
-int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *cfreq);
+int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *freq_start, int64_t *freq_stop);
 int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t cfreq);
 
 int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift);
@@ -180,6 +180,8 @@ int16_t wsa_sweep_start(struct wsa_device *dev);
 int16_t wsa_sweep_stop(struct wsa_device *dev);
 
 int16_t wsa_sweep_resume(struct wsa_device *dev);
+
+int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position);
 
 #endif
 

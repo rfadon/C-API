@@ -1597,7 +1597,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int_result = (uint32_t) temp_number;
 				result = wsa_sweep_list_delete(dev,temp_number);
 				}
-			} else if(strcmp(cmd_words[2], "COPY") == 0) {
+			} 			 if (strcmp(cmd_words[2], "READ") == 0) {
+				if (num_words < 4) {
+				printf("Missing the position of the entry. See 'h'.\n");
+				}else {
+
+				result = to_int(cmd_words[3], &temp_number);
+				int_result = (uint32_t) temp_number;
+				result = wsa_sweep_list_read(dev,temp_number);
+				}
+			
+			 }	else if(strcmp(cmd_words[2], "COPY") == 0) {
 			
 				if (num_words < 3) {
 				printf("Missing the position of the entry. See 'h'.\n");
@@ -2267,8 +2277,11 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	
 	result = wsa_get_sweep_gain_rf(dev, &gain);
 		if (result >= 0) {
-			printf("   RF Gain: %d dBm \n", gain);
-		}
+			char temp[10];
+			gain_rf_to_str(gain, &temp[0]);
+			printf("Current RF gain: %s\n", temp);
+				}
+
 
 	//print samples per packets sweep value
 	result = wsa_get_sweep_samples_per_packet(dev, &samples_per_packet);
@@ -2295,9 +2308,10 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	}
 
 	//print frequency sweep value
-	result = wsa_get_sweep_freq(dev, &freq);
+	result = wsa_get_sweep_freq(dev, &start_frequency, &stop_frequency);
 		if (result >= 0) {
-			printf("   Center Frequecy %0.3d MHz \n", freq/MHZ);
+			printf("   Start Frequecy %0.3d MHz \n", start_frequency/MHZ);
+			printf("   Stop Frequecy %0.3d MHz \n", stop_frequency/MHZ);
 		}
 	
 	//print fstep sweep value	
