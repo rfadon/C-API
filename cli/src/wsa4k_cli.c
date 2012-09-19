@@ -372,9 +372,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 0;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 0;
+	uint32_t packets_per_block = 240;
 	int32_t enable = 0;
 	int32_t dec = 0;
+	int32_t sweep_status = 0;
 	double reciever_temperature = 0;
 	int32_t reciever_reference_point = 0;
 	double digitizer_reference_level = 0;
@@ -435,35 +436,38 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	
 	printf("Gathering WSA settings... ");
-	
-	// Get samples per packet
-	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-	doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
-	
-	if (result < 0 && result !=-11503)
-	{
+	result = wsa_get_sweep_status(dev, &sweep_status);
 
-		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-		return result;
-	}
-	printf("\n Getting PPB.. ");
-	// Get packets per block
-	result = wsa_get_packets_per_block(dev, &packets_per_block);
-	doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
-	printf("\n Got PPB.. ");
-	if (result < 0)
-	{
-		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-		return result;
-	}
+	if (sweep_status == 0) { 
+		// Get samples per packet
+		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+		doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
+	
+		if (result < 0 && result !=-11503)
+		{
 
-	// Get the centre frequency
-	result = wsa_get_freq(dev, &freq);
-	printf("\n Got Frequency.. ");
-	if (result < 0)
-	{
-		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-		return result;
+			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+			return result;
+		}
+		printf("\n Getting PPB.. ");
+		// Get packets per block
+		result = wsa_get_packets_per_block(dev, &packets_per_block);
+		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
+		printf("\n Got PPB: %u \n  ",packets_per_block);
+		if (result < 0)
+		{
+			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+			return result;
+		}
+
+		// Get the centre frequency
+		result = wsa_get_freq(dev, &freq);
+		printf("\n Got Frequency.. ");
+		if (result < 0)
+		{
+			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+			return result;
+		}
 	}
 	printf("\n Finished Gathering.. ");
 		
@@ -551,9 +555,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	printf("done.\nAcquiring data bytes\n");
-
-	result = wsa_capture_block(dev);
-
+	if (sweep_status == 0) {
+		printf("capture block enabled\n");
+		result = wsa_capture_block(dev);
+	}
 	if (result < 0)
 	{
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);

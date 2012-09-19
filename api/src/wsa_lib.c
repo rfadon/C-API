@@ -824,7 +824,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint32_t stream_identifier_word = 0;
 	uint16_t packet_size = 0;
 
-	
+	printf("got to read raw\n");
 	//allocate space for the header buffer
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 		if (vrt_header_buffer == NULL)
@@ -840,7 +840,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-	
+	printf("recieved 1\n");
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 
@@ -879,6 +879,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
 		
+	printf("got a context packet \n");
 		
 		//retrieve the packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
@@ -893,7 +894,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		
+		printf("recieved 2\n");
 		//store reciever data in the reciever structure
 		if (stream_identifier_word == 0x90000001) {
 			*context_present =1;
@@ -958,7 +959,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	}
 	
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-
+	printf("recieved 3\n");
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 	if (socket_receive_result < 0)

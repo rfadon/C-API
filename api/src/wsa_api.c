@@ -574,7 +574,8 @@ int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_p
 	long temp;
 
 	wsa_send_query(device, "TRACE:BLOCK:PACKETS?\n", &query);
-
+	printf("query status is: %u \n", query.status);
+	printf("query output is: %s \n", query.output);
 	// Handle the query output here 
 	if (query.status <= 0)
 	{
@@ -2312,7 +2313,7 @@ int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
 		return WSA_ERR_INVSAMPLESIZE;
 	}
 	printf("got to error 1\n");
-	sprintf(temp_str, "SWEEP:LIST:ITERATION %hu\n", iterat);
+	sprintf(temp_str, "SWEEP:LIST:ITERATION %u\n", iterat);
 
 	result = wsa_send_command(device, temp_str);
 	if (result < 0) 
@@ -2342,13 +2343,16 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 
 	wsa_send_query(device, "SWEEP:LIST:STATUS?\n", &query);
 
-	printf("output is: %s \n", query.output);
 	
-
-
 	
-		*status = 1;
-		return 0;
+	 if (strcmp(query.output, "STOPPED") == 0) {
+		 *status = 0;
+	
+	 } else if (strcmp(query.output, "RUNNING") == 0) {
+		  *status = 1;
+		
+	 }
+	return 0;
 }
 
 
