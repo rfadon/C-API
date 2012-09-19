@@ -173,7 +173,7 @@ struct wsa_reciever_packet {
 	double temperature;
 };
 
-
+//structure to hold digitizer packet data
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
 	long double bandwidth;
@@ -191,6 +191,21 @@ struct wsa_vrt_packet_trailer {
 	uint8_t ref_lock_indicator;
 	uint8_t over_range_indicator;
 	uint8_t sample_loss_indicator;
+};
+
+// Structure to hold sweep list data
+struct wsa_sweep_list {
+	int64_t freq;
+	float fshift;
+	int int_result;
+	int32_t dwell_seconds_value;
+	int32_t dwell_useconds_value;
+	uint16_t samples_per_packet;
+	uint32_t packets_per_block;
+	int64_t start_frequency;
+	int64_t stop_frequency;
+	int64_t amplitude;
+	enum wsa_gain gain;
 };
 
 

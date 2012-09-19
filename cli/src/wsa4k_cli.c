@@ -81,7 +81,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t print_sweep_entry(struct wsa_device *dev);
-
+int16_t print_sweep_entry_information(struct wsa_device *dev);
 
 /**
  * Print out the CLI options menu
@@ -134,23 +134,9 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" get trigger level      Show the current level trigger settings\n");
 	printf(" get trigger enable     Check whether trigger mode is enabled\n");
 	printf("\n");
-	printf(" get sweep entry ant          Show the current antenna port used in \n"
-		   "                        the user's working sweep entry\n");
-	printf(" get sweep entry dec          Get the decimation rate used in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" get sweep entry gain <rf | if> \n"
-		   "                        Show the current RF front end or IF gain level in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" get sweep entry freq         Show the current running centre frequency used in\n"
-	       "                        the user's sweep working entry.\n");
-	printf(" get sweep entry fshift       Get the frequency shift value in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" get sweep entry ppb          Show the current packets per block in\n"
-		   "                        the user's working sweep entry.\n");
-	printf(" get sweep entry spp          Show the current samples per packet in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" get sweep iterat       Show the number of iterations that the WSA will sweep\n");	
-	printf(" get sweep status       Show the sweep status\n");		
+	printf(" get sweep entry       Shows the current settings in the user's\n"
+		   "                       sweep entry list\n");
+	
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
@@ -215,14 +201,11 @@ void print_cli_menu(struct wsa_device *dev)
 	printf(" sweep delete <sweep entry> Delete a sweep entry\n");
 	printf(" sweep size             Shows the size of the sweep list\n");
 	printf(" sweep new              Reset's the user's working sweep entry\n");
-	printf(" sweep read <sweep entry> Read a specific sweep entry\n");
+	printf(" sweep read <sweep entry> Read the settings of a specific sweep entry\n");
 	printf(" sweep resume           Resume Sweeping after stop\n");
 	printf(" sweep save <position>	Save the user's sweep working entry into the sweep list\n");
 	printf(" sweep start            Start to sweep through the entries set in the WSA\n");
 	printf(" sweep stop             Stop the sweep process\n");
-	
-	
-	
 	
 	printf("\n");
 
@@ -403,6 +386,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	long double reciever_frequency = 0;
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
+	
 
 	
 
@@ -432,6 +416,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_digitizer_packet* digitizer;
 
 
+
+
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
 	// *****
@@ -449,21 +435,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	
 	printf("Gathering WSA settings... ");
-
+	
 	// Get samples per packet
 	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 	doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
-
-	if (result < 0)
+	
+	if (result < 0 && result !=-11503)
 	{
+
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
-
+	printf("\n Getting PPB.. ");
 	// Get packets per block
 	result = wsa_get_packets_per_block(dev, &packets_per_block);
 	doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
-
+	printf("\n Got PPB.. ");
 	if (result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
@@ -472,13 +459,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	// Get the centre frequency
 	result = wsa_get_freq(dev, &freq);
-	
+	printf("\n Got Frequency.. ");
 	if (result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
-	result = wsa_get_trigger_enable(dev,&enable);
+	printf("\n Finished Gathering.. ");
 		
 		
 
@@ -566,6 +553,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("done.\nAcquiring data bytes\n");
 
 	result = wsa_capture_block(dev);
+
 	if (result < 0)
 	{
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
@@ -584,8 +572,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Get the start time
 	get_current_time(&run_start_time);
 
-	for (i = 1; i < packets_per_block+1; i++)
+	for (i = 1; i < packets_per_block + 1; i++)
 	{
+		printf("i is: %u \n", i);
+		printf("ppb is: %u \n", packets_per_block);
 		if (i == 1 && title_print == 0)
 		{
 			title_print =1;
@@ -601,10 +591,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 		// Get the start time
 		get_current_time(&capture_start_time);
-
+		
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
 		// get the end time of each data capture
-	
+			
 
 
 
@@ -686,30 +676,32 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			count = 1;
 			expected_packet_order_indicator = header->packet_order_indicator;
 		}
-		if (header->packet_order_indicator != expected_packet_order_indicator)
-		{
+		//printf("expected packet order is: %u \n", expected_packet_order_indicator);
+		//printf("packet order is: %u \n", header->packet_order_indicator);
+		//if (header->packet_order_indicator != expected_packet_order_indicator)
+		//{
 
-		fclose(iq_fptr);
-		free(digitizer);
-		free(reciever);
-		free(trailer);
-		free(header);
-		free(i_buffer);
-		free(q_buffer);
-			return WSA_ERR_PACKETOUTOFORDER;
-		}
+		//fclose(iq_fptr);
+		//free(digitizer);
+		//free(reciever);
+		//free(trailer);
+		//free(header);
+		//free(i_buffer);
+		//free(q_buffer);
+		//	return WSA_ERR_PACKETOUTOFORDER;
+		//}
 	
 		
 		expected_packet_order_indicator++;
-		
+	
 		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
 		{
 			expected_packet_order_indicator = 0;
 		}
 			
 
-
-			
+		printf("saved \n");
+		
 		for (j = 0; j < samples_per_packet; j++)
 		{
 			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
@@ -1459,8 +1451,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Missing the frequency value. See 'h'.\n");
 			}
 			else {
-				freq = (int64_t) (atof(cmd_words[4]) * MHZ);
-				result = wsa_set_sweep_freq(dev, freq);
+				start_frequency = (int64_t) (atof(cmd_words[4]) * MHZ);
+				stop_frequency = (int64_t) (atof(cmd_words[5]) * MHZ);
+				result = wsa_set_sweep_freq(dev, start_frequency, stop_frequency);
 				if (result == WSA_ERR_FREQOUTOFBOUND)
 					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
 						(double) dev->descr.min_tune_freq / MHZ, 
@@ -1551,19 +1544,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else {
 				result = to_int(cmd_words[4], &temp_number);
 				if (!result) {	
-					if (temp_number < WSA4000_MIN_SWEEP_ITERATION ||
-						temp_number > WSA4000_MAX_SWEEP_ITERATION) {
-						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
-							WSA4000_MIN_SWEEP_ITERATION,
-							WSA4000_MAX_SWEEP_ITERATION);
-
-						result = WSA_ERR_INVSAMPLESIZE;
-					} else {
+					
 						int_result = (uint32_t) temp_number;
 					result = wsa_set_sweep_iteration(dev, int_result);
 					}
 				}
-			}
+			
 		}//end ITERAT
 
 		}//END ENTRY
@@ -2241,7 +2227,6 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
  * 
  * @param dev - a pointer to the wsa device
  * 
- * 
  * @return 0 if successful, else a negative value
  */
 int16_t print_sweep_entry(struct wsa_device *dev) {
@@ -2250,9 +2235,8 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	int64_t freq = 0;
 	float fshift = 0;
 	int int_result = 0;
-	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	int32_t dwell_seconds_value = 15;
-	int32_t dwell_miliseconds_value = 16;
+	int32_t dwell_useconds_value = 16;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
 	int64_t start_frequency;
@@ -2279,7 +2263,7 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 		if (result >= 0) {
 			char temp[10];
 			gain_rf_to_str(gain, &temp[0]);
-			printf("Current RF gain: %s\n", temp);
+			printf("   RF gain: %s\n", temp);
 				}
 
 
@@ -2302,10 +2286,12 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 		}
 
 	//print dwell sweep value
-	result = wsa_get_sweep_dwell(dev, &dwell_seconds_value, &dwell_miliseconds_value);
+	result = wsa_get_sweep_dwell(dev, &dwell_seconds_value, &dwell_useconds_value);
 		if (result >= 0) {
-			printf("   Dwell Value: %u.%u Seconds\n", dwell_seconds_value, dwell_miliseconds_value);
-	}
+			printf("   Dwell Seconds Value: %u Seconds\n", dwell_seconds_value);
+			printf("   Dwell Micro Seconds Value: %u Micro Seconds\n", dwell_useconds_value);
+	
+		}
 
 	//print frequency sweep value
 	result = wsa_get_sweep_freq(dev, &start_frequency, &stop_frequency);
@@ -2353,4 +2339,15 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 			
 			
 	return 0;
+}
+
+
+
+int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) {
+	int16_t result;
+
+	result = wsa_sweep_list_read(dev,position);
+
+	return 0;
+
 }

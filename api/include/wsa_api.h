@@ -110,6 +110,7 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
 
 
 
+
 // ////////////////////////////////////////////////////////////////////////////
 // CONTEXT PACKET TESTS SECTION                                              //
 // ////////////////////////////////////////////////////////////////////////////
@@ -139,7 +140,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t* rate);
 int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
 
 int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *freq_start, int64_t *freq_stop);
-int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t cfreq);
+int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq);
 
 int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift);
 int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift);
@@ -148,7 +149,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *step);
 int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step);
 
 int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *dwell_seconds_value, int32_t *dwell_miliseconds_value);
-int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t dwell_seconds_value, int32_t dwell_miliseconds_value);
+int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t dwell_seconds_value, int32_t dwell_useconds_value);
 
 int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, int32_t *type);
 int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, int32_t type);
@@ -182,6 +183,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev);
 int16_t wsa_sweep_resume(struct wsa_device *dev);
 
 int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position);
+
 
 
 #endif
