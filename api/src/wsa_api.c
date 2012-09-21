@@ -370,7 +370,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet,
+		 uint16_t samples_per_packet,
 		uint8_t* context_is, int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf, int32_t* rec_temperature,
 	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
 {
@@ -391,8 +391,9 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
-
+	samples_per_packet = 1024;
 	// allocate the data buffer
+
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
 
@@ -415,7 +416,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	*dig_indicator_field = (int) digitizer->indicator_field;
 	*dig_bandwidth = (long long)digitizer-> bandwidth;
 	*dig_reference_level = (int)digitizer->reference_level;
-	*dig_rf_frequency_offset = (long long)digitizer->rf_frequency_offset;
+	*dig_rf_frequency_offset = (long long) digitizer->rf_frequency_offset;
 
 	
 
@@ -428,14 +429,22 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	
 		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
+		free(reciever);
+		free(digitizer);
 		return return_status;
 	} 
 	
 	if (context_present == 1) {
 		*context_is = 1;
+		free(data_buffer);
+		free(reciever);
+		free(digitizer);
 		return 0;
 	} else if (context_present == 2) {
 		*context_is = 2;
+		free(data_buffer);
+		free(reciever);
+		free(digitizer);
 		return 0;
 	} else if (context_present == 0) {
 
@@ -445,7 +454,8 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
 	*context_is = 0;
 	free(data_buffer);
-	
+	free(reciever);
+	free(digitizer);
 	return 0;
 	}
 }
@@ -574,8 +584,7 @@ int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_p
 	long temp;
 
 	wsa_send_query(device, "TRACE:BLOCK:PACKETS?\n", &query);
-	printf("query status is: %u \n", query.status);
-	printf("query output is: %s \n", query.output);
+
 	// Handle the query output here 
 	if (query.status <= 0)
 	{
