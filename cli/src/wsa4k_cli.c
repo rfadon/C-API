@@ -339,20 +339,44 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  */
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
+	uint8_t context_is = 0;
+	int8_t title_print =0;
 	int16_t result = 0;
+	double reciever_rf_gain = 0;
+	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 0;
+	int32_t field_indicator = 0;	
 	uint32_t packets_per_block = 0;
+	int32_t enable = 0;
+	int32_t dec = 0;
+	int32_t reciever_temperature = 0;
+	int32_t reciever_reference_point = 0;
+	double digitizer_reference_level = 0;
 	int64_t freq = 0;
-	int64_t start_frequency=0;
-	int64_t stop_frequency=0;
-	int64_t amplitude=0;
-	int32_t enable=0;
-	int32_t dec=0;
+	int64_t start_frequency = 0;
+	int64_t stop_frequency = 0;
+	int64_t amplitude = 0;
+	long double reciever_frequency = 0;
+	long double digitizer_bandwidth = 0;
+	long double digitizer_rf_frequency_offset = 0;
+
+
+		int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
+
+
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
-
-
-
 
 	// to calculate run time
 	TIME_HOLDER run_start_time;
@@ -366,10 +390,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 
 	// *****
-	// Create parameters and buffers to store the raw data
+	// Create parameters and buffers to store the raw data and context information
 	// *****
 	struct wsa_vrt_packet_header* header;
 	struct wsa_vrt_packet_trailer* trailer;
+	struct wsa_reciever_packet* reciever;
+	struct wsa_digitizer_packet* digitizer;
+
 
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -419,37 +446,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	result = wsa_get_trigger_enable(dev,&enable);
 		
-	if (enable==1)
-		{ 
-			result = wsa_get_decimation(dev, &dec);
 
-			result = wsa_get_trigger_level(dev,&start_frequency,&stop_frequency,&amplitude);
-			if (result < 0)
-	{
-		printf("\n error retrieving trigger level \n");
-		return 0;
-		}else{
-			int64_t lower_end = freq -start_frequency/MHZ;
-			int64_t higher_end = freq -stop_frequency/MHZ;
-				if(lower_end<-62.5 ||higher_end>62.5)
-			{
 		
-				return WSA_ERR_CFREQRANGE;
-		//printf("\n Centre Frequency is out of range of the triggers, no Data is available \n ");
-			
-			}
-		  else if(freq<90){
-			  	return WSA_ERR_FREQLOW;	
-			
-		  }else if(dec>0){
-			  if(freq <start_frequency/MHZ || freq>stop_frequency/MHZ){
-				  printf("\n Decimation must be 0 when Center Frequency is outside of the Trigger Levels");
-				  return 0;
-			  }
-		  }
 
-			}
-		}
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
@@ -479,14 +478,41 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
+	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
+	if (reciever == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
+		fclose(iq_fptr); 
+		free(trailer);
+		free(header);
+		return WSA_ERR_MALLOCFAILED;
+	}
+
+	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
+	if (reciever == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
+		fclose(iq_fptr); 
+		free(reciever);
+		free(trailer);
+		free(header);
+		return WSA_ERR_MALLOCFAILED;
+	}
+
+
+
 	// Allocate i buffer space
 	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
 		fclose(iq_fptr); 
-		free(header);
+		fclose(iq_fptr); 
+		free(reciever);
+		free(digitizer);
 		free(trailer);
+		free(header);
+		free(i_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -496,9 +522,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
-		free(header);
+		
+		free(digitizer);
+		free(reciever);
 		free(trailer);
+		free(header);
 		free(i_buffer);
+		free(q_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
@@ -509,8 +539,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
 		fclose(iq_fptr);
-		free(header);
+		free(digitizer);
+		free(reciever);
 		free(trailer);
+		free(header);
 		free(i_buffer);
 		free(q_buffer);
 		return result;
@@ -521,45 +553,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// Get the start time
 	get_current_time(&run_start_time);
 
-	for (i = 0; i < packets_per_block; i++)
+	for (i = 1; i < packets_per_block+1; i++)
 	{
-		// Get the start time
-		get_current_time(&capture_start_time);
-
-		result = wsa_read_iq_packet(dev, header, trailer, i_buffer, q_buffer, samples_per_packet);
-		// get the end time of each data capture
-		get_current_time(&capture_end_time);
-		// sum it up
-		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
-		
-		if (result < 0)
+		if (i == 1 && title_print == 0)
 		{
-			fclose(iq_fptr);
-			free(header);
-			free(trailer);
-			free(i_buffer);
-			free(q_buffer);
-			return result;
-		}
-
-		if (header->packet_order_indicator != expected_packet_order_indicator)
-		{
-			fclose(iq_fptr);
-			free(header);
-			free(trailer);
-			free(i_buffer);
-			free(q_buffer);
-			return WSA_ERR_PACKETOUTOFORDER;
-		}
-
-		expected_packet_order_indicator++;
-		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-		{
-			expected_packet_order_indicator = 0;
-		}
-
-		if (i == 0)
-		{
+			title_print =1;
 			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
 				1, 
 				freq, 
@@ -568,6 +566,114 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				header->time_stamp.psec);
 		}
 
+		
+		
+		// Get the start time
+		get_current_time(&capture_start_time);
+
+
+		 result = wsa_read_iq_packet_matlab (dev, header, trailer, i_buffer, q_buffer, samples_per_packet, &context_present, &indicator_fieldr, &reference_point, &frequency, &gain_if,
+		&gain_rf, &temperature, &indicator_fieldd, &bandwidth, &reference_level, &rf_frequency_offset);
+		
+		 
+		 printf("bandwidth is: %0.12f \n", bandwidth);
+
+		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
+		// get the end time of each data capture
+	
+		get_current_time(&capture_end_time);
+		// sum it up
+		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
+
+		if (result < 0)
+		{
+			fclose(iq_fptr);
+			free(reciever);
+			free(digitizer);
+			free(trailer);
+			free(header);
+			free(i_buffer);
+			free(q_buffer);
+			return result;
+		}
+		if (context_is == 1) {
+
+			fprintf(iq_fptr, "Reciever Packet Found\n");
+			field_indicator = reciever->indicator_field;
+
+			if((field_indicator & 0xf0000000) == 0xc0000000) {
+				reciever_reference_point = reciever->reference_point;
+				fprintf(iq_fptr, "Reference Point: %u\n", reciever_reference_point);
+			
+			}
+			if ((field_indicator & 0x0f000000) == 0x08000000) {
+				reciever_frequency = reciever->frequency;
+				fprintf(iq_fptr, "Frequency: %.12E \n", reciever_frequency);
+		
+			}
+
+			if ((field_indicator & 0x00f00000) == 0x00800000) {
+				reciever_if_gain= reciever->gain_if;
+				reciever_rf_gain= reciever->gain_rf;
+				fprintf(iq_fptr, "Reference IF Gain: %E\n", reciever_if_gain);
+				fprintf(iq_fptr, "Reference RF Gain: %E\n", reciever_rf_gain);
+
+			} 	
+			
+			if ((field_indicator & 0x0f000000) == 0x04000000) {
+				
+				reciever_temperature = reciever->temperature;
+				fprintf(iq_fptr, "Temperature: %u\n", reciever_temperature);
+			
+			} 
+			i--;
+			continue;
+				
+		} else if (context_is == 2) {
+
+			field_indicator = digitizer->indicator_field;
+
+			fprintf(iq_fptr, "Digitizer Packet Found\n");
+			if ((field_indicator & 0xf0000000) == 0xa0000000) {
+				digitizer_bandwidth = digitizer->bandwidth;
+				fprintf(iq_fptr, "Bandwidth: %.12E \n", digitizer_bandwidth);
+		
+			} 			
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) {
+				digitizer_rf_frequency_offset = digitizer->rf_frequency_offset;
+				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_frequency_offset);
+		
+			} 
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
+				digitizer_reference_level = digitizer->reference_level;
+				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);
+		
+			} 
+			i--;
+			continue;
+
+		}
+			
+		if (header->packet_order_indicator != expected_packet_order_indicator)
+		{
+				
+			fclose(iq_fptr);
+			free(digitizer);
+			free(reciever);
+			free(header);
+			free(trailer);
+			free(i_buffer);
+			free(q_buffer);
+			return WSA_ERR_PACKETOUTOFORDER;
+		}
+
+		expected_packet_order_indicator++;
+		
+		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+		{
+			expected_packet_order_indicator = 0;
+		}
+	
 		for (j = 0; j < samples_per_packet; j++)
 		{
 			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
@@ -587,20 +693,24 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	get_current_time(&run_end_time);
 	run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 	printf("\ndone.\n");
-
+		
 	/*printf("(capture time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
 		run_time_ms, 
 		total_bytes / run_time_ms);
 		*/
+
 	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 		capture_time_ms,
 		run_time_ms);
 
-	fclose(iq_fptr); 
-	free(header);
+	fclose(iq_fptr);
 	free(trailer);
+	free(header);
+	free(digitizer);
+	free(reciever);
 	free(i_buffer);
 	free(q_buffer);
+
 	
 	return 0;
 }
@@ -634,12 +744,27 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
+
+
+	int16_t return_status = 0;
+	uint8_t context_present = 0;
+	int32_t indicator_fieldr = 0;
+	int32_t reference_point = 0;
+	int64_t frequency = 0;
+	int16_t gain_if = 0;
+	int16_t gain_rf = 0;
+	int32_t temperature = 0;
+	int32_t indicator_fieldd = 0;
+
+	long double bandwidth = 0;
+	double reference_level = 0;
+	long double rf_frequency_offset = 0;
+	
+
 	//DIR *temp;
 
 	strcpy(msg,"");
 	
-
-
 	//*****
 	// Handle GET commands
 	//*****
@@ -1169,7 +1294,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						}
 						else {
 							stop_frequency = (int64_t) (temp_double * MHZ);
-						
+							
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
 								printf("Amplitude must be a valid number\n");
@@ -1692,10 +1817,15 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int64_t stop_frequency=0;
 	int64_t amplitude=0;
 	int32_t enable=0;
+	char dig1=0;
+	char dig2=0;
+	char dig3=0;
+	
+	
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
-	
+
 	printf("\t- Current settings: \n");
 
 	
@@ -1718,6 +1848,16 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else
 		printf("\t\t- Error: Failed getting the gain IF value.\n");
 	
+	
+	result = wsa_get_firm_v(dev);
+	if (result < 0)
+		printf("\t\t- Error: Failed getting the firmware version.\n");
+	
+
+		
+	
+
+
 	result = wsa_get_gain_rf(dev, &gain);
 	if (result >= 0) {
 		char temp[10];

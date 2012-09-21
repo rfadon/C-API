@@ -12,6 +12,7 @@
 #define MHZ 1000000ULL
 
 #define VRT_HEADER_SIZE 5
+
 #define VRT_TRAILER_SIZE 1
 #define BYTES_PER_VRT_WORD 4
 
@@ -74,7 +75,7 @@
 #define WSA4000_MIN_PACKETS_PER_BLOCK 1
 #define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
 
-//PLL Values
+// PLL Values
 #define PLL_ENT 1
 #define PLL_EXT 2
 
@@ -159,6 +160,26 @@ struct wsa_vrt_packet_header {
 	struct wsa_time time_stamp;
 };
 
+
+
+//structure to hold reciever packet data
+struct wsa_reciever_packet {
+	int32_t indicator_field;
+	int32_t reference_point;
+	long double frequency;
+	double gain_if;
+	double gain_rf;
+	double temperature;
+};
+
+//structure to hold digitizer packet data
+struct wsa_digitizer_packet {
+	int32_t indicator_field;
+	long double bandwidth;
+	double reference_level;
+	long double rf_frequency_offset;
+};
+
 // These values will be defined in a future release
 struct wsa_vrt_packet_trailer {
 	uint8_t valid_data_indicator;
@@ -166,7 +187,6 @@ struct wsa_vrt_packet_trailer {
 	uint8_t over_range_indicator;
 	uint8_t sample_loss_indicator;
 };
-
 
 struct wsa_socket {
 	int32_t cmd;
@@ -203,11 +223,31 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
+		struct wsa_reciever_packet* const reciever,
+		struct wsa_digitizer_packet* const digitizer,
+		uint8_t* const data_buffer,	const uint16_t samples_per_packet,
+		uint8_t* context_present);
+
+int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
+						 uint32_t sample_size);
+
+int16_t wsa_read_status(struct wsa_device *dev, char *output);
+		
+
+int16_t wsa_read_iq_packet_raw_matlab(struct wsa_device* const device, 
+		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
 		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet);
+		const uint16_t samples_per_packet, uint8_t* context_present,
+	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
+	int32_t* dig_indicator_field, long double* dig_bandwidth, double* dig_reference_level, long double* digrf_frequency_offset);		
+			
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
+int16_t extract_reciever_frequency( uint8_t* temp_buffer, int64_t* reciever_frequency); 
+
+
 const char *wsa_get_error_msg(int16_t err_code);
 
 #endif

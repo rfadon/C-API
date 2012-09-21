@@ -36,9 +36,21 @@ int16_t wsa_capture_block(struct wsa_device* const device);
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
+		struct wsa_reciever_packet* const reciever,
+		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet);
+		const uint16_t samples_per_packet, uint8_t* context_is);
+
+int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device, 
+		struct wsa_vrt_packet_header* const header, 
+		struct wsa_vrt_packet_trailer* const trailer,
+		int16_t* const i_buffer, 
+		int16_t* const q_buffer,
+		const uint16_t samples_per_packet, uint8_t* context_is,
+	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
+	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset);
+
 
 int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
 int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
@@ -87,6 +99,12 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
 int16_t wsa_get_firm_v(struct wsa_device *dev);
 
+
+// ////////////////////////////////////////////////////////////////////////////
+// DEVICE STATUS SECTION                                                     //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_firm_v(struct wsa_device *dev);
 
 // ////////////////////////////////////////////////////////////////////////////
 // TRIGGER SECTION                                                           //
