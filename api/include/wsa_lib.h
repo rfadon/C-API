@@ -249,7 +249,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_reciever_packet* const reciever,
 		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet, uint8_t* context_present);
+		 uint16_t* samples_per_packet, uint8_t* context_present);
 
 		
 		

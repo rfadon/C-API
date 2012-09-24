@@ -317,18 +317,20 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet,
+		uint16_t* samples_per_packet,
 		uint8_t* context_is)
 {
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
 	uint8_t context_present = 0;
+	uint16_t spp = 0;
 	int64_t frequency = 0;
+	spp = *samples_per_packet;
 
 	// allocate the data buffer
-	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
+	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+	
+	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
 	
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
@@ -352,9 +354,10 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	} else if (context_present ==0) {
 
 
-
+	
 	// Note: don't rely on the value of return_status
-	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, *samples_per_packet);
+	*samples_per_packet = spp;
 	*context_is = 0;
 	free(data_buffer);
 	
@@ -391,11 +394,10 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
-	samples_per_packet = 1024;
+
 	// allocate the data buffer
 
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-
 
 
 	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
@@ -416,7 +418,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	*dig_indicator_field = (int) digitizer->indicator_field;
 	*dig_bandwidth = (long long)digitizer-> bandwidth;
 	*dig_reference_level = (int)digitizer->reference_level;
-	*dig_rf_frequency_offset = (long long) digitizer->rf_frequency_offset;
+	*dig_rf_frequency_offset = (long long)digitizer->rf_frequency_offset;
 
 	
 
@@ -429,22 +431,15 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	
 		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
-		free(reciever);
-		free(digitizer);
+
 		return return_status;
 	} 
 	
 	if (context_present == 1) {
 		*context_is = 1;
-		free(data_buffer);
-		free(reciever);
-		free(digitizer);
 		return 0;
 	} else if (context_present == 2) {
 		*context_is = 2;
-		free(data_buffer);
-		free(reciever);
-		free(digitizer);
 		return 0;
 	} else if (context_present == 0) {
 
@@ -711,10 +706,6 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	}
 	
 		*cfreq = (int64_t) temp/MHZ;
-		
-	   
-
-	
 
 	return 0;
 }
@@ -1383,10 +1374,138 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 	return 0;
 }
 
+// ////////////////////////////////////////////////////////////////////////////
+// PLL Reference CONTROL SECTION                                                   //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the PLL Reference Source
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param pll_ref - An integer pointer to store the current PLL Source
+  * @return 0 on success, or a negative number on error.
+ */
+
+int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
+{
+	struct wsa_resp query;
+	char* strtok_result;
+	char* intern = "INT";
+
+
+	char* ext = "EXT";
+
+	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0){
+	    return WSA_ERR_INVRFESETTING;
+		
+	}
+	  
+
+
+	wsa_send_query(dev, "SOURCE:REFERENCE:PLL?\n", &query);
+	
+	if (query.status <= 0){
+		
+		return (int16_t) query.status;
+	}
+	
+	
+	strtok_result = strtok(query.output, ",");
+	if (*strtok_result == *intern) {
+		*pll_ref = 1;
+	
+	} else if( *strtok_result == *ext) {
+			
+			*pll_ref = 2;
+		
+			
+	}
+	return 0;
+
+	
+
+
+}
+
+/**
+ * Sets the PLL Reference Source
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param pll_ref - An integer used to store the value of the reference source to be set
+  * @return 0 on success, or a negative number on error.
+ */
+
+int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref)
+{
+
+	int16_t result = 0;
+	char temp_str[30];
+
+	if (pll_ref ==1) {
+
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL INT\n");
+
+	} else if(pll_ref ==2) {
+
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL EXT\n");
+	// set the freq using the selected connect type
+	}
+	result = wsa_send_command(dev, temp_str);
+	return result;
+}
+
+
+
+/**
+* Reset the PLL Reference Source
+* @param dev - A pointer to the WSA device structure.
+*/
+
+int16_t wsa_reset_reference_pll(struct wsa_device* dev){
+	
+	int16_t result = 0;
+	char temp_str[30];
+	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
+	result = wsa_send_command(dev, temp_str);
+	return result;
+
+
+}
+
+
+
+/**
+* get Lock the PLL Reference, returns if the lock reference is locked
+* or unlocked
+* @param dev - A pointer to the WSA device structure.
+* @param lock_ref returns 1 if locked, 0 if unlocked
+*/
+
+int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
+	struct wsa_resp query;
+	char* strtok_result;
+	int16_t result = 0;
+	char temp_str[30];
+	double temp;
+
+	
+
+	wsa_send_query(dev, "LOCK:REFerence?\n", &query);
+
+	if (query.status <= 0){
+		return (int16_t) query.status;
+	}
+		if (to_double(query.output, &temp) < 0)
+		return WSA_ERR_RESPUNKNOWN;
+
+		*lock_ref = temp;
+	return 0;
+
+}
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// Sweep Functions				                                             //
+// Sweep Functions	(still in beta			                                             //
 // ////////////////////////////////////////////////////////////////////////////
 
 
@@ -2315,13 +2434,6 @@ int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
 
 	int16_t result;
 	char temp_str[50];
-	printf("got here \n");
-	if ((iterat < WSA4000_MIN_SWEEP_ITERATION) || 
-		(iterat > WSA4000_MAX_SWEEP_ITERATION))
-	{
-		return WSA_ERR_INVSAMPLESIZE;
-	}
-	printf("got to error 1\n");
 	sprintf(temp_str, "SWEEP:LIST:ITERATION %u\n", iterat);
 
 	result = wsa_send_command(device, temp_str);
@@ -2419,7 +2531,7 @@ int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position) {
 		doutf(DHIGH, "In delete: wsa_send_command returned %hd: %s.\n",
 			result,
 			wsa_get_error_msg(result));
-		return WSA_ERR_SWEEPDELETEFAIL;
+		
 	}
 
 	return 0;
@@ -2439,7 +2551,7 @@ int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position) {
 int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
 	int16_t result;
 	char temp_str[50];
-	printf("got to copy\n");
+	
 	sprintf(temp_str, "SWEEP:ENTRY:COPY %hu\n", position);
 
 	result = wsa_send_command(dev, temp_str);
@@ -2448,7 +2560,7 @@ int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
 		doutf(DHIGH, "In copy: wsa_send_command returned %hd: %s.\n",
 			result,
 			wsa_get_error_msg(result));
-		return WSA_ERR_SWEEPCOPYFAIL;
+		
 	}
 
 	return 0;
@@ -2470,7 +2582,7 @@ int16_t wsa_sweep_start(struct wsa_device *device) {
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep start: %s\n", wsa_get_error_msg(return_status));
-		return WSA_ERR_SWEEPSTARTFAIL;
+		
 	}
 
 	return 0;
@@ -2492,7 +2604,7 @@ int16_t wsa_sweep_stop(struct wsa_device *device) {
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
-		return WSA_ERR_SWEEPSTOPFAIL;
+	
 	}
 
 	return 0;
@@ -2515,7 +2627,7 @@ int16_t wsa_sweep_resume(struct wsa_device *device) {
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep resume: %s\n", wsa_get_error_msg(return_status));
-		return WSA_ERR_SWEEPRESUMEFAIL;
+		
 	}
 
 	return 0;
@@ -2538,7 +2650,7 @@ int16_t wsa_sweep_entry_new(struct wsa_device *device) {
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep new: %s\n", wsa_get_error_msg(return_status));
-		return WSA_ERR_SWEEPNEWFAIL;
+	
 	}
 
 	return 0;
@@ -2554,7 +2666,6 @@ int16_t wsa_sweep_entry_new(struct wsa_device *device) {
 int16_t wsa_sweep_entry_save(struct wsa_device *device, int32_t position) {
 	int16_t result;
 	char temp_str[50];
-	printf("got to save");
 	sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", position);
 
 	result = wsa_send_command(device, temp_str);
@@ -2563,11 +2674,10 @@ int16_t wsa_sweep_entry_save(struct wsa_device *device, int32_t position) {
 		doutf(DHIGH, "In save: wsa_send_command returned %hd: %s.\n",
 			result,
 			wsa_get_error_msg(result));
-		return WSA_ERR_SWEEPSAVEFAIL;
+	
 	}
 
 	return 0;
-
 }
 
 /**
@@ -2593,59 +2703,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *device, int32_t position){
 
 }
 
-
-// ////////////////////////////////////////////////////////////////////////////
-// Context Packet test Function                                               //
-// ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Retrieve Reciever Context Packets
- *
- * @param dev - A pointer to the WSA device structure.	
- * @param Reference Point 
- * @param RF Reference Frequency
- * @param Gain
- * @param Temperature
- * @return 0 on success, or a negative number on error.
- */
-
-int16_t wsa_get_context_digitizer(struct wsa_device* const dev, int32_t packets_per_block, int32_t samples_per_packet)
-
-{
-
-	
-	int16_t result = 0;	
-	clock_t sec = 5;
-	int32_t i = 0;
-
-	for (i = 0; i<100 ; i++) {
-
-	int64_t freq = 2414*MHZ;
-	clock_t start_time = clock();
-	clock_t end_time = sec * 1000 + start_time;
-	result = wsa_set_freq(dev, freq);	
-	while(clock() != end_time);
-
-
-	freq =5000*MHZ;
-	 start_time = clock();
-	 end_time = sec * 1000 + start_time;
-	result = wsa_set_freq(dev, freq);	
-	while(clock() != end_time);
-	
-
-	
-	freq =8000*MHZ;
-	 start_time = clock();
-	 end_time = sec * 1000 + start_time;
-	result = wsa_set_freq(dev, freq);	
-	while(clock() != end_time);
-
-	
-	
-	
-	}
-}
 
 
 

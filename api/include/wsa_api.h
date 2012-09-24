@@ -40,7 +40,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet, uint8_t* context_is);
+		uint16_t *samples_per_packet, uint8_t* context_is);
 
 int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 

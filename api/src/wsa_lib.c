@@ -22,6 +22,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
+int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size); 
 int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_packet* const reciever);
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
@@ -802,7 +803,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_reciever_packet* const reciever,
 		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet,
+		uint16_t* samples_per_packet,
 		uint8_t* context_present)
 {
 	
@@ -823,6 +824,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int64_t frequency1 = 0;
 	uint32_t stream_identifier_word = 0;
 	uint16_t packet_size = 0;
+	uint16_t sweep_samples_per_packet = 0;
+	uint8_t* sweep_data_buffer = 0;
 
 
 	//allocate space for the header buffer
@@ -858,7 +861,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			+ (uint32_t) vrt_header_buffer[7];		
 	
 
-
+	//TODO: Fix this not responding properly
 	////determine if the packet is neither context or iq	 using the pkt type
 	//if((vrt_header_buffer[0] & 0xf0) != 0x40 &&(vrt_header_buffer[0] & 0xf0) !=0x10){
 	//		free(vrt_packet_buffer);
@@ -866,22 +869,22 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	//		
 	//		return WSA_ERR_NOTIQFRAME;
 	//}
-
-
-
+	printf("stream identifier is: %x \n", stream_identifier_word);
 
 	if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
 	{
 		
-
+	
 		free(vrt_packet_buffer);
-		printf("stream identifier is: %x \n", stream_identifier_word); 
 		return WSA_ERR_NOTIQFRAME;
 	}
 
 		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
 		
+		//retrieve the packet order indicator
+	
+	
 		//retrieve the packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
 
@@ -901,17 +904,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		if (stream_identifier_word == 0x90000001) {
 			*context_present =1;
 			result = extract_reciever_packet_data(temp_buffer, reciever);
-			
-			
-		
-		//store digitizer data in the digitizer structure
+
+			//store digitizer data in the digitizer structure
 		} else if (stream_identifier_word == 0x90000002) {
 			*context_present =2;
 			result = extract_digitizer_packet_data(temp_buffer,digitizer);
-
 		}
-
-
 		free(vrt_packet_buffer);
 		free(temp_buffer);
 		free(vrt_header_buffer);
@@ -919,25 +917,22 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	//if the packet is an IQ packet proceed with the method from previous release
 	} else if (stream_identifier_word == 0x90000003){ 
-			
-			
+
 			*context_present =0;
 
 		//  Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
 		// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 		// It provides a simple verification that packets are arriving in the right order
-		packet_order_indicator = vrt_header_buffer[1] & 0x0f;
+		packet_order_indicator = (uint8_t) vrt_header_buffer[1] & 0x0f;
+		printf("vrt word is: %x %x %x %x \n", vrt_header_buffer[0], vrt_header_buffer[1], vrt_header_buffer[2], vrt_header_buffer[3]);
 		doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
 		header->packet_order_indicator = packet_order_indicator;
 
 		//Get the 16-bit "Pkt Size"
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
-	
+		sweep_samples_per_packet = packet_size-6;
 
-
-
-	
 		header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
 	
@@ -952,7 +947,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		vrt_packet_bytes = 4 * (packet_size-2);
-	
+		
+		sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+
 		vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
 	
 		if (vrt_packet_buffer == NULL)
@@ -971,7 +968,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			return socket_receive_result;
 		}
 
-		
 		header->time_stamp.sec = (((uint32_t) vrt_packet_buffer[0]) << 24) +
 							(((uint32_t) vrt_packet_buffer[1]) << 16) +
 							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
@@ -1015,19 +1011,41 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// *****
 		// Copy the IQ data payload to the provided buffer
 		// *****
-		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), samples_per_packet * BYTES_PER_VRT_WORD);
+		printf("recieved size is: %u \n",sweep_samples_per_packet);
+		if(*samples_per_packet == 65530) {
+			
+			memcpy(sweep_data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
+			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet);
+			*samples_per_packet = sweep_samples_per_packet;
+			free(sweep_data_buffer);
+			free(vrt_packet_buffer);
+			free(vrt_header_buffer);
+			return 0;
+		}
 
+		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), *samples_per_packet * BYTES_PER_VRT_WORD);
+		free(sweep_data_buffer);
 		free(vrt_packet_buffer);
-
-	
+		free(vrt_header_buffer);
 	}
-	
 	return 0;	
 }
 
 
 
+int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size) {
 
+	int i;
+	for(i = 0; i < size; i++) {
+		data_buf[i] = sweep_data_buf[i];
+
+
+
+	}
+
+
+
+}
 
 /**
  * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
@@ -1185,7 +1203,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		dec_holder = (double) freq_dec;
 		freq_holder = integer_holder + dec_holder/1000000;
 		data_pos = data_pos + 8;
-
+		printf("frequency is: %f \n", freq_holder/MHZ);
 		reciever->frequency = freq_holder/MHZ;
 		
 		

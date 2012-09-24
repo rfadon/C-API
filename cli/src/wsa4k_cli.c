@@ -370,7 +370,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t result = 0;
 	double reciever_rf_gain = 0;
 	double reciever_if_gain = 0;
-	uint16_t samples_per_packet = 1024;
+	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
 	uint32_t packets_per_block = 100;
 	int32_t enable = 0;
@@ -469,7 +469,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}
 	}
-	
+	printf("samples per packet is: %u \n", samples_per_packet);
+
 	printf("\n Finished Gathering.. ");
 		
 		
@@ -580,6 +581,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	for (i = 1; i < packets_per_block + 1; i++)
 	{
+	
 
 		if (i == 1 && title_print == 0)
 		{
@@ -591,19 +593,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				header->time_stamp.sec, 
 				header->time_stamp.psec);
 		}
-
-		
-		
+	
 		// Get the start time
 		get_current_time(&capture_start_time);
 		
-		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, samples_per_packet, &context_is);
+		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet, &context_is);
 		// get the end time of each data capture
-			
 
-
-
-
+	
 		get_current_time(&capture_end_time);
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
@@ -677,25 +674,26 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		}
 
-		if (count == 0) {
-			count = 1;
+		if (i == 1) {
+		
 			expected_packet_order_indicator = header->packet_order_indicator;
 		}
-		//printf("expected packet order is: %u \n", expected_packet_order_indicator);
-		//printf("packet order is: %u \n", header->packet_order_indicator);
-		//if (header->packet_order_indicator != expected_packet_order_indicator)
-		//{
+			printf("header's packet #: %u \n", header->packet_order_indicator);
+		printf("current packet #: %u \n",expected_packet_order_indicator);
 
-		//fclose(iq_fptr);
-		//free(digitizer);
-		//free(reciever);
-		//free(trailer);
-		//free(header);
-		//free(i_buffer);
-		//free(q_buffer);
-		//	return WSA_ERR_PACKETOUTOFORDER;
-		//}
-	
+		if (header->packet_order_indicator != expected_packet_order_indicator)
+		{
+
+		fclose(iq_fptr);
+		free(digitizer);
+		free(reciever);
+		free(trailer);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
+			return WSA_ERR_PACKETOUTOFORDER;
+		}
+
 		
 		expected_packet_order_indicator++;
 	
@@ -703,12 +701,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			expected_packet_order_indicator = 0;
 		}
-			
-
-	
 		
 		for (j = 0; j < samples_per_packet; j++)
 		{
+			
 			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
 		}
 		
@@ -720,6 +716,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			printf(".");
 		}
+		if( sweep_status == 1) {
+
+			samples_per_packet = 65530;
+		}
+
 	}
 	
 	// get the total run end time
@@ -983,19 +984,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end get SPP
-
-				//get context packet	
-		else if (strcmp(cmd_words[1], "CONT") == 0) {
-			
-			result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-			result = wsa_get_packets_per_block(dev, &packets_per_block);
-			
-				result = wsa_get_context_digitizer(dev,packets_per_block,samples_per_packet);
-			
-		return 0;	
-		}
-
-
+		   
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
 			if (strcmp(cmd_words[2], "ENABLE") == 0) {
 				result = wsa_get_trigger_enable(dev, &int_result);
