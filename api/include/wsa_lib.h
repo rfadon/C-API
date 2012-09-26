@@ -195,16 +195,19 @@ struct wsa_vrt_packet_trailer {
 
 // Structure to hold sweep list data
 struct wsa_sweep_list {
-	int64_t freq;
+	int64_t start_frequency;
+	int64_t stop_frequency;
 	float fshift;
-	int int_result;
+	int64_t fstep;
+	int32_t decimation_rate;
+	int32_t ant_port;
 	int32_t dwell_seconds_value;
 	int32_t dwell_useconds_value;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
-	int64_t start_frequency;
-	int64_t stop_frequency;
-	int64_t amplitude;
+	int64_t trigger_start_frequency;
+	int64_t trigger_stop_frequency;
+	int64_t trigger_amplitude;
 	enum wsa_gain gain;
 };
 

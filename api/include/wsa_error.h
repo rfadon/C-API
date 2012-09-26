@@ -175,6 +175,10 @@
 #define WSA_ERR_SWEEPSTATUSFAIL	(LNEG_NUM - 3006)
 #define WSA_ERR_SWEEPSIZEFAIL	(LNEG_NUM - 3007)
 #define WSA_ERR_SWEEPDELETEFAIL	(LNEG_NUM - 3008)
+#define WSA_ERR_SWEEPALREADYRUNNING	(LNEG_NUM - 3009)
+#define WSA_ERR_SWEEPLISTEMPTY	(LNEG_NUM - 3010)
+#define WSA_ERR_SWEEPNOTRUNNING	(LNEG_NUM - 3011)
+#define WSA_ERR_SWEEPOUTOFBOUNDS	(LNEG_NUM - 3012)
 // ///////////////////////////////
 // Context Errors				//
 // ///////////////////////////////

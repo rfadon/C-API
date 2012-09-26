@@ -182,7 +182,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev);
 
 int16_t wsa_sweep_resume(struct wsa_device *dev);
 
-int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position);
+int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list);
 
 
 

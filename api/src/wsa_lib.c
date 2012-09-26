@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_lib.h"
@@ -826,8 +825,19 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint16_t packet_size = 0;
 	uint16_t sweep_samples_per_packet = 0;
 	uint8_t* sweep_data_buffer = 0;
+	FILE * pFile;
+	FILE* example;
+	char buffer[] = { 'x' , 'y' , 'z' };
+	pFile = fopen ( "myfile.bin" , "ab+" );
 
 
+	example = fopen ( "myfil.bin" , "wb" );
+  fwrite (buffer , 1 ,3, example );
+  fclose(example);
+	
+
+
+	
 	//allocate space for the header buffer
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 		if (vrt_header_buffer == NULL)
@@ -843,9 +853,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-
+	fwrite (vrt_header_buffer , 1 , vrt_header_bytes, pFile );
+	
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
-
 
 	if (socket_receive_result < 0)
 	{
@@ -874,7 +884,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
 	{
 		
-	
+		fclose (pFile);
 		free(vrt_packet_buffer);
 		return WSA_ERR_NOTIQFRAME;
 	}
@@ -882,10 +892,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		//Determine if this is a Context packet
 	else if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
 		
-		//retrieve the packet order indicator
-	
-	
-		//retrieve the packet size
+			//retrieve the packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
 
 		//allocate memory for the context packet
@@ -898,7 +905,9 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		
+			fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
+			fclose (pFile);
+
 
 		//store reciever data in the reciever structure
 		if (stream_identifier_word == 0x90000001) {
@@ -958,6 +967,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 	
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, pFile );
+		fclose (pFile);
 		doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 		if (socket_receive_result < 0)

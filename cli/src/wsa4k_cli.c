@@ -372,7 +372,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 100;
+	uint32_t packets_per_block = 50;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
@@ -388,14 +388,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
 	
-
-	
-
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
-
-
-
 
 	// to calculate run time
 	TIME_HOLDER run_start_time;
@@ -416,9 +410,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
 
-
-
-
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
 	// *****
@@ -438,12 +429,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 	result = wsa_get_sweep_status(dev, &sweep_status);
 
-
 	if(sweep_status == 0) {
 			// Get samples per backet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
-	
 			if (result < 0)
 			{
 				doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
@@ -681,18 +670,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			printf("header's packet #: %u \n", header->packet_order_indicator);
 		printf("current packet #: %u \n",expected_packet_order_indicator);
 
-		if (header->packet_order_indicator != expected_packet_order_indicator)
-		{
+		//if (header->packet_order_indicator != expected_packet_order_indicator)
+		//{
 
-		fclose(iq_fptr);
-		free(digitizer);
-		free(reciever);
-		free(trailer);
-		free(header);
-		free(i_buffer);
-		free(q_buffer);
-			return WSA_ERR_PACKETOUTOFORDER;
-		}
+		//fclose(iq_fptr);
+		//free(digitizer);
+		//free(reciever);
+		//free(trailer);
+		//free(header);
+		//free(i_buffer);
+		//free(q_buffer);
+		//	return WSA_ERR_PACKETOUTOFORDER;
+		//}
 
 		
 		expected_packet_order_indicator++;
@@ -781,13 +770,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t stop_frequency;
 	int64_t amplitude;
 
-
-	
-
-
-
-
-	
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -1019,32 +1001,24 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
-					printf("The Sweep status is: %d\n",int_result);
+					if (int_result == 0) {
+						printf("Sweep mode is off\n");
+					} else if (int_result == 1) {
+					printf("Sweep mode is on\n");
+					}
 				} // end get sweep status
-			
-	
-			}  else if (strcmp(cmd_words[2], "ITERAT") == 0) {
-				result = wsa_get_sweep_iteration(dev, &int_result);
-				if (result >= 0) {
-					printf("The Sweep list will be repeated %d times \n",int_result);
-				} //end get sweep iteration
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
-					
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
-
-				}
-			
-			}
-			else if (strcmp(cmd_words[2], "ENTRY") == 0) {
-			
+				 }			
+			//end get sweep list size
+			}else if (strcmp(cmd_words[2], "ENTRY") == 0) {
 			result = print_sweep_entry(dev);
-
-		}else {
+			//end get sweep list entry
+			}else {
 			printf("Invalid 'get sweep'. Try 'h'.\n");
 			}
-		
 		}
 		else {
 			printf("Invalid 'get'. Try 'h'.\n");
@@ -1432,13 +1406,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			} else {
 				printf("Invalid 'set sweep trigger level'. See 'h'. \n");
-			}
-
-		}
-		
-
-
-
+			}// end set trigger level
+		}// end set trigger
 
 		else if (strcmp(cmd_words[3], "FREQ") == 0) {
 			if (strcmp(cmd_words[4], "") == 0) {
@@ -1550,15 +1519,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else {
 		printf("Invalid 'set'. See 'h'.\n");
 		}
-		
 
-		
 		} else {
 		printf("Invalid 'set'. See 'h'.\n");
 		}
 
-
-	
 	} // end SET
 
 	//*****
@@ -1577,7 +1542,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				int_result = (uint32_t) temp_number;
 				result = wsa_sweep_list_delete(dev,temp_number);
 				}
-			} 			 if (strcmp(cmd_words[2], "READ") == 0) {
+			} else if (strcmp(cmd_words[2], "READ") == 0) {
 				if (num_words < 4) {
 				printf("Missing the position of the entry. See 'h'.\n");
 				}else {
@@ -1601,13 +1566,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Invalid 'Sweep List' Command. See 'h'.\n");
 			}
 		 } else if  (strcmp(cmd_words[1], "START") == 0) {
-			 wsa_sweep_start(dev);
+			 result = wsa_sweep_start(dev);
+			
 		 } else if (strcmp(cmd_words[1], "STOP") == 0){
 
-			 wsa_sweep_stop(dev);
+			result =  wsa_sweep_stop(dev);
 		 } else if (strcmp(cmd_words[1], "RESUME") == 0){
 
-			 wsa_sweep_resume(dev);
+			result =  wsa_sweep_resume(dev);
 		 }
 		else if (strcmp(cmd_words[1], "ENTRY") == 0) {
 			if (strcmp(cmd_words[2], "NEW") == 0) {
@@ -2339,7 +2305,10 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) {
 	int16_t result;
 
-	result = wsa_sweep_list_read(dev,position);
+	struct wsa_sweep_list* list_values;
+	ist_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
+
+	result = wsa_sweep_list_read(dev, position, list_values);
 
 	return 0;
 
