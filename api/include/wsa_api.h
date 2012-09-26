@@ -19,6 +19,8 @@ const char *wsa_get_err_msg(int16_t err_code);
 
 int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 
+int16_t wsa_system_lock_request_acquisition(struct wsa_device *dev, int16_t* status);
+int16_t wsa_system_lock_have_possession(struct wsa_device *dev, int16_t* status); 
 
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
@@ -161,30 +163,16 @@ int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
 
 int16_t wsa_get_sweep_status(struct wsa_device *dev, int32_t *status);
-
 int16_t wsa_sweep_entry_new(struct wsa_device *dev);
-
 int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position);
-
 int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
-
 int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position);
-
-
-
 int16_t wsa_sweep_list(struct wsa_device *dev, int32_t *position);
-
 int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t *size);
-
 int16_t wsa_sweep_start(struct wsa_device *dev);
-
 int16_t wsa_sweep_stop(struct wsa_device *dev);
-
 int16_t wsa_sweep_resume(struct wsa_device *dev);
-
 int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list);
-
-
-
+int16_t wsa_request(struct wsa_device *dev);
 #endif
 

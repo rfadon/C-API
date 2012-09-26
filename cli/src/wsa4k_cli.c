@@ -81,7 +81,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t print_sweep_entry(struct wsa_device *dev);
-int16_t print_sweep_entry_information(struct wsa_device *dev);
+int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position);
 
 /**
  * Print out the CLI options menu
@@ -999,6 +999,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
 
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
+			
+				result = wsa_system_lock_request_acquisition(dev,&samples_per_packet);
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
 					if (int_result == 0) {
@@ -1009,6 +1011,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				} // end get sweep status
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
+					 result = wsa_system_lock_have_possession(dev,&samples_per_packet);
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
 				 }			
@@ -1549,7 +1552,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				result = to_int(cmd_words[3], &temp_number);
 				int_result = (uint32_t) temp_number;
-				result = wsa_sweep_list_read(dev,temp_number);
+				result = print_sweep_entry_information(dev,temp_number);
 				}
 			
 			 }	else if(strcmp(cmd_words[2], "COPY") == 0) {
@@ -2303,12 +2306,38 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 
 
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) {
+	
 	int16_t result;
-
+		char temp[10];
 	struct wsa_sweep_list* list_values;
-	ist_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
+	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
+
 
 	result = wsa_sweep_list_read(dev, position, list_values);
+	printf("  Start frequency: %d MHz\n", (list_values->start_frequency / MHZ));
+	printf("  Stop frequency: %d MHz\n", (list_values->start_frequency / MHZ));
+	printf("  Fstep is: %d \n",list_values->fstep / MHZ);
+	printf("  Fshift is: %f \n",list_values->fshift);
+	printf("  dec is: %u \n",list_values->decimation_rate);
+	printf("  ant is: %u \n",list_values->ant_port);
+	printf("  gain if is: %u \n",list_values->gain_if);
+
+	gain_rf_to_str(list_values->gain_rf, &temp[0]);
+	printf("   Current RF gain: %s\n", temp);
+	printf("  spp is: %u \n",list_values->samples_per_packet);
+	printf("  ppb is: %u \n",list_values->packets_per_block);
+	printf("  Dwell seconds value is: %u \n",list_values->dwell_seconds_value);
+	printf("  Dwell Microseconds value is: %u \n",list_values->dwell_useconds_value);
+	printf("  Trigger Settings:\n");
+	if ( list_values->trigger_enable == 0) {
+		printf("     Triggers are disabled\n");
+	} else if ( list_values->trigger_enable == 1) {
+		printf("     Triggers are enabled\n");
+	}
+	printf("     Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
+	printf("     Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
+	printf("     Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
+
 
 	return 0;
 

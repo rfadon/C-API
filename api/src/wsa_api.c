@@ -1179,10 +1179,6 @@ int16_t wsa_get_firm_v(struct wsa_device *dev)
 // ////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
 /**
  * Sets the WSA to use basic a level trigger
  *
@@ -1255,6 +1251,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 
 	// Handle the query output here 
 	if (query.status <= 0)
+
 	{
 		return (int16_t) query.status;
 	}
@@ -1268,6 +1265,12 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
+		printf("got to start freq error\n");
+		printf("freq is: %f \n", temp);
+		printf("min tune is: %d \n", dev->descr.min_tune_freq);
+		printf("max tune is: %d \n" ,dev->descr.max_tune_freq);
+
+
 		printf("Error: WSA returned %s.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}	
@@ -1281,8 +1284,12 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	if (temp/MHZ < dev->descr.min_tune_freq || temp/MHZ > dev->descr.max_tune_freq) 
 	{
+		printf("got to stop freq error\n");
+		printf("freq is: %f \n", temp);
+		printf("min tune is: %f \n", dev->descr.min_tune_freq);
+		printf("min tune is: %f \n" ,dev->descr.max_tune_freq);
 		printf("Error: WSA returned %s.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}	
@@ -2587,21 +2594,19 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t position) {
 	return 0;
 }
 /**
- * save the user's sweep entry to the sweep list
- * 
- * 
+ * returns the settings of a sweep list in the wsa
  * @param dev - A pointer to the WSA device structure.
- * @param position - Position where the entry will be saved in the list 
+ * @param position - a pointer structure to store the settings 
  *@return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list){
+int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list)
+{
 	int16_t result;
 	char temp_str[50];
 	struct wsa_resp query;		// store query results
 	double temp;
 	char* strtok_result;
 		
-	sprintf(temp_str, "SWEEP:ENTRY:READ? %hu\n", position);
 	
 	result = wsa_send_query(dev, temp_str, &query);
 	
@@ -2661,10 +2666,168 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	
 	sweep_list->ant_port = (int32_t) temp;
 
+	strtok_result = strtok(NULL, ",");
+	
+	// Convert to wsa_gain type
+	if (strstr(strtok_result, "HIGH") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_HIGH;
+	}
+	else if (strstr(strtok_result, "MED") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_MED;
+	}
+	else if (strstr(strtok_result, "VLOW") != NULL) {
+		sweep_list->gain_rf= WSA_GAIN_VLOW;
+	}
+	else if (strstr(strtok_result, "LOW") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_LOW;
+	}
+	else {
+		sweep_list->gain_rf = (enum wsa_gain) NULL;
+	}
 
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->gain_if = (int32_t) temp;
+
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->samples_per_packet = (int16_t) temp;
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->packets_per_block = (int32_t) temp;
+
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->dwell_seconds_value = (int32_t) temp;
+
+	
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->dwell_useconds_value = (int32_t) temp;
+
+
+	strtok_result = strtok(NULL, ",");	
+	if (strstr(strtok_result, "LEVEL") != NULL) {
+	sweep_list->trigger_enable = 1;
+	} else if (strstr(strtok_result, "NONE") != NULL) {
+	sweep_list->trigger_enable = 0;
+	}
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_start_frequency = (int64_t) temp;
+
+	
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_stop_frequency = (int64_t) temp;
+
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_amplitude = (int64_t) temp;
 
 	return 0;
 
+
+
+}
+
+
+
+int16_t wsa_request(struct wsa_device *dev) {
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
+
+
+	printf("output of :SYSTem:LOCK:REQuest? ACQuisition: %s \n", query.output);
+
+		wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
+
+
+	printf("output of :SYSTem:LOCK:HAVE? ACQuisition %s \n", query.output);
+
+
+
+	return 0;
+}
+
+
+int16_t wsa_system_lock_request_acquisition(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
+	 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+		printf("got the stick\n");
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+		 printf("did not get the stick\n");
+	 }
+	return 0;
+
+}
+
+
+int16_t wsa_system_lock_have_possession(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
+		 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+		 printf("Currently don't have stick\n");
+	
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+		  printf("I have the stick\n");
+	 }
+	return 0;
 }
 
 

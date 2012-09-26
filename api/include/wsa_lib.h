@@ -201,14 +201,16 @@ struct wsa_sweep_list {
 	int64_t fstep;
 	int32_t decimation_rate;
 	int32_t ant_port;
+	int32_t gain_if;
 	int32_t dwell_seconds_value;
 	int32_t dwell_useconds_value;
 	uint16_t samples_per_packet;
 	uint32_t packets_per_block;
+	int8_t trigger_enable;
 	int64_t trigger_start_frequency;
 	int64_t trigger_stop_frequency;
 	int64_t trigger_amplitude;
-	enum wsa_gain gain;
+	enum wsa_gain gain_rf;
 };
 
 
