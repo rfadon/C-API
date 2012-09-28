@@ -19,8 +19,8 @@ const char *wsa_get_err_msg(int16_t err_code);
 
 int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name);
 
-int16_t wsa_system_lock_request_acquisition(struct wsa_device *dev, int16_t* status);
-int16_t wsa_system_lock_have_possession(struct wsa_device *dev, int16_t* status); 
+int16_t wsa_system_request_read_access(struct wsa_device *dev, int16_t* status);
+int16_t wsa_system_read_status(struct wsa_device *dev, int16_t* status); 
 
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //

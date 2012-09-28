@@ -227,6 +227,50 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Request read data access from the wsa
+ * @param dev - A pointer to the WSA device structure.
+ * @param status - returns if the read access was acquired (1 if access granted, 0 if access is denied)
+ *@return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_request_read_access(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
+	 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+		printf("got the stick\n");
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+		 printf("did not get the stick\n");
+	 }
+	return 0;
+
+}
+
+/**
+ * Determine if read data access has been claimed by current connection
+ * @param dev - A pointer to the WSA device structure.
+ * @param status - returns if the read access is claimed  (1 if current connection has access, 0 if current connection does not have access)
+ *@return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_read_status(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
+		 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+		 printf("Currently have stick\n");
+	
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+		  printf("I dont have stick\n");
+	 }
+	return 0;
+}
+
+/**
  * Instruct the WSA to capture a block of signal data
  * and store it in internal memory.
  * \n
@@ -331,19 +375,19 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	//determine if the another user is capturing data
-	return_status = wsa_system_lock_have_possession(dev,&acquisition_status);
-	printf("acquisition status is: %u \n",acquisition_status);
-	if (acquisition_status == 0) {
-		
-		//request capture access
-		return_status = wsa_system_lock_request_acquisition(dev,&acquisition_status);
-		printf("acquisition status is after request: %u \n",acquisition_status);
-		//return error if capture fails
-		if (acquisition_status == 0) {
-			return WSA_ERR_CAPTUREACCESSDENIED;
-		}
-	}
+	////determine if the another user is capturing data
+	//return_status = wsa_system_lock_have_possession(dev,&acquisition_status);
+	//printf("acquisition status is: %u \n",acquisition_status);
+	//if (acquisition_status == 0) {
+	//	
+	//	//request capture access
+	//	return_status = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+	//	printf("acquisition status is after request: %u \n",acquisition_status);
+	//	//return error if capture fails
+	//	if (acquisition_status == 0) {
+	//		return WSA_ERR_CAPTUREACCESSDENIED;
+	//	}
+	//}
 
 	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
@@ -396,7 +440,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	uint8_t context_present = 0;
 	int32_t indicator_fieldr = 0;
 	int32_t reference_point = 0;
-	int64_t frequency = 0;
+	int64_t frequency;
 	int16_t gain_if = 0;
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
@@ -418,8 +462,8 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
 
 	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
-
-	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
+	
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &samples_per_packet, &context_present);
 	
 
 	
@@ -2611,7 +2655,8 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t position) {
 /**
  * returns the settings of a sweep list in the wsa
  * @param dev - A pointer to the WSA device structure.
- * @param position - a pointer structure to store the settings 
+ * @param position - the position of the sweep entry in the wsa's list to read
+ * @param sweep_list - a pointer structure to store the settings 
  *@return 0 on success, or a negative number on error.
  */
 int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list)
@@ -2791,38 +2836,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 }
 
 
-int16_t wsa_system_lock_request_acquisition(struct wsa_device *dev, int16_t* status) {
-	struct wsa_resp query;		// store query results
-	double temp;
-
-	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
-	 if (strcmp(query.output, "1") == 0) {
-		 *status = 1;
-		printf("got the stick\n");
-	 } else if (strcmp(query.output, "0") == 0) {
-		 *status = 0;
-		 printf("did not get the stick\n");
-	 }
-	return 0;
-
-}
-
-
-int16_t wsa_system_lock_have_possession(struct wsa_device *dev, int16_t* status) {
-	struct wsa_resp query;		// store query results
-	double temp;
-
-	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
-		 if (strcmp(query.output, "1") == 0) {
-		 *status = 1;
-		 printf("Currently have stick\n");
-	
-	 } else if (strcmp(query.output, "0") == 0) {
-		 *status = 0;
-		  printf("I dont have stick\n");
-	 }
-	return 0;
-}
 
 
 

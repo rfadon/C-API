@@ -871,7 +871,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	//		
 	//		return WSA_ERR_NOTIQFRAME;
 	//}
-	printf("stream identifier is: %x \n", stream_identifier_word);
+
 
 	if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
 	{
@@ -925,7 +925,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 		// It provides a simple verification that packets are arriving in the right order
 		packet_order_indicator = (uint8_t) vrt_header_buffer[1] & 0x0f;
-		printf("vrt word is: %x %x %x %x \n", vrt_header_buffer[0], vrt_header_buffer[1], vrt_header_buffer[2], vrt_header_buffer[3]);
+		
 		doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
 		header->packet_order_indicator = packet_order_indicator;
 

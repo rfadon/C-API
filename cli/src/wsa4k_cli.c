@@ -372,7 +372,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 50;
+	uint32_t packets_per_block = 100;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
@@ -430,10 +430,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Gathering WSA settings... ");
 
 		//determine if the another user is capturing data
-	result = wsa_system_lock_have_possession(dev,&acquisition_status);
+	result = wsa_system_read_status(dev,&acquisition_status);
 	if (acquisition_status == 0) {
 		//request capture access
-		result = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+		result = wsa_system_request_read_access(dev,&acquisition_status);
 		//return error if capture fails
 		if (acquisition_status == 0) {
 			return WSA_ERR_CAPTUREACCESSDENIED;
@@ -598,9 +598,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 		// Get the start time
 		get_current_time(&capture_start_time);
-		
-
-
 
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet, &context_is);
 		// get the end time of each data capture
@@ -683,8 +680,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 			expected_packet_order_indicator = header->packet_order_indicator;
 		}
-			printf("header's packet #: %u \n", header->packet_order_indicator);
-		printf("current packet #: %u \n",expected_packet_order_indicator);
+
 
 		//if (header->packet_order_indicator != expected_packet_order_indicator)
 		//{
@@ -1013,7 +1009,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
 			
-			result = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+			result = wsa_system_request_read_access(dev,&acquisition_status);
 			printf("acquisition status: %u \n", acquisition_status);
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
@@ -1026,7 +1022,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
 
-					 result = wsa_system_lock_have_possession(dev,&acquisition_status);
+					 result = wsa_system_read_status(dev,&acquisition_status);
 					 printf("acquisition status: %u \n", acquisition_status);
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
