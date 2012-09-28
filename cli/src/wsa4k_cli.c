@@ -384,6 +384,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t stop_frequency = 0;
 	int64_t amplitude = 0;
 	int8_t count = 0;
+	int16_t acquisition_status;
 	long double reciever_frequency = 0;
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
@@ -427,6 +428,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	
 	printf("Gathering WSA settings... ");
+
+		//determine if the another user is capturing data
+	result = wsa_system_lock_have_possession(dev,&acquisition_status);
+	if (acquisition_status == 0) {
+		//request capture access
+		result = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+		//return error if capture fails
+		if (acquisition_status == 0) {
+			return WSA_ERR_CAPTUREACCESSDENIED;
+		}
+	}
+
 	result = wsa_get_sweep_status(dev, &sweep_status);
 
 	if(sweep_status == 0) {
@@ -586,15 +599,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 		
+
+
+
 		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet, &context_is);
 		// get the end time of each data capture
 
-	
-		get_current_time(&capture_end_time);
-		// sum it up
-		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
-
-		if (result < 0)
+			if (result < 0)
 		{
 		fclose(iq_fptr);
 		free(digitizer);
@@ -605,6 +616,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(q_buffer);
 			return result;
 		}
+		get_current_time(&capture_end_time);
+		// sum it up
+		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
+
+
 		if (context_is == 1) {
 
 			fprintf(iq_fptr, "Reciever Packet Found\n");
@@ -706,7 +722,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			printf(".");
 		}
 		if( sweep_status == 1) {
-
+			
 			samples_per_packet = 65530;
 		}
 
@@ -717,10 +733,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 	printf("\ndone.\n");
 		
-	/*printf("(capture time: %.3f sec; Rate: %.0f Bytes/sec).\n", 
-		run_time_ms, 
-		total_bytes / run_time_ms);
-		*/
 
 	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 		capture_time_ms,
@@ -769,6 +781,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
+	int16_t acquisition_status = 20;
 
 	//DIR *temp;
 
@@ -1000,7 +1013,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
 			
-				result = wsa_system_lock_request_acquisition(dev,&samples_per_packet);
+			result = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+			printf("acquisition status: %u \n", acquisition_status);
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
 					if (int_result == 0) {
@@ -1011,7 +1025,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				} // end get sweep status
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
-					 result = wsa_system_lock_have_possession(dev,&samples_per_packet);
+
+					 result = wsa_system_lock_have_possession(dev,&acquisition_status);
+					 printf("acquisition status: %u \n", acquisition_status);
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
 				 }			
@@ -2312,31 +2328,31 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
 	struct wsa_sweep_list* list_values;
 	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
 
-
+	printf("Sweep Entry Settings:\n");
 	result = wsa_sweep_list_read(dev, position, list_values);
 	printf("  Start frequency: %d MHz\n", (list_values->start_frequency / MHZ));
 	printf("  Stop frequency: %d MHz\n", (list_values->start_frequency / MHZ));
-	printf("  Fstep is: %d \n",list_values->fstep / MHZ);
-	printf("  Fshift is: %f \n",list_values->fshift);
-	printf("  dec is: %u \n",list_values->decimation_rate);
-	printf("  ant is: %u \n",list_values->ant_port);
-	printf("  gain if is: %u \n",list_values->gain_if);
+	printf("  Step Frequency: %d MHz\n",list_values->fstep / MHZ);
+	printf("  Frequency shift: %f MHz\n",list_values->fshift);
+	printf("  decimation rate: %u \n",list_values->decimation_rate);
+	printf("  antenna port: %u \n",list_values->ant_port);
+	printf("  IF gain: %u \n",list_values->gain_if);
 
 	gain_rf_to_str(list_values->gain_rf, &temp[0]);
 	printf("   Current RF gain: %s\n", temp);
-	printf("  spp is: %u \n",list_values->samples_per_packet);
-	printf("  ppb is: %u \n",list_values->packets_per_block);
+	printf("  Samples Per backet: %u \n",list_values->samples_per_packet);
+	printf("  Packets per block: %u \n",list_values->packets_per_block);
 	printf("  Dwell seconds value is: %u \n",list_values->dwell_seconds_value);
 	printf("  Dwell Microseconds value is: %u \n",list_values->dwell_useconds_value);
 	printf("  Trigger Settings:\n");
 	if ( list_values->trigger_enable == 0) {
-		printf("     Triggers are disabled\n");
+		printf("        Triggers are disabled\n");
 	} else if ( list_values->trigger_enable == 1) {
-		printf("     Triggers are enabled\n");
+		printf("        Triggers are enabled\n");
 	}
-	printf("     Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
-	printf("     Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
-	printf("     Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
+	printf("        Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
+	printf("        Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
+	printf("        Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
 
 
 	return 0;

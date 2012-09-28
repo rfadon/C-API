@@ -83,7 +83,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVTIMESTAMP, "Not a valid UTC timestamp"},
 		{WSA_ERR_INVCAPTURESIZE, "Capture size exceeds amount of memory space available"},
 		{WSA_ERR_PACKETOUTOFORDER, "A VRT packet was received out of order"},
-
+		{WSA_ERR_CAPTUREACCESSDENIED, "Capture access denied, only 1 user can capture data at a time"},
 		//*****
 		// Frequency related
 		//*****

@@ -310,7 +310,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_iq_packet (struct wsa_device* const device, 
+int16_t wsa_read_iq_packet (struct wsa_device* const dev, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_reciever_packet* const reciever,
@@ -324,14 +324,28 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	int16_t return_status = 0;
 	uint8_t context_present = 0;
 	uint16_t spp = 0;
+	int16_t acquisition_status;
 	int64_t frequency = 0;
 	spp = *samples_per_packet;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-	
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
-	
+			
+	//determine if the another user is capturing data
+	return_status = wsa_system_lock_have_possession(dev,&acquisition_status);
+	printf("acquisition status is: %u \n",acquisition_status);
+	if (acquisition_status == 0) {
+		
+		//request capture access
+		return_status = wsa_system_lock_request_acquisition(dev,&acquisition_status);
+		printf("acquisition status is after request: %u \n",acquisition_status);
+		//return error if capture fails
+		if (acquisition_status == 0) {
+			return WSA_ERR_CAPTUREACCESSDENIED;
+		}
+	}
+
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -368,7 +382,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 
 
 
-int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device, 
+int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
@@ -390,6 +404,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	int64_t bandwidth = 0;
 	int32_t reference_level = 0;
 	int64_t rf_frequency_offset = 0;
+	
 	uint8_t* data_buffer = 0;
 
 	struct wsa_reciever_packet* reciever;
@@ -404,7 +419,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 
 	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
 
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
 	
 
 	
@@ -2776,27 +2791,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 }
 
 
-
-int16_t wsa_request(struct wsa_device *dev) {
-	struct wsa_resp query;		// store query results
-	double temp;
-
-	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
-
-
-	printf("output of :SYSTem:LOCK:REQuest? ACQuisition: %s \n", query.output);
-
-		wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
-
-
-	printf("output of :SYSTem:LOCK:HAVE? ACQuisition %s \n", query.output);
-
-
-
-	return 0;
-}
-
-
 int16_t wsa_system_lock_request_acquisition(struct wsa_device *dev, int16_t* status) {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -2821,11 +2815,11 @@ int16_t wsa_system_lock_have_possession(struct wsa_device *dev, int16_t* status)
 	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
 		 if (strcmp(query.output, "1") == 0) {
 		 *status = 1;
-		 printf("Currently don't have stick\n");
+		 printf("Currently have stick\n");
 	
 	 } else if (strcmp(query.output, "0") == 0) {
 		 *status = 0;
-		  printf("I have the stick\n");
+		  printf("I dont have stick\n");
 	 }
 	return 0;
 }

@@ -823,21 +823,13 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int64_t frequency1 = 0;
 	uint32_t stream_identifier_word = 0;
 	uint16_t packet_size = 0;
-	uint16_t sweep_samples_per_packet = 0;
+	uint16_t sweep_samples_per_packet = 1;
 	uint8_t* sweep_data_buffer = 0;
-	FILE * pFile;
-	FILE* example;
-	char buffer[] = { 'x' , 'y' , 'z' };
-	pFile = fopen ( "myfile.bin" , "ab+" );
+	//FILE * pFile;
+	//FILE* example;
+	//char buffer[] = { 'x' , 'y' , 'z' };
+	//pFile = fopen ( "myfile.bin" , "ab+" );
 
-
-	example = fopen ( "myfil.bin" , "wb" );
-  fwrite (buffer , 1 ,3, example );
-  fclose(example);
-	
-
-
-	
 	//allocate space for the header buffer
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 		if (vrt_header_buffer == NULL)
@@ -853,7 +845,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-	fwrite (vrt_header_buffer , 1 , vrt_header_bytes, pFile );
+	//fwrite (vrt_header_buffer , 1 , vrt_header_bytes, pFile );
 	
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
@@ -884,7 +876,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	if (stream_identifier_word != 0x90000001 && stream_identifier_word != 0x90000002 && stream_identifier_word != 0x90000003)
 	{
 		
-		fclose (pFile);
+		//fclose (pFile);
 		free(vrt_packet_buffer);
 		return WSA_ERR_NOTIQFRAME;
 	}
@@ -905,8 +897,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-			fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
-			fclose (pFile);
+			//fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
+			//fclose (pFile);
 
 
 		//store reciever data in the reciever structure
@@ -953,22 +945,18 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			return WSA_ERR_INVTIMESTAMP;
 		}
 
-	
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		vrt_packet_bytes = 4 * (packet_size-2);
-		
-		sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-
 		vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
 	
 		if (vrt_packet_buffer == NULL)
 		{
 			return WSA_ERR_MALLOCFAILED;
 		}
-	
+			
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, pFile );
-		fclose (pFile);
+		//fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, pFile );
+		//fclose (pFile);
 		doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 		if (socket_receive_result < 0)
@@ -1022,9 +1010,14 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// *****
 		// Copy the IQ data payload to the provided buffer
 		// *****
-		printf("recieved size is: %u \n",sweep_samples_per_packet);
+				
 		if(*samples_per_packet == 65530) {
-			
+		
+			sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+		if (sweep_data_buffer == NULL)
+		{
+			return WSA_ERR_MALLOCFAILED;
+		}
 			memcpy(sweep_data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
 			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet);
 			*samples_per_packet = sweep_samples_per_packet;
@@ -1035,12 +1028,16 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 
 		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), *samples_per_packet * BYTES_PER_VRT_WORD);
+
+	}
 		free(sweep_data_buffer);
 		free(vrt_packet_buffer);
 		free(vrt_header_buffer);
-	}
 	return 0;	
 }
+
+
+
 
 
 
@@ -1049,13 +1046,8 @@ int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size
 	int i;
 	for(i = 0; i < size; i++) {
 		data_buf[i] = sweep_data_buf[i];
-
-
-
 	}
-
-
-
+	return 0;
 }
 
 /**
