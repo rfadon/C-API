@@ -788,7 +788,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	// Handle GET commands
 	//*****
-	if (strcmp(cmd_words[0], "GET") == 0) {
+	if (strcmp(cmd_words[0], "TEST") == 0) {
+		result = wsa_test(dev);
+
+	}else	if (strcmp(cmd_words[0], "GET") == 0) {
 		if (strcmp(cmd_words[1], "ANT") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {

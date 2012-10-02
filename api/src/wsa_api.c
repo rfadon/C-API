@@ -234,15 +234,14 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
  */
 int16_t wsa_system_request_read_access(struct wsa_device *dev, int16_t* status) {
 	struct wsa_resp query;		// store query results
-	double temp;
 
 	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
 	 if (strcmp(query.output, "1") == 0) {
 		 *status = 1;
-		printf("got the stick\n");
+
 	 } else if (strcmp(query.output, "0") == 0) {
 		 *status = 0;
-		 printf("did not get the stick\n");
+
 	 }
 	return 0;
 
@@ -256,16 +255,15 @@ int16_t wsa_system_request_read_access(struct wsa_device *dev, int16_t* status) 
  */
 int16_t wsa_system_read_status(struct wsa_device *dev, int16_t* status) {
 	struct wsa_resp query;		// store query results
-	double temp;
 
 	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
 		 if (strcmp(query.output, "1") == 0) {
 		 *status = 1;
-		 printf("Currently have stick\n");
+
 	
 	 } else if (strcmp(query.output, "0") == 0) {
 		 *status = 0;
-		  printf("I dont have stick\n");
+
 	 }
 	return 0;
 }
@@ -368,27 +366,12 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	int16_t return_status = 0;
 	uint8_t context_present = 0;
 	uint16_t spp = 0;
-	int16_t acquisition_status;
 	int64_t frequency = 0;
 	spp = *samples_per_packet;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	////determine if the another user is capturing data
-	//return_status = wsa_system_lock_have_possession(dev,&acquisition_status);
-	//printf("acquisition status is: %u \n",acquisition_status);
-	//if (acquisition_status == 0) {
-	//	
-	//	//request capture access
-	//	return_status = wsa_system_lock_request_acquisition(dev,&acquisition_status);
-	//	printf("acquisition status is after request: %u \n",acquisition_status);
-	//	//return error if capture fails
-	//	if (acquisition_status == 0) {
-	//		return WSA_ERR_CAPTUREACCESSDENIED;
-	//	}
-	//}
-
 	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
@@ -440,7 +423,6 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	uint8_t context_present = 0;
 	int32_t indicator_fieldr = 0;
 	int32_t reference_point = 0;
-	int64_t frequency;
 	int16_t gain_if = 0;
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
@@ -450,6 +432,7 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	int64_t rf_frequency_offset = 0;
 	
 	uint8_t* data_buffer = 0;
+
 
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
@@ -464,13 +447,11 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
 	
 	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &samples_per_packet, &context_present);
-	
 
-	
 
 	*rec_indicator_field =(int) reciever->indicator_field;
 	*rec_reference_point =(int) reciever->reference_point;
-	*rec_frequency =(long long) reciever->frequency;
+	*rec_frequency =(int64_t) reciever->frequency;
 	*rec_gain_if = (unsigned short) reciever->gain_if;
 	*rec_gain_rf = (unsigned short) reciever->gain_rf;
 	*rec_temperature = (int)reciever->temperature;
@@ -513,6 +494,8 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev,
 	return 0;
 	}
 }
+
+
 /**
  * Sets the number of samples per packet to be received
  * 
@@ -1324,10 +1307,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
-		printf("got to start freq error\n");
-		printf("freq is: %f \n", temp);
-		printf("min tune is: %d \n", dev->descr.min_tune_freq);
-		printf("max tune is: %d \n" ,dev->descr.max_tune_freq);
+
 
 
 		printf("Error: WSA returned %s.\n", query.output);
@@ -1345,11 +1325,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	// Verify the validity of the return value
 	if (temp/MHZ < dev->descr.min_tune_freq || temp/MHZ > dev->descr.max_tune_freq) 
 	{
-		printf("got to stop freq error\n");
-		printf("freq is: %f \n", temp);
-		printf("min tune is: %f \n", dev->descr.min_tune_freq);
-		printf("min tune is: %f \n" ,dev->descr.max_tune_freq);
-		printf("Error: WSA returned %s.\n", query.output);
+
 		return WSA_ERR_RESPUNKNOWN;
 	}	
 	
@@ -1511,8 +1487,8 @@ int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref)
 * @param dev - A pointer to the WSA device structure.
 */
 
-int16_t wsa_reset_reference_pll(struct wsa_device* dev){
-	
+int16_t wsa_reset_reference_pll(struct wsa_device* dev)
+{
 	int16_t result = 0;
 	char temp_str[30];
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
@@ -1526,11 +1502,10 @@ int16_t wsa_reset_reference_pll(struct wsa_device* dev){
 * @param lock_ref returns 1 if locked, 0 if unlocked
 */
 
-int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
+int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref)
+{
 	struct wsa_resp query;
-	char* strtok_result;
 	int16_t result = 0;
-	char temp_str[30];
 	double temp;
 	wsa_send_query(dev, "LOCK:REFerence?\n", &query);
 
@@ -1540,7 +1515,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
 		if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-		*lock_ref = temp;
+		*lock_ref = (int32_t) temp;
 	return 0;
 
 }
@@ -1559,7 +1534,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
  * @return 0 on success, or a negative number on error.
  */
 
-int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num) 
+int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num) 
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1593,7 +1568,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
  * 1 = antenna1, 2 = antenna2.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
+int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int16_t port_num) 
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -2342,7 +2317,7 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
 int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
 {
 	struct wsa_resp query;
-	long temp;
+	
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:TYPE?\n", &query);
 	if (query.status <= 0)
 	{
@@ -2420,7 +2395,7 @@ int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
 int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 {
 	struct wsa_resp query;		// store query results
-	double temp;
+
 
 	wsa_send_query(device, "SWEEP:LIST:STATUS?\n", &query);
 	 if (strcmp(query.output, "STOPPED") == 0) {
@@ -2638,7 +2613,6 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t position) {
 	if (position > size) {
 		return WSA_ERR_SWEEPOUTOFBOUNDS;
 	}
-
 	sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", position);
 
 	result = wsa_send_command(dev, temp_str);
@@ -2706,7 +2680,7 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	sweep_list->fshift = (int64_t) temp;
+	sweep_list->fshift = (float) temp;
 
 		strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
@@ -2840,4 +2814,51 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 
 
 
+//testing program
+int16_t wsa_test(struct wsa_device *dev) {
 
+  
+  
+  int32_t lSize;
+  uint8_t* buffer;
+  size_t result;
+  int i;
+  int32_t count = 0;
+  
+	clock_t start_time = clock();
+	clock_t end_time = 5 * 1000 + start_time;
+  
+  FILE * pFile;
+  pFile = fopen ("myfile.bin","rb");
+  //determine size of file
+  fseek (pFile , 0 , SEEK_END);
+  lSize = ftell (pFile);
+  rewind (pFile);
+  printf("the size is: %u \n", lSize);
+
+  buffer = (char*) malloc (sizeof(char)*lSize);
+  result = fread (buffer,1,lSize,pFile);
+   
+  //i = 0;asdasd
+  for (i = 0; i < lSize; i++) {
+	  if (buffer[i] == 0x90 && buffer[i + 1] == 0x0 &&  buffer[i + 2] == 0x0 && buffer[i + 3] == 0x1){
+		  if (buffer[i +16]== 0x80 && buffer[i + 17] == 0x80) {
+		
+		printf("stream identifier:      %x %x %x %x \n,", buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
+		printf("context indicator field:      %x %x %x %x \n,", buffer[i +16], buffer[i + 17], buffer[i + 18], buffer[i + 19]);
+		printf("data field 1:     %x %x %x %x \n,", buffer[i +20], buffer[i + 21], buffer[i + 22], buffer[i + 23]);
+		printf("data field 2:     %x %x %x %x \n,", buffer[i +24], buffer[i + 25], buffer[i + 26], buffer[i + 27]);
+		printf("start index 28:      %x %x %x %x \n,", buffer[i +28], buffer[i + 29], buffer[i + 30], buffer[i + 31]);
+		printf(" \n \n \n \n");  
+		  }		
+	
+		 start_time = clock();
+		 end_time = 5 * 1000 + start_time;
+		while(clock() != end_time);
+	  }
+  }
+
+  free (buffer);
+
+   fclose (pFile);
+}

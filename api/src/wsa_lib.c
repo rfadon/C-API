@@ -825,7 +825,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint16_t packet_size = 0;
 	uint16_t sweep_samples_per_packet = 1;
 	uint8_t* sweep_data_buffer = 0;
-	//FILE * pFile;
+	FILE * pFile;
 	//FILE* example;
 	//char buffer[] = { 'x' , 'y' , 'z' };
 	//pFile = fopen ( "myfile.bin" , "ab+" );
@@ -897,7 +897,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-			//fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
+		//	fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
 			//fclose (pFile);
 
 
@@ -1187,7 +1187,8 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 	
 	//determine if frequency data is present
 	if ((temp_buffer[12] & 0x0f) == 0x08) {
-
+		//printf("%x %x %x %x \n",temp_buffer[data_pos], temp_buffer[data_pos + 1], temp_buffer[data_pos + 2] ,temp_buffer[data_pos + 3]);
+		//printf("%x %x %x %x \n",temp_buffer[data_pos + 4], temp_buffer[data_pos + 5], temp_buffer[data_pos + 6] ,temp_buffer[data_pos + 7]);
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
 								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
