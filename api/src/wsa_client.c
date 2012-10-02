@@ -254,7 +254,7 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
  * @param bytes_received - Pointer to int32_t storing number of bytes read (on success)
  * 
  * @return 0 on success or a negative value on error
- */
+ */		
 int16_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out, int32_t* bytes_received)
 {

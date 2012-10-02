@@ -410,7 +410,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_vrt_packet_trailer* trailer;
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
-
+			
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
 	// *****

@@ -404,96 +404,9 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	
 	return 0;
 	}
-}
-
-
-
-
-int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		int16_t* const i_buffer, 
-		int16_t* const q_buffer,
-		 uint16_t samples_per_packet,
-		uint8_t* context_is, int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf, int32_t* rec_temperature,
-	int32_t* dig_indicator_field, int64_t* dig_bandwidth, int32_t* dig_reference_level, int64_t* dig_rf_frequency_offset)
-{
-
-	int16_t return_status = 0;
-	uint8_t context_present = 0;
-	int32_t indicator_fieldr = 0;
-	int32_t reference_point = 0;
-	int16_t gain_if = 0;
-	int16_t gain_rf = 0;
-	int32_t temperature = 0;
-	int32_t indicator_fieldd = 0;
-	int64_t bandwidth = 0;
-	int32_t reference_level = 0;
-	int64_t rf_frequency_offset = 0;
-	
-	uint8_t* data_buffer = 0;
-
-
-	struct wsa_reciever_packet* reciever;
-	struct wsa_digitizer_packet* digitizer;
-
-	// allocate the data buffer
-
-	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-
-
-	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
-
-	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
-	
-	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &samples_per_packet, &context_present);
-
-
-	*rec_indicator_field =(int) reciever->indicator_field;
-	*rec_reference_point =(int) reciever->reference_point;
-	*rec_frequency =(int64_t) reciever->frequency;
-	*rec_gain_if = (unsigned short) reciever->gain_if;
-	*rec_gain_rf = (unsigned short) reciever->gain_rf;
-	*rec_temperature = (int)reciever->temperature;
-	*dig_indicator_field = (int) digitizer->indicator_field;
-	*dig_bandwidth = (long long)digitizer-> bandwidth;
-	*dig_reference_level = (int)digitizer->reference_level;
-	*dig_rf_frequency_offset = (long long)digitizer->rf_frequency_offset;
-
-	
-
-
-	
-	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
-
-	if (return_status < 0)
-	{
-	
-		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
-		free(data_buffer);
-
-		return return_status;
-	} 
-	
-	if (context_present == 1) {
-		*context_is = 1;
-		return 0;
-	} else if (context_present == 2) {
-		*context_is = 2;
-		return 0;
-	} else if (context_present == 0) {
-
-
-
-	// Note: don't rely on the value of return_status
-	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
-	*context_is = 0;
-	free(data_buffer);
-	free(reciever);
-	free(digitizer);
 	return 0;
-	}
 }
+
 
 
 /**
@@ -727,7 +640,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
-{
+{	
 	struct wsa_resp query;		// store query results
 	double temp;
 
@@ -2861,4 +2774,5 @@ int16_t wsa_test(struct wsa_device *dev) {
   free (buffer);
 
    fclose (pFile);
+   return 0;
 }

@@ -184,12 +184,6 @@
 #define WSA_ERR_SWEEPLISTEMPTY	(LNEG_NUM - 3010)
 #define WSA_ERR_SWEEPNOTRUNNING	(LNEG_NUM - 3011)
 #define WSA_ERR_SWEEPOUTOFBOUNDS	(LNEG_NUM - 3012)
-// ///////////////////////////////
-// Context Errors				//
-// ///////////////////////////////
-
-
-
 
 
 // ///////////////////////////////

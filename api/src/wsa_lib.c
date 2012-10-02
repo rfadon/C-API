@@ -814,7 +814,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint16_t expected_header_size = 2;
 	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
 	uint8_t* vrt_packet_buffer = 0;
-	uint16_t expected_packet_size = (samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE-2);
+	uint16_t expected_packet_size = (*samples_per_packet + VRT_HEADER_SIZE + VRT_TRAILER_SIZE-2);
 	int32_t vrt_packet_bytes = expected_packet_size * BYTES_PER_VRT_WORD;
 	int32_t context_indicator_field = 0;
 	int32_t bytes_received = 0;
@@ -825,7 +825,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint16_t packet_size = 0;
 	uint16_t sweep_samples_per_packet = 1;
 	uint8_t* sweep_data_buffer = 0;
-	FILE * pFile;
+	//FILE * pFile;
 	//FILE* example;
 	//char buffer[] = { 'x' , 'y' , 'z' };
 	//pFile = fopen ( "myfile.bin" , "ab+" );
@@ -1187,7 +1187,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 			reciever->reference_point = 2;
 		}
 	}
-	
+	    
 	
 	//determine if frequency data is present
 	if ((temp_buffer[12] & 0x0f) == 0x08) {
