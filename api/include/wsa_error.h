@@ -72,6 +72,7 @@
 #define WSA_ERR_INVTIMESTAMP (LNEG_NUM - 408)
 #define WSA_ERR_INVCAPTURESIZE (LNEG_NUM - 409)
 #define WSA_ERR_PACKETOUTOFORDER (LNEG_NUM - 410)
+#define WSA_ERR_CAPTUREACCESSDENIED  (LNEG_NUM - 411)
 
 
 // ///////////////////////////////
@@ -160,17 +161,41 @@
 
 
 
+
 // ///////////////////////////////
 // WARNINGS						//
 // ///////////////////////////////
 #define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 4000)	
 
+
+// ///////////////////////////////
+// SWEEP ERRORS					//
+// ///////////////////////////////
+#define WSA_ERR_SWEEPSAVEFAIL	(LNEG_NUM - 3000)
+#define WSA_ERR_SWEEPSTARTFAIL	(LNEG_NUM - 3001)
+#define WSA_ERR_SWEEPSTOPFAIL	(LNEG_NUM - 3002)
+#define WSA_ERR_SWEEPRESUMEFAIL	(LNEG_NUM - 3003)
+#define WSA_ERR_SWEEPCOPYFAIL	(LNEG_NUM - 3004)
+#define WSA_ERR_SWEEPNEWFAIL	(LNEG_NUM - 3005)
+#define WSA_ERR_SWEEPSTATUSFAIL	(LNEG_NUM - 3006)
+#define WSA_ERR_SWEEPSIZEFAIL	(LNEG_NUM - 3007)
+#define WSA_ERR_SWEEPDELETEFAIL	(LNEG_NUM - 3008)
+#define WSA_ERR_SWEEPALREADYRUNNING	(LNEG_NUM - 3009)
+#define WSA_ERR_SWEEPLISTEMPTY	(LNEG_NUM - 3010)
+#define WSA_ERR_SWEEPNOTRUNNING	(LNEG_NUM - 3011)
+#define WSA_ERR_SWEEPOUTOFBOUNDS	(LNEG_NUM - 3012)
 // ///////////////////////////////
 // Context Errors				//
 // ///////////////////////////////
 
 
 
+
+
+// ///////////////////////////////
+// WARNINGS						//
+// ///////////////////////////////
+#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 4000)	
 
 const char *_wsa_get_err_msg(int16_t err_id);
 

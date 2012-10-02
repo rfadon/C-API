@@ -83,7 +83,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVTIMESTAMP, "Not a valid UTC timestamp"},
 		{WSA_ERR_INVCAPTURESIZE, "Capture size exceeds amount of memory space available"},
 		{WSA_ERR_PACKETOUTOFORDER, "A VRT packet was received out of order"},
-
+		{WSA_ERR_CAPTUREACCESSDENIED, "Capture access denied, only 1 user can capture data at a time"},
 		//*****
 		// Frequency related
 		//*****
@@ -165,7 +165,26 @@ const char *_wsa_get_err_msg(int16_t err_id)
 			"Invalid number format. Check the required number type"},
 		{WSA_ERR_INVREGADDR, "Invalid register address"},
 		{WSA_ERR_MALLOCFAILED, "Memory allocation failed"},
-		{WSA_ERR_UNKNOWN_ERROR, "Unknow error"}	
+		{WSA_ERR_UNKNOWN_ERROR, "Unknow error"},	
+
+		//*****
+		// Sweep Errors
+		//*****
+		{WSA_ERR_SWEEPSAVEFAIL, "Failed to save current sweep entry"},
+		{WSA_ERR_SWEEPSTARTFAIL, "Failed to start sweep"},
+		{WSA_ERR_SWEEPSTOPFAIL, "Failed to stop sweep"},
+		{WSA_ERR_SWEEPRESUMEFAIL, "Failed to resume sweep"},
+		{WSA_ERR_SWEEPCOPYFAIL, "Failed to copy current sweep entry into the sweep list"},
+		{WSA_ERR_SWEEPNEWFAIL, "Failed to create a new sweep entry"},
+		{WSA_ERR_SWEEPSTATUSFAIL, "Failed to retrieve sweep status"},
+		{WSA_ERR_SWEEPDELETEFAIL, "Failed to delete sweep list item"},
+		{WSA_ERR_SWEEPSIZEFAIL, "Failed to retrieve sweep size"},
+		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep already running"},
+		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
+		{WSA_ERR_SWEEPNOTRUNNING, "Sweep mode is already off"},
+		{WSA_ERR_SWEEPOUTOFBOUNDS, "Sweep entry position that you have choosen is out of bounds"}
+		
+
 	};
 
 	int id = 0;

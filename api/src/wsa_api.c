@@ -227,6 +227,48 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Request read data access from the wsa
+ * @param dev - A pointer to the WSA device structure.
+ * @param status - returns if the read access was acquired (1 if access granted, 0 if access is denied)
+ *@return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_request_read_access(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+
+	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
+	 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+
+	 }
+	return 0;
+
+}
+
+/**
+ * Determine if read data access has been claimed by current connection
+ * @param dev - A pointer to the WSA device structure.
+ * @param status - returns if the read access is claimed  (1 if current connection has access, 0 if current connection does not have access)
+ *@return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_read_status(struct wsa_device *dev, int16_t* status) {
+	struct wsa_resp query;		// store query results
+
+	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);
+		 if (strcmp(query.output, "1") == 0) {
+		 *status = 1;
+
+	
+	 } else if (strcmp(query.output, "0") == 0) {
+		 *status = 0;
+
+	 }
+	return 0;
+}
+
+/**
  * Instruct the WSA to capture a block of signal data
  * and store it in internal memory.
  * \n
@@ -310,26 +352,27 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_iq_packet (struct wsa_device* const device, 
+int16_t wsa_read_iq_packet (struct wsa_device* const dev, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_reciever_packet* const reciever,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		const uint16_t samples_per_packet,
+		uint16_t* samples_per_packet,
 		uint8_t* context_is)
 {
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
 	uint8_t context_present = 0;
+	uint16_t spp = 0;
 	int64_t frequency = 0;
+	spp = *samples_per_packet;
 
 	// allocate the data buffer
-	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
-	
+	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+			
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -352,9 +395,10 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 	} else if (context_present ==0) {
 
 
-
+	
 	// Note: don't rely on the value of return_status
-	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, *samples_per_packet);
+	*samples_per_packet = spp;
 	*context_is = 0;
 	free(data_buffer);
 	
@@ -365,7 +409,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const device,
 
 
 
-int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device, 
+int16_t wsa_read_iq_packet_matlab (struct wsa_device* const dev, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		int16_t* const i_buffer, 
@@ -379,7 +423,6 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	uint8_t context_present = 0;
 	int32_t indicator_fieldr = 0;
 	int32_t reference_point = 0;
-	int64_t frequency = 0;
 	int16_t gain_if = 0;
 	int16_t gain_rf = 0;
 	int32_t temperature = 0;
@@ -387,29 +430,28 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	int64_t bandwidth = 0;
 	int32_t reference_level = 0;
 	int64_t rf_frequency_offset = 0;
+	
 	uint8_t* data_buffer = 0;
+
 
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
-	samples_per_packet = 1024;
+
 	// allocate the data buffer
 
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 
 
-
 	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
 
 	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
-
-	return_status = wsa_read_iq_packet_raw(device, header, trailer, reciever, digitizer, data_buffer, samples_per_packet, &context_present);
 	
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &samples_per_packet, &context_present);
 
-	
 
 	*rec_indicator_field =(int) reciever->indicator_field;
 	*rec_reference_point =(int) reciever->reference_point;
-	*rec_frequency =(long long) reciever->frequency;
+	*rec_frequency =(int64_t) reciever->frequency;
 	*rec_gain_if = (unsigned short) reciever->gain_if;
 	*rec_gain_rf = (unsigned short) reciever->gain_rf;
 	*rec_temperature = (int)reciever->temperature;
@@ -452,6 +494,8 @@ int16_t wsa_read_iq_packet_matlab (struct wsa_device* const device,
 	return 0;
 	}
 }
+
+
 /**
  * Sets the number of samples per packet to be received
  * 
@@ -1177,10 +1221,6 @@ int16_t wsa_get_firm_v(struct wsa_device *dev)
 // ////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
 /**
  * Sets the WSA to use basic a level trigger
  *
@@ -1253,6 +1293,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 
 	// Handle the query output here 
 	if (query.status <= 0)
+
 	{
 		return (int16_t) query.status;
 	}
@@ -1266,6 +1307,9 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
+
+
+
 		printf("Error: WSA returned %s.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}	
@@ -1279,9 +1323,9 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
+	if (temp/MHZ < dev->descr.min_tune_freq || temp/MHZ > dev->descr.max_tune_freq) 
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+
 		return WSA_ERR_RESPUNKNOWN;
 	}	
 	
@@ -1373,12 +1417,11 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 }
 
 // ////////////////////////////////////////////////////////////////////////////
-// PLL Reference CONTROL SECTION                                                   //
+// PLL Reference CONTROL SECTION                                             //
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
  * Gets the PLL Reference Source
- *
  * @param dev - A pointer to the WSA device structure.	
  * @param pll_ref - An integer pointer to store the current PLL Source
   * @return 0 on success, or a negative number on error.
@@ -1389,25 +1432,18 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 	struct wsa_resp query;
 	char* strtok_result;
 	char* intern = "INT";
-
-
 	char* ext = "EXT";
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0){
 	    return WSA_ERR_INVRFESETTING;
 		
 	}
-	  
-
-
 	wsa_send_query(dev, "SOURCE:REFERENCE:PLL?\n", &query);
 	
 	if (query.status <= 0){
 		
 		return (int16_t) query.status;
 	}
-	
-	
 	strtok_result = strtok(query.output, ",");
 	if (*strtok_result == *intern) {
 		*pll_ref = 1;
@@ -1415,19 +1451,12 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref)
 	} else if( *strtok_result == *ext) {
 			
 			*pll_ref = 2;
-		
-			
 	}
 	return 0;
-
-	
-
-
 }
 
 /**
  * Sets the PLL Reference Source
- *
  * @param dev - A pointer to the WSA device structure.	
  * @param pll_ref - An integer used to store the value of the reference source to be set
   * @return 0 on success, or a negative number on error.
@@ -1444,7 +1473,6 @@ int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref)
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL INT\n");
 
 	} else if(pll_ref ==2) {
-
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL EXT\n");
 	// set the freq using the selected connect type
 	}
@@ -1459,19 +1487,14 @@ int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref)
 * @param dev - A pointer to the WSA device structure.
 */
 
-int16_t wsa_reset_reference_pll(struct wsa_device* dev){
-	
+int16_t wsa_reset_reference_pll(struct wsa_device* dev)
+{
 	int16_t result = 0;
 	char temp_str[30];
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
 	result = wsa_send_command(dev, temp_str);
 	return result;
-
-
 }
-
-
-
 /**
 * get Lock the PLL Reference, returns if the lock reference is locked
 * or unlocked
@@ -1479,15 +1502,11 @@ int16_t wsa_reset_reference_pll(struct wsa_device* dev){
 * @param lock_ref returns 1 if locked, 0 if unlocked
 */
 
-int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
+int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref)
+{
 	struct wsa_resp query;
-	char* strtok_result;
 	int16_t result = 0;
-	char temp_str[30];
 	double temp;
-
-	
-
 	wsa_send_query(dev, "LOCK:REFerence?\n", &query);
 
 	if (query.status <= 0){
@@ -1496,7 +1515,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
 		if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
 
-		*lock_ref = temp;
+		*lock_ref = (int32_t) temp;
 	return 0;
 
 }
@@ -1509,15 +1528,13 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref){
 
 /**
  * Get the antenna port in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param port_num - An integer pointer to store the antenna location: 
  * 1 = antenna1, 2 = antenna2.
- *
  * @return 0 on success, or a negative number on error.
  */
 
-int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num) 
+int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num) 
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1546,14 +1563,12 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 
 /**
  * Set the antenna in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param port_num - An integer to store the antenna location: 
  * 1 = antenna1, 2 = antenna2.
- *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
+int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int16_t port_num) 
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -1580,7 +1595,6 @@ int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num)
 
 /**
  * Get the if gain in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - An integer  to store the gain value: 
  * @return 0 on success, or a negative number on error.
@@ -1616,7 +1630,6 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 
 /**
  * Set the if gain in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - An integer  to store the gain value: 
  * @return 0 on success, or a negative number on error.
@@ -1650,7 +1663,6 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 
 /**
  * Get the rf gain in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - An integer  to store the gain value: 
  * @return 0 on success, or a negative number on error.
@@ -1686,7 +1698,6 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
 
 /**
  * Set the rf gain in the user's sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param gain - An integer  to store the gain value: 
  * @return 0 on success, or a negative number on error.
@@ -1726,10 +1737,8 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
 /**
  * Gets the number of samples per packet in the
  * user's sweep entry
- * 
  * @param device - A pointer to the WSA device structure.
  * @param samples_per_packet - A uint16_t pointer to store the samples per packet
- *
  * @return 0 if successful, or a negative number on error.
  */
 int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
@@ -1768,10 +1777,8 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* sa
 /**
  * Sets the number of samples per packet in the user's
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param samples_per_packet - The sample size to set.
- *
  * @return 0 if success, or a negative number on error.
  */
 int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint16_t samples_per_packet)
@@ -1802,10 +1809,8 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint16_t sam
 /**
  * Gets the packets per block in the user's
  * sweep entry
- * 
  * @param device - A pointer to the WSA device structure.
  * @param packets_per_block - A uint32_t pointer to store the number of packets
- *
  * @return 0 if successful, or a negative number on error.
  */
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
@@ -1835,11 +1840,8 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* pac
 /**
  * Sets the number of packets per block in the user's
  * sweep entry 
- *
- *
  * @param dev - A pointer to the WSA device structure.
  * @param packets_per_block - number of packets
- *
  * @return 0 if success, or a negative number on error.
  */
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t packets_per_block)
@@ -1865,10 +1867,8 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t pack
 /**
  * Gets the decimation rate currently set in the user's
  * sweep list 
- *
  * @param dev - A pointer to the WSA device structure.
  * @param rate - A pointer to the decimation rate of integer type.
- *
  * @return The sample size if success, or a negative number on error.
  */
 int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
@@ -1903,12 +1903,9 @@ int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
  * @note: The rate here implies that at every given 'rate' (samples), 
  * only one sample is stored. Ex. if rate = 100, for a trace 
  * frame of 1000, only 10 samples is stored???
- *
  * Rate supported: 0, 4 - 1024. Rate of 0 is equivalent to no decimation.
- * 
  * @param device - A pointer to the WSA device structure.
  * @param rate - The decimation rate to set.
- *
  * @return 0 if success, or a negative number on error.
  */
 int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
@@ -1938,11 +1935,11 @@ int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
  * Retrieves the center frequency from the.
  * from the user's sweep entry
  * @param dev - A pointer to the WSA device structure.
- * @param freq - A long integer pointer to store the frequency in Hz.
- *
- * @return 0 on successful or a negative number on error.
+ * @param start_frequency - A long integer pointer to store the initial frequency in Hz.
+  * @param stop_frequency - A long integer pointer to store the final frequency in Hz.
+  * @return 0 on successful or a negative number on error.
  */
-int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_freq, int64_t* stop_freq)
+int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, int64_t* stop_frequency)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -1960,8 +1957,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_freq, int64
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-
-	*start_freq = (int64_t) temp;
+	*start_frequency = (int64_t) temp;
 
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
@@ -1969,16 +1965,16 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_freq, int64
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
-	*stop_freq = (int64_t) temp;
+	*stop_frequency = (int64_t) temp;
 	
 	return 0;
 }
 /**
  * Sets the center frequency in the user's
  * sweep entry.
- *
  * @param dev - A pointer to the WSA device structure.	
- * @param freq - The center frequency to set, in Hz
+ * @param start_frequency - The initial center frequency to set, in Hz
+  * @param stop_frequency - The final center frequency to set, in Hz
  * @return 0 on success, or a negative number on error.
  * @par Errors:
  * - Frequency out of range.
@@ -2008,17 +2004,14 @@ int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t start_frequency, i
 	else if (result < 0) 
 		
 		return result;
-
 	return 0;
 }
 
 /**
  * Retrieves the frequency shift value from the user's 
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param fshift - A float pointer to store the frequency in Hz.
- *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
@@ -2035,9 +2028,6 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
-	
-
 	*fshift = (float) temp;
 
 	return 0;
@@ -2045,10 +2035,8 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
 /**
  * Sets the frequency shift value in the user's
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param fshift - A float pointer to store the frequency in Hz.
- *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
@@ -2079,20 +2067,15 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
 
 /* Sets the frequency step value in the user's
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param fstep - A float pointer to store the frequency in Hz.
- *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 {
 	int16_t result = 0;
 	char temp_str[50];
-
-	
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
-	
 	// set the freq step using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result == WSA_ERR_SETFAILED){
@@ -2108,10 +2091,8 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 /**
  * Retrieves the frequency step value from the user's 
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param fstep - A float pointer to store the frequency in Hz.
- *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
@@ -2128,16 +2109,11 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
-
-	
-	
 	*fstep = (int64_t) temp;
 	return 0;
 }
 /* Sets the dwell value in the user's
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param dwell_seconds_value - A float pointer to store the integer portion.
   * @param dwell_useconds_value - A float pointer to store the decimal portion.
@@ -2165,7 +2141,6 @@ int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t dwell_seconds_val
 
 /* retrieves the dwell value in the user's
  * sweep entry
- *
  * @param dev - A pointer to the WSA device structure.
  * @param dwell_seconds_value - A float pointer to store the integer portion.
   * @param dwell_useconds_value - A float pointer to store the decimal portion.
@@ -2181,19 +2156,13 @@ int16_t wsa_get_sweep_dwell(struct wsa_device* device, int32_t* dwell_seconds_va
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
-
-	
-
 	strtok_result = strtok(query.output, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
-
-
 	*dwell_seconds_value = (int32_t) temp;
-
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
@@ -2203,14 +2172,11 @@ int16_t wsa_get_sweep_dwell(struct wsa_device* device, int32_t* dwell_seconds_va
 	*dwell_useconds_value = (int32_t) temp;
 	
 	return 0;
-	
-
 }
 
 
 /**
  * Sets the user's sweep entry to use basic a level trigger
- *
  * @param dev - A pointer to the WSA device structure.	
  * @param start_frequency - The lowest frequency at which a signal should be detected
  * @param stop_frequency - The highest frequency at which a signal should be detected
@@ -2225,7 +2191,6 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freque
 	result = wsa_verify_freq(dev, start_frequency);
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 	{
-	
 		return WSA_ERR_STARTOOB;
 	}
 	else if (result < 0)
@@ -2244,7 +2209,6 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freque
 	}
 
 	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%lld\n", start_frequency, stop_frequency, amplitude);
-
 	result = wsa_send_command(dev, temp_str);
 	if (result == WSA_ERR_SETFAILED)
 	{
@@ -2256,19 +2220,16 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freque
 	{
 		return result;
 	}
-
 	return 0;
 }
 
 
 /**
  * Retrieves the user's sweep entry basic level trigger settings
- *
  * @param dev - A pointer to the WSA device structure.
  * @param start_frequency - A long integer pointer to store the start frequency in Hz.
  * @param stop_frequency - A long integer pointer to store the stop frequency in Hz.
  * @param amplitude - A long integer pointer to store the signal amplitude in dBm.
- *
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude)
@@ -2278,14 +2239,12 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	double temp;
 	char* strtok_result;
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:LEVEL?\n", &query);
-	 
 	// Handle the query output here 
 	if (query.status <= 0)
 	{
 		
 		return (int16_t) query.status;
 	}
-	
 	strtok_result = strtok(query.output, ",");
 
 	// Convert the number & make sure no error
@@ -2293,9 +2252,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
-	// Verify the validity of the return value
-	
-	
+
 	*start_frequency = (int64_t) temp;
 
 	strtok_result = strtok(NULL, ",");
@@ -2304,11 +2261,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
-	// Verify the validity of the return value
-
-	
 	*stop_frequency = (int64_t) temp;
-	
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
@@ -2317,7 +2270,6 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	}
 	
 	*amplitude = (int64_t) temp/1000;
-
 	return 0;
 }
 
@@ -2325,10 +2277,8 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 /**
  * Sets the user's sweep entry capture mode to triggered (trigger on)
  * or freerun (trigger off).
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param enable - Trigger mode of selection: 0 - Off, 1 - On.
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
@@ -2347,7 +2297,6 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
 		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE LEVEL\n");
 	}
 
-
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_TRIGGERSETFAILED: %s.\n", 
@@ -2358,22 +2307,17 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
 	return 0;
 }
 
-
 /**
  * retrieves the current user's sweep entry capture mode of the WSA
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param enable - An integer pointer to store the current mode: 
  * 1 = triggered (trigger on), 0 = freerun (trigger off).
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
 {
-
-	
 	struct wsa_resp query;
-	long temp;
+	
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:TYPE?\n", &query);
 	if (query.status <= 0)
 	{
@@ -2391,12 +2335,11 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
 }
 
 /**
+ * Note this function has not been implemented yet in the wsa
  * retrieves the current sweep list's iteration
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param iterat - An integer pointer to store the number of iterations 
  * that the sweep will go
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_get_sweep_iteration(struct wsa_device* device, int32_t* iterat)
@@ -2413,18 +2356,15 @@ int16_t wsa_get_sweep_iteration(struct wsa_device* device, int32_t* iterat)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
-	
 	*iterat = (int32_t) temp;
 	return 0;
 }
 /**
+ *Note this function has not been implemented yet in the wsa
  * sets the current sweeps iteraiton
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param iterat - An integer pointer to store the number of iterations 
  * that the sweep will go
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
@@ -2447,29 +2387,22 @@ int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t iterat)
 }
 /**
  * retrieves the current sweep list's status
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param status - An integer pointer to store status
  *1 - running, 0 - stopped
- * 
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 {
 	struct wsa_resp query;		// store query results
-	double temp;
+
 
 	wsa_send_query(device, "SWEEP:LIST:STATUS?\n", &query);
-
-	
-	
 	 if (strcmp(query.output, "STOPPED") == 0) {
 		 *status = 0;
 	
 	 } else if (strcmp(query.output, "RUNNING") == 0) {
 		  *status = 1;
-		
 	 }
 	return 0;
 }
@@ -2477,81 +2410,76 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, int32_t* status)
 
 /**
  * retrieves the current sweep list's size
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param size - An integer pointer to store the size
- *
- * 
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t* size)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
-	wsa_send_query(device, "SWEEP:ENTRY:COUNT?\n", &query);
 
+	wsa_send_query(device, "SWEEP:ENTRY:COUNT?\n", &query);
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
-
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
-	
 		*size = (int32_t) temp;
 		return 0;
 }
 
-
 /**
  * delete an entry in the sweep list
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param position - An integer containing the positon of the entry to be deleted
- *
- * 
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position) {
 	int16_t result;
+	int32_t size;
 	char temp_str[50];
+	
 
-
+	//check if position is out of bounds
+	result = wsa_get_sweep_list_size(dev, &size);
+	if (position > size) {
+		return WSA_ERR_SWEEPOUTOFBOUNDS;
+	}
 
 	sprintf(temp_str, "SWEEP:ENTRY:DELETE %hu\n", position);
-
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) 
 	{
 		doutf(DHIGH, "In delete: wsa_send_command returned %hd: %s.\n",
 			result,
 			wsa_get_error_msg(result));
-		
 	}
 
 	return 0;
 }
 
-
 /**
  * copy an entry in the sweep list to the user's entry
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param position - An integer containing the positon of the entry to be copied
- *
- * 
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
 	int16_t result;
 	char temp_str[50];
-	
-	sprintf(temp_str, "SWEEP:ENTRY:COPY %hu\n", position);
+	int32_t size = 0;
 
+	//check if the position is out of bounds
+	result = wsa_get_sweep_list_size(dev, &size);
+	if (size == 0) {
+		return  WSA_ERR_SWEEPLISTEMPTY;
+	}
+	if (position > size) {
+		return WSA_ERR_SWEEPOUTOFBOUNDS;
+	}
+	sprintf(temp_str, "SWEEP:ENTRY:COPY %hu\n", position);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) 
 	{
@@ -2560,7 +2488,6 @@ int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
 			wsa_get_error_msg(result));
 		
 	}
-
 	return 0;
 }
 
@@ -2570,103 +2497,125 @@ int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_start(struct wsa_device *device) {
+int16_t wsa_sweep_start(struct wsa_device *dev) {
 	
 	int16_t return_status = 0;
+	int32_t status = 0;
+	int32_t size = 0;
 
-	return_status = wsa_send_command(device, "SWEEP:LIST:START\n");
+	//check if the wsa is already sweeping
+	return_status = wsa_get_sweep_status(dev, &status);
+	if (status == 1) {
+		return WSA_ERR_SWEEPALREADYRUNNING;
+	}
+
+	//check if the sweep list is empty
+	return_status = wsa_get_sweep_list_size(dev, &size);
+	if (size <= 0) {
+		return WSA_ERR_SWEEPLISTEMPTY;
+	}
+	return_status = wsa_send_command(dev, "SWEEP:LIST:START\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
-
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep start: %s\n", wsa_get_error_msg(return_status));
-		
 	}
-
 	return 0;
 }
-
 
 /**
  * stop sweeping
- * 
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_stop(struct wsa_device *device) {
+int16_t wsa_sweep_stop(struct wsa_device *dev) 
+{
 	int16_t return_status = 0;
-
-	return_status = wsa_send_command(device, "SWEEP:LIST:STOP\n");
+	int32_t status = 0;
+		
+	//check if the wsa is not sweeping
+	return_status = wsa_get_sweep_status(dev, &status);
+	if (status == 0) {
+		return WSA_ERR_SWEEPNOTRUNNING;
+	}
+	return_status = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
-	printf("stop the sweep \n" );
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
-	
 	}
-
 	return 0;
 }
-
 
 /**
  * resume sweeping through the current sweep list
  * from the list position which was stopped
- *
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_resume(struct wsa_device *device) {
+int16_t wsa_sweep_resume(struct wsa_device *dev) {
 	int16_t return_status = 0;
+	int32_t status = 0;
+	int32_t size = 0;
 
-	return_status = wsa_send_command(device, "SWEEP:LIST:RESUME\n");
+	return_status = wsa_get_sweep_status(dev, &status);
+	if (status == 1) {
+		return WSA_ERR_SWEEPALREADYRUNNING;
+	}
+	return_status = wsa_get_sweep_list_size(dev, &size);
+	if (size <= 0) {
+		return WSA_ERR_SWEEPLISTEMPTY;
+	}
+	return_status = wsa_send_command(dev, "SWEEP:LIST:RESUME\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep resume: %s\n", wsa_get_error_msg(return_status));
-		
 	}
 
 	return 0;
 }
+
 /**
  * start a new user's sweep entry
  * (note this will erase the current entry)
- *
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_entry_new(struct wsa_device *device) {
-
+int16_t wsa_sweep_entry_new(struct wsa_device *dev) 
+{
 	int16_t return_status = 0;
 	
-		printf("got here\n");
-	return_status = wsa_send_command(device, "SWEEP:ENTRY:NEW\n");
+	return_status = wsa_send_command(dev, "SWEEP:ENTRY:NEW\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep new: %s\n", wsa_get_error_msg(return_status));
-	
 	}
 
 	return 0;
 }
 /**
  * save the user's sweep entry to the sweep list
- * 
- * 
  * @param dev - A pointer to the WSA device structure.
  * @param position - Position where the entry will be saved in the list 
  *@return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_entry_save(struct wsa_device *device, int32_t position) {
+int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t position) {
 	int16_t result;
 	char temp_str[50];
+	int32_t size = 0;
+
+	//check if position is out of bounds
+	result = wsa_get_sweep_list_size(dev, &size);
+	if (position > size) {
+		return WSA_ERR_SWEEPOUTOFBOUNDS;
+	}
 	sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", position);
 
-	result = wsa_send_command(device, temp_str);
+	result = wsa_send_command(dev, temp_str);
 	if (result < 0) 
 	{
 		doutf(DHIGH, "In save: wsa_send_command returned %hd: %s.\n",
@@ -2677,27 +2626,186 @@ int16_t wsa_sweep_entry_save(struct wsa_device *device, int32_t position) {
 
 	return 0;
 }
-
 /**
- * save the user's sweep entry to the sweep list
- * 
- * 
+ * returns the settings of a sweep list in the wsa
  * @param dev - A pointer to the WSA device structure.
- * @param position - Position where the entry will be saved in the list 
+ * @param position - the position of the sweep entry in the wsa's list to read
+ * @param sweep_list - a pointer structure to store the settings 
  *@return 0 on success, or a negative number on error.
  */
-int16_t wsa_sweep_list_read(struct wsa_device *device, int32_t position){
+int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list)
+{
 	int16_t result;
 	char temp_str[50];
 	struct wsa_resp query;		// store query results
+	double temp;
+	char* strtok_result;
+		
+	
+	result = wsa_send_query(dev, temp_str, &query);
+	
 
-	sprintf(temp_str, "SWEEP:ENTRY:READ? %hu\n", position);
-	
-	result = wsa_send_query(device, temp_str, &query);
-	
 	printf("output: %s \n ", query.output);
+		strtok_result = strtok(query.output, ",");
+
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	sweep_list->start_frequency = (int64_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	sweep_list->stop_frequency = (int64_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->fstep= (int64_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->fshift = (float) temp;
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->decimation_rate = (int32_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->ant_port = (int32_t) temp;
+
+	strtok_result = strtok(NULL, ",");
+	
+	// Convert to wsa_gain type
+	if (strstr(strtok_result, "HIGH") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_HIGH;
+	}
+	else if (strstr(strtok_result, "MED") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_MED;
+	}
+	else if (strstr(strtok_result, "VLOW") != NULL) {
+		sweep_list->gain_rf= WSA_GAIN_VLOW;
+	}
+	else if (strstr(strtok_result, "LOW") != NULL) {
+		sweep_list->gain_rf = WSA_GAIN_LOW;
+	}
+	else {
+		sweep_list->gain_rf = (enum wsa_gain) NULL;
+	}
+
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->gain_if = (int32_t) temp;
+
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->samples_per_packet = (int16_t) temp;
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->packets_per_block = (int32_t) temp;
+
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->dwell_seconds_value = (int32_t) temp;
+
+	
+			strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->dwell_useconds_value = (int32_t) temp;
+
+
+	strtok_result = strtok(NULL, ",");	
+	if (strstr(strtok_result, "LEVEL") != NULL) {
+	sweep_list->trigger_enable = 1;
+	} else if (strstr(strtok_result, "NONE") != NULL) {
+	sweep_list->trigger_enable = 0;
+	}
+
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_start_frequency = (int64_t) temp;
+
+	
+	strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_stop_frequency = (int64_t) temp;
+
+
+		strtok_result = strtok(NULL, ",");
+	// Convert the number & make sure no error
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	sweep_list->trigger_amplitude = (int64_t) temp;
 
 	return 0;
+
+
 
 }
 
@@ -2705,3 +2813,52 @@ int16_t wsa_sweep_list_read(struct wsa_device *device, int32_t position){
 
 
 
+
+//testing program
+int16_t wsa_test(struct wsa_device *dev) {
+
+  
+  
+  int32_t lSize;
+  uint8_t* buffer;
+  size_t result;
+  int i;
+  int32_t count = 0;
+  
+	clock_t start_time = clock();
+	clock_t end_time = 5 * 1000 + start_time;
+  
+  FILE * pFile;
+  pFile = fopen ("myfile.bin","rb");
+  //determine size of file
+  fseek (pFile , 0 , SEEK_END);
+  lSize = ftell (pFile);
+  rewind (pFile);
+  printf("the size is: %u \n", lSize);
+
+  buffer = (char*) malloc (sizeof(char)*lSize);
+  result = fread (buffer,1,lSize,pFile);
+   
+  //i = 0;asdasd
+  for (i = 0; i < lSize; i++) {
+	  if (buffer[i] == 0x90 && buffer[i + 1] == 0x0 &&  buffer[i + 2] == 0x0 && buffer[i + 3] == 0x1){
+		  if (buffer[i +16]== 0x80 && buffer[i + 17] == 0x80) {
+		
+		printf("stream identifier:      %x %x %x %x \n,", buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
+		printf("context indicator field:      %x %x %x %x \n,", buffer[i +16], buffer[i + 17], buffer[i + 18], buffer[i + 19]);
+		printf("data field 1:     %x %x %x %x \n,", buffer[i +20], buffer[i + 21], buffer[i + 22], buffer[i + 23]);
+		printf("data field 2:     %x %x %x %x \n,", buffer[i +24], buffer[i + 25], buffer[i + 26], buffer[i + 27]);
+		printf("start index 28:      %x %x %x %x \n,", buffer[i +28], buffer[i + 29], buffer[i + 30], buffer[i + 31]);
+		printf(" \n \n \n \n");  
+		  }		
+	
+		 start_time = clock();
+		 end_time = 5 * 1000 + start_time;
+		while(clock() != end_time);
+	  }
+  }
+
+  free (buffer);
+
+   fclose (pFile);
+}
