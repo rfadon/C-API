@@ -2730,49 +2730,134 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 //testing program
 int16_t wsa_test(struct wsa_device *dev) {
 
-  
-  
-  int32_t lSize;
-  uint8_t* buffer;
-  size_t result;
-  int i;
-  int32_t count = 0;
-  
 	clock_t start_time = clock();
 	clock_t end_time = 5 * 1000 + start_time;
-  
-  FILE * pFile;
-  pFile = fopen ("myfile.bin","rb");
-  //determine size of file
-  fseek (pFile , 0 , SEEK_END);
-  lSize = ftell (pFile);
-  rewind (pFile);
-  printf("the size is: %u \n", lSize);
+  	uint8_t* vrt_header_buffer = 0;
+	uint8_t* temp_buffer = 0;
+	uint8_t packet_order_indicator = 0;
+	uint16_t temp_size = 0;
+	int32_t temp_size_bytes = 0;
+	int32_t indicator_field = 0;
+	uint16_t expected_header_size = 2;
+	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
+	uint8_t* vrt_packet_buffer = 0;
+	int32_t vrt_packet_bytes = 0;
+	int32_t context_indicator_field = 0;
+	int32_t bytes_received = 0;
+	int16_t socket_receive_result = 0;
+	int16_t result = 0;
+	int64_t frequency1 = 0;
+	uint32_t stream_identifier_word = 0;
+	uint16_t packet_size = 0;
+	int64_t freq_word1 = 0;
+	int64_t freq_word2 = 0;
+	int64_t freq_holder1 = 0;
+	long double freq_holder = 0;
+	double integer_holder = 0;
+	double dec_holder = 0;
+	int64_t freq_dec = 0;
+	int8_t data_pos = 16;
+	int i; 
+	FILE * pFile;
+	pFile = fopen ("MatlabDump.bin","rb");
 
-  buffer = (char*) malloc (sizeof(char)*lSize);
-  result = fread (buffer,1,lSize,pFile);
-   
-  //i = 0;asdasd
-  for (i = 0; i < lSize; i++) {
-	  if (buffer[i] == 0x90 && buffer[i + 1] == 0x0 &&  buffer[i + 2] == 0x0 && buffer[i + 3] == 0x1){
-		  if (buffer[i +16]== 0x80 && buffer[i + 17] == 0x80) {
-		
-		printf("stream identifier:      %x %x %x %x \n,", buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
-		printf("context indicator field:      %x %x %x %x \n,", buffer[i +16], buffer[i + 17], buffer[i + 18], buffer[i + 19]);
-		printf("data field 1:     %x %x %x %x \n,", buffer[i +20], buffer[i + 21], buffer[i + 22], buffer[i + 23]);
-		printf("data field 2:     %x %x %x %x \n,", buffer[i +24], buffer[i + 25], buffer[i + 26], buffer[i + 27]);
-		printf("start index 28:      %x %x %x %x \n,", buffer[i +28], buffer[i + 29], buffer[i + 30], buffer[i + 31]);
-		printf(" \n \n \n \n");  
-		  }		
+	//allocate space for the header buffer
+
+
+
+	for (i = 0; i < 1000; i++) {
+
+	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 	
-		 start_time = clock();
-		 end_time = 5 * 1000 + start_time;
-		while(clock() != end_time);
-	  }
-  }
+	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
+	//socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
+	 result = fread (vrt_header_buffer,1, vrt_header_bytes,pFile);
+	 
 
-  free (buffer);
+	 stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
+			+ (((uint32_t) vrt_header_buffer[5]) << 16) 
+			+ (((uint32_t) vrt_header_buffer[6]) << 8) 
+			+ (uint32_t) vrt_header_buffer[7];		
 
-   fclose (pFile);
-   return 0;
+
+	if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
+			
+		
+			//i--;
+		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
+
+		//allocate memory for the context packet
+		temp_size_bytes = (packet_size-2)*4;
+		
+
+		temp_buffer = (uint8_t*) malloc(temp_size_bytes * sizeof(uint8_t));
+
+	
+		result = fread (temp_buffer,1, temp_size_bytes,pFile);
+
+
+		if (stream_identifier_word == 0x90000001) {
+			if ((temp_buffer[12] & 0x0f) == 0x08) {
+				freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 3]);
+
+				freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+								(int64_t) temp_buffer[data_pos + 7]);
+		
+
+				freq_holder1 = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576;
+				freq_holder = (double) freq_holder1;
+				integer_holder = freq_holder;
+				freq_dec = (freq_word2 & 0x000fffff);
+				dec_holder = (double) freq_dec;
+				freq_holder = integer_holder + dec_holder/1000000;
+				printf("frequency is: %f \n", freq_holder/MHZ);
+		}
+
+		
+
+			//store digitizer data in the digitizer structure
+		} else if (stream_identifier_word == 0x90000002) {
+
+		
+		}
+		free(temp_buffer);
+		free(vrt_header_buffer);
+		
+
+	
+
+	} else if (stream_identifier_word == 0x90000003){ 
+
+
+
+
+	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
+	//	sweep_samples_per_packet = packet_size-6;
+
+	
+		vrt_packet_bytes = 4 * (packet_size-2);
+		vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+		
+	//	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+	result = fread (vrt_packet_buffer,1, vrt_packet_bytes,pFile);
+
+	free(vrt_packet_buffer);
+	free(vrt_header_buffer);	
+	}
+	
+	}
+	printf("got to end \n");
+	fclose(pFile);
+	printf("got to end of freeing buffers \n");
+	return 0;	
+ 
+
+
+
+
 }

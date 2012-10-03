@@ -825,10 +825,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint16_t packet_size = 0;
 	uint16_t sweep_samples_per_packet = 1;
 	uint8_t* sweep_data_buffer = 0;
-	//FILE * pFile;
+	FILE * pFile;
 	//FILE* example;
 	//char buffer[] = { 'x' , 'y' , 'z' };
-	//pFile = fopen ( "myfile.bin" , "ab+" );
+	pFile = fopen ( "myfile.bin" , "ab+" );
 
 	//allocate space for the header buffer
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
@@ -845,7 +845,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-	//fwrite (vrt_header_buffer , 1 , vrt_header_bytes, pFile );
+	fwrite (vrt_header_buffer , 1 , vrt_header_bytes, pFile );
 	
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
@@ -897,8 +897,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 		//store the rest of the packet inside the buffer
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, temp_buffer, temp_size_bytes, TIMEOUT, &bytes_received);
-		//	fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
-			//fclose (pFile);
+		fwrite (temp_buffer ,1 , temp_size_bytes , pFile );
+		fclose (pFile);
 
 
 		//store reciever data in the reciever structure
@@ -955,8 +955,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 			
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		//fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, pFile );
-		//fclose (pFile);
+		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, pFile );
+		fclose (pFile);
 		doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 		if (socket_receive_result < 0)
@@ -1040,7 +1040,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 
 
-
+/**
+ *copy sweep data packets from the sweep data to the regular data buffer
+ * @return returns 0 once complete.
+ */
 int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size) {
 
 	int i;

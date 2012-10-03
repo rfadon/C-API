@@ -372,7 +372,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 100;
+	uint32_t packets_per_block = 1000;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
