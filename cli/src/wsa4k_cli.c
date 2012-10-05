@@ -372,7 +372,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	double reciever_if_gain = 0;
 	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 1000;
+	uint32_t packets_per_block = 100;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
@@ -410,7 +410,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_vrt_packet_trailer* trailer;
 	struct wsa_reciever_packet* reciever;
 	struct wsa_digitizer_packet* digitizer;
-			
+
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
 	// *****
@@ -2309,8 +2309,8 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
 				if (result >= 0) {
 					
-					printf("      Start frequency: %d MHz\n", (start_frequency / MHZ));
-					printf("      Stop frequency: %d MHz\n", (stop_frequency / MHZ));
+					printf("      Start frequency: %d MHz\n", (start_frequency));
+					printf("      Stop frequency: %d MHz\n", (stop_frequency));
 					printf("      Amplitude: %d dBm\n", amplitude);
 				}
 			

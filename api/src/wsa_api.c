@@ -2152,12 +2152,14 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 	double temp;
 	char* strtok_result;
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:LEVEL?\n", &query);
+
 	// Handle the query output here 
 	if (query.status <= 0)
 	{
 		
 		return (int16_t) query.status;
 	}
+
 	strtok_result = strtok(query.output, ",");
 
 	// Convert the number & make sure no error
@@ -2182,7 +2184,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequ
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*amplitude = (int64_t) temp/1000;
+	*amplitude = (int64_t) temp;
 	return 0;
 }
 
@@ -2759,13 +2761,13 @@ int16_t wsa_test(struct wsa_device *dev) {
 	int8_t data_pos = 16;
 	int i; 
 	FILE * pFile;
-	pFile = fopen ("MatlabDump.bin","rb");
+	pFile = fopen ("myfile.bin","rb");
 
 	//allocate space for the header buffer
 
 
 
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < 100; i++) {
 
 	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
 	

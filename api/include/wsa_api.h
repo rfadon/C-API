@@ -35,6 +35,7 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_capture_block(struct wsa_device* const device);
+
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
@@ -134,7 +135,7 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
-
+		
 int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
 int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);

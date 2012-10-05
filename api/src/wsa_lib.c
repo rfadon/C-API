@@ -1116,7 +1116,7 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 			// Need to keep this line after temporary workaround is removed
 			q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		}
-
+				
 		// END TEMPORARY WORKAROUND
 		
 		j++;
@@ -1158,13 +1158,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 	int8_t data_pos = 16;
 	double dec_holder = 0;
 	double integer_holder = 0;
-
 	int32_t context_fields = 0;
-
-
-
-	
-
 	//store the indicator field, which contains the content of the packet
 	reciever->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
@@ -1209,10 +1203,9 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 
 		freq_holder1 = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576;
 		freq_holder = (double) freq_holder1;
-		integer_holder = freq_holder;
 		freq_dec = (freq_word2 & 0x000fffff);
 		dec_holder = (double) freq_dec;
-		freq_holder = integer_holder + dec_holder/1000000;
+		freq_holder = freq_holder + dec_holder/1000000;
 		data_pos = data_pos + 8;
 		printf("frequency is: %f \n", freq_holder/MHZ);
 		reciever->frequency = freq_holder/MHZ;

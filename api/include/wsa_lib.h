@@ -164,6 +164,7 @@ struct wsa_time {
 struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
 	uint32_t samples_per_packet;
+	uint8_t packet_type;
 	struct wsa_time time_stamp;
 };
 
@@ -178,7 +179,7 @@ struct wsa_reciever_packet {
 	double gain_rf;
 	double temperature;
 };
-
+		
 //structure to hold digitizer packet data
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
@@ -247,6 +248,8 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command);
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
+
+
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
@@ -261,13 +264,6 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 		
-int16_t wsa_read_iq_packet_raw_matlab(struct wsa_device* const device, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		uint8_t* const data_buffer, 
-		const uint16_t samples_per_packet, uint8_t* context_present,
-	int32_t* rec_indicator_field, int32_t* rec_reference_point, int64_t* rec_frequency, int16_t* rec_gain_if, int16_t* rec_gain_rf,	int32_t* rec_temperature,
-	int32_t* dig_indicator_field, long double* dig_bandwidth, double* dig_reference_level, long double* digrf_frequency_offset);		
 
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
