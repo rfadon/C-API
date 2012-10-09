@@ -443,14 +443,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_sweep_status(dev, &sweep_status);
 
 	if(sweep_status == 0) {
-			// Get samples per backet
-		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
-			if (result < 0)
-			{
-				doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-				return result;
-			}
+		//	// Get samples per backet
+		//result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+		//doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
+		//	if (result < 0)
+		//	{
+		//		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
+		//		return result;
+		//	}
 
 		// Get packets per block
 		result = wsa_get_packets_per_block(dev, &packets_per_block);
@@ -470,7 +470,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
 		}
+
 	}
+
+		
+
 	printf("samples per packet is: %u \n", samples_per_packet);
 
 	printf("\n Finished Gathering.. ");
@@ -594,31 +598,33 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				packets_per_block * samples_per_packet, 
 				header->time_stamp.sec, 
 				header->time_stamp.psec);
+			expected_packet_order_indicator = header->packet_order_indicator;
 		}
 	
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet, &context_is);
+		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet);
 		// get the end time of each data capture
 
-			if (result < 0)
+		if (result < 0)
 		{
-		fclose(iq_fptr);
-		free(digitizer);
-		free(reciever);
-		free(trailer);
-		free(header);
-		free(i_buffer);
-		free(q_buffer);
+			fclose(iq_fptr);
+			free(digitizer);
+			free(reciever);
+			free(trailer);
+			free(header);
+			free(i_buffer);
+			free(q_buffer);
 			return result;
 		}
+
 		get_current_time(&capture_end_time);
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
 
-		if (context_is == 1) {
+		if (header->packet_type == 1) {
 
 			fprintf(iq_fptr, "Reciever Packet Found\n");
 			field_indicator = reciever->indicator_field;
@@ -651,7 +657,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			i--;
 			continue;
 				
-		} else if (context_is == 2) {
+		} else if (header->packet_type == 2) {
 
 			field_indicator = digitizer->indicator_field;
 
@@ -674,12 +680,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			i--;
 			continue;
 
-		}
+		} else if (header->packet_type == 0) {
 
-		if (i == 1) {
-		
-			expected_packet_order_indicator = header->packet_order_indicator;
-		}
 
 
 		//if (header->packet_order_indicator != expected_packet_order_indicator)
@@ -695,34 +697,35 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		//	return WSA_ERR_PACKETOUTOFORDER;
 		//}
 
-		
-		expected_packet_order_indicator++;
-	
-		if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-		{
-			expected_packet_order_indicator = 0;
-		}
-		
-		for (j = 0; j < samples_per_packet; j++)
-		{
-			
-			fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
-		}
-		
-		if (!((i + 1) % 10))
-		{
-			printf("Saved packet #%u\n", i + 1);
-		}
-		else 
-		{
-			printf(".");
-		}
-		if( sweep_status == 1) {
-			
-			samples_per_packet = 65530;
-		}
 
+			expected_packet_order_indicator++;
+	
+			if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+			{
+				expected_packet_order_indicator = 0;
+			}
+		
+			for (j = 0; j < samples_per_packet; j++)
+			{
+			
+				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+			}
+		
+			if (!((i + 1) % 10))
+			{
+				printf("Saved packet #%u\n", i + 1);
+			}
+			else 
+			{
+				printf(".");
+			}
+						
+				samples_per_packet = 65530;
+			
+
+		}
 	}
+
 	
 	// get the total run end time
 	get_current_time(&run_end_time);

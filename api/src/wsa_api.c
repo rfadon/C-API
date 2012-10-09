@@ -359,12 +359,12 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		uint16_t* samples_per_packet,
-		uint8_t* context_is)
+		uint16_t* samples_per_packet)
+		
 {
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
-	uint8_t context_present = 0;
+
 	uint16_t spp = 0;
 	int64_t frequency = 0;
 	spp = *samples_per_packet;
@@ -372,7 +372,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp, &context_present);
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, reciever, digitizer, data_buffer, &spp);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
 
 	if (return_status < 0)
@@ -383,30 +383,20 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 		return return_status;
 	} 
 	
-	if (context_present == 1) {
-		*context_is = 1;
+	if (header->packet_type == 1 || header->packet_type == 2) {
 		free(data_buffer);
-		return 0;
-
-	} else if (context_present == 2) {
-		*context_is = 2;
-		free(data_buffer);
-		return 0;
-	} else if (context_present ==0) {
-
-
 	
+	} else if (header->packet_type == 0) {
+
 	// Note: don't rely on the value of return_status
-	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, *samples_per_packet);
+	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, spp);
 	*samples_per_packet = spp;
-	*context_is = 0;
 	free(data_buffer);
 	
-	return 0;
 	}
+
 	return 0;
 }
-
 
 
 /**
