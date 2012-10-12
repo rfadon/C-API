@@ -53,6 +53,9 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_b
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 
+int16_t wsa_flush_data(struct wsa_device *dev);
+
+int16_t wsa_system_abort_capture(struct wsa_device *dev);
 
 // ////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
@@ -170,14 +173,11 @@ int16_t wsa_sweep_entry_new(struct wsa_device *dev);
 int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position);
 int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
 int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position);
-int16_t wsa_sweep_list(struct wsa_device *dev, int32_t *position);
 int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t *size);
 int16_t wsa_sweep_start(struct wsa_device *dev);
 int16_t wsa_sweep_stop(struct wsa_device *dev);
 int16_t wsa_sweep_resume(struct wsa_device *dev);
 int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list);
-int16_t wsa_request(struct wsa_device *dev);
-
 
 int16_t wsa_test(struct wsa_device *dev);
 

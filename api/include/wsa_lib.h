@@ -154,12 +154,10 @@ struct wsa_descriptor {
 	float abs_max_amp[NUM_RF_GAINS];
 };
 
-
 struct wsa_time {
 	uint32_t sec;
 	uint64_t psec;
 };
-
 
 struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
@@ -167,8 +165,6 @@ struct wsa_vrt_packet_header {
 	uint8_t packet_type;
 	struct wsa_time time_stamp;
 };
-
-
 
 //structure to hold reciever packet data
 struct wsa_reciever_packet {
@@ -221,13 +217,11 @@ struct wsa_socket {
 	int32_t data;
 };
 
-
 struct wsa_device {
 	struct wsa_descriptor descr;
 	struct wsa_socket sock;
 	//struct wsa_trig *trig_list; 
 };
-
 
 struct wsa_resp {
 	int64_t status;
@@ -249,7 +243,6 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
 
-
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
@@ -258,18 +251,17 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		uint8_t* const data_buffer, 
 		 uint16_t* samples_per_packet);
 
-
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 		
-
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);
-int16_t wsa_read_status(struct wsa_device *dev, char *output);
-int16_t extract_reciever_frequency( uint8_t* temp_buffer, int64_t* reciever_frequency); 
 
+int16_t wsa_read_status(struct wsa_device *dev, char *output);
+
+int16_t extract_reciever_frequency( uint8_t* temp_buffer, int64_t* reciever_frequency); 
 
 const char *wsa_get_error_msg(int16_t err_code);
 

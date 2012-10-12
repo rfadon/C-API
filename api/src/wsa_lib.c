@@ -822,6 +822,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	uint32_t stream_identifier_word = 0;
 	uint16_t packet_size = 0;
 	uint16_t sweep_samples_per_packet = 1;
+	uint32_t timestamp = 0;
+	uint64_t ptimestamp = 0;
 	uint8_t* sweep_data_buffer = 0;
 
 
@@ -871,7 +873,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	{
 		
 		//fclose (pFile);
-		
+		printf("not iq frame has been found \n");
+		printf("stream identifier is: %x \n", stream_identifier_word);
 		free(vrt_packet_buffer);
 		
 		return WSA_ERR_NOTIQFRAME;
@@ -963,7 +966,13 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 							(((uint32_t) vrt_packet_buffer[1]) << 16) +
 							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
 							(uint32_t) vrt_packet_buffer[3];
-		doutf(DLOW, "second: 0x%08X %u\n",
+		
+		timestamp = (((uint32_t) vrt_packet_buffer[0]) << 24) +
+							(((uint32_t) vrt_packet_buffer[1]) << 16) +
+							(((uint32_t) vrt_packet_buffer[2]) << 8) + 
+							(uint32_t) vrt_packet_buffer[3];
+		
+		doutf(DLOW, "second: 0x%08X %lu\n",
 			header->time_stamp.sec, 
 			header->time_stamp.sec);
 
@@ -1011,8 +1020,12 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			return WSA_ERR_MALLOCFAILED;
 		}
 			memcpy(sweep_data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
-			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet);
+			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet * BYTES_PER_VRT_WORD);
 			*samples_per_packet = sweep_samples_per_packet;
+			free(sweep_data_buffer);
+			free(vrt_packet_buffer);
+			free(vrt_header_buffer);
+			return 0;	
 		}
 
 		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), *samples_per_packet * BYTES_PER_VRT_WORD);

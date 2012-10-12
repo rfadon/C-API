@@ -69,6 +69,8 @@
 //*****
 // Local functions
 //*****
+int16_t test(struct wsa_device *dev);
+
 void print_cli_menu(struct wsa_device *dev);
 void print_wsa_stat(struct wsa_device *dev);
 
@@ -196,14 +198,14 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        the user's working sweep entry\n");
 	printf(" set sweep entry spp <samples> Set the current samples per packet in\n"
 		   "                        the user's working sweep entry\n");	
-	printf(" set sweep iteat        Set the number of sweep iterations\n");			
-	printf(" sweep copy	<sweep entry> Copy a sweep entry into the user's working entry\n");	
-	printf(" sweep delete <sweep entry> Delete a sweep entry\n");
-	printf(" sweep size             Shows the size of the sweep list\n");
-	printf(" sweep new              Reset's the user's working sweep entry\n");
-	printf(" sweep read <sweep entry> Read the settings of a specific sweep entry\n");
+	printf(" sweep list copy <sweep entry> Copy a sweep entry from the wsa into\n"
+		   "                        the user's working entry\n");	
+	printf(" sweep list delete <sweep entry> Delete a sweep entry\n");
+	printf(" sweep list read <sweep entry> Read the settings of a specific sweep entry\n");
+	printf(" sweep list size        Shows the size of the sweep list\n");
+	printf(" sweep entry new        Reset's the user's working sweep entry\n");
+	printf(" sweep entry save <position>	Save the user's sweep entry into the sweep list\n");
 	printf(" sweep resume           Resume Sweeping after stop\n");
-	printf(" sweep save <position>	Save the user's sweep working entry into the sweep list\n");
 	printf(" sweep start            Start to sweep through the entries set in the WSA\n");
 	printf(" sweep stop             Stop the sweep process\n");
 	
@@ -443,14 +445,15 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_sweep_status(dev, &sweep_status);
 
 	if(sweep_status == 0) {
-		//	// Get samples per backet
-		//result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-		//doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);
-		//	if (result < 0)
-		//	{
-		//		doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-		//		return result;
-		//	}
+	
+		//flush content of the data socket
+		//result = wsa_flush_data(dev);
+
+				if (result < 0)
+		{
+			doutf(DHIGH, "Error in wsa_flush_data: %s\n", wsa_get_error_msg(result));
+			return result;
+		}
 
 		// Get packets per block
 		result = wsa_get_packets_per_block(dev, &packets_per_block);
@@ -472,15 +475,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		}
 
 	}
-
-		
-
-	printf("samples per packet is: %u \n", samples_per_packet);
-
 	printf("\n Finished Gathering.. ");
-		
-		
-
+	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
@@ -530,8 +526,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(header);
 		return WSA_ERR_MALLOCFAILED;
 	}
-
-
 
 	// Allocate i buffer space
 	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
@@ -587,7 +581,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	for (i = 1; i < packets_per_block + 1; i++)
 	{
-	
 
 		if (i == 1 && title_print == 0)
 		{
@@ -598,7 +591,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				packets_per_block * samples_per_packet, 
 				header->time_stamp.sec, 
 				header->time_stamp.psec);
-			expected_packet_order_indicator = header->packet_order_indicator;
+			
 		}
 	
 		// Get the start time
@@ -682,21 +675,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		} else if (header->packet_type == 0) {
 
+		if (i == 1) {
+			expected_packet_order_indicator = header->packet_order_indicator;
+		}
 
+		if (header->packet_order_indicator != expected_packet_order_indicator)
+		{
 
-		//if (header->packet_order_indicator != expected_packet_order_indicator)
-		//{
-
-		//fclose(iq_fptr);
-		//free(digitizer);
-		//free(reciever);
-		//free(trailer);
-		//free(header);
-		//free(i_buffer);
-		//free(q_buffer);
-		//	return WSA_ERR_PACKETOUTOFORDER;
-		//}
-
+		fclose(iq_fptr);
+		free(digitizer);
+		free(reciever);
+		free(trailer);
+		free(header);
+		free(i_buffer);
+		free(q_buffer);
+			return WSA_ERR_PACKETOUTOFORDER;
+		}
 
 			expected_packet_order_indicator++;
 	
@@ -709,6 +703,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			{
 			
 				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+				
 			}
 		
 			if (!((i + 1) % 10))
@@ -721,22 +716,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			}
 						
 				samples_per_packet = 65530;
-			
-
 		}
 	}
 
-	
 	// get the total run end time
 	get_current_time(&run_end_time);
 	run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 	printf("\ndone.\n");
-		
-
+	
 	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 		capture_time_ms,
 		run_time_ms);
-
 		fclose(iq_fptr);
 		free(digitizer);
 		free(reciever);
@@ -744,8 +734,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(header);
 		free(i_buffer);
 		free(q_buffer);
-
-	
 	return 0;
 }
 
@@ -785,16 +773,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//DIR *temp;
 
 	strcpy(msg,"");
-	
-
 
 	//*****
 	// Handle GET commands
 	//*****
-	if (strcmp(cmd_words[0], "TEST") == 0) {
-		result = wsa_test(dev);
 
-	}else	if (strcmp(cmd_words[0], "GET") == 0) {
+	if (strcmp(cmd_words[0], "TEST") == 0) {
+		result = test(dev);
+	} else if (strcmp(cmd_words[0], "GET") == 0) {
 		if (strcmp(cmd_words[1], "ANT") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -954,9 +940,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result >= 0) {
 				printf("Current packets per block: %u\n", packets_per_block);
 			}
-			} // end get PPB
-
-
+		} // end get PPB
 
 		else if (strcmp(cmd_words[1], "SPP") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
@@ -1014,9 +998,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
 
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
-			
-			result = wsa_system_request_read_access(dev,&acquisition_status);
-			printf("acquisition status: %u \n", acquisition_status);
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
 					if (int_result == 0) {
@@ -1027,9 +1008,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				} // end get sweep status
 			} else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
-
-					 result = wsa_system_read_status(dev,&acquisition_status);
-					 printf("acquisition status: %u \n", acquisition_status);
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
 				 }			
@@ -1287,11 +1265,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}// end set TRIGGER
 		
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
-							
 			if (strcmp(cmd_words[2], "ENTRY") == 0) {
 				if (strcmp(cmd_words[3], "DWELL") == 0) {
-					if (num_words < 5) {
-							 	 
+					if (num_words < 5) {		 	 
 					printf("Usage: 'set sweep entry dwell <seconds>,<milliseconds>'\n");
 				}
 				else {
@@ -1520,28 +1496,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end set SPP
-
-		else if (strcmp(cmd_words[3], "ITERAT") == 0) {
-						if (num_words < 4) {
-				printf("Missing the iteration value. See 'h'.\n");
-			}
-			else {
-				result = to_int(cmd_words[4], &temp_number);
-				if (!result) {	
-					
-						int_result = (uint32_t) temp_number;
-					result = wsa_set_sweep_iteration(dev, int_result);
-					}
-				}
-			
-		}//end ITERAT
-
-		}//END ENTRY
-		else {
-		printf("Invalid 'set'. See 'h'.\n");
+		//END ENTRY
+		} else {
+			printf("Invalid 'set sweep'. See 'h'.\n");
 		}
 
-		} else {
+	} else {
 		printf("Invalid 'set'. See 'h'.\n");
 		}
 
@@ -1565,24 +1525,24 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			} else if (strcmp(cmd_words[2], "READ") == 0) {
 				if (num_words < 4) {
-				printf("Missing the position of the entry. See 'h'.\n");
+					printf("Missing the position of the entry. See 'h'.\n");
 				}else {
 
-				result = to_int(cmd_words[3], &temp_number);
-				int_result = (uint32_t) temp_number;
-				result = print_sweep_entry_information(dev,temp_number);
+					result = to_int(cmd_words[3], &temp_number);
+					int_result = (uint32_t) temp_number;
+					result = print_sweep_entry_information(dev,temp_number);
 				}
 			
 			 }	else if(strcmp(cmd_words[2], "COPY") == 0) {
 			
-				if (num_words < 3) {
-				printf("Missing the position of the entry. See 'h'.\n");
-				}else {
+					if (num_words < 3) {
+						printf("Missing the position of the entry. See 'h'.\n");
+					}else {
 
-				result = to_int(cmd_words[3], &temp_number);
-				int_result = (uint32_t) temp_number;
-				result = wsa_sweep_list_copy(dev,temp_number);
-				}
+					result = to_int(cmd_words[3], &temp_number);
+					int_result = (uint32_t) temp_number;
+					result = wsa_sweep_list_copy(dev,temp_number);
+					}
 			} else {
 				printf("Invalid 'Sweep List' Command. See 'h'.\n");
 			}
@@ -1610,19 +1570,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			} else {
 			printf("Invalid 'Sweep entry' Command. See 'h'.\n");
+			}
 		}
-		
+	 else {
+		 printf("Invalid 'Sweep' Command. See 'h'.\n");
 
-		}
 	 }
-		
-
-
+ }
 
 	//*****5
 	// Handle non-get/set commands
 	//*****
-	else {	
+  else {	
 		if (strcmp(cmd_words[0], "DIR") == 0) {
 			if(num_words > 1)
 				printf("Extra parameters ignored!\n");
@@ -2124,14 +2083,6 @@ void print_wsa_stat(struct wsa_device *dev) {
 		printf("\t\t- Gain IF: %d dB\n", value);
 	else
 		printf("\t\t- Error: Failed getting the gain IF value.\n");
-	
-	
-
-	
-
-		
-	
-
 
 	result = wsa_get_gain_rf(dev, &gain);
 	if (result >= 0) {
@@ -2157,29 +2108,28 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else {
 		printf("\t\t- Error: Failed reading the packets per bock value.\n");
 	}
+	printf("\t\tTrigger Settings: \n");
 	result = wsa_get_trigger_enable(dev, &enable);
 		if (result >= 0) {
 
-		if(enable==0){
-		printf("\t\t- Triggers are disabled\n");
+		if(enable == 0){
+		printf("\t\t\t- Trigger Status: Disabled\n");
 		}
-		else if(enable ==1){
-		printf("\t\t- Triggers are enabled\n");
+		else if(enable == 1){
+		printf("\t\t\t- Trigger Status: Enabled\n");
 		}
 		}else{
 		printf("\t\t- Error: Failed reading if the triggers are enabled.\n");
 		}
 		result = wsa_get_trigger_level(dev, &start_frequency,&stop_frequency,&amplitude);
 		if (result >= 0) {
-		printf("\t\t- Start Frequency of Triggers: %u\n", start_frequency/MHZ);
-		printf("\t\t- Stop Frequency of Triggers: %u\n", stop_frequency/MHZ);
-		printf("\t\t- Amplitude of Triggers: %lld dBm\n", amplitude);
+		printf("\t\t\t- Start Frequency: %u\n", start_frequency/MHZ);
+		printf("\t\t\t- Stop Frequency: %u\n", stop_frequency/MHZ);
+		printf("\t\t\t- Amplitude: %lld dBm\n", amplitude);
 		}else{
 			printf("\t\t- Error: Failed reading trigger levels.\n");
 		}
-
 } 
-
 
 /**
  * Convert a gain RF setting to a string, useful for printing
@@ -2231,6 +2181,13 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 			printf("   Antenna Port: %d \n", int_result);
 		}
 
+	//print frequency sweep value
+	result = wsa_get_sweep_freq(dev, &start_frequency, &stop_frequency);
+		if (result >= 0) {
+			printf("   Start Frequecy %0.3d MHz \n", start_frequency/MHZ);
+			printf("   Stop Frequecy %0.3d MHz \n", stop_frequency/MHZ);
+		}
+
 	//print gain if sweep value		
 	result = wsa_get_sweep_gain_if(dev, &int_result);
 		if (result >= 0) {
@@ -2273,13 +2230,7 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	
 		}
 
-	//print frequency sweep value
-	result = wsa_get_sweep_freq(dev, &start_frequency, &stop_frequency);
-		if (result >= 0) {
-			printf("   Start Frequecy %0.3d MHz \n", start_frequency/MHZ);
-			printf("   Stop Frequecy %0.3d MHz \n", stop_frequency/MHZ);
-		}
-	
+
 	//print fstep sweep value	
 	result = wsa_get_sweep_freq_shift(dev, &fshift);
 				if (result >= 0) {
@@ -2299,6 +2250,12 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 					printf("      Trigger mode: ");
 					if (int_result == 1) {
 						printf("On\n");
+						result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+						if (result >= 0) {
+							printf("      Start frequency: %d MHz\n", (start_frequency));
+							printf("      Stop frequency: %d MHz\n", (stop_frequency));
+							printf("      Amplitude: %d dBm\n", amplitude);
+						}
 					}
 					else if (int_result == 0) {
 						printf("Off\n");
@@ -2306,18 +2263,7 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 					else {
 						printf("Unknown state\n");
 					}
-				}
-
-	//print trigger level sweep value		
-	result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
-				if (result >= 0) {
-					
-					printf("      Start frequency: %d MHz\n", (start_frequency));
-					printf("      Stop frequency: %d MHz\n", (stop_frequency));
-					printf("      Amplitude: %d dBm\n", amplitude);
-				}
-			
-			
+				}		
 	return 0;
 }
 
@@ -2332,8 +2278,9 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
 
 	printf("Sweep Entry Settings:\n");
 	result = wsa_sweep_list_read(dev, position, list_values);
+
 	printf("  Start frequency: %d MHz\n", (list_values->start_frequency / MHZ));
-	printf("  Stop frequency: %d MHz\n", (list_values->start_frequency / MHZ));
+	printf("  Stop frequency: %d MHz\n", (list_values->stop_frequency / MHZ));
 	printf("  Step Frequency: %d MHz\n",list_values->fstep / MHZ);
 	printf("  Frequency shift: %f MHz\n",list_values->fshift);
 	printf("  decimation rate: %u \n",list_values->decimation_rate);
@@ -2351,10 +2298,21 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
 		printf("        Triggers are disabled\n");
 	} else if ( list_values->trigger_enable == 1) {
 		printf("        Triggers are enabled\n");
+		printf("        Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
+		printf("        Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
+		printf("        Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
-	printf("        Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
-	printf("        Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
-	printf("        Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
+
+
+
+	return 0;
+
+}
+
+int16_t test(struct wsa_device *dev) {
+	
+	int16_t return_status = wsa_flush_data(dev);
+
 
 
 	return 0;

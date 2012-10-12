@@ -47,6 +47,7 @@
 #include "wsa_commons.h"//common functions used
 #include "wsa_lib.h"
 #include "wsa_api.h"//calls on itself
+#include "wsa_client.h"//used for socket recieve
 
 
 #define MAX_RETRIES_READ_FRAME 5
@@ -364,7 +365,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 {
 	uint8_t* data_buffer = 0;
 	int16_t return_status = 0;
-
+	int16_t result = 0;
 	uint16_t spp = 0;
 	int64_t frequency = 0;
 	spp = *samples_per_packet;
@@ -377,6 +378,9 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 
 	if (return_status < 0)
 	{
+		if (return_status == WSA_ERR_NOTIQFRAME) {
+			result = wsa_system_abort_capture(dev);
+		}
 	
 		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
@@ -614,6 +618,60 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	}
 
 	return 0;
+}
+
+
+/**
+ * Flush current data in the socket 
+ * This function is used to remove remaining sweep data after a sweep is stopped
+ * @param dev - A pointer to the WSA device structure.
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_flush_data(struct wsa_device *dev) {
+	
+	int16_t return_status = 0;
+	int32_t status = 0;
+	int32_t size = 0;
+	//check if the wsa is already sweeping
+	return_status = wsa_get_sweep_status(dev, &status);
+	if (status == 1) {
+		return WSA_ERR_SWEEPALREADYRUNNING;
+	}
+
+
+	return_status = wsa_send_command(dev, "SWEEP:FLUSH\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in sweep flush: %s\n", wsa_get_error_msg(return_status));
+	}
+	return 0;
+}
+
+
+/**
+ * Abort the current capture
+ * This function is used to abort the current capture
+ * @param dev - A pointer to the WSA device structure.
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_abort_capture(struct wsa_device *dev){
+
+	int16_t return_status = 0;
+	int32_t status = 0;
+	int32_t size = 0;
+	printf("abort capture \n");
+	//check if the wsa is already sweeping
+	return_status = wsa_get_sweep_status(dev, &status);
+
+	return_status = wsa_send_command(dev, "SYSTEM:ABORT\n");
+	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
+	if (return_status < 0)
+	{
+		doutf(DHIGH, "Error in system abort: %s\n", wsa_get_error_msg(return_status));
+	}
+	return 0;
+
 }
 
 
@@ -1633,9 +1691,6 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
 
 	return 0;
 }
-   
-   
-   
 
 /**
  * Gets the number of samples per packet in the
@@ -1675,7 +1730,6 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* sa
 
 	return 0;
 }
-
 
 /**
  * Sets the number of samples per packet in the user's
@@ -1753,7 +1807,6 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t pack
 	char temp_str[50];
 
 	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %u\n", packets_per_block);
-
 	result = wsa_send_command(device, temp_str);
 	if (result < 0) 
 	{
@@ -1780,22 +1833,18 @@ int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
 	long temp;
 
 	wsa_send_query(device, "SWEEP:ENTRY:DECIMATION?\n", &query);
-
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
-
 	// convert & make sure no error
 	if (to_int(query.output, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-
 	// make sure the returned value is valid
 	if (((temp != 0) && (temp < device->descr.min_decimation)) || 
 		(temp > device->descr.max_decimation)) {
 		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
-
 	*rate = (int32_t) temp;
 
 	return 0;
@@ -1820,9 +1869,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
 	if (((rate != 0) && (rate < device->descr.min_decimation)) || 
 		(rate > device->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
-
 	sprintf(temp_str, "SWEEP:ENTRY:DECIMATION %d", rate);
-	
 	// set the rate using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result < 0) {
@@ -1852,16 +1899,13 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, 
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
-
 	strtok_result = strtok(query.output, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
-
 	*start_frequency = (int64_t) temp;
-
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
@@ -1869,7 +1913,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*stop_frequency = (int64_t) temp;
-	
+
 	return 0;
 }
 /**
@@ -1889,24 +1933,20 @@ int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t start_frequency, i
 	int16_t result = 0;
 	char temp_str[50];
 
-	
 	if (result < 0)
 		return result;
 
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n",start_frequency,stop_frequency);
-	printf("got to freq\n");
 	// set the freq using the selected connect type
 	result = wsa_send_command(device, temp_str);
-
-	if (result == WSA_ERR_SETFAILED){
-	
+	if (result == WSA_ERR_SETFAILED) {
 		doutf(DMED, "Error WSA_ERR_FREQSETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_FREQSETFAILED));
 		return WSA_ERR_FREQSETFAILED;
 	}
-	else if (result < 0) 
-		
+	else if (result < 0) { 
 		return result;
+	}
 	return 0;
 }
 
@@ -2398,7 +2438,6 @@ int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position) {
 
 /**
  * start sweeping through the current sweep list
- * 
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
  */
@@ -2437,7 +2476,14 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 {
 	int16_t return_status = 0;
 	int32_t status = 0;
-		
+	int32_t vrt_header_bytes = 2 * BYTES_PER_VRT_WORD;
+	uint8_t* vrt_header_buffer = 0;
+	int32_t bytes_received = 0;
+	uint32_t timeout = 360;
+	clock_t start_time = clock();
+	int16_t socket_receive_result = 0;
+	clock_t end_time = 2 * 1000 + start_time;
+	int i = 0;	
 	//check if the wsa is not sweeping
 	return_status = wsa_get_sweep_status(dev, &status);
 	if (status == 0) {
@@ -2448,8 +2494,27 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
+	}		
+	
+	//flush remaining sweep data in the WSA
+	return_status = wsa_flush_data(dev);
+
+	if (return_status < 0){
+		return return_status;
 	}
-	return 0;
+	
+	start_time = clock();
+	end_time = 2 * 1000 + start_time;
+	//read the left over packets from the socket
+	while(clock() <= end_time) {
+
+		vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
+		
+		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_header_buffer, vrt_header_bytes, timeout, &bytes_received);
+	
+		free(vrt_header_buffer);
+	}
+		return 0;
 }
 
 /**
@@ -2545,13 +2610,10 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	struct wsa_resp query;		// store query results
 	double temp;
 	char* strtok_result;
-		
-	
+	printf("got here \n");
+	sprintf(temp_str, "SWEEP:ENTRY:READ? %u\n", position);
 	result = wsa_send_query(dev, temp_str, &query);
-	
-
-	printf("output: %s \n ", query.output);
-		strtok_result = strtok(query.output, ",");
+	strtok_result = strtok(query.output, ",");
 
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
@@ -2722,134 +2784,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 //testing program
 int16_t wsa_test(struct wsa_device *dev) {
 
-	clock_t start_time = clock();
-	clock_t end_time = 5 * 1000 + start_time;
-  	uint8_t* vrt_header_buffer = 0;
-	uint8_t* temp_buffer = 0;
-	uint8_t packet_order_indicator = 0;
-	uint16_t temp_size = 0;
-	int32_t temp_size_bytes = 0;
-	int32_t indicator_field = 0;
-	uint16_t expected_header_size = 2;
-	int32_t vrt_header_bytes = expected_header_size * BYTES_PER_VRT_WORD;
-	uint8_t* vrt_packet_buffer = 0;
-	int32_t vrt_packet_bytes = 0;
-	int32_t context_indicator_field = 0;
-	int32_t bytes_received = 0;
-	int16_t socket_receive_result = 0;
-	int16_t result = 0;
-	int64_t frequency1 = 0;
-	uint32_t stream_identifier_word = 0;
-	uint16_t packet_size = 0;
-	int64_t freq_word1 = 0;
-	int64_t freq_word2 = 0;
-	int64_t freq_holder1 = 0;
-	long double freq_holder = 0;
-	double integer_holder = 0;
-	double dec_holder = 0;
-	int64_t freq_dec = 0;
-	int8_t data_pos = 16;
-	int i; 
-	FILE * pFile;
-	pFile = fopen ("myfile.bin","rb");
-
-	//allocate space for the header buffer
-
-
-
-	for (i = 0; i < 100; i++) {
-
-	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
-	
-	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
-	//socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-	 result = fread (vrt_header_buffer,1, vrt_header_bytes,pFile);
-	 
-
-	 stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
-			+ (((uint32_t) vrt_header_buffer[5]) << 16) 
-			+ (((uint32_t) vrt_header_buffer[6]) << 8) 
-			+ (uint32_t) vrt_header_buffer[7];		
-
-
-	if ((stream_identifier_word == 0x90000001 || stream_identifier_word == 0x90000002)) {
-			
-		
-			//i--;
-		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];	
-
-		//allocate memory for the context packet
-		temp_size_bytes = (packet_size-2)*4;
-		
-
-		temp_buffer = (uint8_t*) malloc(temp_size_bytes * sizeof(uint8_t));
-
-	
-		result = fread (temp_buffer,1, temp_size_bytes,pFile);
-
-
-		if (stream_identifier_word == 0x90000001) {
-			if ((temp_buffer[12] & 0x0f) == 0x08) {
-				freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
-
-				freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
-		
-
-				freq_holder1 = 4096 * freq_word1 + (freq_word2 & 0xfff00000)/1048576;
-				freq_holder = (double) freq_holder1;
-				integer_holder = freq_holder;
-				freq_dec = (freq_word2 & 0x000fffff);
-				dec_holder = (double) freq_dec;
-				freq_holder = integer_holder + dec_holder/1000000;
-				printf("frequency is: %f \n", freq_holder/MHZ);
-		}
-
-		
-
-			//store digitizer data in the digitizer structure
-		} else if (stream_identifier_word == 0x90000002) {
-
-		
-		}
-		free(temp_buffer);
-		free(vrt_header_buffer);
-		
-
-	
-
-	} else if (stream_identifier_word == 0x90000003){ 
-
-
-
-
-	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
-	//	sweep_samples_per_packet = packet_size-6;
-
-	
-		vrt_packet_bytes = 4 * (packet_size-2);
-		vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
-		
-	//	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-	result = fread (vrt_packet_buffer,1, vrt_packet_bytes,pFile);
-
-	free(vrt_packet_buffer);
-	free(vrt_header_buffer);	
-	}
-	
-	}
-	printf("got to end \n");
-	fclose(pFile);
-	printf("got to end of freeing buffers \n");
-	return 0;	
- 
-
-
-
+	wsa_close(dev);
 
 }
