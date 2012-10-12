@@ -2494,7 +2494,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	if (return_status < 0)
 	{
 		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
-	}		
+	}		                      
 	
 	//flush remaining sweep data in the WSA
 	return_status = wsa_flush_data(dev);
