@@ -431,7 +431,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 	printf("Gathering WSA settings... ");
 
-		//determine if the another user is capturing data
+	//determine if the another user is capturing data
 	result = wsa_system_read_status(dev,&acquisition_status);
 	if (acquisition_status == 0) {
 		//request capture access
@@ -447,11 +447,21 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if(sweep_status == 0) {
 	
 		//flush content of the data socket
-		//result = wsa_flush_data(dev);
+		result = wsa_flush_data(dev);
 
 				if (result < 0)
 		{
 			doutf(DHIGH, "Error in wsa_flush_data: %s\n", wsa_get_error_msg(result));
+			return result;
+		}
+
+		// Get samples per packet
+		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
+		doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
+	
+		if (result < 0)
+		{
+			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
 		}
 
@@ -698,12 +708,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			{
 				expected_packet_order_indicator = 0;
 			}
-		
+			printf("samples per packet: %d \n",samples_per_packet );
+			printf("First iq saved: %d,%d\n", i_buffer[0], q_buffer[0]);
+			printf("Last iq saved: %d,%d\n", i_buffer[samples_per_packet - 1], q_buffer[samples_per_packet - 1]);
 			for (j = 0; j < samples_per_packet; j++)
 			{
 			
 				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
-				
+				//printf("%d,%d\n", i_buffer[j], q_buffer[j]);
 			}
 		
 			if (!((i + 1) % 10))

@@ -52,7 +52,7 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_b
 
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
-
+    
 int16_t wsa_flush_data(struct wsa_device *dev);
 
 int16_t wsa_system_abort_capture(struct wsa_device *dev);

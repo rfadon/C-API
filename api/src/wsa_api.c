@@ -393,6 +393,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	} else if (header->packet_type == 0) {
 
 	// Note: don't rely on the value of return_status
+		printf("spp is: %u \n", spp);
 	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, spp);
 	*samples_per_packet = spp;
 	free(data_buffer);
@@ -561,8 +562,8 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	wsa_send_query(dev, "CALC:DEC?\n", &query);
-
+	wsa_send_query(dev, ":SENSE:DEC?\n", &query);
+	printf("output buffer is: %s \n", query.output);
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -607,7 +608,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 		(rate > dev->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 
-	sprintf(temp_str, "CALC:DEC %d", rate);
+	sprintf(temp_str, "SENSE:DEC %d", rate);
 	
 	// set the rate using the selected connect type
 	result = wsa_send_command(dev, temp_str);
@@ -2492,10 +2493,9 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	return_status = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 	if (return_status < 0)
-	{
+	{    
 		doutf(DHIGH, "Error in sweep stop: %s\n", wsa_get_error_msg(return_status));
-	}		                      
-	
+	}		           
 	//flush remaining sweep data in the WSA
 	return_status = wsa_flush_data(dev);
 

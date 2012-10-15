@@ -21,7 +21,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size); 
+int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size); 
 int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_packet* const reciever);
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
@@ -861,7 +861,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 
 	//TODO: Fix this not responding properly
-	////determine if the packet is neither context or iq	 using the pkt type
+	////determine if the packet is neither context or iq using the pkt type
 	//if((vrt_header_buffer[0] & 0xf0) != 0x40 && (vrt_header_buffer[0] & 0xf0) !=0x10){
 	//		free(vrt_packet_buffer);
 	//		printf("pkt ype is: %x \n", vrt_header_buffer[0] & 0xf0); 
@@ -873,7 +873,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	{
 		
 		//fclose (pFile);
-		printf("not iq frame has been found \n");
 		printf("stream identifier is: %x \n", stream_identifier_word);
 		free(vrt_packet_buffer);
 		
@@ -951,6 +950,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 			
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+		
 		doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 		if (socket_receive_result < 0)
@@ -1011,7 +1011,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// *****
 		// Copy the IQ data payload to the provided buffer
 		// *****
-				
+		//printf("spp is: %u \n", *samples_per_packet);		
 		if(*samples_per_packet == 65530) {
 		
 			sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
@@ -1019,6 +1019,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		{
 			return WSA_ERR_MALLOCFAILED;
 		}
+			printf("sweep spp is: %u \n", sweep_samples_per_packet);
 			memcpy(sweep_data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
 			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet * BYTES_PER_VRT_WORD);
 			*samples_per_packet = sweep_samples_per_packet;
@@ -1027,7 +1028,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 			free(vrt_header_buffer);
 			return 0;	
 		}
-
 		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), *samples_per_packet * BYTES_PER_VRT_WORD);
 
 	}
@@ -1037,18 +1037,19 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	return 0;	
 }
 
-
-
-
-
 /**
  *copy sweep data packets from the sweep data to the regular data buffer
  * @return returns 0 once complete.
  */
-int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, int16_t size) 
+int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size) 
 {
-
 	int i;
+
+
+	printf("data buffer at 1: %x \n", data_buf[0]);
+	printf("data buffer at the last: %x \n", data_buf[size - 1]);
+
+	
 	for(i = 0; i < size; i++) {
 		data_buf[i] = sweep_data_buf[i];
 	}
@@ -1124,6 +1125,7 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 		j++;
 	}
 
+	
 	return (i / 4); //sample_size
 }
 
