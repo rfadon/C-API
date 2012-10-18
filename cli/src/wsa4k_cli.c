@@ -370,16 +370,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint8_t context_is = 0;
 	int8_t title_print =0;
 	int16_t result = 0;
-	double reciever_rf_gain = 0;
-	double reciever_if_gain = 0;
+	double receiver_rf_gain = 0;
+	double receiver_if_gain = 0;
 	uint16_t samples_per_packet = 65530;
 	int32_t field_indicator = 0;	
 	uint32_t packets_per_block = 100;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
-	double reciever_temperature = 0;
-	int32_t reciever_reference_point = 0;
+	double receiver_temperature = 0;
+	int32_t receiver_reference_point = 0;
 	double digitizer_reference_level = 0;
 	int64_t freq = 0;
 	int64_t start_frequency = 0;
@@ -387,7 +387,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t amplitude = 0;
 	int8_t count = 0;
 	int16_t acquisition_status;
-	long double reciever_frequency = 0;
+	long double receiver_frequency = 0;
 	long double digitizer_bandwidth = 0;
 	long double digitizer_rf_frequency_offset = 0;
 	
@@ -410,7 +410,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	struct wsa_vrt_packet_header* header;
 	struct wsa_vrt_packet_trailer* trailer;
-	struct wsa_reciever_packet* reciever;
+	struct wsa_receiver_packet* receiver;
 	struct wsa_digitizer_packet* digitizer;
 
 	// *****
@@ -516,8 +516,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	reciever = (struct wsa_reciever_packet*) malloc(sizeof(struct wsa_reciever_packet));
-	if (reciever == NULL)
+	receiver = (struct wsa_receiver_packet*) malloc(sizeof(struct wsa_receiver_packet));
+	if (receiver == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
 		fclose(iq_fptr); 
@@ -527,11 +527,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
-	if (reciever == NULL)
+	if (receiver == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
 		fclose(iq_fptr); 
-		free(reciever);
+		free(receiver);
 		free(trailer);
 		free(header);
 		return WSA_ERR_MALLOCFAILED;
@@ -543,7 +543,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
 		fclose(iq_fptr); 
-		free(reciever);
+		free(receiver);
 		free(digitizer);
 		free(trailer);
 		free(header);
@@ -558,7 +558,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
 		fclose(iq_fptr);
 		free(digitizer);
-		free(reciever);
+		free(receiver);
 		free(trailer);
 		free(header);
 		free(i_buffer);
@@ -576,7 +576,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
 		fclose(iq_fptr);
 		free(digitizer);
-		free(reciever);
+		free(receiver);
 		free(trailer);
 		free(header);
 		free(i_buffer);
@@ -607,14 +607,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_iq_packet(dev, header, trailer, reciever, digitizer, i_buffer, q_buffer, &samples_per_packet);
+		result = wsa_read_iq_packet(dev, header, trailer, receiver, digitizer, i_buffer, q_buffer, &samples_per_packet);
 		// get the end time of each data capture
 
 		if (result < 0)
 		{
 			fclose(iq_fptr);
 			free(digitizer);
-			free(reciever);
+			free(receiver);
 			free(trailer);
 			free(header);
 			free(i_buffer);
@@ -629,32 +629,32 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		if (header->packet_type == 1) {
 
-			fprintf(iq_fptr, "Reciever Packet Found\n");
-			field_indicator = reciever->indicator_field;
+			fprintf(iq_fptr, "receiver Packet Found\n");
+			field_indicator = receiver->indicator_field;
 
 			if((field_indicator & 0xf0000000) == 0xc0000000) {
-				reciever_reference_point = reciever->reference_point;
-				fprintf(iq_fptr, "Reference Point: %u\n", reciever_reference_point);
+				receiver_reference_point = receiver->reference_point;
+				fprintf(iq_fptr, "Reference Point: %u\n", receiver_reference_point);
 			
 			}
 			if ((field_indicator & 0x0f000000) == 0x08000000) {
-				reciever_frequency = reciever->frequency;
-				fprintf(iq_fptr, "Frequency: %.12E \n", reciever_frequency);
+				receiver_frequency = receiver->frequency;
+				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_frequency);
 		
 			}
 
 			if ((field_indicator & 0x00f00000) == 0x00800000) {
-				reciever_if_gain= reciever->gain_if;
-				reciever_rf_gain= reciever->gain_rf;
-				fprintf(iq_fptr, "Reference IF Gain: %E\n", reciever_if_gain);
-				fprintf(iq_fptr, "Reference RF Gain: %E\n", reciever_rf_gain);
+				receiver_if_gain= receiver->gain_if;
+				receiver_rf_gain= receiver->gain_rf;
+				fprintf(iq_fptr, "Reference IF Gain: %E\n", receiver_if_gain);
+				fprintf(iq_fptr, "Reference RF Gain: %E\n", receiver_rf_gain);
 
 			} 	
 			
 			if ((field_indicator & 0x0f000000) == 0x04000000) {
 				
-				reciever_temperature = reciever->temperature;
-				fprintf(iq_fptr, "Temperature: %u\n", reciever_temperature);
+				receiver_temperature = receiver->temperature;
+				fprintf(iq_fptr, "Temperature: %u\n", receiver_temperature);
 			
 			} 
 			i--;
@@ -694,7 +694,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		fclose(iq_fptr);
 		free(digitizer);
-		free(reciever);
+		free(receiver);
 		free(trailer);
 		free(header);
 		free(i_buffer);
@@ -741,7 +741,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		run_time_ms);
 		fclose(iq_fptr);
 		free(digitizer);
-		free(reciever);
+		free(receiver);
 		free(trailer);
 		free(header);
 		free(i_buffer);

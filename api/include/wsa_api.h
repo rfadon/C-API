@@ -39,7 +39,7 @@ int16_t wsa_capture_block(struct wsa_device* const device);
 int16_t wsa_read_iq_packet (struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
-		struct wsa_reciever_packet* const reciever,
+		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,

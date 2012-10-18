@@ -22,7 +22,7 @@ int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size); 
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, struct wsa_reciever_packet* const reciever);
+int16_t extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
 int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
 
@@ -740,7 +740,7 @@ const char *wsa_get_error_msg(int16_t err_code)
 /**
  * Reads one VRT packet containing raw IQ data or a Context Packet.
  *if a Context Packet is detected, the information inside the packet will be returned
- *inside the reciever structure and the digitizer structure.
+ *inside the receiver structure and the digitizer structure.
  *
  *if an IQ Packet is detected, the IQ data will be returned
  * Each packet consists of a header, a data payload, and a trailer.
@@ -783,7 +783,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  *		the VRT header information
  * @param trailer - A pointer to \b wsa_vrt_packet_trailer structure to store 
  *		the VRT trailer information
- *@param reciever - a pointer to \b wsa_reciever_packet strucuture to store
+ *@param receiver - a pointer to \b wsa_receiver_packet strucuture to store
  *		the Context data
  *@param digitizer - a pointer to \b wsa_digitizer_packet strucuture to store
  *		the Context data
@@ -799,7 +799,7 @@ const char *wsa_get_error_msg(int16_t err_code)
 int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
-		struct wsa_reciever_packet* const reciever,
+		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
 		uint16_t* samples_per_packet)
@@ -897,10 +897,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, context_buffer, context_packet_bytes, TIMEOUT, &bytes_received);
 
 
-		//store reciever data in the reciever structure
+		//store receiver data in the receiver structure
 		if (stream_identifier_word == 0x90000001) {
 			header->packet_type = 1;
-			result = extract_reciever_packet_data(context_buffer, reciever);
+			result = extract_receiver_packet_data(context_buffer, receiver);
 
 			//store digitizer data in the digitizer structure
 		} else if (stream_identifier_word == 0x90000002) {
@@ -1012,26 +1012,27 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// Copy the IQ data payload to the provided buffer
 		// *****
 		//printf("spp is: %u \n", *samples_per_packet);		
-		if(*samples_per_packet == 65530) {
-		
-			sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-		if (sweep_data_buffer == NULL)
-		{
-			return WSA_ERR_MALLOCFAILED;
-		}
-			printf("sweep spp is: %u \n", sweep_samples_per_packet);
-			memcpy(sweep_data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
-			result = copy_sweep_data(data_buffer, sweep_data_buffer, sweep_samples_per_packet * BYTES_PER_VRT_WORD);
-			*samples_per_packet = sweep_samples_per_packet;
-			free(sweep_data_buffer);
-			free(vrt_packet_buffer);
-			free(vrt_header_buffer);
-			return 0;	
-		}
-		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), *samples_per_packet * BYTES_PER_VRT_WORD);
-
+		//if(*samples_per_packet == 65530) {
+		//
+		//	sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+		//if (sweep_data_buffer == NULL)
+		//{
+		//	return WSA_ERR_MALLOCFAILED;
+		//}
+		//	
+		//	memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
+		//	
+		//	*samples_per_packet = sweep_samples_per_packet;
+		//	free(sweep_data_buffer);
+		//	free(vrt_packet_buffer);
+		//	free(vrt_header_buffer);
+		//	return 0;	
+		//}
+		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
+		*samples_per_packet = sweep_samples_per_packet;
 	}
-		free(sweep_data_buffer);
+
+		
 		free(vrt_packet_buffer);
 		free(vrt_header_buffer);
 	return 0;	
@@ -1131,16 +1132,16 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 
 
 /**
- * Decodes the raw reciever context packet and store it in the reciever 
+ * Decodes the raw receiver context packet and store it in the receiver 
  * structure 
  *
- * @param temp_buffer - pointer that points to the header of the reciever packet
+ * @param temp_buffer - pointer that points to the header of the receiver packet
  *note: the first two words are not included, the first word that temp points to is the 
  * timestamp. please review the program's guide for further information on how context packets are stored
- * @param reciever - a pointer structure to store the reciever data 
+ * @param receiver - a pointer structure to store the receiver data 
  * @return 0 if the data was stored succesfully, return a negative 16 bit integer otherwise 
  */
-int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_packet* const reciever)
+int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_packet* const receiver)
 {
 
 
@@ -1164,7 +1165,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 	double integer_holder = 0;
 	int32_t context_fields = 0;
 	//store the indicator field, which contains the content of the packet
-	reciever->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
+	receiver->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
@@ -1181,11 +1182,11 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		
 				if (reference_point == 16777217) {
 
-		reciever->reference_point = 1;
+		receiver->reference_point = 1;
 
 		} else if (reference_point == 16777218) {
 		
-			reciever->reference_point = 2;
+			receiver->reference_point = 2;
 		}
 	}
 	    
@@ -1212,7 +1213,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		freq_holder = freq_holder + dec_holder/1000000;
 		data_pos = data_pos + 8;
 		printf("frequency is: %f \n", freq_holder/MHZ);
-		reciever->frequency = freq_holder/MHZ;
+		receiver->frequency = freq_holder/MHZ;
 		
 		
 		
@@ -1242,8 +1243,8 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 		dec_holder = gain_holder;
 		gain_if = integer_holder + dec_holder/1000;
 
-		reciever->gain_if = gain_if;
-		reciever->gain_rf = gain_rf; 
+		receiver->gain_if = gain_if;
+		receiver->gain_rf = gain_rf; 
 		data_pos = data_pos + 4;
 		
 	}
@@ -1259,7 +1260,7 @@ int16_t extract_reciever_packet_data(uint8_t* temp_buffer, 	struct wsa_reciever_
 				integer_holder = temperature_holder;
 				temperature_holder = (temperature & 0x0000003f);
 				dec_holder = temperature_holder;
-				reciever->temperature = temperature;
+				receiver->temperature = temperature;
 
 	}
 
@@ -1347,9 +1348,9 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 								(int64_t) temp_buffer[data_pos + 7]);
 
-		rf_freq_holder = 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;
+		rf_freq_holder = (double) 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;
 		integer_holder = (double) rf_freq_holder;
-		rf_freq_holder = (rf_freq_word2 & 0x000fffff);
+		rf_freq_holder = (double) (rf_freq_word2 & 0x000fffff);
 		dec_holder = (double) rf_freq_holder;
 		rf_freq_holder = (integer_holder/1000000) + (dec_holder/100000000000);
 
