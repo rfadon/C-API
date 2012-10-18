@@ -20,9 +20,8 @@ int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size); 
-int16_t extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
-int16_t extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
-
+void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
+void extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
 
 
 // Initialized the \b wsa_device descriptor structure
@@ -794,7 +793,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
+int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
@@ -812,7 +811,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	int32_t bytes_received = 0;
 	int16_t socket_receive_result = 0;
-	int16_t result = 0;
 	
 	uint16_t packet_size = 0;
 	uint16_t iq_packet_size;
@@ -840,10 +838,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	// retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);	
-	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_header_buffer);
 		return socket_receive_result;
 	}
@@ -903,10 +901,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	}
 
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{
-		doutf(DHIGH, "Error in wsa_read_iq_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_packet_buffer);
 		free(vrt_header_buffer);
 
@@ -946,13 +944,11 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	
 	if (stream_identifier_word == RECEIVER_STREAM_ID) 
 	{
-		result = extract_receiver_packet_data(vrt_packet_buffer, receiver);
-		// TODO verify result
+		extract_receiver_packet_data(vrt_packet_buffer, receiver);
 	} 
 	else if (stream_identifier_word == DIGITIZER_STREAM_ID) 
 	{
-		result = extract_digitizer_packet_data(vrt_packet_buffer, digitizer);
-		// TODO verify result
+		extract_digitizer_packet_data(vrt_packet_buffer, digitizer);
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
 	else if (stream_identifier_word == IF_DATA_STREAM_ID)
@@ -1010,7 +1006,7 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 						 int32_t sample_size)
 {
 	//int32_t result = 0;
-	uint32_t i;
+	int32_t i;
 	int32_t j = 0;
 
 	// *****
@@ -1019,14 +1015,13 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
 
-		// TEMPORARY WORKAROUND
+		// TODO: TEMPORARY WORKAROUND
 		// WSA returns a signed 14-bit integer padded with 2 most significant 0-bits
 		// to encode the number in 16 bits.
 		// Need to sign-extend by copying the value of bit 13 to bits 14 and 15
 		// so that the number can be treated as a signed 16-bit integer
 		// This workaround can be removed after the WSA firmware is updated
 		// to perform the sign-extension in the embedded firmware
-
 		if (data_buf[i] & 0x20)
 		{
 			i_buf[j] = (((int16_t) (data_buf[i] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 1]);
@@ -1051,9 +1046,8 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 		
 		j++;
 	}
-
 	
-	return (i / 4); //sample_size
+	return (i / 4);
 }
 
 
@@ -1062,17 +1056,18 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
  * structure 
  *
  * @param temp_buffer - pointer that points to the header of the receiver packet
- *note: the first two words are not included, the first word that temp points to is the 
+ * note: the first two words are not included, the first word that temp points to is the 
  * timestamp. please review the program's guide for further information on how context packets are stored
  * @param receiver - a pointer structure to store the receiver data 
- * @return 0 if the data was stored succesfully, return a negative 16 bit integer otherwise 
+ * @return None
  */
-int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_packet* const receiver)
+void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver)
 {
 	int16_t gain_holder = 0;
 	
 	int8_t gain_if_byte1 = 0;
 	int8_t gain_if_byte2 = 0;
+	int16_t gain_if_temp;
 	double gain_if = 0;
 	
 	int8_t gain_rf_byte1 = 0;
@@ -1086,13 +1081,11 @@ int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_
 	
 	int64_t freq_word1 = 0;
 	int64_t freq_word2 = 0;
-	int64_t freq_holder1 = 0;
-	long double freq_holder = 0;
-	int64_t freq_dec = 0;
+	long double freq_int_part = 0;
+	long double freq_dec_part = 0;
+	double integer_holder = 0;
 	
 	int8_t data_pos = 16;
-	double dec_holder = 0;
-	double integer_holder = 0;
 	int32_t context_fields = 0;
 	
 	//store the indicator field, which contains the content of the packet
@@ -1102,7 +1095,8 @@ int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_
 								(int32_t) temp_buffer[15]);
 	
 	//determine if reference point data is present
-	if ((temp_buffer[12] & 0xf0) == 0xc0) {
+	if ((temp_buffer[12] & 0xf0) == 0xc0) 
+	{
 		
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
 							(((int32_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1116,75 +1110,71 @@ int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_
 	    
 	
 	//determine if frequency data is present
-	if ((temp_buffer[12] & 0x0f) == 0x08) {
-		//printf("%x %x %x %x \n",temp_buffer[data_pos], temp_buffer[data_pos + 1], temp_buffer[data_pos + 2] ,temp_buffer[data_pos + 3]);
-		//printf("%x %x %x %x \n",temp_buffer[data_pos + 4], temp_buffer[data_pos + 5], temp_buffer[data_pos + 6] ,temp_buffer[data_pos + 7]);
+	if ((temp_buffer[12] & 0x0f) == 0x08) 
+	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
+					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+					(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+					(int64_t) temp_buffer[data_pos + 3]);
 
-		freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
+		freq_word2 = ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+					(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+					(int64_t) temp_buffer[data_pos + 7]);
 
-		freq_holder1 = 4096 * freq_word1 + (freq_word2 & 0xfff00000) / 1048576;
-		freq_holder = (double) freq_holder1;
-		freq_dec = (freq_word2 & 0x000fffff);
-		dec_holder = (double) freq_dec;
-		freq_holder = freq_holder + dec_holder / 1000000;
-		data_pos = data_pos + 8;
-		receiver->frequency = freq_holder / MHZ;
+		freq_int_part = (long double) ((freq_word1 << 12) + (freq_word2 >> 20));
+		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
+		receiver->frequency = freq_int_part + (freq_dec_part / MHZ);
 	
+		data_pos = data_pos + 8;
 	}
 	
 	//determine if gain data is present
-	if ((temp_buffer[13] & 0xf0) == 0x80) {
-	
+	if ((temp_buffer[13] & 0xf0) == 0x80) 
+	{	
+		/*gain_if_byte1 = (int8_t) temp_buffer[data_pos]; 
+		gain_if_byte2 = (int8_t) temp_buffer[data_pos + 1];
 		
-		gain_if_byte1 = (int8_t) temp_buffer[data_pos]; 
-		gain_if_byte2 = (int8_t) temp_buffer[data_pos + 1]; 
 		gain_rf_byte1 = (int8_t) temp_buffer[data_pos + 2];
 		gain_rf_byte2 = (int8_t) temp_buffer[data_pos + 3];
-
 		
 		gain_holder = (2 * gain_rf_byte1) + (gain_rf_byte2 & 0x8)/128;
 		integer_holder = gain_holder;
 		gain_holder = (gain_rf_byte2 & 0x7);
-		dec_holder = gain_holder;
-		gain_rf = integer_holder + dec_holder/1000;
+		gain_rf = integer_holder + gain_holder/1000;
 		
 		gain_holder = (2 * gain_if_byte1) + (gain_if_byte2 & 0x8)/128;
 		integer_holder = gain_holder;
 		gain_holder = (gain_if_byte2 & 0x7);
-		dec_holder = gain_holder;
-		gain_if = integer_holder + dec_holder/1000;
-
-		receiver->gain_if = gain_if;
-		receiver->gain_rf = gain_rf; 
-		data_pos = data_pos + 4;
+		gain_if = integer_holder + gain_holder/1000;
 		
+		receiver->gain_rf = gain_rf;
+		receiver->gain_if = gain_if;
+		*/
+		
+		receiver->gain_if = temp_buffer[data_pos] + 
+				(temp_buffer[data_pos + 1] / 1000.0);
+		
+		receiver->gain_rf =  temp_buffer[data_pos + 2] + 
+				(temp_buffer[data_pos + 3] / 1000.0);
+		
+		printf("gain rf: %lf, gain if: %lf", receiver->gain_if, receiver->gain_rf);
+		
+		data_pos = data_pos + 4;		
 	}
 
 	//determine of temperature data is present
 	if ((temp_buffer[13] & 0x0f) == 0x04) {
 				temperature = ((((int32_t) temp_buffer[data_pos]) << 24) +
-								(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int32_t) temp_buffer[data_pos + 3]);
+							(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+							(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+							(int32_t) temp_buffer[data_pos + 3]);
 				
 				temperature_holder = (temperature & 0x0000ffc0);
 				integer_holder = temperature_holder;
 				temperature_holder = (temperature & 0x0000003f);
-				dec_holder = temperature_holder;
-				receiver->temperature = temperature;
-
+				receiver->temperature = temperature_holder;
 	}
-
-
-	return 0;
-
 }
 		
 		
@@ -1193,12 +1183,12 @@ int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_
  * structure 
  *
  * @param temp_buffer - pointer that points to the header of the digitizer packet
- *note: the first two words are not included, the first word that temp points to is the 
+ * note: the first two words are not included, the first word that temp points to is the 
  * timestamp. please review the program's guide for further information on how context packets are stored
  * @param digitizer - a pointer structure to store the digitizer data 
- * @return 0 if the data was stored succesfully, return a negative 16 bit integer otherwise 
+ * @return None
  */
-int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer){
+void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer){
 
 	int64_t bandwidth = 0;
 	int8_t data_pos = 16;
@@ -1291,12 +1281,5 @@ int16_t extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer
 				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
 				digitizer->reference_level = reference_level1;
 	}
-
-	return 0;
-
-
-
-
 }
-
 

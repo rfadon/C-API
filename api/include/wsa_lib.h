@@ -247,7 +247,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
 
-int16_t wsa_read_iq_packet_raw(struct wsa_device* const device, 
+int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
@@ -258,8 +258,6 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 						 int32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
-
-int16_t extract_receiver_frequency( uint8_t* temp_buffer, int64_t* receiver_frequency); 
 
 const char *wsa_get_error_msg(int16_t err_code);
 

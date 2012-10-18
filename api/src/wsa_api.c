@@ -278,7 +278,7 @@ int16_t wsa_system_read_status(struct wsa_device *dev, int16_t* status) {
  * and \b wsa_set_packets_per_block
  * \n
  * After this method returns, read the data using
- * the method \b wsa_read_iq_packet.
+ * the method \b wsa_read_vrt_packet.
  *
  * @param device - A pointer to the WSA device structure.
  *
@@ -353,7 +353,7 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_iq_packet (struct wsa_device* const dev, 
+int16_t wsa_read_vrt_packet (struct wsa_device* const dev, 
 		struct wsa_vrt_packet_header* const header, 
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
@@ -370,15 +370,14 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	return_status = wsa_read_iq_packet_raw(dev, header, trailer, receiver, digitizer, data_buffer);
-	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
+	return_status = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, data_buffer);
+	doutf(DMED, "wsa_read_vrt_packet_raw returned %hd\n", return_status);
 	if (return_status < 0)
 	{
 		if (return_status == WSA_ERR_NOTIQFRAME) {
 			result = wsa_system_abort_capture(dev);
-		}
-	
-		doutf(DHIGH, "Error in wsa_read_iq_packet: %s\n", wsa_get_error_msg(return_status));
+		}	
+		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(return_status));
 		free(data_buffer);
 		return return_status;
 	} 
@@ -432,7 +431,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 
 /**
  * Gets the number of samples that will be returned in each
- * VRT packet when \b wsa_read_iq_packet is called
+ * VRT packet when \b wsa_read_vrt_packet is called
  * 
  * @param device - A pointer to the WSA device structure.
  * @param samples_per_packet - A uint16_t pointer to store the samples per packet
@@ -478,7 +477,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device* device, int32_t* samples_p
  * The number of samples in each packet is set by
  * the method wsa_set_samples_per_packet.
  * After capturing the block with the method wsa_capture_block,
- * read back the data by calling wsa_read_iq_packet
+ * read back the data by calling wsa_read_vrt_packet
  * \b packets_per_block number of times
  * 
  * @param dev - A pointer to the WSA device structure.

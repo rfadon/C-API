@@ -608,7 +608,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_iq_packet(dev, header, trailer, receiver, digitizer, i_buffer, q_buffer, samples_per_packet);
+		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer, 
+					i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
 		{
 			break;
