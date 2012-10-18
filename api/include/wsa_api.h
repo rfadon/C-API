@@ -94,7 +94,7 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 // DEVICE STATUS SECTION                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_firm_v(struct wsa_device *dev);
+int16_t wsa_get_fw_ver(struct wsa_device *dev);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -120,18 +120,10 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t *lock_ref);
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// CONTEXT PACKET TESTS SECTION                                              //
-// ////////////////////////////////////////////////////////////////////////////
-
-int16_t wsa_get_context_digitizer(struct wsa_device* dev, int32_t packets_per_block, int32_t samples_per_packet);
-
-
-
-// ////////////////////////////////////////////////////////////////////////////
 // SWEEP FUNCTIONS                                              //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num);
-int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int16_t port_num);
+int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num);
+int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num);
 
 int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain);
 int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
@@ -139,8 +131,9 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain);
 		
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet);
-int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet);
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, int32_t* samples_per_packet);
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet);
+
 int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block);
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
 

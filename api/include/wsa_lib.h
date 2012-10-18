@@ -161,7 +161,7 @@ struct wsa_time {
 
 struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
-	uint32_t samples_per_packet;
+	uint16_t samples_per_packet;
 	uint8_t packet_type;
 	struct wsa_time time_stamp;
 };
@@ -203,8 +203,8 @@ struct wsa_sweep_list {
 	int32_t gain_if;
 	int32_t dwell_seconds_value;
 	int32_t dwell_useconds_value;
-	uint16_t samples_per_packet;
-	uint32_t packets_per_block;
+	int32_t samples_per_packet;
+	int32_t packets_per_block;
 	int8_t trigger_enable;
 	int64_t trigger_start_frequency;
 	int64_t trigger_stop_frequency;
@@ -249,7 +249,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
 		uint8_t* const data_buffer, 
-		 uint16_t* samples_per_packet);
+		uint16_t* samples_per_packet);
 
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 uint32_t sample_size);

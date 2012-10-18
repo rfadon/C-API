@@ -372,9 +372,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t result = 0;
 	double receiver_rf_gain = 0;
 	double receiver_if_gain = 0;
-	uint16_t samples_per_packet = 65530;
+	int32_t samples_per_packet;
 	int32_t field_indicator = 0;	
-	uint32_t packets_per_block = 100;
+	int32_t packets_per_block;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
@@ -483,6 +483,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
 		}
+
+	//if sweep mode is enabled, samples per packet is set to the maximum value to hold iq packets with variant sizes
+	} else if (sweep_status == 1) {
+		samples_per_packet = 65530;
+		packets_per_block = 10;
 
 	}
 	printf("\n Finished Gathering.. ");
@@ -595,7 +600,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (i == 1 && title_print == 0)
 		{
 			title_print =1;
-			fprintf(iq_fptr, "#%d, cf:%lld, ss:%u, sec:%d, pico:%lld\n", 
+			fprintf(iq_fptr, "#%d, cf:%lld, ss:%ld, sec:%d, pico:%lld\n", 
 				1, 
 				freq, 
 				packets_per_block * samples_per_packet, 
@@ -629,7 +634,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		if (header->packet_type == 1) {
 
-			fprintf(iq_fptr, "receiver Packet Found\n");
+			/*fprintf(iq_fptr, "receiver Packet Found\n");
 			field_indicator = receiver->indicator_field;
 
 			if((field_indicator & 0xf0000000) == 0xc0000000) {
@@ -656,13 +661,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				receiver_temperature = receiver->temperature;
 				fprintf(iq_fptr, "Temperature: %u\n", receiver_temperature);
 			
-			} 
+			} */
 			i--;
 			continue;
 				
 		} else if (header->packet_type == 2) {
 
-			field_indicator = digitizer->indicator_field;
+			/*field_indicator = digitizer->indicator_field;
 
 			fprintf(iq_fptr, "Digitizer Packet Found\n");
 			if ((field_indicator & 0xf0000000) == 0xa0000000) {
@@ -679,7 +684,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				digitizer_reference_level = digitizer->reference_level;
 				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);
 		
-			} 
+			} */
 			i--;
 			continue;
 
@@ -692,13 +697,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (header->packet_order_indicator != expected_packet_order_indicator)
 		{
 
-		fclose(iq_fptr);
-		free(digitizer);
-		free(receiver);
-		free(trailer);
-		free(header);
-		free(i_buffer);
-		free(q_buffer);
+			fclose(iq_fptr);
+			free(digitizer);
+			free(receiver);
+			free(trailer);
+			free(header);
+			free(i_buffer);
+			free(q_buffer);
 			return WSA_ERR_PACKETOUTOFORDER;
 		}
 
@@ -708,9 +713,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			{
 				expected_packet_order_indicator = 0;
 			}
-			printf("samples per packet: %d \n",samples_per_packet );
-			printf("First iq saved: %d,%d\n", i_buffer[0], q_buffer[0]);
-			printf("Last iq saved: %d,%d\n", i_buffer[samples_per_packet - 1], q_buffer[samples_per_packet - 1]);
+
 			for (j = 0; j < samples_per_packet; j++)
 			{
 			
@@ -739,13 +742,15 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 		capture_time_ms,
 		run_time_ms);
-		fclose(iq_fptr);
-		free(digitizer);
-		free(receiver);
-		free(trailer);
-		free(header);
-		free(i_buffer);
-		free(q_buffer);
+		
+	fclose(iq_fptr);
+	free(digitizer);
+	free(receiver);
+	free(trailer);
+	free(header);
+	free(i_buffer);
+	free(q_buffer);
+	
 	return 0;
 }
 
@@ -775,13 +780,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t if_gain_value;
 	int32_t dwell_seconds_value = 15;
 	int32_t dwell_miliseconds_value = 16;
-	uint16_t samples_per_packet;
-	uint32_t packets_per_block;
+	int32_t samples_per_packet;
+	int32_t packets_per_block;
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
 	int16_t acquisition_status = 20;
-
+	uint8_t valid;
+	char *file_name;
 	//DIR *temp;
 
 	strcpy(msg,"");
@@ -790,9 +796,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	// Handle GET commands
 	//*****
 
-	if (strcmp(cmd_words[0], "TEST") == 0) {
-		result = test(dev);
-	} else if (strcmp(cmd_words[0], "GET") == 0) {
+	if (strcmp(cmd_words[0], "GET") == 0) {
 		if (strcmp(cmd_words[1], "ANT") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -950,7 +954,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			result = wsa_get_packets_per_block(dev, &packets_per_block);
 			if (result >= 0) {
-				printf("Current packets per block: %u\n", packets_per_block);
+				printf("Current packets per block: %d\n", packets_per_block);
 			}
 		} // end get PPB
 
@@ -972,7 +976,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else {
 				result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 				if (result >= 0) {
-					printf("Current samples per packet: %hu\n", 
+					printf("Current samples per packet: %d\n", 
 					samples_per_packet);
 				}
 			}
@@ -1044,7 +1048,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (strcmp(cmd_words[3], "") == 0) 
 					printf("Missing the file name.\n");
 				else {
-					char *file_name = cmd_words[3];
+					*file_name = cmd_words[3];
 					if (num_words > 3) {
 						for (i = 4; i < num_words; i++) {
 							strcat(file_name, " ");
@@ -1131,7 +1135,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
 			if (strcmp(cmd_words[2], "RF") == 0) {
 				enum wsa_gain gain = (enum wsa_gain) NULL;
-				uint8_t valid = TRUE;
+				valid = TRUE;
 
 				// Convert to wsa_gain type
 				if (strstr(cmd_words[3], "HIGH") != NULL)
@@ -1193,7 +1197,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = WSA_ERR_INVNUMBER;
 					}
 					else {
-						packets_per_block = (uint32_t) temp_number;
+						packets_per_block = (int32_t) temp_number;
 						result = wsa_set_packets_per_block(dev,	
 									packets_per_block);
 					}
@@ -1218,7 +1222,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = WSA_ERR_INVSAMPLESIZE;
 					}
 					else {
-						samples_per_packet = (uint16_t) temp_number;
+						samples_per_packet = (int32_t) temp_number;
 						result = wsa_set_samples_per_packet(dev, 
 									samples_per_packet);
 					}
@@ -1301,219 +1305,224 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						}
 					}
 				}
-				}//end set sweep dwell
+			}//end set sweep dwell
 
 			if (strcmp(cmd_words[3], "ANT") == 0) {
-			if (strcmp(cmd_words[4], "") == 0) 
-				printf("Missing the antenna port value. See 'h'.\n");
-			else
-				result = wsa_set_sweep_antenna(dev, atoi(cmd_words[4]));
+				if (strcmp(cmd_words[4], "") == 0) 
+					printf("Missing the antenna port value. See 'h'.\n");
+				else
+					result = wsa_set_sweep_antenna(dev, atoi(cmd_words[4]));
+				
 				if (result == WSA_ERR_INVANTENNAPORT)
 					sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
-					WSA_RFE0560_MAX_ANT_PORT);
+							WSA_RFE0560_MAX_ANT_PORT);
 			}
-		//end set ANT
+			//end set ANT
 			else if (strcmp(cmd_words[3], "GAIN") == 0) {
-			if (strcmp(cmd_words[4], "RF") == 0) {
-				enum wsa_gain gain = (enum wsa_gain) NULL;
-				uint8_t valid = TRUE;
+				if (strcmp(cmd_words[4], "RF") == 0) {
+					enum wsa_gain gain = (enum wsa_gain) NULL;
+					valid = TRUE;
 
-				// Convert to wsa_gain type
-				if (strstr(cmd_words[5], "HIGH") != NULL)
-					gain = WSA_GAIN_HIGH;
-				else if (strstr(cmd_words[5], "MED") != NULL)
-					gain = WSA_GAIN_MED;
-				else if (strstr(cmd_words[5], "VLOW") != NULL)
-					gain = WSA_GAIN_VLOW;
-				else if (strstr(cmd_words[5], "LOW") != NULL)
-					gain = WSA_GAIN_LOW;
-				else if (strcmp(cmd_words[5], "") == 0) {
-					printf("Missing the gain paramter. See 'h'.\n");
-					valid = FALSE;
-				}
-				else { 
-					printf("Invalid RF gain setting. See 'h'.\n");
-					valid = FALSE;
-				}
-
-				if (valid)
-					result = wsa_set_sweep_gain_rf(dev, gain);
-			} // end set GAIN RF
-
-			else if (strcmp(cmd_words[4], "IF") == 0) {
-				if (strcmp(cmd_words[5], "") == 0) {
-					printf("Missing the gain in dB value. See 'h'.\n");
-				}
-				else if (!to_int(cmd_words[5], &temp_number)) {
-					if_gain_value = (int32_t) temp_number;
-					result = wsa_set_sweep_gain_if(dev, if_gain_value);
-					if (result == WSA_ERR_INVIFGAIN) {
-						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
-							dev->descr.min_if_gain, dev->descr.max_if_gain);
+					// Convert to wsa_gain type
+					if (strstr(cmd_words[5], "HIGH") != NULL)
+						gain = WSA_GAIN_HIGH;
+					else if (strstr(cmd_words[5], "MED") != NULL)
+						gain = WSA_GAIN_MED;
+					else if (strstr(cmd_words[5], "VLOW") != NULL)
+						gain = WSA_GAIN_VLOW;
+					else if (strstr(cmd_words[5], "LOW") != NULL)
+						gain = WSA_GAIN_LOW;
+					else if (strcmp(cmd_words[5], "") == 0) {
+						printf("Missing the gain paramter. See 'h'.\n");
+						valid = FALSE;
 					}
-				}
-				else {
-					printf("The IF gain value must be an integer. See 'h'.\n");
-				}
-			} // end set GAIN IF
-			
-			else {
-				printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
-			}
-		} // end set GAIN
-			else if (strcmp(cmd_words[3], "DEC") == 0) {
-			if (strcmp(cmd_words[4], "") == 0) 
-				printf("Missing the decimation rate. See 'h'.\n");
-			
-			rate = (int32_t) atof(cmd_words[4]);
+					else { 
+						printf("Invalid RF gain setting. See 'h'.\n");
+						valid = FALSE;
+					}
 
-			result = wsa_set_sweep_decimation(dev, rate);
-			if (result == WSA_ERR_INVDECIMATIONRATE)
-				sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
-				dev->descr.min_decimation, dev->descr.max_decimation);
-		} // end set decimation rate
+					if (valid)
+						result = wsa_set_sweep_gain_rf(dev, gain);
+				} // end set GAIN RF
 
-		else if (strcmp(cmd_words[3], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[4], "ENABLE") == 0) {
-				if (strcmp(cmd_words[5], "OFF") == 0) {
-					result = wsa_set_sweep_trigger_type(dev, 0);
-				} else if (strcmp(cmd_words[5], "ON") == 0) {
-					result = wsa_set_sweep_trigger_type(dev, 1);
-				} else {
-					printf("Invalid 'set sweep trigger type'. See 'h'. \n");
-				}
-			} else if (strcmp(cmd_words[4], "LEVEL") == 0) {
-				if (num_words < 5) {
-					printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
-				}
-				else {
-					strtok_result = strtok(cmd_words[5], ",");
-					if (to_double(strtok_result, &temp_double) < 0) {
-						printf("Start frequency must be a valid number\n");
+				else if (strcmp(cmd_words[4], "IF") == 0) {
+					if (strcmp(cmd_words[5], "") == 0) {
+						printf("Missing the gain in dB value. See 'h'.\n");
+					}
+					else if (!to_int(cmd_words[5], &temp_number)) {
+						if_gain_value = (int32_t) temp_number;
+						result = wsa_set_sweep_gain_if(dev, if_gain_value);
+						if (result == WSA_ERR_INVIFGAIN) {
+							sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
+								dev->descr.min_if_gain, dev->descr.max_if_gain);
+						}
 					}
 					else {
-						start_frequency = (int64_t) (temp_double);
-						
-						strtok_result = strtok(NULL, ",");
+						printf("The IF gain value must be an integer. See 'h'.\n");
+					}
+				} // end set GAIN IF
+			
+				else {
+					printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
+				}
+			} // end set GAIN
+			
+			else if (strcmp(cmd_words[3], "DEC") == 0) {
+				if (strcmp(cmd_words[4], "") == 0) 
+					printf("Missing the decimation rate. See 'h'.\n");
+				
+				rate = (int32_t) atof(cmd_words[4]);
+				result = wsa_set_sweep_decimation(dev, rate);
+				if (result == WSA_ERR_INVDECIMATIONRATE)
+					sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+							dev->descr.min_decimation, dev->descr.max_decimation);
+			} // end set decimation rate
+
+			else if (strcmp(cmd_words[3], "TRIGGER") == 0) {
+				if (strcmp(cmd_words[4], "ENABLE") == 0) {
+					if (strcmp(cmd_words[5], "OFF") == 0) {
+						result = wsa_set_sweep_trigger_type(dev, 0);
+					} else if (strcmp(cmd_words[5], "ON") == 0) {
+						result = wsa_set_sweep_trigger_type(dev, 1);
+					} else {
+						printf("Invalid 'set sweep trigger type'. See 'h'. \n");
+					}
+				} else if (strcmp(cmd_words[4], "LEVEL") == 0) {
+					if (num_words < 5) {
+						printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
+					}
+					else {
+						strtok_result = strtok(cmd_words[5], ",");
 						if (to_double(strtok_result, &temp_double) < 0) {
-							printf("Stop frequency must be a valid number\n");
+							printf("Start frequency must be a valid number\n");
 						}
 						else {
-							stop_frequency = (int64_t) (temp_double);
+							start_frequency = (int64_t) (temp_double);
 							
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) {
-								printf("Amplitude must be a valid number\n");
+								printf("Stop frequency must be a valid number\n");
 							}
 							else {
-								amplitude = (int64_t) temp_double;
+								stop_frequency = (int64_t) (temp_double);
 								
-								result = wsa_set_sweep_trigger_level(dev, start_frequency, stop_frequency, amplitude);
+								strtok_result = strtok(NULL, ",");
+								if (to_double(strtok_result, &temp_double) < 0) {
+									printf("Amplitude must be a valid number\n");
+								}
+								else {
+									amplitude = (int64_t) temp_double;
+									
+									result = wsa_set_sweep_trigger_level(dev, start_frequency, stop_frequency, amplitude);
+								}
 							}
 						}
 					}
+				} else {
+					printf("Invalid 'set sweep trigger level'. See 'h'. \n");
+				}// end set trigger level
+			}// end set trigger
+
+			else if (strcmp(cmd_words[3], "FREQ") == 0) {
+				if (strcmp(cmd_words[4], "") == 0) {
+					printf("Missing the frequency value. See 'h'.\n");
 				}
-			} else {
-				printf("Invalid 'set sweep trigger level'. See 'h'. \n");
-			}// end set trigger level
-		}// end set trigger
-
-		else if (strcmp(cmd_words[3], "FREQ") == 0) {
-			if (strcmp(cmd_words[4], "") == 0) {
-				printf("Missing the frequency value. See 'h'.\n");
-			}
-			else {
-				start_frequency = (int64_t) (atof(cmd_words[4]) * MHZ);
-				stop_frequency = (int64_t) (atof(cmd_words[5]) * MHZ);
-				result = wsa_set_sweep_freq(dev, start_frequency, stop_frequency);
-				if (result == WSA_ERR_FREQOUTOFBOUND)
-					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
-						(double) dev->descr.min_tune_freq / MHZ, 
-						(double) dev->descr.max_tune_freq / MHZ);
-			}
-		} // end set FREQ
-
-		else if (strcmp(cmd_words[3], "FSHIFT") == 0) {
-			if (strcmp(cmd_words[4], "") == 0) {
-				printf("Missing the frequency value. See 'h'.\n");
-			}
-			else {
-				fshift = (float) (atof(cmd_words[4]) * MHZ);
-				result = wsa_set_sweep_freq_shift(dev, fshift);
-				if (result == WSA_ERR_FREQOUTOFBOUND)
-					sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
-						0.0, (float) dev->descr.inst_bw / MHZ);
-			}
-		} // end set FSHIFT
-
-		else if (strcmp(cmd_words[3], "FSTEP") == 0) {
-			if (strcmp(cmd_words[4], "") == 0) {
-				printf("Missing the frequency step value. See 'h'.\n");
-			}
-			else {
-				freq = (int64_t) (atof(cmd_words[4]) * MHZ);
-				result = wsa_set_sweep_freq_step(dev, freq);
-				if (result == WSA_ERR_FREQOUTOFBOUND)
-					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
-						(double) dev->descr.min_tune_freq / MHZ, 
-						(double) dev->descr.max_tune_freq / MHZ);
-			}
-		} // end set FSTEP
-		
-		else if (strcmp(cmd_words[3], "PPB") == 0) {
-			if (num_words < 4) {
-				printf("Missing the packets per block value. See 'h'.\n");
-			}
-			else {
-				result = to_int(cmd_words[4], &temp_number);
-
-				if (!result) {
-					
-					if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
-						temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
-						sprintf(msg, "\n\t- The integer is out of range.");
-
-						result = WSA_ERR_INVNUMBER;
-					}
-					else {
-						packets_per_block = (uint32_t) temp_number;
-						result = wsa_set_sweep_packets_per_block(dev,	
-									packets_per_block);
-					}
+				else {
+					start_frequency = (int64_t) (atof(cmd_words[4]) * MHZ);
+					stop_frequency = (int64_t) (atof(cmd_words[5]) * MHZ);
+					result = wsa_set_sweep_freq(dev, start_frequency, stop_frequency);
+					if (result == WSA_ERR_FREQOUTOFBOUND)
+						sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+							(double) dev->descr.min_tune_freq / MHZ, 
+							(double) dev->descr.max_tune_freq / MHZ);
 				}
-			}
-		} // end set PPB
+			} // end set FREQ
 
-		else if (strcmp(cmd_words[3], "SPP") == 0) {
-			if (num_words < 4) {
-				printf("Missing the samples per packet value. See 'h'.\n");
-			}
-			else {
-				result = to_int(cmd_words[4], &temp_number);
+			else if (strcmp(cmd_words[3], "FSHIFT") == 0) {
+				if (strcmp(cmd_words[4], "") == 0) {
+					printf("Missing the frequency value. See 'h'.\n");
+				}
+				else {
+					fshift = (float) (atof(cmd_words[4]) * MHZ);
+					result = wsa_set_sweep_freq_shift(dev, fshift);
+					if (result == WSA_ERR_FREQOUTOFBOUND)
+						sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
+							0.0, (float) dev->descr.inst_bw / MHZ);
+				}
+			} // end set FSHIFT
 
-				if (!result) {
-					if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
-						temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
-						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
-							WSA4000_MIN_SAMPLES_PER_PACKET,
-							WSA4000_MAX_SAMPLES_PER_PACKET);
+			else if (strcmp(cmd_words[3], "FSTEP") == 0) {
+				if (strcmp(cmd_words[4], "") == 0) {
+					printf("Missing the frequency step value. See 'h'.\n");
+				}
+				else {
+					freq = (int64_t) (atof(cmd_words[4]) * MHZ);
+					result = wsa_set_sweep_freq_step(dev, freq);
+					if (result == WSA_ERR_FREQOUTOFBOUND)
+						sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+							(double) dev->descr.min_tune_freq / MHZ, 
+							(double) dev->descr.max_tune_freq / MHZ);
+				}
+			} // end set FSTEP
+			
+			else if (strcmp(cmd_words[3], "PPB") == 0) {
+				if (num_words < 4) {
+					printf("Missing the packets per block value. See 'h'.\n");
+				}
+				else {
+					result = to_int(cmd_words[4], &temp_number);
 
-						result = WSA_ERR_INVSAMPLESIZE;
-					}
-					else {
-						samples_per_packet = (uint16_t) temp_number;
-						result = wsa_set_sweep_samples_per_packet(dev, 
-									samples_per_packet);
+					if (!result) {
+						
+						if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
+							temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+							sprintf(msg, "\n\t- The integer is out of range.");
+
+							result = WSA_ERR_INVNUMBER;
+						}
+						else {
+							packets_per_block = (int32_t) temp_number;
+							result = wsa_set_sweep_packets_per_block(dev,	
+										packets_per_block);
+						}
 					}
 				}
-			}
-		} // end set SPP
-		//END ENTRY
-		} else {
+			} // end set PPB
+
+			else if (strcmp(cmd_words[3], "SPP") == 0) {
+				if (num_words < 4) {
+					printf("Missing the samples per packet value. See 'h'.\n");
+				}
+				else {
+					result = to_int(cmd_words[4], &temp_number);
+
+					if (!result) {
+						if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
+							temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+							sprintf(msg, "\n\t- Valid range: %hu to %hu.",
+								WSA4000_MIN_SAMPLES_PER_PACKET,
+								WSA4000_MAX_SAMPLES_PER_PACKET);
+
+							result = WSA_ERR_INVSAMPLESIZE;
+						}
+						else {
+							samples_per_packet = (int32_t) temp_number;
+							result = wsa_set_sweep_samples_per_packet(dev, 
+										samples_per_packet);
+						}
+					}
+				}
+			} // end set SPP
+			
+			// end sweep entry ENTRY
+		} 
+		else {
 			printf("Invalid 'set sweep'. See 'h'.\n");
 		}
 
-	} else {
+	} 
+	
+	else {
 		printf("Invalid 'set'. See 'h'.\n");
 		}
 
@@ -1523,13 +1532,15 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	// Handle SWEEP commands
 	//*****
 	 else if  (strcmp(cmd_words[0], "SWEEP") == 0) {
-		
+		 
 		 if (strcmp(cmd_words[1], "LIST") == 0) {
 			
 			 if (strcmp(cmd_words[2], "DELETE") == 0) {
 				if (num_words < 4) {
-				printf("Missing the position of the entry. See 'h'.\n");
-				}else {
+					printf("Missing the position of the entry. See 'h'.\n");
+				
+				} 
+				else {
 
 				result = to_int(cmd_words[3], &temp_number);
 				int_result = (uint32_t) temp_number;
@@ -2061,8 +2072,8 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int16_t result;
 	int64_t freq;
 	int32_t value;
-	uint16_t samples_per_packet;
-	uint32_t packets_per_block;
+	int32_t samples_per_packet;
+	int32_t packets_per_block;
     int64_t start_frequency=0;
 	int64_t stop_frequency=0;
 	int64_t amplitude=0;
@@ -2080,7 +2091,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	// TODO handle the errors
 	
 	
-		result = wsa_get_firm_v(dev);
+		result = wsa_get_fw_ver(dev);
 	if (result < 0)
 		printf("\t\t- Error: Failed getting the firmware version.\n");
 
@@ -2107,7 +2118,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	
 	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 	if (result >= 0) {
-		printf("\t\t- Samples per packet: %hu\n", samples_per_packet);
+		printf("\t\t- Samples per packet: %d\n", samples_per_packet);
 	}
 	else {
 		printf("\t\t- Error: Failed reading the samples per packet value.\n");
@@ -2115,12 +2126,12 @@ void print_wsa_stat(struct wsa_device *dev) {
 	
 	result = wsa_get_packets_per_block(dev, &packets_per_block);
 	if (result >= 0) {
-		printf("\t\t- Packets per block: %u\n", packets_per_block);
+		printf("\t\t- Packets per block: %d\n", packets_per_block);
 	}
 	else {
 		printf("\t\t- Error: Failed reading the packets per bock value.\n");
 	}
-	printf("\t\tTrigger Settings: \n");
+	printf("\t\t- Trigger Settings: \n");
 	result = wsa_get_trigger_enable(dev, &enable);
 		if (result >= 0) {
 
@@ -2179,8 +2190,8 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	int int_result = 0;
 	int32_t dwell_seconds_value = 15;
 	int32_t dwell_useconds_value = 16;
-	uint16_t samples_per_packet;
-	uint32_t packets_per_block;
+	int32_t samples_per_packet;
+	int32_t packets_per_block;
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
@@ -2219,7 +2230,7 @@ int16_t print_sweep_entry(struct wsa_device *dev) {
 	//print samples per packets sweep value
 	result = wsa_get_sweep_samples_per_packet(dev, &samples_per_packet);
 		if (result >= 0) {
-		printf("   Samples Per Packet: %d \n", samples_per_packet);
+			printf("   Samples Per Packet: %d \n", samples_per_packet);
 		}
 
 	//print packets per block
@@ -2297,14 +2308,14 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
 	printf("  Frequency shift: %f MHz\n",list_values->fshift);
 	printf("  decimation rate: %u \n",list_values->decimation_rate);
 	printf("  antenna port: %u \n",list_values->ant_port);
-	printf("  IF gain: %u \n",list_values->gain_if);
+	printf("  IF gain: %u \n", list_values->gain_if);
 
 	gain_rf_to_str(list_values->gain_rf, &temp[0]);
 	printf("   Current RF gain: %s\n", temp);
-	printf("  Samples Per backet: %u \n",list_values->samples_per_packet);
-	printf("  Packets per block: %u \n",list_values->packets_per_block);
-	printf("  Dwell seconds value is: %u \n",list_values->dwell_seconds_value);
-	printf("  Dwell Microseconds value is: %u \n",list_values->dwell_useconds_value);
+	printf("  Samples Per backet: %d \n", list_values->samples_per_packet);
+	printf("  Packets per block: %d \n", list_values->packets_per_block);
+	printf("  Dwell seconds value is: %u \n", list_values->dwell_seconds_value);
+	printf("  Dwell Microseconds value is: %lu \n", list_values->dwell_useconds_value);
 	printf("  Trigger Settings:\n");
 	if ( list_values->trigger_enable == 0) {
 		printf("        Triggers are disabled\n");

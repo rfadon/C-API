@@ -393,7 +393,6 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 	} else if (header->packet_type == 0) {
 
 	// Note: don't rely on the value of return_status
-		printf("spp is: %u \n", spp);
 	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, spp);
 	*samples_per_packet = spp;
 	free(data_buffer);
@@ -1037,7 +1036,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*port_num = (int16_t) temp;
+	*port_num = (int32_t) temp;
 
 	return 0;
 }
@@ -1151,7 +1150,7 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 // DEVICE SETTINGS					                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_firm_v(struct wsa_device *dev)
+int16_t wsa_get_fw_ver(struct wsa_device *dev)
 {
 	struct wsa_resp query;		// store query results
 
@@ -1496,7 +1495,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref)
  * @return 0 on success, or a negative number on error.
  */
 
-int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num) 
+int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num) 
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1518,7 +1517,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*port_num = (int16_t) temp;
+	*port_num = (int32_t) temp;
 
 	return 0;
 }
@@ -1530,7 +1529,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int16_t *port_num)
  * 1 = antenna1, 2 = antenna2.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int16_t port_num) 
+int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
 {
 	int16_t result = 0;
 	char temp_str[30];
@@ -1700,7 +1699,7 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
  * @param samples_per_packet - A uint16_t pointer to store the samples per packet
  * @return 0 if successful, or a negative number on error.
  */
-int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
+int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, int32_t* samples_per_packet)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1727,7 +1726,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* sa
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*samples_per_packet = (uint16_t) temp;
+	*samples_per_packet = (uint32_t) temp;
 
 	return 0;
 }
@@ -1739,7 +1738,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, uint16_t* sa
  * @param samples_per_packet - The sample size to set.
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, uint16_t samples_per_packet)
+int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, int32_t samples_per_packet)
 {
 	int16_t result;
 	char temp_str[50];

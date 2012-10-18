@@ -821,7 +821,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	int64_t frequency1 = 0;
 	uint32_t stream_identifier_word = 0;
 	uint16_t packet_size = 0;
-	uint16_t sweep_samples_per_packet = 1;
+	uint16_t iq_packet_size;
 	uint32_t timestamp = 0;
 	uint64_t ptimestamp = 0;
 	uint8_t* sweep_data_buffer = 0;
@@ -842,7 +842,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 
 	//1) retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-
 	
 	doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
@@ -864,8 +863,7 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	////determine if the packet is neither context or iq using the pkt type
 	//if((vrt_header_buffer[0] & 0xf0) != 0x40 && (vrt_header_buffer[0] & 0xf0) !=0x10){
 	//		free(vrt_packet_buffer);
-	//		printf("pkt ype is: %x \n", vrt_header_buffer[0] & 0xf0); 
-	//		
+	//	
 	//		return WSA_ERR_NOTIQFRAME;
 	//}
 
@@ -927,11 +925,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		//Get the 16-bit "Pkt Size"
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 		doutf(DLOW, "Packet size: %hu 0x%04X\n", packet_size, packet_size);
-		sweep_samples_per_packet = packet_size - 6;
+		iq_packet_size = packet_size - 6;
 
 		header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 
-	
 		//Check TSI field for 01 & get sec time stamp at the 3rd word
 		if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
 		{
@@ -950,7 +947,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		}
 			
 		socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		
 		doutf(DMED, "In wsa_read_iq_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 
 		if (socket_receive_result < 0)
@@ -1011,25 +1007,8 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		// *****
 		// Copy the IQ data payload to the provided buffer
 		// *****
-		//printf("spp is: %u \n", *samples_per_packet);		
-		//if(*samples_per_packet == 65530) {
-		//
-		//	sweep_data_buffer = (uint8_t*) malloc((sweep_samples_per_packet) * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-		//if (sweep_data_buffer == NULL)
-		//{
-		//	return WSA_ERR_MALLOCFAILED;
-		//}
-		//	
-		//	memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
-		//	
-		//	*samples_per_packet = sweep_samples_per_packet;
-		//	free(sweep_data_buffer);
-		//	free(vrt_packet_buffer);
-		//	free(vrt_header_buffer);
-		//	return 0;	
-		//}
-		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), sweep_samples_per_packet * BYTES_PER_VRT_WORD);
-		*samples_per_packet = sweep_samples_per_packet;
+		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE-2) * BYTES_PER_VRT_WORD), iq_packet_size * BYTES_PER_VRT_WORD);
+		*samples_per_packet = iq_packet_size;
 	}
 
 		
@@ -1038,24 +1017,6 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 	return 0;	
 }
 
-/**
- *copy sweep data packets from the sweep data to the regular data buffer
- * @return returns 0 once complete.
- */
-int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size) 
-{
-	int i;
-
-
-	printf("data buffer at 1: %x \n", data_buf[0]);
-	printf("data buffer at the last: %x \n", data_buf[size - 1]);
-
-	
-	for(i = 0; i < size; i++) {
-		data_buf[i] = sweep_data_buf[i];
-	}
-	return 0;
-}
 
 /**
  * Decodes the raw \b data_buf buffer containing frame(s) of I & Q data bytes 
@@ -1212,13 +1173,8 @@ int16_t extract_receiver_packet_data(uint8_t* temp_buffer, 	struct wsa_receiver_
 		dec_holder = (double) freq_dec;
 		freq_holder = freq_holder + dec_holder/1000000;
 		data_pos = data_pos + 8;
-		printf("frequency is: %f \n", freq_holder/MHZ);
 		receiver->frequency = freq_holder/MHZ;
-		
-		
-		
-
-		
+	
 	}
 	
 	//determine if gain data is present
