@@ -360,22 +360,18 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 		struct wsa_digitizer_packet* const digitizer,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
-		uint16_t* samples_per_packet)
-		
+		int32_t samples_per_packet)		
 {
-	uint8_t* data_buffer = 0;
+	uint8_t* data_buffer;
 	int16_t return_status = 0;
 	int16_t result = 0;
-	uint16_t spp = 0;
 	int64_t frequency = 0;
-	spp = *samples_per_packet;
 
 	// allocate the data buffer
-	data_buffer = (uint8_t*) malloc(*samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	return_status = wsa_read_iq_packet_raw(dev, header, trailer, receiver, digitizer, data_buffer, &spp);
+	return_status = wsa_read_iq_packet_raw(dev, header, trailer, receiver, digitizer, data_buffer);
 	doutf(DMED, "In wsa_read_iq_packet: wsa_read_iq_packet_raw returned %hd\n", return_status);
-
 	if (return_status < 0)
 	{
 		if (return_status == WSA_ERR_NOTIQFRAME) {
@@ -387,17 +383,14 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
 		return return_status;
 	} 
 	
-	if (header->packet_type == 1 || header->packet_type == 2) {
-		free(data_buffer);
-	
-	} else if (header->packet_type == 0) {
-
-	// Note: don't rely on the value of return_status
-	return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, spp);
-	*samples_per_packet = spp;
-	free(data_buffer);
-	
+	if (header->stream_id == IF_DATA_STREAM_ID) 
+	{
+		// Note: don't rely on the value of return_status
+		return_status = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+		// TODO verify result
 	}
+	
+	free(data_buffer);
 
 	return 0;
 }
@@ -411,7 +404,7 @@ int16_t wsa_read_iq_packet (struct wsa_device* const dev,
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_packet)
+int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet)
 {
 	int16_t result;
 	char temp_str[50];
@@ -446,7 +439,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, uint16_t samples_per_
  *
  * @return 0 if successful, or a negative number on error.
  */
-int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_per_packet)
+int16_t wsa_get_samples_per_packet(struct wsa_device* device, int32_t* samples_per_packet)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -474,7 +467,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*samples_per_packet = (uint16_t) temp;
+	*samples_per_packet = (int32_t) temp;
 
 	return 0;
 }
@@ -493,7 +486,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device* device, uint16_t* samples_
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block)
+int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_block)
 {
 	int16_t result;
 	char temp_str[50];
@@ -522,7 +515,7 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, uint32_t packets_per_b
  *
  * @return 0 if successful, or a negative number on error.
  */
-int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_per_block)
+int16_t wsa_get_packets_per_block(struct wsa_device* device, int32_t* packets_per_block)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -541,7 +534,7 @@ int16_t wsa_get_packets_per_block(struct wsa_device* device, uint32_t* packets_p
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*packets_per_block = (uint32_t) temp;
+	*packets_per_block = (int32_t) temp;
 
 	return 0;
 }
@@ -563,6 +556,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 
 	wsa_send_query(dev, ":SENSE:DEC?\n", &query);
 	printf("output buffer is: %s \n", query.output);
+	
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -2723,7 +2717,7 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	sweep_list->dwell_seconds_value = (int32_t) temp;
 
 	
-			strtok_result = strtok(NULL, ",");
+	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
@@ -2732,12 +2726,12 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	
 	sweep_list->dwell_useconds_value = (int32_t) temp;
 
-
 	strtok_result = strtok(NULL, ",");	
 	if (strstr(strtok_result, "LEVEL") != NULL) {
-	sweep_list->trigger_enable = 1;
-	} else if (strstr(strtok_result, "NONE") != NULL) {
-	sweep_list->trigger_enable = 0;
+		sweep_list->trigger_enable = 1;
+	} 
+	else if (strstr(strtok_result, "NONE") != NULL) {
+		sweep_list->trigger_enable = 0;
 	}
 
 	strtok_result = strtok(NULL, ",");
@@ -2748,7 +2742,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	}
 	
 	sweep_list->trigger_start_frequency = (int64_t) temp;
-
 	
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
@@ -2759,8 +2752,7 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	
 	sweep_list->trigger_stop_frequency = (int64_t) temp;
 
-
-		strtok_result = strtok(NULL, ",");
+	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
@@ -2770,19 +2762,5 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	sweep_list->trigger_amplitude = (int64_t) temp;
 
 	return 0;
-
-
-
 }
 
-
-
-
-
-
-//testing program
-int16_t wsa_test(struct wsa_device *dev) {
-
-	wsa_close(dev);
-
-}

@@ -18,6 +18,11 @@
 
 #define MAX_PACKET_ORDER_INDICATOR 15
 
+// VRT context packet stream indentifier
+#define RECEIVER_STREAM_ID 0x90000001
+#define DIGITIZER_STREAM_ID 0x90000002
+#define IF_DATA_STREAM_ID 0x90000003
+
 
 // *****
 // SCPI related registers/bits
@@ -64,7 +69,7 @@
 #define WSA4000 "WSA4000"
 #define WSA4000_INST_BW 125000000ULL
 #define WSA4000_MIN_SAMPLE_SIZE 128
-#define WSA4000_MAX_SAMPLE_SIZE (2560 * 1024) // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
+#define WSA4000_MAX_SAMPLE_SIZE (32 * 1024 * 1024)
 
 #define WSA4000_MIN_SAMPLES_PER_PACKET 128
 
@@ -163,6 +168,7 @@ struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
 	uint16_t samples_per_packet;
 	uint8_t packet_type;
+	uint32_t stream_id;
 	struct wsa_time time_stamp;
 };
 
@@ -220,7 +226,6 @@ struct wsa_socket {
 struct wsa_device {
 	struct wsa_descriptor descr;
 	struct wsa_socket sock;
-	//struct wsa_trig *trig_list; 
 };
 
 struct wsa_resp {
@@ -235,7 +240,6 @@ struct wsa_resp {
 int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
 					char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
-
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 
 int16_t wsa_send_command(struct wsa_device *dev, char *command);
@@ -248,16 +252,10 @@ int16_t wsa_read_iq_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
-		uint8_t* const data_buffer, 
-		uint16_t* samples_per_packet);
-
-int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 uint32_t sample_size);
-
-int16_t wsa_read_status(struct wsa_device *dev, char *output);
+		uint8_t* const data_buffer);
 		
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 uint32_t sample_size);
+						 int32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 
