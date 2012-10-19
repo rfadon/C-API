@@ -80,8 +80,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
-int16_t print_sweep_entry(struct wsa_device *dev);
-int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position);
+void print_sweep_entry(struct wsa_device *dev);
+void print_sweep_entry_information(struct wsa_device *dev, int32_t position);
 
 /**
  * Print out the CLI options menu
@@ -418,7 +418,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t *i_buffer;		// To store the integer I data
 	int16_t *q_buffer;		// To store the integer Q data
 	
-	uint8_t expected_packet_order_indicator;
+	uint8_t expected_packet_order_indicator = 0;
+	int32_t iq_pkt_count = 1;
 	int32_t i;
 	int j;
 
@@ -576,7 +577,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
-	printf("Acquiring data bytes\n");
+	printf("Acquiring and saving data:\n ");
 	
 	// set capture block if not doing sweep
 	if (sweep_status == 0) {
@@ -596,14 +597,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}
 	}
-	
-	expected_packet_order_indicator = 0;
 
 	// Get the start time
 	get_current_time(&run_start_time);
 
 	// loop to get all the packet per sweep
-	for (i = 1; i < (packets_per_block + 1); i++)
+	for (i = 1; i <= packets_per_block; i++)
 	{	
 		// Get the start time
 		get_current_time(&capture_start_time);
@@ -616,7 +615,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		}
 		
 		// Print only once the header line per file
-		// TODO the 2nd condition is temporary for now until
+		// TODO the 2nd condition is temporary for now until save
 		// data format is determined. i == 1 cond'n might not applied then...
 		if ((i == 1) && (header->stream_id == IF_DATA_STREAM_ID))
 		{
@@ -644,68 +643,67 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
-
+		// TODO handle the packet order indicator for rec'r & dig'r as well
 		if (header->stream_id == RECEIVER_STREAM_ID) 
 		{
 			/*fprintf(iq_fptr, "receiver Packet Found\n");
 			field_indicator = receiver->indicator_field;
 
-			if((field_indicator & 0xf0000000) == 0xc0000000) {
+			if((field_indicator & 0xf0000000) == 0xc0000000) 
+			{
 				receiver_reference_point = receiver->reference_point;
-				fprintf(iq_fptr, "Reference Point: %u\n", receiver_reference_point);
-			
-			}
-			if ((field_indicator & 0x0f000000) == 0x08000000) {
-				receiver_frequency = receiver->frequency;
-				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_frequency);
-		
+				fprintf(iq_fptr, "Reference Point: %u\n", receiver_reference_point);			
 			}
 
-			if ((field_indicator & 0x00f00000) == 0x00800000) {
+			if ((field_indicator & 0x0f000000) == 0x08000000) 
+			{
+				receiver_frequency = receiver->frequency;
+				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_frequency);		
+			}
+
+			if ((field_indicator & 0x00f00000) == 0x00800000) 
+			{
 				receiver_if_gain= receiver->gain_if;
 				receiver_rf_gain= receiver->gain_rf;
 				fprintf(iq_fptr, "Reference IF Gain: %E\n", receiver_if_gain);
 				fprintf(iq_fptr, "Reference RF Gain: %E\n", receiver_rf_gain);
-
 			} 	
 			
-			if ((field_indicator & 0x0f000000) == 0x04000000) {
-				
+			if ((field_indicator & 0x0f000000) == 0x04000000) 
+			{				
 				receiver_temperature = receiver->temperature;
-				fprintf(iq_fptr, "Temperature: %u\n", receiver_temperature);
-			
+				fprintf(iq_fptr, "Temperature: %u\n", receiver_temperature);			
 			} */
 			i--;
 			continue;
-				
 		} 
 		else if (header->stream_id == DIGITIZER_STREAM_ID) 
 		{
 			/*field_indicator = digitizer->indicator_field;
 
 			fprintf(iq_fptr, "Digitizer Packet Found\n");
-			if ((field_indicator & 0xf0000000) == 0xa0000000) {
+			if ((field_indicator & 0xf0000000) == 0xa0000000) 
+			{
 				digitizer_bandwidth = digitizer->bandwidth;
 				fprintf(iq_fptr, "Bandwidth: %.12E \n", digitizer_bandwidth);
-		
 			} 			
-			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) {
+			
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
+			{
 				digitizer_rf_frequency_offset = digitizer->rf_frequency_offset;
 				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_frequency_offset);
-		
-			} 
+			}
+
 			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
 				digitizer_reference_level = digitizer->reference_level;
-				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);
-		
+				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);		
 			} */
 			i--;
 			continue;
-
 		} 
 		else if (header->stream_id == IF_DATA_STREAM_ID) 
 		{
-			if (i == 1) 
+			if (i == 1)
 			{
 				expected_packet_order_indicator = header->packet_order_indicator;
 			}
@@ -726,10 +724,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				//printf("%d,%d\n", i_buffer[j], q_buffer[j]);
 			}
 		
-			if (!((i + 1) % 10))
-				printf("Saved packet #%u\n", i + 1);
+			if (!(iq_pkt_count % 10))
+			{
+				printf("saved packet #%u\n", iq_pkt_count);
+				if (iq_pkt_count != packets_per_block)
+					printf(" ");
+			}
 			else 
 				printf(".");
+
+			iq_pkt_count++;
 		}
 	}
 
@@ -737,7 +741,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// get the total run end time
 		get_current_time(&run_end_time);
 		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
-		printf("\ndone.\n");
+		
+		// a little tweak to make print out readable
+		if (packets_per_block % 10)
+			printf("\n");
+		printf("done.\n\n");
 		
 		printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 			capture_time_ms,
@@ -1012,29 +1020,28 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end get TRIGGER
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
-
 			if (strcmp(cmd_words[2], "STATUS") == 0) {
 				result = wsa_get_sweep_status(dev, &int_result);
 				if (result >= 0) {
-					if (int_result == 0) {
-						printf("Sweep mode is off\n");
-					} else if (int_result == 1) {
-					printf("Sweep mode is on\n");
-					}
-				} // end get sweep status
-			} else if (strcmp(cmd_words[2], "LIST") == 0) {
+					if (int_result)
+						printf("Sweep mode is on.\n");
+					else
+						printf("Sweep mode is off.\n");
+				}
+			} 
+			else if (strcmp(cmd_words[2], "LIST") == 0) {
 				 if (strcmp(cmd_words[3], "SIZE") == 0) {
 					 result = wsa_get_sweep_list_size(dev, &int_result);
 					 printf("The Sweep list size is %d \n",int_result);
 				 }
-			//end get sweep list size
-			}else if (strcmp(cmd_words[2], "ENTRY") == 0) {
-			result = print_sweep_entry(dev);
-			//end get sweep list entry
-			}else {
-			printf("Invalid 'get sweep'. Try 'h'.\n");
 			}
-		}
+			else if (strcmp(cmd_words[2], "ENTRY") == 0) {
+				print_sweep_entry(dev);
+			}
+			else {
+				printf("Invalid 'get sweep'. Try 'h'.\n");
+			}
+		} // end get SWEEP
 		else {
 			printf("Invalid 'get'. Try 'h'.\n");
 		}
@@ -1548,7 +1555,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else {
 					result = to_int(cmd_words[3], &temp_number);
 					int_result = (uint32_t) temp_number;
-					result = print_sweep_entry_information(dev,temp_number);
+					print_sweep_entry_information(dev,temp_number);
 				}
 			}	
 			else if(strcmp(cmd_words[2], "COPY") == 0) {
@@ -2180,9 +2187,8 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
  * 
  * @param dev - a pointer to the wsa device
  * 
- * @return 0 if successful, else a negative value
  */
-int16_t print_sweep_entry(struct wsa_device *dev) 
+void print_sweep_entry(struct wsa_device *dev) 
 {	
 	int16_t result = 0;			// result returned from a function
 	int64_t freq = 0;
@@ -2284,13 +2290,12 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 			printf("Unknown state\n");
 		}
 	}
-
-	return 0;
 }
 
-
-
-int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
+/**
+ *
+ */
+void print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
 {	
 	int16_t result;
 	char temp[10];
@@ -2325,6 +2330,4 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t position)
 		printf("        Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
 		printf("        Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
-
-	return 0;
 }
