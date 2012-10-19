@@ -487,7 +487,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		samples_per_packet = dev->descr.max_sample_size;
 		packets_per_block = 10;	// Find a solution to this
 	}
-	printf("\n Finished Gathering.. ");
+	printf(" done.\n");
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
@@ -576,7 +576,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
-	printf("done.\nAcquiring data bytes\n");
+	printf("Acquiring data bytes\n");
 	
 	// set capture block if not doing sweep
 	if (sweep_status == 0) {
@@ -616,7 +616,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		}
 		
 		// Print only once the header line per file
-		if (i == 1)
+		// TODO the 2nd condition is temporary for now until
+		// data format is determined. i == 1 cond'n might not applied then...
+		if ((i == 1) && (header->stream_id == IF_DATA_STREAM_ID))
 		{
 			if (sweep_status)
 			{

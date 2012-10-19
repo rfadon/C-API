@@ -1862,12 +1862,15 @@ int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
 	if (((rate != 0) && (rate < device->descr.min_decimation)) || 
 		(rate > device->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
-	sprintf(temp_str, "SWEEP:ENTRY:DECIMATION %d", rate);
+
+	sprintf(temp_str, "SWEEP:ENTRY:DECIMATION %d\n", rate);
+	
 	// set the rate using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result < 0) {
 		doutf(DMED, "Error WSA_ERR_SIZESETFAILED: %s.\n", 
 			wsa_get_error_msg(WSA_ERR_SIZESETFAILED));
+
 		return WSA_ERR_SETFAILED;
 	}
 
@@ -1884,7 +1887,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
  */
 int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, int64_t* stop_frequency)
 {
-	struct wsa_resp query;		// store query results
+	struct wsa_resp query;	// store query results
 	double temp;
 	char* strtok_result;
 
@@ -1892,12 +1895,14 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, 
 	// Handle the query output here 
 	if (query.status <= 0)
 		return (int16_t) query.status;
+
 	strtok_result = strtok(query.output, ",");
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
+
 	*start_frequency = (int64_t) temp;
 	strtok_result = strtok(NULL, ",");
 	// Convert the number & make sure no error
@@ -1905,6 +1910,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_frequency, 
 	{
 		return WSA_ERR_RESPUNKNOWN;
 	}
+
 	*stop_frequency = (int64_t) temp;
 
 	return 0;
@@ -1929,7 +1935,7 @@ int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t start_frequency, i
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n",start_frequency,stop_frequency);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n", start_frequency, stop_frequency);
 	// set the freq using the selected connect type
 	result = wsa_send_command(device, temp_str);
 	if (result == WSA_ERR_SETFAILED) {

@@ -1062,31 +1062,18 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
  * @return None
  */
 void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver)
-{
-	int16_t gain_holder = 0;
-	
-	int8_t gain_if_byte1 = 0;
-	int8_t gain_if_byte2 = 0;
-	int16_t gain_if_temp;
-	double gain_if = 0;
-	
-	int8_t gain_rf_byte1 = 0;
-	int8_t gain_rf_byte2 = 0;
-	double gain_rf = 0;
-	
-	int16_t temperature_holder = 0;
-	int32_t temperature = 0;
-	
+{	
 	int32_t reference_point = 0;
 	
+	double gain_if = 0;
+	double gain_rf = 0;
+
 	int64_t freq_word1 = 0;
 	int64_t freq_word2 = 0;
 	long double freq_int_part = 0;
 	long double freq_dec_part = 0;
-	double integer_holder = 0;
 	
-	int8_t data_pos = 16;
-	int32_t context_fields = 0;
+	int8_t data_pos = 16; // increment data index
 	
 	//store the indicator field, which contains the content of the packet
 	receiver->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
@@ -1104,10 +1091,8 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 							(int32_t) temp_buffer[data_pos + 3]);
 		receiver->reference_point = reference_point;
 
-		// increment data index
 		data_pos = data_pos + 4;
 	}
-	    
 	
 	//determine if frequency data is present
 	if ((temp_buffer[12] & 0x0f) == 0x08) 
@@ -1131,49 +1116,20 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	
 	//determine if gain data is present
 	if ((temp_buffer[13] & 0xf0) == 0x80) 
-	{	
-		/*gain_if_byte1 = (int8_t) temp_buffer[data_pos]; 
-		gain_if_byte2 = (int8_t) temp_buffer[data_pos + 1];
-		
-		gain_rf_byte1 = (int8_t) temp_buffer[data_pos + 2];
-		gain_rf_byte2 = (int8_t) temp_buffer[data_pos + 3];
-		
-		gain_holder = (2 * gain_rf_byte1) + (gain_rf_byte2 & 0x8)/128;
-		integer_holder = gain_holder;
-		gain_holder = (gain_rf_byte2 & 0x7);
-		gain_rf = integer_holder + gain_holder/1000;
-		
-		gain_holder = (2 * gain_if_byte1) + (gain_if_byte2 & 0x8)/128;
-		integer_holder = gain_holder;
-		gain_holder = (gain_if_byte2 & 0x7);
-		gain_if = integer_holder + gain_holder/1000;
-		
-		receiver->gain_rf = gain_rf;
-		receiver->gain_if = gain_if;
-		*/
-		
-		receiver->gain_if = temp_buffer[data_pos] + 
-				(temp_buffer[data_pos + 1] / 1000.0);
-		
-		receiver->gain_rf =  temp_buffer[data_pos + 2] + 
-				(temp_buffer[data_pos + 3] / 1000.0);
-		
-		printf("gain rf: %lf, gain if: %lf", receiver->gain_if, receiver->gain_rf);
+	{		
+		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
+							temp_buffer[data_pos + 1]) / 128.0;
+
+		receiver->gain_rf = ((int16_t) (temp_buffer[data_pos + 2] << 8) + 
+							temp_buffer[data_pos + 3]) / 128.0;
 		
 		data_pos = data_pos + 4;		
 	}
 
 	//determine of temperature data is present
 	if ((temp_buffer[13] & 0x0f) == 0x04) {
-				temperature = ((((int32_t) temp_buffer[data_pos]) << 24) +
-							(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-							(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-							(int32_t) temp_buffer[data_pos + 3]);
-				
-				temperature_holder = (temperature & 0x0000ffc0);
-				integer_holder = temperature_holder;
-				temperature_holder = (temperature & 0x0000003f);
-				receiver->temperature = temperature_holder;
+		receiver->temperature = ((int16_t) (temp_buffer[data_pos + 2] << 8) + 
+					temp_buffer[data_pos + 3]) / 64.0;
 	}
 }
 		
