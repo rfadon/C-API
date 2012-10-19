@@ -1110,7 +1110,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		freq_int_part = (long double) ((freq_word1 << 12) + (freq_word2 >> 20));
 		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
 		receiver->frequency = freq_int_part + (freq_dec_part / MHZ);
-	
+		
 		data_pos = data_pos + 8;
 	}
 	
@@ -1144,27 +1144,25 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
  * @param digitizer - a pointer structure to store the digitizer data 
  * @return None
  */
-void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer){
+void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer) 
+{
 
-	int64_t bandwidth = 0;
-	int8_t data_pos = 16;
-	int32_t context_fields = 0;
-	int64_t rf_freq_offset = 0;
-	int32_t reference_level = 0;
-	int32_t reference_level_holder = 0;
 	int64_t band_word1 = 0;
 	int64_t band_word2 = 0;
+	long double band_int_part = 0;
+	long double band_dec_part = 0;
+
 	int64_t rf_freq_word1 = 0;
 	int64_t rf_freq_word2 = 0;
-	int64_t rf_freq_dec = 0;
-	int64_t rf_freq_int = 0;
-	int64_t band_holder = 0;
-	int64_t band_dec = 0;
-	double dec_holder = 0;
-	double integer_holder = 0;
-	double reference_level1 = 0;
-	long double holder = 0;
-	long double rf_freq_holder = 0;
+	long double rf_freq_int_part = 0;
+	long double rf_freq_dec_part = 0;
+
+	int32_t ref_level_word = 0;
+	double ref_level_int_part = 0;
+	double ref_level_dec_part = 0;
+
+	int32_t data_pos = 16;
+
 	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
@@ -1176,66 +1174,55 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	if ((temp_buffer[12] & 0xf0) == 0xA0) {
 		
 		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
+						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int64_t) temp_buffer[data_pos + 3]);
 
 		band_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
+						(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+						(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+						(int64_t) temp_buffer[data_pos + 7]);
 		
-
-
-		band_dec = (band_word2 & 0x000fffff);
-		dec_holder = (double) band_dec;
-		
-		band_holder = 4096 * band_word1 + (band_word2 & 0xfff00000)/1048576;
-		integer_holder = (double) band_holder;
-		holder = (integer_holder*1000000 + band_dec)/1000000000000;
-		digitizer->bandwidth = holder;
-		
+		band_int_part = (long double) ((band_word1 << 12) + (band_word2 >> 20));
+		band_dec_part = (long double) (band_word2 & 0x000fffff);
+		digitizer->bandwidth = band_int_part + (band_dec_part / MHZ);
 
 		data_pos = data_pos + 8;
 	}
+
 
 	//determine if rf frequency offset data is present
-	if ( (temp_buffer[12] & 0xff) == 0x84) {
+	if ( (temp_buffer[12] & 0xff) == 0x84) 
+	{
 			
 		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 3]);
+						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int64_t) temp_buffer[data_pos + 3]);
 
 		rf_freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
-								(((int64_t) temp_buffer[data_pos + 5]) << 16) +
-								(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
-								(int64_t) temp_buffer[data_pos + 7]);
+						(((int64_t) temp_buffer[data_pos + 5]) << 16) +
+						(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
+						(int64_t) temp_buffer[data_pos + 7]);
 
-		rf_freq_holder = (double) 4096 * rf_freq_word1 + (rf_freq_word2 & 0xfff00000)/1048576;
-		integer_holder = (double) rf_freq_holder;
-		rf_freq_holder = (double) (rf_freq_word2 & 0x000fffff);
-		dec_holder = (double) rf_freq_holder;
-		rf_freq_holder = (integer_holder/1000000) + (dec_holder/100000000000);
-
-		digitizer->rf_frequency_offset = rf_freq_holder;
+		rf_freq_int_part = (long double) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
+		rf_freq_dec_part = (long double) (rf_freq_word2 & 0x000fffff);
+		digitizer->rf_frequency_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
+		
 		data_pos = data_pos + 8;
-
 	}
 	//determine if the reference level is present
-	if ((temp_buffer[12] & 0x0f) == 0x01) {
+	if ((temp_buffer[12] & 0x0f) == 0x01) 
+	{
 					
-		reference_level = ((((int32_t) temp_buffer[data_pos]) << 24) +
+		ref_level_word= ((((int32_t) temp_buffer[data_pos]) << 24) +
 						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
 						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
 						(int32_t) temp_buffer[data_pos + 3]);	
 
-						reference_level_holder = (reference_level & 0x0000ffc0);
-				integer_holder = reference_level_holder;
-				reference_level_holder = (reference_level & 0x0000003f);
-				dec_holder = reference_level_holder;
-				reference_level1 = dec_holder/1000000 + integer_holder/1000; 
-				digitizer->reference_level = reference_level1;
+		ref_level_int_part = (double) ((ref_level_word & 0x0000ffc0));
+		ref_level_dec_part = (double) ((ref_level_word & 0x0000003f));
+		digitizer->reference_level = ref_level_int_part / 1000 + (ref_level_dec_part / 1000000);
 	}
 }
 

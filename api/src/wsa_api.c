@@ -554,7 +554,6 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	long temp;
 
 	wsa_send_query(dev, ":SENSE:DEC?\n", &query);
-	printf("output buffer is: %s \n", query.output);
 	
 	// Handle the query output here 
 	if (query.status <= 0)
@@ -600,8 +599,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 		(rate > dev->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 
-	sprintf(temp_str, "SENSE:DEC %d", rate);
-	
+	sprintf(temp_str, "SENSE:DEC %d \n", rate);
 	// set the rate using the selected connect type
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
@@ -630,8 +628,6 @@ int16_t wsa_flush_data(struct wsa_device *dev) {
 	if (status == 1) {
 		return WSA_ERR_SWEEPALREADYRUNNING;
 	}
-
-
 	return_status = wsa_send_command(dev, "SWEEP:FLUSH\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 	if (return_status < 0)
@@ -2473,7 +2469,7 @@ int16_t wsa_sweep_start(struct wsa_device *dev) {
  */
 int16_t wsa_sweep_stop(struct wsa_device *dev) 
 {
-	int16_t return_status = 0;
+	int16_t return_status = 0; 
 	int32_t status = 0;
 	int32_t vrt_header_bytes = 2 * BYTES_PER_VRT_WORD;
 	uint8_t* vrt_header_buffer = 0;
@@ -2496,11 +2492,6 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	}		           
 	//flush remaining sweep data in the WSA
 	return_status = wsa_flush_data(dev);
-
-	if (return_status < 0){
-		return return_status;
-	}
-	
 	start_time = clock();
 	end_time = 2 * 1000 + start_time;
 	//read the left over packets from the socket
@@ -2608,7 +2599,6 @@ int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa
 	struct wsa_resp query;		// store query results
 	double temp;
 	char* strtok_result;
-	printf("got here \n");
 	sprintf(temp_str, "SWEEP:ENTRY:READ? %u\n", position);
 	result = wsa_send_query(dev, temp_str, &query);
 	strtok_result = strtok(query.output, ",");
