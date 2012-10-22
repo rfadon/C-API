@@ -496,7 +496,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				printf("Not all bytes sent. Resending the packet...\n");
 				resend_cnt++;
 			}
-			else 
+			else
 				break;
 		}
 		// If it's not asking for data, query for any error to
@@ -518,8 +518,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	}
 
 	return bytes_txed;
-}
-
+} 
 
 /**
  * Read command line(s) stored in the given \b file_name and send each line

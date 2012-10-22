@@ -115,7 +115,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        - ext type: csv (default), xsl, dat, ...\n"
 		   "                        ex: save Test trial ext:xsl\n"
 		   "                            save\n");
-	printf("\n\n");
+	printf("\n\n");   
 	
 	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "

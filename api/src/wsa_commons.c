@@ -168,7 +168,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWN_ERROR, "Unknow error"},	
 
 		//*****
-		// Sweep Errors
+		// Sweep Errors   
 		//*****
 		{WSA_ERR_SWEEPSAVEFAIL, "Failed to save current sweep entry"},
 		{WSA_ERR_SWEEPSTARTFAIL, "Failed to start sweep"},

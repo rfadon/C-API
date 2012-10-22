@@ -81,7 +81,7 @@
 #define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
 
 // PLL Values
-#define PLL_ENT 1
+#define PLL_ENT 1   
 #define PLL_EXT 2
 
 // *****
