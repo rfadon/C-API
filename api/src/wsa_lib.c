@@ -498,7 +498,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 			}
 			else
 				break;
-		}
+		}  
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
 		if (strstr(command, "DATA?") == NULL) {

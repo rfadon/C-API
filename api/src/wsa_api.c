@@ -32,7 +32,7 @@
  * library, you need to include the header file, wsa_api.h, in files that 
  * will use any of its functions to access a WSA, and a link to 
  * the wsa_api.lib.  \b wsa_api also depends on the others *.h files provided
- * in the \b include folder
+ * in the \b include folder  
  */
 
 

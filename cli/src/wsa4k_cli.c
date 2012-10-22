@@ -122,9 +122,9 @@ void print_cli_menu(struct wsa_device *dev)
 									"state.\n");
 	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
 	
-	printf(" get freq [max | min]   Show the current running centre frequency "
+	printf(" get freq [max | min]   Show the current running centre frequency "  
 									"(in MHz).\n");	
-	printf(" get fshift [max | min] Get the frequency shift value (in MHz).\n");
+	printf(" get fshift [max | min] Get the frequency shift value (in MHz).\n");  
 
 	printf(" get gain <rf | if> [max | min] \n"
 		   "                        Show the current RF front end or IF gain "
