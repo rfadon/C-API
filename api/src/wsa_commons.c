@@ -181,7 +181,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPSIZEFAIL, "Failed to retrieve sweep size"},
 		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
-		{WSA_ERR_SWEEPNOTRUNNING, "Sweep mode is already off"},
 		{WSA_ERR_SWEEPOUTOFBOUNDS, "Sweep entry position that you have choosen is out of bounds"}
 		
 

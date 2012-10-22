@@ -158,16 +158,6 @@
 #define WSA_ERR_MALLOCFAILED	(LNEG_NUM - 2002)
 #define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
 
-
-
-
-
-// ///////////////////////////////
-// WARNINGS						//
-// ///////////////////////////////
-#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 4000)	
-
-
 // ///////////////////////////////
 // SWEEP ERRORS					//
 // ///////////////////////////////

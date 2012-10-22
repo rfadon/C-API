@@ -2479,11 +2479,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	int16_t socket_receive_result = 0;
 	clock_t end_time = 2 * 1000 + start_time;
 	int i = 0;	
-	//check if the wsa is not sweeping
-	return_status = wsa_get_sweep_status(dev, &status);
-	if (status == 0) {
-		return WSA_ERR_SWEEPNOTRUNNING;
-	}
+
 	return_status = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DMED, "In wsa_capture_block: wsa_send_command returned %hd\n", return_status);
 	if (return_status < 0)

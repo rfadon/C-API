@@ -116,7 +116,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        ex: save Test trial ext:xsl\n"
 		   "                            save\n");
 	printf("\n\n");
-
+	
 	printf(" get ant                Show the current antenna port in use.\n");
 	printf(" get bpf                Show the current RFE's preselect BPF "
 									"state.\n");
@@ -131,12 +131,12 @@ void print_cli_menu(struct wsa_device *dev)
 									"level.\n");
 	printf(" get ppb                Show the current packets per block.\n");
 	printf(" get spp [max | min]    Show the current samples per packet.\n");
+	printf(" get sweep entry        Shows the current settings in the user's\n"
+		   "                        sweep entry list\n");
+	printf(" get sweep status       Shows the current sweep status\n");
 	printf(" get trigger level      Show the current level trigger settings\n");
 	printf(" get trigger enable     Check whether trigger mode is enabled\n");
-	printf("\n");
-	printf(" get sweep entry       Shows the current settings in the user's\n"
-		   "                       sweep entry list\n");
-	
+	printf("\n");	
 	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
 									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
 	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
@@ -180,7 +180,6 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                          2) Stop frequnecy (in MHz)\n"
 		   "                          3) Amplitude (in dBm)\n"
 		   "                        ex: set trigger level 2410,2450,-50\n");
-
 	printf(" set sweep entry ant <1 | 2>  Set the current antenna port used in\n"
 		   "                        the user's sweep working entry\n");
 	printf(" set sweep entry dec <rate>   Set the decimation rate used in\n"
@@ -1568,7 +1567,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_sweep_list_copy(dev,temp_number);
 					// TODO catch result error here?
 				}
-			} 
+			}
 			else {
 				printf("Invalid 'Sweep List' Command. See 'h'.\n");
 			}
@@ -1578,7 +1577,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			// TODO catch result error here?			
 		} 
 		else if (strcmp(cmd_words[1], "STOP") == 0){
-			result =  wsa_sweep_stop(dev);
+				//check if the wsa is not sweeping
+			result = wsa_get_sweep_status(dev, &int_result);
+			if (int_result == 0) {
+				printf("Sweep mode is already disabled \n");
+			} else {
+				result =  wsa_sweep_stop(dev);
+			}
 			// TODO catch result error here?
 		} 
 		else if (strcmp(cmd_words[1], "RESUME") == 0){
