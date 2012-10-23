@@ -428,25 +428,27 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 	
-	printf("Gathering WSA settings... ");
+	printf("Gathering WSA settings... \n");
 
 	//determine if the another user is capturing data
 	result = wsa_system_read_status(dev, &acquisition_status);
-	// TODO check result status
-	if (acquisition_status == 0) {
-		//request capture access
-		result = wsa_system_request_read_access(dev, &acquisition_status);
-		// TODO check result status
-		if (acquisition_status == 0) {
-			return WSA_ERR_CAPTUREACCESSDENIED;
+	if (result < 0) {
+		doutf(DHIGH, "Error in wsa_system_read_status: %s\n", wsa_get_error_msg(result));
+		return result;
+	} else if (acquisition_status == 0) {
+			return WSA_ERR_DATAACCESSDENIED; 
 		}
+
+	// Get sweep status
+	result = wsa_get_sweep_status(dev, &sweep_status);
+	if (result < 0) {
+		doutf(DHIGH, "Error in wsa_get_sweep_status: %s\n", wsa_get_error_msg(result));
+		return result;
 	}
 
-	result = wsa_get_sweep_status(dev, &sweep_status);
-	// TODO catch error from result?
 	if (sweep_status == 0) 
 	{	
-		//flush content of the data socket
+		// Flush content of the data socket
 		result = wsa_flush_data(dev);
 		if (result < 0)
 		{
@@ -793,7 +795,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t start_frequency;
 	int64_t stop_frequency;
 	int64_t amplitude;
-	int16_t acquisition_status = 20;
+	int16_t acquisition_status;
 	uint8_t valid;
 	//DIR *temp;
 
@@ -988,7 +990,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end get SPP
-		   
+		else if (strcmp(cmd_words[1], "READ") == 0) {
+			 if (strcmp(cmd_words[2], "ACCESS") == 0) {
+				 result = wsa_system_request_read_access(dev,&acquisition_status);
+				 if (acquisition_status == 1) {
+					 printf("Read access obtained. \n");
+				 } else 
+					 printf("Read access denied. \n");
+			 }
+		}//end get READ ACCESS
+
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
 			if (strcmp(cmd_words[2], "ENABLE") == 0) {
 				result = wsa_get_trigger_enable(dev, &int_result);

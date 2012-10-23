@@ -898,7 +898,6 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	{
 		return WSA_ERR_MALLOCFAILED;
 	}
-
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
 	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)

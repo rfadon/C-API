@@ -21,6 +21,7 @@
 #define WSA_ERR_UNKNOWNFWRVSN	(LNEG_NUM - 4)
 #define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 5)
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 6)
+#define WSA_ERR_DATAACCESSDENIED (LNEG_NUM - 7)
 
 
 // ///////////////////////////////
