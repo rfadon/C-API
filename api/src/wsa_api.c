@@ -694,7 +694,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-		*cfreq = (int64_t) temp/MHZ;
+		*cfreq = (int64_t) temp;
 
 	return 0;
 }
@@ -1255,9 +1255,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
 
-
-
-		printf("Error: WSA returned %s.\n", query.output);
+		
 		return WSA_ERR_RESPUNKNOWN;
 	}	
 	
@@ -1270,7 +1268,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	// Verify the validity of the return value
-	if (temp/MHZ < dev->descr.min_tune_freq || temp/MHZ > dev->descr.max_tune_freq) 
+	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
 
 		return WSA_ERR_RESPUNKNOWN;
