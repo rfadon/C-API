@@ -2320,29 +2320,23 @@ void print_sweep_entry_information(struct wsa_device *dev, int32_t position)
 
 	printf("Sweep Entry Settings:\n");
 	result = wsa_sweep_list_read(dev, position, list_values);
-	printf("  Start frequency: %d MHz\n", (list_values->start_frequency / MHZ));
-	printf("  Stop frequency: %d MHz\n", (list_values->stop_frequency / MHZ));
-	printf("  Step Frequency: %d MHz\n",list_values->fstep / MHZ);
+	printf("  Sweep range (MHZ): %d - %d, Step: %d \n", (list_values->start_frequency / MHZ), (list_values->stop_frequency / MHZ), list_values->fstep / MHZ);
+	printf("  Antenna port: %u \n",list_values->ant_port);
+	printf("  Capture Block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
+	printf("  Decimation rate: %u \n",list_values->decimation_rate);
 	printf("  Frequency shift: %f MHz\n",list_values->fshift);
-	printf("  decimation rate: %u \n",list_values->decimation_rate);
-	printf("  antenna port: %u \n",list_values->ant_port);
-	printf("  IF gain: %u \n", list_values->gain_if);
-
+	printf("  Gain IF: %u \n", list_values->gain_if);
 	gain_rf_to_str(list_values->gain_rf, &temp[0]);
-	printf("  Current RF gain: %s\n", temp);
-	printf("  Samples Per backet: %d \n", list_values->samples_per_packet);
-	printf("  Packets per block: %d \n", list_values->packets_per_block);
-	printf("  Dwell seconds value is: %u \n", list_values->dwell_seconds_value);
-	printf("  Dwell Microseconds value is: %lu \n", list_values->dwell_useconds_value);
-	
-	printf("  Trigger Settings:\n");
+	printf("  Gain RF: %s\n", temp);
+	printf("  Trigger Configuration:\n");
 	if ( list_values->trigger_enable == 0) {
-		printf("        Triggers are disabled\n");
+		printf("  Trigger mode: Off\n");
 	} 
 	else if ( list_values->trigger_enable == 1) {
-		printf("        Triggers are enabled\n");
-		printf("        Trigger Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
-		printf("        Trigger Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
-		printf("        Trigger amplitude: %d dBm\n", list_values->trigger_amplitude);
+		printf("        Trigger Mode: On\n");
+		printf("        Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
+		printf("        Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
+		printf("        amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
+	printf("   Dwell time: %u.%llu seconds\n", list_values->dwell_seconds_value,list_values->dwell_useconds_value);
 }
