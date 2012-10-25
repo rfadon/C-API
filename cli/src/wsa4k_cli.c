@@ -59,6 +59,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <conio.h>
 
 #include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
@@ -387,6 +388,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int64_t amplitude = 0;
 	int8_t count = 0;
 	int16_t acquisition_status;
+	int32_t exit_loop;
 
 	double receiver_temperature = 0;
 	int32_t receiver_reference_point = 0;
@@ -490,15 +492,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
 		}	
+	
 	}
 	// if sweep mode is enabled, samples per packet is set to the 
 	// maximum value to hold iq packets with variant sizes
 	else
 	{
+		printf(" done.\n");
+		printf(" \n Sweep Mode is enabled. \n Press 'ESC' when to stop data capture \n ");
 		samples_per_packet = dev->descr.max_sample_size;
-		packets_per_block = 10;	// Find a solution to this
 	}
-	printf(" done.\n");
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
@@ -610,10 +613,38 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	// Get the start time
 	get_current_time(&run_start_time);
+	
+	// Initialize counter i
+	i = 1;
 
-	// loop to get all the packet per sweep
-	for (i = 1; i <= packets_per_block; i++)
-	{	
+	// loop to save data in file
+	exit_loop = 0;
+	while (exit_loop != 1)
+	{
+
+		// if capture mode is enabled, save the number of specified packets
+		if (sweep_status == 0)
+			{
+				if (i >= packets_per_block) 
+				{
+					exit_loop = 1;
+				}
+			i++;
+		}		
+		 
+		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
+		else if (sweep_status == 1) 
+		{
+			if (kbhit() != 0) 
+			{
+				if(getch() == 0x1b) {    // esc key
+					printf("\nEscape key pressed, data capture stopped...\n");
+					exit_loop = 1;
+				}
+			}
+		i++;
+		}
+
 		// Get the start time
 		get_current_time(&capture_start_time);
 
@@ -627,7 +658,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Print only once the header line per file
 		// TODO the 2nd condition is temporary for now until save
 		// data format is determined. i == 1 cond'n might not applied then...
-		if ((i == 1) && (header->stream_id == IF_DATA_STREAM_ID))
+		if ((i == 2) && (header->stream_id == IF_DATA_STREAM_ID))
 		{
 			if (sweep_status)
 			{
@@ -713,8 +744,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		} 
 		else if (header->stream_id == IF_DATA_STREAM_ID) 
 		{
-			if (i == 1)
+			
+			if (i == 2)
 			{
+				
 				expected_packet_order_indicator = header->packet_order_indicator;
 			}
 
