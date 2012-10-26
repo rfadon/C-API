@@ -42,7 +42,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.min_decimation = 0;
 	for (i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
-
+	
 	strcpy(dev->descr.prod_name, "");
 	strcpy(dev->descr.prod_serial, ""); 
 	strcpy(dev->descr.prod_version, "");

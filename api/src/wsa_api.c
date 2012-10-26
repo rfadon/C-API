@@ -780,10 +780,10 @@ int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
 		return WSA_ERR_RESPUNKNOWN;
 
 	// Verify the validity of the return value TODO
-	if (temp < -1 * dev->descr.inst_bw || temp > dev->descr.inst_bw) {
-		printf("Error: WSA returned %s.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
+	//if (temp < -1 * dev->descr.inst_bw || temp > dev->descr.inst_bw) {
+	//	printf("Error: WSA returned %s.\n", query.output);
+	//	return WSA_ERR_RESPUNKNOWN;
+	//}
 
 	*fshift = (float) temp;
 

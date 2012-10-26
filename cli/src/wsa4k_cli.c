@@ -118,7 +118,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                            save\n");
 	printf("\n");
 	printf("//////////////////////////////////////////////////////////////////\n");
-	printf("//////////////////Manual Capture Commands/////////////////////////\n");
+	printf("//                Manual Capture Commands                       //\n");
 	printf("//////////////////////////////////////////////////////////////////\n");
 	printf("\n"); 
 	printf(" get ant                Show the current antenna port in use.\n");
@@ -183,7 +183,7 @@ void print_cli_menu(struct wsa_device *dev)
 		   "                        ex: set trigger level 2410,2450,-50\n");
 	printf("\n");
 	printf("//////////////////////////////////////////////////////////////////\n");
-	printf("//////////////////Sweep Capture Commands//////////////////////////\n");
+	printf("//                Sweep Capture Commands                        //\n");
 	printf("//////////////////////////////////////////////////////////////////\n");
 	printf("\n"); 
 	printf(" get sweep entry        Shows the current settings in the user's\n"
@@ -439,7 +439,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 	
-	printf("Gathering WSA settings...");
+	
 
 	//determine if the another user is capturing data
 	result = wsa_system_read_status(dev, &acquisition_status);
@@ -456,6 +456,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DHIGH, "Error in wsa_get_sweep_status: %s\n", wsa_get_error_msg(result));
 		return result;
 	}
+
+	printf("Gathering WSA settings...");
 
 	if (sweep_status == 0) 
 	{	
@@ -493,6 +495,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			return result;
 		}	
 	
+	printf(" done.\n");
 	}
 	// if sweep mode is enabled, samples per packet is set to the 
 	// maximum value to hold iq packets with variant sizes
@@ -621,19 +624,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	exit_loop = 0;
 	while (exit_loop != 1)
 	{
-
 		// if capture mode is enabled, save the number of specified packets
 		if (sweep_status == 0)
+		{
+			if (i >= packets_per_block) 
 			{
-				if (i >= packets_per_block) 
-				{
-					exit_loop = 1;
-				}
-			i++;
+				exit_loop = 1;
+			}
 		}		
 		 
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
-		else if (sweep_status == 1) 
+		else 
 		{
 			if (kbhit() != 0) 
 			{
@@ -642,9 +643,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					exit_loop = 1;
 				}
 			}
-		i++;
 		}
 
+		i++;
 		// Get the start time
 		get_current_time(&capture_start_time);
 
