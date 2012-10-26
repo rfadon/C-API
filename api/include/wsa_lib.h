@@ -217,7 +217,7 @@ struct wsa_sweep_list {
 	int64_t trigger_amplitude;
 	enum wsa_gain gain_rf;
 };
-
+ 
 struct wsa_socket {
 	int32_t cmd;
 	int32_t data;
