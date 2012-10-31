@@ -176,7 +176,7 @@ struct wsa_vrt_packet_header {
 struct wsa_receiver_packet {
 	int32_t indicator_field;
 	int32_t reference_point;
-	long double frequency;
+	long double freq;
 	double gain_if;
 	double gain_rf;
 	double temperature;
@@ -200,8 +200,8 @@ struct wsa_vrt_packet_trailer {
 
 // Structure to hold sweep list data
 struct wsa_sweep_list {
-	int64_t start_frequency;
-	int64_t stop_frequency;
+	int64_t start_freq;
+	int64_t stop_freq;
 	float fshift;
 	int64_t fstep;
 	int32_t decimation_rate;
@@ -212,8 +212,8 @@ struct wsa_sweep_list {
 	int32_t samples_per_packet;
 	int32_t packets_per_block;
 	int8_t trigger_enable;
-	int64_t trigger_start_frequency;
-	int64_t trigger_stop_frequency;
+	int64_t trigger_start_freq;
+	int64_t trigger_stop_freq;
 	int64_t trigger_amplitude;
 	enum wsa_gain gain_rf;
 };

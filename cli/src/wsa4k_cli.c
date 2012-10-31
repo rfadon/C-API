@@ -81,8 +81,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
-void print_sweep_entry(struct wsa_device *dev);
-void print_sweep_entry_information(struct wsa_device *dev, int32_t position);
+int16_t print_sweep_entry(struct wsa_device *dev);
+int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
 
 /**
  * Print out the CLI options menu
@@ -99,125 +99,148 @@ void print_cli_menu(struct wsa_device *dev)
 	int32_t MIN_IF_GAIN = dev->descr.max_if_gain;
 	uint64_t FREQ_RES = dev->descr.freq_resolution;
 
-	printf("\n---------------------------\n");
+	//printf("\n---------------------------\n");
 	printf("\nCommand Options Available (case insensitive, < > required, "
 		"[ ] optional):\n\n");
-	printf(" dir                    List the captured file path.\n");
-	printf(" h                      Show the list of available options.\n");
-	printf(" o                      Open the folder of captured file(s).\n");
-	printf(" q                      Quit or exit this console.\n");
-	printf(" run cmdf <scpi | cli> <file name> \n"
-		   "                        Run commands stored in a text file.\n"
-		   "                        Note: Process only set or get commands.\n");
-	printf(" save [name] [ext:<type>]\n"
-		   "                        Save data to a file with optional "
-									"prefix string.\n"
-		   "                        Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
-		   "                        - ext type: csv (default), xsl, dat, ...\n"
-		   "                        ex: save Test trial ext:xsl\n"
-		   "                            save\n");
+	printf("  dir\n"
+		"\t- List the captured file path.\n");
+	printf("  h\n"
+		"\t- Show the list of available options.\n");
+	printf("  o\n"
+		"\t- Open the folder of captured file(s).\n");
+	printf("  q\n"
+		"\t- Quit or exit this console.\n");
+	printf("  run cmdf <scpi | cli> <file name>\n"
+		"\t- Run set or get commands stored in a text file.\n");
+	printf("  save [name] [ext:<type>]\n"
+		"\t- Save data to a file with optional prefix string.\n"
+		"\t  Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
+		"\t  'ext' type: csv (default), xsl\n"
+		"\t  Ex: save Test trial ext:xsl\n"
+		"\t      save\n");
 	printf("\n");
-	printf("//////////////////////////////////////////////////////////////////\n");
-	printf("//////////////////Manual Capture Commands/////////////////////////\n");
-	printf("//////////////////////////////////////////////////////////////////\n");
+
+	printf("////////////////////////////////////////////////////////////////\n");
+	printf("//                    Manual Set-up Commands                  //\n");
+	printf("////////////////////////////////////////////////////////////////\n");
 	printf("\n"); 
-	printf(" get ant                Show the current antenna port in use.\n");
-	printf(" get bpf                Show the current RFE's preselect BPF "
-									"state.\n");
-	printf(" get dec [max | min]    Get the decimation rate (0 = off).\n");
-	
-	printf(" get freq [max | min]   Show the current running centre frequency "  
-									"(in MHz).\n");	
-	printf(" get fshift [max | min] Get the frequency shift value (in MHz).\n");  
 
-	printf(" get gain <rf | if> [max | min] \n"
-		   "                        Show the current RF front end or IF gain "
-									"level.\n");
-	printf(" get ppb                Show the current packets per block.\n");
-	printf(" get spp [max | min]    Show the current samples per packet.\n");
-	printf(" get trigger level      Show the current level trigger settings\n");
-	printf(" get trigger enable     Check whether trigger mode is enabled\n");
+	printf("  get ant\n"
+		"\t- Show the current antenna port in use.\n");
+	printf("  get bpf\n"
+		"\t- Show the current RFE's preselect BPF state.\n");
+	printf("  get dec [max | min]\n"
+		"\t- Get the decimation rate (0 = off).\n");
+	printf("  get freq [max | min]\n"
+		"\t- Get the current running centre frequency (in MHz).\n");	
+	printf("  get fshift [max | min]\n"
+		"\t- Get the frequency shift value (in MHz).\n");  
+	printf("  get gain <rf | if> [max | min]\n"
+		"\t- Get the current RF or IF gain level.\n");
+	printf("  get ppb\n"
+		"\t- Get the current packets per block.\n");
+	printf("  get spp [max | min]\n"
+		"\t- Get the current samples per packet.\n");
+	printf("  get trigger level\n"
+		"\t- Get the current level trigger settings\n");
+	printf("  get trigger enable\n"
+		"\t- Check whether trigger mode is enabled\n");
 	printf("\n");
-	printf(" set ant <1 | 2>        Select the antenna port, available 1 to "
-									"%d.\n", WSA_RFE0560_MAX_ANT_PORT);
-	printf(" set bpf <on | off>     Turn the RFE's preselect BPF stage on "
-									"or off.\n");
-	printf(" set dec <rate>	        Set decimation rate.\n"
-		   "                        - Range: 0 (for off), %d - %d.\n", 
-		   dev->descr.min_decimation, dev->descr.max_decimation);
-	printf(" set freq <freq>        Set the centre frequency in MHz \n"
-		   "                        - Range: %.2f - %.2f MHz inclusively, but\n"
-		   "                          excluding 40.1 - 89.9 MHz.\n"
-		   "                        - Resolution %.2f MHz.\n"
-		   "                        ex: set freq 441.5\n", 
-		   (float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ, (float) FREQ_RES/MHZ);
-	printf(" set fshift <freq>      Set the frequency shift in MHz \n"
-		   "                        - Range: %f - %f MHz, \"exclusive\".\n"
-		   "                        ex: set fshift 10\n", 
-		   (float) dev->descr.inst_bw/MHZ * -1, (float) dev->descr.inst_bw/MHZ);
-	printf(" set gain <rf | if> <val> Set gain level for RF front end or IF\n"
-		   "                        - RF options: HIGH, MEDium, LOW, VLOW.\n"
-		   "                        - IF range: %d to %d dBm, inclusive.\n"
-		   "                        ex: set gain rf high;\n"
-		   "                            set gain if -20.\n", 
-		   MIN_IF_GAIN, MAX_IF_GAIN);
-	printf(" set ppb <packets>      Set the number of packets per block to be "
-									"captured\n"
-		   "                        - The maximum value will depend on the\n"
-		   "                          \"samples per packet\" setting\n"
-		   "                        ex: set ppb 100\n");
-	printf(" set spp <samples>      Set the number of samples per packet to be"
-									" captured\n"
-		   "                        - Range: %hu - %hu, inclusive.\n"
-		   "                        ex: set spp 2000\n",
-		   WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
-	printf(" set trigger enable <on | off>\n"
-		   "                        Set trigger mode on or off.\n"
-		   "                        - When set to off, WSA will be freerun\n"
-		   "                        ex: set trigger enable on\n");
-	printf(" set trigger level <start,stop,amplitude>\n"
-		   "                        Configure the level trigger options:\n"
-		   "                          1) Start frequnecy (in MHz)\n"
-		   "                          2) Stop frequnecy (in MHz)\n"
-		   "                          3) Amplitude (in dBm)\n"
-		   "                        ex: set trigger level 2410,2450,-50\n");
+
+	printf("  set ant <1 | 2>\n"
+		"\t- Select the antenna port, available 1 to %d.\n", WSA_RFE0560_MAX_ANT_PORT);
+	printf("  set bpf <on | off>\n"
+		"\t- Turn the RFE's preselect BPF stage on or off.\n");
+	printf("  set dec <rate>\n"
+		"\t- Set the decimation rate\n"
+		"\t  Range: 0 (for off), %d - %d.\n", 
+		dev->descr.min_decimation, dev->descr.max_decimation);
+	printf("  set freq <freq>\n"
+		"\t- Set the centre frequency in MHz\n"
+		"\t  Range: %.2f - %.2f MHz inclusively, excluding 40.1 - 89.9 MHz.\n"
+		"\t  Resolution %.2f MHz.\n"
+		"\t  ex: set freq 441.5\n", 
+		(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ, (float) FREQ_RES/MHZ);
+	printf("  set fshift <freq>\n"
+		"\t- Set the frequency shift in MHz\n"
+		"\t  Range: %f - %f MHz\n"
+		"\t  ex: set fshift 10\n", 
+		(float) dev->descr.inst_bw/MHZ * -1, (float) dev->descr.inst_bw/MHZ);
+	printf("  set gain <rf | if> <val>\n"
+		"\t- Set gain level for RF front end or IF\n"
+		"\t  RF options: HIGH, MEDium, LOW, VLOW.\n"
+		"\t  IF range: %d to %d dBm, inclusive.\n"
+		"\t  ex: set gain rf high;\n"
+		"\t      set gain if -20.\n", MIN_IF_GAIN, MAX_IF_GAIN);
+	printf("  set ppb <packets>\n"
+		"\t- Set the number of packets per block to be captured\n"
+		"\t  The maximum value will depend on the \"samples per packet\" setting\n"
+		"\t  ex: set ppb 100\n");
+	printf("  set spp <samples>\n"
+		"\t- Set the number of samples per packet to be captured\n"
+		"\t  Range: %hu - %hu, inclusive.\n"
+		"\t  ex: set spp 2000\n",
+		WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
+	printf("  set trigger enable <on | off>\n"
+		"\t- Set trigger mode on or off. When set to off, WSA will be in freerun.\n"
+		"\t  ex: set trigger enable on\n");
+	printf("  set trigger level <start,stop,amplitude>\n"
+		"\t- Configure the level trigger with values:\n"
+		"\t\t1) Start frequency (in MHz)\n"
+		"\t\t2) Stop frequency (in MHz)\n"
+		"\t\t3) Amplitude (in dBm)\n"
+		"\t  ex: set trigger level 2410,2450,-50\n");
 	printf("\n");
-	printf("//////////////////////////////////////////////////////////////////\n");
-	printf("//////////////////Sweep Capture Commands//////////////////////////\n");
-	printf("//////////////////////////////////////////////////////////////////\n");
+
+	printf("////////////////////////////////////////////////////////////////\n");
+	printf("//                    Sweep Commands                          //\n");
+	printf("////////////////////////////////////////////////////////////////\n");
 	printf("\n"); 
-	printf(" get sweep entry        Shows the current settings in the user's\n"
-		   "                        sweep entry list\n");
-	printf(" get sweep status       Shows the current sweep status\n");
-
-	printf(" set sweep entry ant <1 | 2>  Set the current antenna port used in\n"
-		   "                        the user's sweep working entry\n");
-	printf(" set sweep entry dec <rate>   Set the decimation rate used in\n"
-		   "                        the the user's working sweep entry\n");
-	printf(" set sweep entry gain <rf | if> \n"
-		   "                        Set the current RF front end or IF gain level in\n"
-		   "                        the the user's working sweep entry\n");
-	printf(" set sweep entry freq <freq>  Set the current running centre frequency used in\n"
-		   "                        the user's working sweep entry \n");
-	printf(" set sweep entry fshift<freq> Set the frequency shift value in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" set sweep entry ppb <packets> Set the current packets per block in\n"
-		   "                        the user's working sweep entry\n");
-	printf(" set sweep entry spp <samples> Set the current samples per packet in\n"
-		   "                        the user's working sweep entry\n");	
-	printf(" sweep list copy <sweep entry> Copy a sweep entry from the wsa into\n"
-		   "                        the user's working entry\n");	
-	printf(" sweep list delete <sweep entry> Delete a sweep entry\n");
-	printf(" sweep list read <sweep entry> Read the settings of a specific sweep entry\n");
-	printf(" sweep list size        Shows the size of the sweep list\n");
-	printf(" sweep entry new        Reset's the user's working sweep entry\n");
-	printf(" sweep entry save <position>	Save the user's sweep entry into the sweep list\n");
-	printf(" sweep resume           Resume Sweeping after stop\n");
-	printf(" sweep start            Start to sweep through the entries set in the WSA\n");
-	printf(" sweep stop             Stop the sweep process\n");
 	
+	printf("Commands for Sweep Execution:\n");
+	printf("  sweep resume\n"
+		"\t- Resume the current sweep list from where it was last stopped\n");
+	printf("  sweep start\n"
+		"\t- Execute the current sweep list from the first entry\n");
+	printf("  sweep stop\n"
+		"\t- Stop the sweep process\n");
+	printf("  sweep status\n"
+		"\t- Get the current sweep status, running or stopped\n");
 	printf("\n");
 
+	printf("Commands for Sweep Editing:\n");
+	printf("NOTE: No setting changes will take effect until the save command is issued\n");
+	printf("\n");
+
+	printf("  sweep entry new\n"
+		"\t- Reset the editing entry settings to default values\n");
+	printf("  sweep entry copy <ID>\n"
+		"\t- Copy the settings of the specified entry <ID> into the entry\n"
+		"\t  template for quick editing\n");	
+	printf("  sweep entry delete <ID | ALL>\n"
+		"\t- Delete the specified entry <ID> or all entries\n");
+	printf("  sweep entry save [ID]\n"
+		"\t- Save the editing entry settings to the end of the list or before\n"
+		"\t  the specified <ID> location in the list\n");
+	printf("  sweep entry read [ID]\n"
+		"\t- Get the settings of a sweep entry.  When no ID is specified,\n"
+		"\t  the current settings of the entry template will be returned\n");
+	printf("\n");
+
+	printf("  get sweep entry size\n"
+		"\t- Get the number of entries available in the current list\n");
+	printf("\n");
+
+	printf("These sweep set commands are to edit the settings of the entry template.\n");
+	printf("See the manual mode above for the value ranges and definition.\n");
+	printf("  set sweep entry ant <1 | 2>\n");
+	printf("  set sweep entry dec <rate>\n");
+	printf("  set sweep entry gain <rf | if>\n");
+	printf("  set sweep entry freq <freq>\n");
+	printf("  set sweep entry fshift <freq>\n");
+	printf("  set sweep entry ppb <packets>\n");
+	printf("  set sweep entry spp <samples>\n");
+	printf("\n");
 }
 
 
@@ -238,7 +261,8 @@ char* get_input_cmd(uint8_t pretext)
 
 	// Initialized the option
 	input_opt = (char *) malloc(sizeof(char) * MAX_STRING_LEN);
-	if (input_opt == NULL) {
+	if (input_opt == NULL) 
+	{
 		printf("Error allocation memory. The program will be closed.\n");
 		exit(1);
 	}
@@ -272,7 +296,8 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	FILE *cmd_fptr;
 	int i;
 
-	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
+	if((cmd_fptr = fopen(file_name, "r")) == NULL) 
+	{
 		printf("Error opening '%s'.\n", file_name);
 		return WSA_ERR_FILEOPENFAILED;
 	}
@@ -285,7 +310,8 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 	
 	fclose(cmd_fptr);
 
-	if (result < 0) {
+	if (result < 0) 
+	{
 		// free memory
 		for (i = 0; i < MAX_FILE_LINES; i++)
 			free(cmd_strs[i]);
@@ -294,13 +320,12 @@ int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name)
 
 	// Send each command line to WSA
 	lines = result;
-	for (i = 0; i < lines; i++) {
-		result = process_cmd_string(dev, cmd_strs[i]);
-		//Sleep(20); // delay the send a little bit
-		//usleep(2000); // -> for gcc
-		
+	for (i = 0; i < lines; i++) 
+	{
+		result = process_cmd_string(dev, cmd_strs[i]);		
 		// If a bad command is detected, continue? Prefer not.
-		if (result < 0) {
+		if (result < 0) 
+		{
 			printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
 			break;
 		}
@@ -345,7 +370,8 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 
 	// Tokenized the string into words
 	temp_ptr = strtok(temp_str, " \t\r\n");
-	while (temp_ptr != NULL) {
+	while (temp_ptr != NULL) 
+	{
 		strcpy(cmd_words[w], temp_ptr);
 		temp_ptr = strtok(NULL, " \t\r\n");
 		w++;
@@ -383,22 +409,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t dec = 0;
 	int32_t sweep_status = 0;
 	int64_t freq = 0;
-	int64_t start_frequency = 0;
-	int64_t stop_frequency = 0;
+	int64_t start_freq = 0;
+	int64_t stop_freq = 0;
 	int64_t amplitude = 0;
 	int8_t count = 0;
-	int16_t acquisition_status;
+	int16_t acq_status;
 	int32_t exit_loop;
 
 	double receiver_temperature = 0;
 	int32_t receiver_reference_point = 0;
 	double receiver_rf_gain = 0;
 	double receiver_if_gain = 0;
-	long double receiver_frequency = 0;
+	long double receiver_freq = 0;
 
 	double digitizer_reference_level = 0;
 	long double digitizer_bandwidth = 0;
-	long double digitizer_rf_frequency_offset = 0;
+	long double digitizer_rf_freq_offset = 0;
 	
 	char file_name[MAX_STRING_LEN];
 	FILE *iq_fptr;
@@ -441,67 +467,54 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 	printf("Gathering WSA settings...");
 
-	//determine if the another user is capturing data
-	result = wsa_system_read_status(dev, &acquisition_status);
-	if (result < 0) {
-		doutf(DHIGH, "Error in wsa_system_read_status: %s\n", wsa_get_error_msg(result));
+	// determine if the another user is capturing data
+	result = wsa_system_read_status(dev, &acq_status);
+	if (result < 0)
 		return result;
-	} else if (acquisition_status == 0) {
-			return WSA_ERR_DATAACCESSDENIED; 
-		}
+	else if (acq_status == 0) 
+		return WSA_ERR_DATAACCESSDENIED;
 
 	// Get sweep status
 	result = wsa_get_sweep_status(dev, &sweep_status);
-	if (result < 0) {
-		doutf(DHIGH, "Error in wsa_get_sweep_status: %s\n", wsa_get_error_msg(result));
+	if (result < 0)
 		return result;
-	}
 
 	if (sweep_status == 0) 
 	{	
 		// Flush content of the data socket
 		result = wsa_flush_data(dev);
 		if (result < 0)
-		{
-			doutf(DHIGH, "Error in wsa_flush_data: %s\n", wsa_get_error_msg(result));
 			return result;
-		}
 
 		// Get samples per packet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 		doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
 		if (result < 0)
-		{
-			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
-		}
 
 		// Get packets per block
 		result = wsa_get_packets_per_block(dev, &packets_per_block);
 		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);	
 		if (result < 0)
-		{
-			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
 			return result;
-		}
 
 		// Get the centre frequency
 		result = wsa_get_freq(dev, &freq);
 		if (result < 0)
-		{
-			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-			return result;
-		}	
-	
+			return result;	
+		
+		printf(" done.\n");
 	}
+
 	// if sweep mode is enabled, samples per packet is set to the 
 	// maximum value to hold iq packets with variant sizes
 	else
 	{
 		printf(" done.\n");
-		printf(" \n Sweep Mode is enabled. \n Press 'ESC' when to stop data capture \n ");
+		printf("Sweep Mode is enabled. \n Press 'ESC' key to stop data capture.\n");
 		samples_per_packet = dev->descr.max_sample_size;
 	}
+	
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
@@ -593,7 +606,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Acquiring and saving data:\n ");
 	
 	// set capture block if not doing sweep
-	if (sweep_status == 0) {
+	if (sweep_status == 0) 
+	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
 		{
@@ -621,15 +635,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	exit_loop = 0;
 	while (exit_loop != 1)
 	{
-
-		// if capture mode is enabled, save the number of specified packets
+		// if in capture mode, save the number of specified packets
 		if (sweep_status == 0)
-			{
-				if (i >= packets_per_block) 
-				{
-					exit_loop = 1;
-				}
-			i++;
+		{
+			if (i >= packets_per_block)
+				exit_loop = 1;
 		}		
 		 
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
@@ -637,13 +647,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			if (kbhit() != 0) 
 			{
-				if(getch() == 0x1b) {    // esc key
+				if (getch() == 0x1b) {    // esc key
 					printf("\nEscape key pressed, data capture stopped...\n");
 					exit_loop = 1;
 				}
 			}
-		i++;
 		}
+		i++;
 
 		// Get the start time
 		get_current_time(&capture_start_time);
@@ -651,9 +661,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer, 
 					i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
-		{
 			break;
-		}
 		
 		// Print only once the header line per file
 		// TODO the 2nd condition is temporary for now until save
@@ -698,8 +706,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 			if ((field_indicator & 0x0f000000) == 0x08000000) 
 			{
-				receiver_frequency = receiver->frequency;
-				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_frequency);		
+				receiver_freq = receiver->freq;
+				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_freq);		
 			}
 
 			if ((field_indicator & 0x00f00000) == 0x00800000) 
@@ -731,8 +739,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			
 			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
 			{
-				digitizer_rf_frequency_offset = digitizer->rf_frequency_offset;
-				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_frequency_offset);
+				digitizer_rf_freq_offset = digitizer->rf_freq_offset;
+				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_freq_offset);
 			}
 
 			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
@@ -743,13 +751,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			continue;
 		} 
 		else if (header->stream_id == IF_DATA_STREAM_ID) 
-		{
-			
-			if (i == 2)
-			{
-				
+		{			
+			if (i == 2)		
 				expected_packet_order_indicator = header->packet_order_indicator;
-			}
 
 			if (header->packet_order_indicator != expected_packet_order_indicator)
 			{				
@@ -762,10 +766,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				expected_packet_order_indicator = 0;
 
 			for (j = 0; j < header->samples_per_packet; j++)
-			{			
 				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
-				//printf("%d,%d\n", i_buffer[j], q_buffer[j]);
-			}
 		
 			if (!(iq_pkt_count % 10))
 			{
@@ -774,13 +775,16 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					printf(" ");
 			}
 			else 
+			{
 				printf(".");
+			}
 
 			iq_pkt_count++;
 		}
 	}
 
-	if (result >= 0) {
+	if (result >= 0) 
+	{
 		// get the total run end time
 		get_current_time(&run_end_time);
 		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
@@ -819,27 +823,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
-	int64_t freq = 0;
-	float fshift = 0;
-	int int_result = 0;
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
 	int i;
-	long temp_number;
-	double temp_double;
-	char* strtok_result;
-	int32_t rate;
-	int32_t if_gain_value;
-	int32_t dwell_seconds_value = 15;
-	int32_t dwell_miliseconds_value = 16;
-	int32_t samples_per_packet;
-	int32_t packets_per_block;
-	int64_t start_frequency;
-	int64_t stop_frequency;
-	int64_t amplitude;
-	int16_t acquisition_status;
 	uint8_t valid;
-	//DIR *temp;
+	char* strtok_result;
+
+	int16_t temp_short;
+	int32_t temp_int;
+	long temp_long;
+	double temp_double;
+
+	float fshift = 0;
+	int64_t freq_value;
+	int64_t start_freq;
+	int64_t stop_freq;
 
 	strcpy(msg,"");
 
@@ -862,26 +860,22 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 			
-			result = wsa_get_antenna(dev, &int_result);
+			result = wsa_get_antenna(dev, &temp_int);
 			if (result >= 0)
-				printf("Currently using antenna port: %d\n", int_result);
+				printf("Currently using antenna port: %d\n", temp_int);
 		} // end get ANT 
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) {			
 			if(num_words > 2)
 				printf("Extra parameters ignored (max/min not available)!\n");
 			
-			result = wsa_get_bpf_mode(dev, &int_result);
-			if (result >= 0) {
-				printf("RFE's preselect BPF state: ");
-				if (int_result) printf("On\n");
-				else if (!int_result) printf("Off\n");
-				else printf("Unknown state\n");
-			}
+			result = wsa_get_bpf_mode(dev, &temp_int);
+			if (result >= 0)
+				printf("RFE's preselect BPF state: %s.", (temp_int) ? "On" : "Off");
 		} // end get BPF
 
 		else if (strcmp(cmd_words[1], "DEC") == 0) {
-			int32_t rate = 0;
+			//int32_t rate = 0;
 
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
@@ -898,9 +892,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 
-			result = wsa_get_decimation(dev, &rate);
+			result = wsa_get_decimation(dev, &temp_int);
 			if (result >= 0)
-				printf("The current decimation rate: %d\n", rate);
+				printf("The current decimation rate: %d\n", temp_int);
 		} // end get decimation rate
 
 		else if (strcmp(cmd_words[1], "FREQ") == 0) {
@@ -919,23 +913,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
 
-			result = wsa_get_freq(dev, &freq);
+			result = wsa_get_freq(dev, &freq_value);
 	
 			if (result >= 0)
 				printf("Current centre frequency: %0.3f MHz\n", 
-					(float) freq/MHZ);
+					(float) freq_value/MHZ);
 		} // end get FREQ
 
 		else if (strcmp(cmd_words[1], "FSHIFT") == 0) {
 			if (strcmp(cmd_words[2], "") != 0) {
 				if (strcmp(cmd_words[2], "MAX") == 0) {
-					printf("Maximum shift: %0.2f MHz\n", 
+					printf("Maximum shift: %0.3f MHz\n", 
 						(float) dev->descr.inst_bw / MHZ);
 					return 0;
 				}
 				else if (strcmp(cmd_words[2], "MIN") == 0) {
-					printf("Minimum frequency: %0.2f MHz\n", 
-					(float) dev->descr.inst_bw / MHZ * (-1.0) - 0.1);
+					printf("Minimum frequency: %0.3f MHz\n", 
+						(float) dev->descr.inst_bw / MHZ * (-1.0));
 					return 0;
 				}
 				else
@@ -944,8 +938,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 			result = wsa_get_freq_shift(dev, &fshift);
 			if (result >= 0)
-				printf("Current frequency shift: %0.8f MHz\n", 
-					(float) fshift / MHZ);
+				printf("Current frequency shift: %0.6f MHz\n", fshift / MHZ);
 		} // end get FSHIFT
 
 		else if (strcmp(cmd_words[1], "GAIN") == 0) {
@@ -972,15 +965,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}  // end get GAIN RF
 
-			else if (strcmp(cmd_words[2], "IF") == 0) {
-				int_result = -1000;
-				if (strcmp(cmd_words[3], "") != 0) {
-					if (strcmp(cmd_words[3], "MAX") == 0) {
+			else if (strcmp(cmd_words[2], "IF") == 0) 
+			{
+				temp_int = -1000;
+				if (strcmp(cmd_words[3], "") != 0) 
+				{
+					if (strcmp(cmd_words[3], "MAX") == 0) 
+					{
 						printf("Maximum IF gain: %d dB\n", 
 							dev->descr.max_if_gain);
 						return 0;
 					}
-					else if (strcmp(cmd_words[3], "MIN") == 0) {
+					else if (strcmp(cmd_words[3], "MIN") == 0) 
+					{
 						printf("Minimum IF gain: %d dB\n", 
 							dev->descr.min_if_gain);
 						return 0;
@@ -989,34 +986,39 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Did you mean \"min\" or \"max\"?\n");
 				}
 				
-				result = wsa_get_gain_if (dev, &int_result);
+				result = wsa_get_gain_if (dev, &temp_int);
 				if (result >= 0)
-					printf("Current IF gain: %d dB\n", int_result);
+					printf("Current IF gain: %d dB\n", temp_int);
 			} // end get GAIN IF
 
-			else 
+			else
+			{
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
+			}
 		} // end get GAIN
 
-		else if (strcmp(cmd_words[1], "PPB") == 0) {
-			if (num_words > 2) {
+		else if (strcmp(cmd_words[1], "PPB") == 0) 
+		{
+			if (num_words > 2)
 				printf("Extra parameters ignored (max/min not available)!\n");
-			}
 
-			result = wsa_get_packets_per_block(dev, &packets_per_block);
-			if (result >= 0) {
-				printf("Current packets per block: %d\n", packets_per_block);
-			}
+			result = wsa_get_packets_per_block(dev, &temp_int);
+			if (result >= 0)
+				printf("Current packets per block: %d\n", temp_int);
 		} // end get PPB
 
-		else if (strcmp(cmd_words[1], "SPP") == 0) {
-			if (strcmp(cmd_words[2], "") != 0) {
-				if (strcmp(cmd_words[2], "MAX") == 0) {
+		else if (strcmp(cmd_words[1], "SPP") == 0) 
+		{
+			if (strcmp(cmd_words[2], "") != 0) 
+			{
+				if (strcmp(cmd_words[2], "MAX") == 0) 
+				{
 					printf("Maximum samples per packet: %hu\n", 
 						WSA4000_MAX_SAMPLES_PER_PACKET);
 					return 0;
 				}
-				else if (strcmp(cmd_words[2], "MIN") == 0) {
+				else if (strcmp(cmd_words[2], "MIN") == 0) 
+				{
 					printf("Minimum samples per packet: %hu\n", 
 						WSA4000_MIN_SAMPLES_PER_PACKET);
 					return 0;
@@ -1024,93 +1026,91 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
-			else {
-				result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-				if (result >= 0) {
-					printf("Current samples per packet: %d\n", 
-						samples_per_packet);
-				}
+			else 
+			{
+				result = wsa_get_samples_per_packet(dev, &temp_int);
+				if (result >= 0)
+					printf("Current samples per packet: %d\n", temp_int);
 			}
 		} // end get SPP
-		else if (strcmp(cmd_words[1], "READ") == 0) {
-			 if (strcmp(cmd_words[2], "ACCESS") == 0) {
-				 result = wsa_system_request_read_access(dev,&acquisition_status);
-				 if (acquisition_status == 1) {
-					 printf("Read access obtained. \n");
-				 } else 
-					 printf("Read access denied. \n");
-			 }
-		}//end get READ ACCESS
-
-		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "ENABLE") == 0) {
-				result = wsa_get_trigger_enable(dev, &int_result);
-				if (result >= 0) {
-					printf("Trigger mode: ");
-					if (int_result == 1) {
-						printf("On\n");
-					}
-					else if (int_result == 0) {
-						printf("Off\n");
-					}
-					else {
-						printf("Unknown state\n");
-					}
-				}
+		else if (strcmp(cmd_words[1], "READ") == 0) 
+		{
+			if (strcmp(cmd_words[2], "ACCESS") == 0)
+			{
+				result = wsa_system_request_read_access(dev, &temp_short);
+				if (result >= 0)
+					printf("Read data access %s.\n", (temp_short) ? "obtained" : "denied");
 			}
-			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
-				result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+		} //end get READ ACCESS
+
+		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
+		{
+			if (strcmp(cmd_words[2], "ENABLE") == 0) 
+			{
+				result = wsa_get_trigger_enable(dev, &temp_int);
+				if (result >= 0)
+					printf("Trigger mode: %s\n", (temp_int) ? "On" : "Off");
+			}
+			else if (strcmp(cmd_words[2], "LEVEL") == 0) 
+			{
+				result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &temp_int);
 				if (result >= 0) {
 					printf("Trigger configuration:\n");
-					printf("   Start frequency: %f MHz\n", (float) (start_frequency / MHZ));
-					printf("   Stop frequency: %f MHz\n", (float) (stop_frequency / MHZ));
-					printf("   Amplitude: %lld dBm\n", amplitude);
+					printf("   Start frequency: %f MHz\n", (float) (start_freq / MHZ));
+					printf("   Stop frequency: %f MHz\n", (float) (stop_freq / MHZ));
+					printf("   Amplitude: %ld dBm\n", temp_int);
 				}
 			}
-			else {
+			else 
+			{
 				printf("Usage: 'get trigger <level | enable>'");
 			}
 		} // end get TRIGGER
-		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
-			if (strcmp(cmd_words[2], "STATUS") == 0) {
-				result = wsa_get_sweep_status(dev, &int_result);
-				if (result >= 0) {
-					if (int_result)
-						printf("Sweep mode is on.\n");
-					else
-						printf("Sweep mode is off.\n");
+		
+		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
+		{
+			if (strcmp(cmd_words[2], "ENTRY") == 0) 
+			{
+				if (strcmp(cmd_words[3], "SIZE") == 0) 
+				{
+					result = wsa_get_sweep_entry_size(dev, &temp_int);
+					if (result >= 0) 
+						printf("The sweep entry size is %d \n", temp_int);
 				}
-			} 
-			else if (strcmp(cmd_words[2], "LIST") == 0) {
-				 if (strcmp(cmd_words[3], "SIZE") == 0) {
-					 result = wsa_get_sweep_list_size(dev, &int_result);
-					 printf("The Sweep list size is %d \n",int_result);
-				 }
 			}
-			else if (strcmp(cmd_words[2], "ENTRY") == 0) {
-				print_sweep_entry(dev);
-			}
-			else {
-				printf("Invalid 'get sweep'. Try 'h'.\n");
+			else 
+			{
+				printf("Invalid 'get sweep' command. Try 'h'.\n");
 			}
 		} // end get SWEEP
-		else {
+		else 
+		{
 			printf("Invalid 'get'. Try 'h'.\n");
 		}
 	} // end GET
 	
-	else if (strcmp(cmd_words[0], "RUN") == 0) {
-		if (strcmp(cmd_words[1], "CMDF") == 0) {
+	else if (strcmp(cmd_words[0], "RUN") == 0) 
+	{
+		if (strcmp(cmd_words[1], "CMDF") == 0) 
+		{
 			if (strcmp(cmd_words[2], "") == 0) 
+			{
 				printf("Missing the syntax type and file name.\n");
-			else {
+			}
+			else 
+			{
 				if (strcmp(cmd_words[3], "") == 0) 
+				{
 					printf("Missing the file name.\n");
-				else {
+				}
+				else 
+				{
 					// TODO fix this declaration
 					char *file_name = cmd_words[3];
-					if (num_words > 3) {
-						for (i = 4; i < num_words; i++) {
+					if (num_words > 3) 
+					{
+						for (i = 4; i < num_words; i++) 
+						{
 							strcat(file_name, " ");
 							strcat(file_name, cmd_words[i]);
 						}
@@ -1125,7 +1125,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end run CMDF
-		else {
+		
+		else 
+		{
 			printf("'run cmdf <scpi | cli> <file name>'?");
 		}
 	} // end RUN
@@ -1133,18 +1135,25 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	// Handle SET commands
 	//*****
-	else if (strcmp(cmd_words[0], "SET") == 0) {
-		if (strcmp(cmd_words[1], "ANT") == 0) {
+	else if (strcmp(cmd_words[0], "SET") == 0) 
+	{
+		if (strcmp(cmd_words[1], "ANT") == 0) 
+		{
 			if (strcmp(cmd_words[2], "") == 0) 
+			{
 				printf("Missing the antenna port value. See 'h'.\n");
+			}
 			else
+			{
 				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
 				if (result == WSA_ERR_INVANTENNAPORT)
 					sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
 					WSA_RFE0560_MAX_ANT_PORT);
+			}
 		} // end set ANT
 
-		else if (strcmp(cmd_words[1], "BPF") == 0) {
+		else if (strcmp(cmd_words[1], "BPF") == 0) 
+		{
 			if (strcmp(cmd_words[2], "ON") == 0)
 				result = wsa_set_bpf_mode(dev, 1);
 			else if (strcmp(cmd_words[2], "OFF") == 0)
@@ -1153,25 +1162,31 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Use 'on' or 'off' mode.\n");
 		} // end set BPF
 
-		else if (strcmp(cmd_words[1], "DEC") == 0) {
+		else if (strcmp(cmd_words[1], "DEC") == 0) 
+		{
 			if (strcmp(cmd_words[2], "") == 0) 
+			{
 				printf("Missing the decimation rate. See 'h'.\n");
-			
-			rate = (int32_t) atof(cmd_words[2]);
-
-			result = wsa_set_decimation(dev, rate);
-			if (result == WSA_ERR_INVDECIMATIONRATE)
-				sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
-				dev->descr.min_decimation, dev->descr.max_decimation);
+			}
+			else
+			{
+				result = wsa_set_decimation(dev, (int32_t) atof(cmd_words[2]));
+				if (result == WSA_ERR_INVDECIMATIONRATE)
+					sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+					dev->descr.min_decimation, dev->descr.max_decimation);
+			}
 		} // end set decimation rate
 
-		else if (strcmp(cmd_words[1], "FREQ") == 0) {
-			if (strcmp(cmd_words[2], "") == 0) {
+		else if (strcmp(cmd_words[1], "FREQ") == 0) 
+		{
+			if (strcmp(cmd_words[2], "") == 0) 
+			{
 				printf("Missing the frequency value. See 'h'.\n");
 			}
-			else {
-				freq = (int64_t) (atof(cmd_words[2]) * MHZ);
-				result = wsa_set_freq(dev, freq);
+			else 
+			{
+				freq_value = (int64_t) (atof(cmd_words[2]) * MHZ);
+				result = wsa_set_freq(dev, freq_value);
 				if (result == WSA_ERR_FREQOUTOFBOUND)
 					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
 						(double) dev->descr.min_tune_freq / MHZ, 
@@ -1179,11 +1194,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set FREQ
 
-		else if (strcmp(cmd_words[1], "FSHIFT") == 0) {
-			if (strcmp(cmd_words[2], "") == 0) {
+		else if (strcmp(cmd_words[1], "FSHIFT") == 0) 
+		{
+			if (strcmp(cmd_words[2], "") == 0) 
+			{
 				printf("Missing the frequency value. See 'h'.\n");
 			}
-			else {
+			else 
+			{
 				fshift = (float) (atof(cmd_words[2]) * MHZ);
 				result = wsa_set_freq_shift(dev, fshift);
 				if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1192,8 +1210,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end set FSHIFT
 
-		else if (strcmp(cmd_words[1], "GAIN") == 0) {
-			if (strcmp(cmd_words[2], "RF") == 0) {
+		else if (strcmp(cmd_words[1], "GAIN") == 0) 
+		{
+			if (strcmp(cmd_words[2], "RF") == 0) 
+			{
 				enum wsa_gain gain = (enum wsa_gain) NULL;
 				valid = TRUE;
 
@@ -1211,7 +1231,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					valid = FALSE;
 				}
 				else { 
-					printf("Invalid RF gain setting. See 'h'.\n");
+					printf("Invalid RF gain setting. \n"
+						"Use HIGH, MED, LOW, or VLOW.\n");
 					valid = FALSE;
 				}
 
@@ -1219,117 +1240,121 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_set_gain_rf(dev, gain);
 			} // end set GAIN RF
 
-			else if (strcmp(cmd_words[2], "IF") == 0) {
+			else if (strcmp(cmd_words[2], "IF") == 0) 
+			{
 				if (strcmp(cmd_words[3], "") == 0) {
 					printf("Missing the gain in dB value. See 'h'.\n");
 				}
-				else if (!to_int(cmd_words[3], &temp_number)) {
-					if_gain_value = (int32_t) temp_number;
-					result = wsa_set_gain_if(dev, if_gain_value);
-					if (result == WSA_ERR_INVIFGAIN) {
+				else if (!to_int(cmd_words[3], &temp_long)) 
+				{
+					result = wsa_set_gain_if(dev, (int32_t) temp_long);
+					if (result == WSA_ERR_INVIFGAIN)
 						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
 							dev->descr.min_if_gain, dev->descr.max_if_gain);
-					}
 				}
-				else {
+				else 
+				{
 					printf("The IF gain value must be an integer. See 'h'.\n");
 				}
 			} // end set GAIN IF
 			
-			else {
+			else 
+			{
 				printf("Incorrect set GAIN. Specify RF or IF. See 'h'.\n");
 			}
 		} // end set GAIN
 
-		else if (strcmp(cmd_words[1], "PPB") == 0) {
-			if (num_words < 3) {
+		else if (strcmp(cmd_words[1], "PPB") == 0) 
+		{
+			if (num_words < 3) 
+			{
 				printf("Missing the packets per block value. See 'h'.\n");
 			}
-			else {
-				result = to_int(cmd_words[2], &temp_number);
-
-				if (!result) {
-					
-					if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
-						temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+			else 
+			{
+				if (!to_int(cmd_words[2], &temp_long)) 
+				{
+					if (temp_long < WSA4000_MIN_PACKETS_PER_BLOCK ||
+						temp_long > WSA4000_MAX_PACKETS_PER_BLOCK) 
+					{
 						sprintf(msg, "\n\t- The integer is out of range.");
 
 						result = WSA_ERR_INVNUMBER;
 					}
-					else {
-						packets_per_block = (int32_t) temp_number;
+					else 
+					{
 						result = wsa_set_packets_per_block(dev,	
-									packets_per_block);
+									(int32_t) temp_long);
 					}
 				}
 			}
 		} // end set PPB
 
-		else if (strcmp(cmd_words[1], "SPP") == 0) {
-			if (num_words < 3) {
+		else if (strcmp(cmd_words[1], "SPP") == 0) 
+		{
+			if (num_words < 3) 
+			{
 				printf("Missing the samples per packet value. See 'h'.\n");
 			}
-			else {
-				result = to_int(cmd_words[2], &temp_number);
-
-				if (!result) {
-					if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
-						temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+			else 
+			{
+				if (!to_int(cmd_words[2], &temp_long)) 
+				{
+					result = wsa_set_samples_per_packet(dev, 
+								(int32_t) temp_long);
+					if (result == WSA_ERR_INVSAMPLESIZE)
 						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
 							WSA4000_MIN_SAMPLES_PER_PACKET,
 							WSA4000_MAX_SAMPLES_PER_PACKET);
-
-						result = WSA_ERR_INVSAMPLESIZE;
-					}
-					else {
-						samples_per_packet = (int32_t) temp_number;
-						result = wsa_set_samples_per_packet(dev, 
-									samples_per_packet);
-					}
 				}
 			}
 		} // end set SPP
 		
-		else if (strcmp(cmd_words[1], "TRIGGER") == 0) {
-			if (strcmp(cmd_words[2], "ENABLE") == 0) {
-				if (strcmp(cmd_words[3], "ON") == 0) {
+		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
+		{
+			if (strcmp(cmd_words[2], "ENABLE") == 0) 
+			{
+				if (strcmp(cmd_words[3], "ON") == 0)
 					result = wsa_set_trigger_enable(dev, 1);
-				}
-				else if (strcmp(cmd_words[3], "OFF") == 0) {
+				else if (strcmp(cmd_words[3], "OFF") == 0)
 					result = wsa_set_trigger_enable(dev, 0);
-				}
-				else {
+				else
 					printf("Usage: 'set trigger enable <on | off>'\n");
-				}
 			}
-			else if (strcmp(cmd_words[2], "LEVEL") == 0) {
-				if (num_words < 4) {
+			else if (strcmp(cmd_words[2], "LEVEL") == 0) 
+			{
+				if (num_words < 4) 
+				{
 					printf("Usage: 'set trigger level <start>,<stop>,<amplitude>'\n");
 				}
-				else {
+				else 
+				{
+					// Get the start freq
 					strtok_result = strtok(cmd_words[3], ",");
-					if (to_double(strtok_result, &temp_double) < 0) {
+					if (to_double(strtok_result, &temp_double) < 0) 
+					{
 						printf("Start frequency must be a valid number\n");
 					}
-					else {
-						start_frequency = (int64_t) (temp_double * MHZ);
+					else 
+					{
+						start_freq = (int64_t) (temp_double * MHZ);						
 						
+						// Get the top frequency
 						strtok_result = strtok(NULL, ",");
-						if (to_double(strtok_result, &temp_double) < 0) {
+						if (to_double(strtok_result, &temp_double) < 0) 
+						{
 							printf("Stop frequency must be a valid number\n");
 						}
-						else {
-							stop_frequency = (int64_t) (temp_double * MHZ);
+						else 
+						{
+							stop_freq = (int64_t) (temp_double * MHZ);
 							
+							// Get the amplitude value
 							strtok_result = strtok(NULL, ",");
-							if (to_double(strtok_result, &temp_double) < 0) {
+							if (to_double(strtok_result, &temp_double) < 0)
 								printf("Amplitude must be a valid number\n");
-							}
-							else {
-								amplitude = (int64_t) temp_double;
-								
-								result = wsa_set_trigger_level(dev, start_frequency, stop_frequency, amplitude);
-							}
+							else
+								result = wsa_set_trigger_level(dev, start_freq, stop_freq, (int64_t) temp_double);
 						}
 					}
 				}
@@ -1340,29 +1365,30 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		}// end set TRIGGER
 		
-		else if (strcmp(cmd_words[1], "SWEEP") == 0) {
-			if (strcmp(cmd_words[2], "ENTRY") == 0) {
-				if (strcmp(cmd_words[3], "DWELL") == 0) {
-					if (num_words < 5){	 	 
-						printf("Usage: 'set sweep entry dwell <seconds>,<milliseconds>'\n");
+		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
+		{
+			if (strcmp(cmd_words[2], "ENTRY") == 0) 
+			{
+				if (strcmp(cmd_words[3], "DWELL") == 0) 
+				{
+					if (num_words < 5)
+					{
+						printf("Usage: 'set sweep entry dwell <seconds>,<microseconds>'\n");
 					}
-					else {
+					else 
+					{
 						strtok_result = strtok(cmd_words[4], ",");
-						if (to_double(strtok_result, &temp_double) < 0) {
+						if (to_double(strtok_result, &temp_double) < 0) 
+						{
 							printf("Dwell seconds value must be a valid number\n");
 						}
-						else {
-							 dwell_seconds_value = (int32_t) (temp_double);
-							
+						else 
+						{
 							strtok_result = strtok(NULL, ",");
-							if (to_double(strtok_result, &temp_double) < 0) {
-								printf("Dwell milliseconds value must be a valid number\n");
-							}
-							else {
-								dwell_miliseconds_value = (int32_t) (temp_double);
-						
-								result = wsa_set_sweep_dwell(dev, dwell_seconds_value, dwell_miliseconds_value );
-							}
+							if (to_double(strtok_result, &temp_double) < 0) 
+								printf("Dwell microseconds value must be a valid number\n");
+							else
+								result = wsa_set_sweep_dwell(dev, (int32_t) temp_double, (int32_t) temp_double);
 						}
 					}
 				}//end set sweep dwell
@@ -1406,19 +1432,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							result = wsa_set_sweep_gain_rf(dev, gain);
 					} // end set GAIN RF
 
-					else if (strcmp(cmd_words[4], "IF") == 0) {
-						if (strcmp(cmd_words[5], "") == 0) {
+					else if (strcmp(cmd_words[4], "IF") == 0) 
+					{
+						if (strcmp(cmd_words[5], "") == 0) 
+						{
 							printf("Missing the gain in dB value. See 'h'.\n");
 						}
-						else if (!to_int(cmd_words[5], &temp_number)) {
-							if_gain_value = (int32_t) temp_number;
-							result = wsa_set_sweep_gain_if(dev, if_gain_value);
-							if (result == WSA_ERR_INVIFGAIN) {
+						else if (!to_int(cmd_words[5], &temp_long)) 
+						{
+							result = wsa_set_sweep_gain_if(dev, (int32_t) temp_long);
+							if (result == WSA_ERR_INVIFGAIN) 
+							{
 								sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
 									dev->descr.min_if_gain, dev->descr.max_if_gain);
 							}
 						}
-						else {
+						else 
+						{
 							printf("The IF gain value must be an integer. See 'h'.\n");
 						}
 					} // end set GAIN IF
@@ -1432,66 +1462,75 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (strcmp(cmd_words[4], "") == 0) 
 						printf("Missing the decimation rate. See 'h'.\n");
 					
-					rate = (int32_t) atof(cmd_words[4]);
-					result = wsa_set_sweep_decimation(dev, rate);
+					result = wsa_set_sweep_decimation(dev,(int32_t) atof(cmd_words[4]));
 					if (result == WSA_ERR_INVDECIMATIONRATE)
 						sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
 								dev->descr.min_decimation, dev->descr.max_decimation);
 				} // end set decimation rate
 
-				else if (strcmp(cmd_words[3], "TRIGGER") == 0) {
-					if (strcmp(cmd_words[4], "ENABLE") == 0) {
-						if (strcmp(cmd_words[5], "OFF") == 0) {
+				else if (strcmp(cmd_words[3], "TRIGGER") == 0) 
+				{
+					if (strcmp(cmd_words[4], "ENABLE") == 0) 
+					{
+						if (strcmp(cmd_words[5], "OFF") == 0)
 							result = wsa_set_sweep_trigger_type(dev, 0);
-						} else if (strcmp(cmd_words[5], "ON") == 0) {
+						else if (strcmp(cmd_words[5], "ON") == 0)
 							result = wsa_set_sweep_trigger_type(dev, 1);
-						} else {
-							printf("Invalid 'set sweep trigger type'. See 'h'. \n");
-						}
-					} else if (strcmp(cmd_words[4], "LEVEL") == 0) {
-						if (num_words < 5) {
+						else
+							printf("Invalid mode. Use ON or OFF. See 'h'. \n");
+					} 
+					else if (strcmp(cmd_words[4], "LEVEL") == 0) 
+					{
+						if (num_words < 5) 
+						{
 							printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
 						}
-						else {
+						else 
+						{
 							strtok_result = strtok(cmd_words[5], ",");
-							if (to_double(strtok_result, &temp_double) < 0) {
+							if (to_double(strtok_result, &temp_double) < 0) 
+							{
 								printf("Start frequency must be a valid number\n");
 							}
-							else {
-								start_frequency = (int64_t) (temp_double);
+							else 
+							{
+								start_freq = (int64_t) (temp_double);
 								
 								strtok_result = strtok(NULL, ",");
-								if (to_double(strtok_result, &temp_double) < 0) {
+								if (to_double(strtok_result, &temp_double) < 0) 
+								{
 									printf("Stop frequency must be a valid number\n");
 								}
-								else {
-									stop_frequency = (int64_t) (temp_double);
+								else 
+								{
+									stop_freq = (int64_t) (temp_double);
 									
 									strtok_result = strtok(NULL, ",");
-									if (to_double(strtok_result, &temp_double) < 0) {
+									if (to_double(strtok_result, &temp_double) < 0)
 										printf("Amplitude must be a valid number\n");
-									}
-									else {
-										amplitude = (int64_t) temp_double;
-										
-										result = wsa_set_sweep_trigger_level(dev, start_frequency, stop_frequency, amplitude);
-									}
+									else
+										result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int64_t) temp_double);
 								}
 							}
 						}
-					} else {
+					} 
+					else 
+					{
 						printf("Invalid 'set sweep trigger level'. See 'h'. \n");
 					}// end set trigger level
 				}// end set trigger
 
-				else if (strcmp(cmd_words[3], "FREQ") == 0) {
-					if (strcmp(cmd_words[4], "") == 0) {
+				else if (strcmp(cmd_words[3], "FREQ") == 0) 
+				{
+					if (strcmp(cmd_words[4], "") == 0) 
+					{
 						printf("Missing the frequency value. See 'h'.\n");
 					}
-					else {
-						start_frequency = (int64_t) (atof(cmd_words[4]) * MHZ);
-						stop_frequency = (int64_t) (atof(cmd_words[5]) * MHZ);
-						result = wsa_set_sweep_freq(dev, start_frequency, stop_frequency);
+					else 
+					{
+						start_freq = (int64_t) (atof(cmd_words[4]) * MHZ);
+						stop_freq = (int64_t) (atof(cmd_words[5]) * MHZ);
+						result = wsa_set_sweep_freq(dev, start_freq, stop_freq);
 						if (result == WSA_ERR_FREQOUTOFBOUND)
 							sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
 								(double) dev->descr.min_tune_freq / MHZ, 
@@ -1499,11 +1538,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 				} // end set FREQ
 
-				else if (strcmp(cmd_words[3], "FSHIFT") == 0) {
-					if (strcmp(cmd_words[4], "") == 0) {
+				else if (strcmp(cmd_words[3], "FSHIFT") == 0) 
+				{
+					if (strcmp(cmd_words[4], "") == 0) 
+					{
 						printf("Missing the frequency value. See 'h'.\n");
 					}
-					else {
+					else 
+					{
 						fshift = (float) (atof(cmd_words[4]) * MHZ);
 						result = wsa_set_sweep_freq_shift(dev, fshift);
 						if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1512,13 +1554,15 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 				} // end set FSHIFT
 
-				else if (strcmp(cmd_words[3], "FSTEP") == 0) {
-					if (strcmp(cmd_words[4], "") == 0) {
+				else if (strcmp(cmd_words[3], "FSTEP") == 0) 
+				{
+					if (strcmp(cmd_words[4], "") == 0) 
+					{
 						printf("Missing the frequency step value. See 'h'.\n");
 					}
 					else {
-						freq = (int64_t) (atof(cmd_words[4]) * MHZ);
-						result = wsa_set_sweep_freq_step(dev, freq);
+						freq_value = (int64_t) (atof(cmd_words[4]) * MHZ);
+						result = wsa_set_sweep_freq_step(dev, freq_value);
 						if (result == WSA_ERR_FREQOUTOFBOUND)
 							sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
 								(double) dev->descr.min_tune_freq / MHZ, 
@@ -1526,61 +1570,67 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 				} // end set FSTEP
 				
-				else if (strcmp(cmd_words[3], "PPB") == 0) {
-					if (num_words < 4) {
+				else if (strcmp(cmd_words[3], "PPB") == 0) 
+				{
+					if (num_words < 4) 
+					{
 						printf("Missing the packets per block value. See 'h'.\n");
 					}
-					else {
-						result = to_int(cmd_words[4], &temp_number);
-
-						if (!result) {
-							
-							if (temp_number < WSA4000_MIN_PACKETS_PER_BLOCK ||
-								temp_number > WSA4000_MAX_PACKETS_PER_BLOCK) {
+					else 
+					{
+						if (!to_int(cmd_words[4], &temp_long)) 
+						{
+							if (temp_long < WSA4000_MIN_PACKETS_PER_BLOCK ||
+								temp_long > WSA4000_MAX_PACKETS_PER_BLOCK) 
+							{
 								sprintf(msg, "\n\t- The integer is out of range.");
 
 								result = WSA_ERR_INVNUMBER;
 							}
 							else {
-								packets_per_block = (int32_t) temp_number;
 								result = wsa_set_sweep_packets_per_block(dev,	
-											packets_per_block);
+											(int32_t) temp_long);
 							}
 						}
 					}
 				} // end set PPB
 
-				else if (strcmp(cmd_words[3], "SPP") == 0) {
-					if (num_words < 4) {
+				else if (strcmp(cmd_words[3], "SPP") == 0) 
+				{
+					if (num_words < 4) 
+					{
 						printf("Missing the samples per packet value. See 'h'.\n");
 					}
-					else {
-						result = to_int(cmd_words[4], &temp_number);
-
-						if (!result) {
-							if (temp_number < WSA4000_MIN_SAMPLES_PER_PACKET ||
-								temp_number > WSA4000_MAX_SAMPLES_PER_PACKET) {
+					else 
+					{
+						if (!to_int(cmd_words[4], &temp_long)) 
+						{
+							if (temp_long < WSA4000_MIN_SAMPLES_PER_PACKET ||
+								temp_long > WSA4000_MAX_SAMPLES_PER_PACKET) 
+							{
 								sprintf(msg, "\n\t- Valid range: %hu to %hu.",
 									WSA4000_MIN_SAMPLES_PER_PACKET,
 									WSA4000_MAX_SAMPLES_PER_PACKET);
 
 								result = WSA_ERR_INVSAMPLESIZE;
 							}
-							else {
-								samples_per_packet = (int32_t) temp_number;
+							else 
+							{
 								result = wsa_set_sweep_samples_per_packet(dev, 
-											samples_per_packet);
+											(int32_t) temp_long);
 							}
 						}
 					}
 				} // end set SPP
 			} // end set sweep ENTRY
-			else {
+			else 
+			{
 				printf("Invalid 'set sweep entry'. See 'h'.\n");
 			}
 		}	// end set SWEEP
 		
-		else {
+		else 
+		{
 			printf("Invalid 'set'. See 'h'.\n");
 		}
 	} // end SET
@@ -1588,80 +1638,84 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	//*****
 	// Handle SWEEP commands
 	//*****
-	else if  (strcmp(cmd_words[0], "SWEEP") == 0) {
-		if (strcmp(cmd_words[1], "LIST") == 0) {
-			if (strcmp(cmd_words[2], "DELETE") == 0) {
-				if (num_words < 4) {
-					printf("Missing the position of the entry. See 'h'.\n");
-				} 
-				else {
-					result = to_int(cmd_words[3], &temp_number);
-					int_result = (uint32_t) temp_number;
-					result = wsa_sweep_list_delete(dev,temp_number);
-				}
-			} 
-			else if (strcmp(cmd_words[2], "READ") == 0) {
-				if (num_words < 4) {
-					printf("Missing the position of the entry. See 'h'.\n");
-				}
-				else {
-					result = to_int(cmd_words[3], &temp_number);
-					int_result = (uint32_t) temp_number;
-					print_sweep_entry_information(dev,temp_number);
-				}
-			}	
-			else if(strcmp(cmd_words[2], "COPY") == 0) {
-				if (num_words < 3) {
-					printf("Missing the position of the entry. See 'h'.\n");
-				}
-				else {
-					result = to_int(cmd_words[3], &temp_number);
-					int_result = (uint32_t) temp_number;
-					result = wsa_sweep_list_copy(dev,temp_number);
-					// TODO catch result error here?
-				}
-			}
-			else {
-				printf("Invalid 'Sweep List' Command. See 'h'.\n");
-			}
-		} 
-		else if  (strcmp(cmd_words[1], "START") == 0) {
+	else if  (strcmp(cmd_words[0], "SWEEP") == 0) 
+	{
+		if  (strcmp(cmd_words[1], "START") == 0) 
+		{
 			result = wsa_sweep_start(dev);
-			// TODO catch result error here?			
 		} 
-		else if (strcmp(cmd_words[1], "STOP") == 0){
-				//check if the wsa is not sweeping
-			result = wsa_get_sweep_status(dev, &int_result);
-			if (int_result == 0) {
+		
+		else if (strcmp(cmd_words[1], "STOP") == 0)
+		{
+			result = wsa_get_sweep_status(dev, &temp_int);
+			if (temp_int == 0)
 				printf("Sweep mode is already disabled \n");
-			} else {
+			else
 				result =  wsa_sweep_stop(dev);
-			}
-			// TODO catch result error here?
-		} 
-		else if (strcmp(cmd_words[1], "RESUME") == 0){
-			result =  wsa_sweep_resume(dev);
-			// TODO catch result error here?
 		}
-		else if (strcmp(cmd_words[1], "ENTRY") == 0) {
-			if (strcmp(cmd_words[2], "NEW") == 0) {
+
+		else if (strcmp(cmd_words[1], "RESUME") == 0)
+		{
+			result =  wsa_sweep_resume(dev);
+		}
+		
+		else if (strcmp(cmd_words[2], "STATUS") == 0) 
+		{
+			result = wsa_get_sweep_status(dev, &temp_int);
+			if (result >= 0) 
+				printf("Sweep mode is %s.\n", (temp_int) ? "running" : "off");
+		}
+
+		else if (strcmp(cmd_words[1], "ENTRY") == 0) 
+		{
+			if(strcmp(cmd_words[2], "COPY") == 0) 
+			{
+				if (num_words < 4)
+					printf("Missing the ID of the entry. See 'h'.\n");
+				else if (!to_int(cmd_words[3], &temp_long))
+					result = wsa_sweep_entry_copy(dev, (uint32_t) temp_long);
+				//else
+					// TODO message like invalid ID number
+			}
+			else if (strcmp(cmd_words[2], "DELETE") == 0) 
+			{
+				if (num_words < 4)
+					printf("Missing the ID of the entry. See 'h'.\n");
+				else if (!to_int(cmd_words[3], &temp_long))
+					result = wsa_sweep_entry_delete(dev, (uint32_t) temp_long);
+				//else
+					// TODO
+			}
+			else if (strcmp(cmd_words[2], "NEW") == 0) 
+			{
 				result = wsa_sweep_entry_new(dev);
 			}
-			else if (strcmp(cmd_words[2], "SAVE") == 0) {
-				if (num_words < 3) {
-					printf("Missing the position of the entry. See 'h'.\n");
-				}
-				else {
-					result = to_int(cmd_words[3], &temp_number);
-					int_result = (uint32_t) temp_number;
-					result = wsa_sweep_entry_save(dev,temp_number);
-				}
-			} 
-			else {
-				printf("Invalid 'Sweep entry' Command. See 'h'.\n");
+			else if (strcmp(cmd_words[2], "READ") == 0) 
+			{
+				if (num_words < 4)
+					result = print_sweep_entry(dev);
+				else if (!to_int(cmd_words[3], &temp_long))
+					result = print_sweep_entry_information(dev, (uint32_t) temp_long);
+				//else
+					// TODO
 			}
-		}	// end ENTRY
-		else {
+			else if (strcmp(cmd_words[2], "SAVE") == 0) 
+			{
+				if (num_words < 4)
+					printf("Missing the ID of the entry. See 'h'.\n");
+				else if (!to_int(cmd_words[3], &temp_long))
+					result = wsa_sweep_entry_save(dev, (uint32_t) temp_long);
+				// else
+					// TODO
+			}
+			else 
+			{
+				printf("Invalid 'Sweep Entry' command. See 'h'.\n");
+			}
+		} // end ENTRY 
+		
+		else 
+		{
 			printf("Invalid 'Sweep' Command. See 'h'.\n");
 		}
 	} // end SWEEP
@@ -2135,8 +2189,8 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int32_t value;
 	int32_t samples_per_packet;
 	int32_t packets_per_block;
-    int64_t start_frequency = 0;
-	int64_t stop_frequency = 0;
+    int64_t start_freq = 0;
+	int64_t stop_freq = 0;
 	int64_t amplitude = 0;
 	int32_t enable = 0;
 	char dig1 = 0;
@@ -2203,10 +2257,10 @@ void print_wsa_stat(struct wsa_device *dev) {
 		printf("\t\t- Error: Failed reading if the triggers are enabled.\n");
 	}
 	
-	result = wsa_get_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
+	result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 	if (result >= 0) {
-		printf("\t\t\t- Start Frequency: %u\n", start_frequency/MHZ);
-		printf("\t\t\t- Stop Frequency: %u\n", stop_frequency/MHZ);
+		printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
+		printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
 		printf("\t\t\t- Amplitude: %lld dBm\n", amplitude);
 	}
 	else {
@@ -2238,112 +2292,104 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
  * @param dev - a pointer to the wsa device
  * 
  */
-void print_sweep_entry(struct wsa_device *dev) 
+int16_t print_sweep_entry(struct wsa_device *dev) 
 {	
 	int16_t result = 0;			// result returned from a function
-	int64_t freq = 0;
 	float fshift = 0;
-	int int_result = 0;
-	int32_t dwell_seconds_value = 15;
-	int32_t dwell_useconds_value = 16;
-	int32_t samples_per_packet;
-	int32_t packets_per_block;
-	int64_t start_frequency;
-	int64_t stop_frequency;
+	int32_t temp_int = 0;
+	int32_t dwell_seconds_value;
+	int32_t dwell_useconds_value;
+	int64_t freq = 0;
+	int64_t start_freq;
+	int64_t stop_freq;
 	int64_t amplitude;
 	enum wsa_gain gain;
+	char temp[10];
 
-	//print antenna sweep value
-	printf("Sweep Entry Settings:\n");
+	printf("Current Sweep Entry Template Settings:\n");
 
-	//print frequency sweep value
-	result = wsa_get_sweep_freq(dev, &start_frequency, &stop_frequency);
-	if (result >= 0) {
-		printf("   Sweep range (MHz): %0.3d - %0.3d, ", start_frequency / MHZ, stop_frequency / MHZ);
-	}
+	// print frequency sweep value
+	result = wsa_get_sweep_freq(dev, &start_freq, &stop_freq);
+	if (result < 0)
+		return result;
+	printf("   Sweep range (MHz): %0.3d - %0.3d, ", start_freq/MHZ, stop_freq/MHZ);
 
-	//print fstep sweep value
+	// print fstep sweep value
 	result = wsa_get_sweep_freq_step(dev, &freq);
-	if (result >= 0) {
-		printf("Step: %0.3d \n", freq/MHZ);
-	}
+	if (result < 0)
+		return result;
+	printf("Step: %0.3d \n", freq/MHZ);
 
-	result = wsa_get_sweep_antenna(dev, &int_result);
-	if (result >= 0) {
-		printf("   Antenna Port: %d \n", int_result);
-	}
+	// print antenna sweep value
+	result = wsa_get_sweep_antenna(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("   Antenna Port: %d \n", temp_int);
 
-	//print samples per packets sweep value
-	result = wsa_get_sweep_samples_per_packet(dev, &samples_per_packet);
-	if (result >= 0) {
-		printf("   Capture Block: %d * ", samples_per_packet);
-	}
+	// print samples per packets sweep value
+	result = wsa_get_sweep_samples_per_packet(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("   Capture Block: %d * ", temp_int);
 
-	//print packets per block
-	result = wsa_get_sweep_packets_per_block(dev, &packets_per_block);
-	if (result >= 0) {
-		printf("%d \n", packets_per_block);
-	}
+	// print packets per block
+	result = wsa_get_sweep_packets_per_block(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("%d \n", temp_int);
 
-	//print decimation sweep value
-	result = wsa_get_sweep_decimation(dev, &int_result);
-	if (result >= 0) {
-		printf("   Decimation: %d \n", int_result);
-	}
+	// print decimation sweep value
+	result = wsa_get_sweep_decimation(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("   Decimation: %d \n", temp_int);
 
-	//print fstep sweep value	
+	// print fstep sweep value	
 	result = wsa_get_sweep_freq_shift(dev, &fshift);
-	if (result >= 0) {
-		printf("   Frequency Shift: %0.3f MHz \n", fshift/MHZ);
-	}
+	if (result < 0)
+		return result;
+	printf("   Frequency Shift: %0.3f MHz \n", fshift/MHZ);
 
-	//print gain if sweep value		
-	result = wsa_get_sweep_gain_if(dev, &int_result);
-	if (result >= 0) {
-		printf("   Gain IF: %d dBm \n", int_result);
-	}
+	// print gain if sweep value		
+	result = wsa_get_sweep_gain_if(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("   Gain IF: %d dBm \n", temp_int);
 
-	//print gain rf sweep value
+	// print gain rf sweep value
 	result = wsa_get_sweep_gain_rf(dev, &gain);
-	if (result >= 0) {
-		char temp[10];
-		gain_rf_to_str(gain, &temp[0]);
-		printf("   Gain RF: %s\n", temp);
-	}
+	if (result < 0)
+		return result;
+	gain_rf_to_str(gain, &temp[0]);
+	printf("   Gain RF: %s\n", temp);
 
-	//print trigger status sweep value
+	// print trigger status sweep value
 	printf("   Trigger configuration:\n");
-	result = wsa_get_sweep_trigger_type(dev, &int_result);
-	if (result >= 0) {
-		printf("      Trigger mode: ");
-		if (int_result == 1) {
-			printf("On\n");
-			result = wsa_get_sweep_trigger_level(dev, &start_frequency, &stop_frequency, &amplitude);
-			if (result >= 0) {
-				printf("      Start frequency: %d MHz\n", (start_frequency));
-				printf("      Stop frequency: %d MHz\n", (stop_frequency));
-				printf("      Amplitude: %d dBm\n", amplitude);
-			}
-		}
-		else if (int_result == 0) {
-			printf("Off\n");
-		}
-		else {
-			printf("Unknown state\n");
-		}
-	}
+	result = wsa_get_sweep_trigger_type(dev, &temp_int);
+	if (result < 0)
+		return result;
+	printf("      Trigger mode: %s\n", ((temp_int) ? "On" : "Off"));
 
-	//print dwell sweep value
+	// print trigger level sweep value
+	result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
+	if (result < 0)
+		return result;
+	printf("      Range (MHz): %d - %d", start_freq/MHZ, stop_freq/MHZ);
+	printf("      Amplitude: %d dBm\n", amplitude);
+
+	// print dwell sweep value
 	result = wsa_get_sweep_dwell(dev, &dwell_seconds_value, &dwell_useconds_value);
-	if (result >= 0) {
-		printf("   Dwell time: %u.%llu seconds\n", dwell_seconds_value, dwell_useconds_value);
-	}
+	if (result < 0)
+		return result;
+	printf("   Dwell time: %u.%lu seconds\n", dwell_seconds_value, dwell_useconds_value);
+
+	return 0;
 }
 
 /**
  *
  */
-void print_sweep_entry_information(struct wsa_device *dev, int32_t position) 
+int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id) 
 {	
 	int16_t result;
 	char temp[10];
@@ -2352,14 +2398,21 @@ void print_sweep_entry_information(struct wsa_device *dev, int32_t position)
 	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
 
 	printf("Sweep Entry Settings:\n");
-	result = wsa_sweep_list_read(dev, position, list_values);
-	printf("  Sweep range (MHZ): %d - %d, Step: %d \n", (list_values->start_frequency / MHZ), (list_values->stop_frequency / MHZ), list_values->fstep / MHZ);
-	printf("  Antenna port: %u \n",list_values->ant_port);
+	result = wsa_sweep_entry_read(dev, id, list_values);
+	if (result < 0) 
+	{
+		free(list_values);
+		return result;
+	}
+
+	printf("  Sweep range (MHZ): %d - %d, Step: %d \n", (list_values->start_freq / MHZ), (list_values->stop_freq / MHZ), list_values->fstep / MHZ);
+	printf("  Antenna port: %u \n", list_values->ant_port);
 	printf("  Capture Block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
-	printf("  Decimation rate: %u \n",list_values->decimation_rate);
-	printf("  Frequency shift: %f MHz\n",list_values->fshift);
+	printf("  Decimation rate: %u \n", list_values->decimation_rate);
+	printf("  Frequency shift: %f MHz\n", list_values->fshift);
 	printf("  Gain IF: %u \n", list_values->gain_if);
 	gain_rf_to_str(list_values->gain_rf, &temp[0]);
+	
 	printf("  Gain RF: %s\n", temp);
 	printf("  Trigger Configuration:\n");
 	if ( list_values->trigger_enable == 0) {
@@ -2367,9 +2420,13 @@ void print_sweep_entry_information(struct wsa_device *dev, int32_t position)
 	} 
 	else if ( list_values->trigger_enable == 1) {
 		printf("        Trigger Mode: On\n");
-		printf("        Start frequency: %d MHz\n", (list_values->trigger_start_frequency / MHZ));
-		printf("        Stop frequency: %d MHz\n", (list_values->trigger_stop_frequency / MHZ));
-		printf("        amplitude: %d dBm\n", list_values->trigger_amplitude);
+		printf("        Start frequency: %d MHz\n", (list_values->trigger_start_freq / MHZ));
+		printf("        Stop frequency: %d MHz\n", (list_values->trigger_stop_freq / MHZ));
+		printf("        Amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
-	printf("   Dwell time: %u.%llu seconds\n", list_values->dwell_seconds_value,list_values->dwell_useconds_value);
+	printf("   Dwell time: %u.%lu seconds\n", list_values->dwell_seconds_value,list_values->dwell_useconds_value);
+
+	free(list_values);
+	
+	return 0;
 }

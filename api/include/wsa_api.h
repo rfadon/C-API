@@ -102,8 +102,8 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev);
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude);
-int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude);
+int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int64_t amplitude);
+int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int64_t* amplitude);
 
 int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable);
 int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
@@ -156,8 +156,8 @@ int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t dwell_seconds_value, 
 int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, int32_t *type);
 int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, int32_t type);
 
-int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_frequency, int64_t stop_frequency, int64_t amplitude);
-int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_frequency, int64_t* stop_frequency, int64_t* amplitude);
+int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int64_t amplitude);
+int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int64_t* amplitude);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
@@ -166,13 +166,13 @@ int16_t wsa_get_sweep_status(struct wsa_device *dev, int32_t *status);
 int16_t wsa_sweep_entry_new(struct wsa_device *dev);
 int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
 
-int16_t wsa_sweep_list_copy(struct wsa_device *dev, int32_t position);
-int16_t wsa_sweep_list_delete(struct wsa_device *dev, int32_t position);
-int16_t wsa_sweep_list_read(struct wsa_device *dev, int32_t position, struct wsa_sweep_list* const sweep_list);
+int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id);
+int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id);
+int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_sweep_list* const sweep_list);
 int16_t wsa_sweep_start(struct wsa_device *dev);
 int16_t wsa_sweep_stop(struct wsa_device *dev);
 int16_t wsa_sweep_resume(struct wsa_device *dev);
-int16_t wsa_get_sweep_list_size(struct wsa_device* device, int32_t *size);
+int16_t wsa_get_sweep_entry_size(struct wsa_device* device, int32_t *size);
 
 #endif
 

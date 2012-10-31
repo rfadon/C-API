@@ -76,8 +76,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		{WSA_ERR_NODATABUS, "No data bus detected. Possible firmware error"},
 		{WSA_ERR_READFRAMEFAILED, "Failed reading a WSA frame"},
-		{WSA_ERR_INVSAMPLESIZE, "Invalid sample size"},	
-		{WSA_ERR_SIZESETFAILED, "Failed to set the sample size"},
+		{WSA_ERR_INVSAMPLESIZE, "Invalid sample size"},
 		{WSA_ERR_NOTIQFRAME, "Not an IQ packet frame"},
 		{WSA_ERR_INVDECIMATIONRATE, "Invalid decimation rate"},
 		{WSA_ERR_VRTPACKETSIZE, "Did not receive the expected number of bytes in VRT packet"},
@@ -90,7 +89,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		{WSA_ERR_FREQOUTOFBOUND, "The frequency input is out of bound"},
 		{WSA_ERR_INVFREQRES, "Invalid frequency resolution"},
-		{WSA_ERR_FREQSETFAILED, "Failed tuning the frequency in the WSA"},
 		{WSA_ERR_PLLLOCKFAILED, "The WSA's PLL failed to lock"},
 	
 		//*****
@@ -98,8 +96,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		{WSA_ERR_INVRFGAIN, "Invalid RF gain setting"},
 		{WSA_ERR_INVIFGAIN, "IF gain value out of range or invalid"},
-		{WSA_ERR_IFGAINSETFAILED, "Failed setting the IF gain setting to WSA"},
-		{WSA_ERR_RFGAINSETFAILED, "Failed setting the RF gain value to WSA"},
 
 		//*****
 		// Run mode related
@@ -119,11 +115,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVTRIGRANGE, 
 			"Invalid trigger range between the start & stop frequencies"},
 		{WSA_ERR_INVDWELL, "Invalid trigger dwell time"},
-		{WSA_ERR_INVNUMFRAMES, "Invalid number of frames to capture"},
-		{WSA_ERR_TRIGGERSETFAILED, "Failed setting the trigger in the WSA"},
 		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
-		{WSA_ERR_CFREQRANGE, "Center Frequency is out of range"},
-		{WSA_ERR_FREQLOW, "Frequency is too low"},
 		{WSA_WARNING_TRIGGER_CONFLICT, "Trigger Setting Conflict"},
 
 		//*****
@@ -142,13 +134,11 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		// RFE SECTION
 		//*****
 		{WSA_ERR_INVANTENNAPORT, "Invalid antenna switch port"},
-		{WSA_ERR_ANTENNASETFAILED, "Failed to set the antenna port"},
 		{WSA_ERR_INVFILTERMODE, "Invalid filter mode"},
-		{WSA_ERR_FILTERSETFAILED, "Failed to set the filter mode"},
 		{WSA_ERR_INVCALIBRATEMODE, "Invalid calibration mode"},
-		{WSA_ERR_CALIBRATESETFAILED, "Failed to set the calibration mode"},
 		{WSA_ERR_INVRFESETTING, 
 			"This setting is not valid with the current RFE product"},
+		{WSA_ERR_INVPLLREFSOURCE, "Invalid PLL reference source"},
 
 
 		//*****
@@ -171,18 +161,20 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		// Sweep Errors   
 		//*****
-		{WSA_ERR_SWEEPSAVEFAIL, "Failed to save current sweep entry"},
+		{WSA_ERR_SWEEPRESUMEFAIL, "Failed to resume sweep"},
+		{WSA_ERR_SWEEPSIZEFAIL, "Failed to retrieve sweep size"},
 		{WSA_ERR_SWEEPSTARTFAIL, "Failed to start sweep"},
 		{WSA_ERR_SWEEPSTOPFAIL, "Failed to stop sweep"},
-		{WSA_ERR_SWEEPRESUMEFAIL, "Failed to resume sweep"},
-		{WSA_ERR_SWEEPCOPYFAIL, "Failed to copy current sweep entry into the sweep list"},
-		{WSA_ERR_SWEEPNEWFAIL, "Failed to create a new sweep entry"},
-		{WSA_ERR_SWEEPSTATUSFAIL, "Failed to retrieve sweep status"},
-		{WSA_ERR_SWEEPDELETEFAIL, "Failed to delete sweep list item"},
-		{WSA_ERR_SWEEPSIZEFAIL, "Failed to retrieve sweep size"},
-		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep already running"},
+		{WSA_ERR_SWEEPSTATUSFAIL, "Failed to retrieve the sweep list status"},
+
+		{WSA_ERR_SWEEPENTRYSAVEFAIL, "Failed to save the current sweep entry"},
+		{WSA_ERR_SWEEPENTRYCOPYFAIL, "Failed to copy the current sweep entry into the sweep list"},
+		{WSA_ERR_SWEEPENTRYNEWFAIL, "Failed to create a new sweep entry"},
+		{WSA_ERR_SWEEPENTRYDELETEFAIL, "Failed to delete the sweep list entry"},
+
+		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
-		{WSA_ERR_SWEEPOUTOFBOUNDS, "Sweep entry position that you have choosen is out of bounds"}
+		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"}
 		
 
 	};
