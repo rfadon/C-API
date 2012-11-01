@@ -207,8 +207,8 @@ struct wsa_sweep_list {
 	int32_t decimation_rate;
 	int32_t ant_port;
 	int32_t gain_if;
-	int32_t dwell_seconds_value;
-	int32_t dwell_useconds_value;
+	int32_t dwell_seconds;
+	int32_t dwell_microseconds;
 	int32_t samples_per_packet;
 	int32_t packets_per_block;
 	int8_t trigger_enable;

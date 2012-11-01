@@ -42,7 +42,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVADCCORRVALUE, 
 			"Invalid ADC correction value (use -1, 0 to 13)"},
 
-
 		//*****
 		// WSA Interface/Connection Related
 		//*****
@@ -84,12 +83,17 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVCAPTURESIZE, "Capture size exceeds amount of memory space available"},
 		{WSA_ERR_PACKETOUTOFORDER, "A VRT packet was received out of order"},
 		{WSA_ERR_CAPTUREACCESSDENIED, "Capture access denied, only 1 user can capture data at a time"},
+		
 		//*****
 		// Frequency related
 		//*****
 		{WSA_ERR_FREQOUTOFBOUND, "The frequency input is out of bound"},
 		{WSA_ERR_INVFREQRES, "Invalid frequency resolution"},
 		{WSA_ERR_PLLLOCKFAILED, "The WSA's PLL failed to lock"},
+		{WSA_ERR_INVSTOPFREQ, 
+			"Invalid stop frequency (must be larger than the start frequency)"},
+		{WSA_ERR_STARTOOB, "Start frequency is out of bound"},
+		{WSA_ERR_STOPOOB, "Stop frequency is out of bound"},
 	
 		//*****
 		// Gain related
@@ -105,18 +109,13 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		// Trigger related
 		//*****
-		{WSA_ERR_INVTRIGID, "Invalid trigger ID"},
-		{WSA_ERR_INVSTOPFREQ, 
-			"Invalid stop frequency (must be larger than the start frequency"},
-		{WSA_ERR_STARTOOB, "Start frequency is out of bound"},
-		{WSA_ERR_STOPOOB, "Stop frequency is out of bound"},
-		{WSA_ERR_INVSTARTRES, "Invalid start frequency resolution"},
-		{WSA_ERR_INVSTOPRES, "Invalid stop frequency resolution"},
-		{WSA_ERR_INVTRIGRANGE, 
-			"Invalid trigger range between the start & stop frequencies"},
-		{WSA_ERR_INVDWELL, "Invalid trigger dwell time"},
 		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
-		{WSA_WARNING_TRIGGER_CONFLICT, "Trigger Setting Conflict"},
+		{WSA_WARNING_TRIGGER_CONFLICT, "Trigger setting conflict"},
+
+		//*****
+		// Timing related
+		//*****
+		{WSA_ERR_INVDWELL, "Invalid dwell time"},
 
 		//*****
 		// CONTROL/COMMAND ERRORS
@@ -129,7 +128,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 			"The response received is invalid for the query sent"},
 		{WSA_ERR_QUERYNORESP, "Query returns no response"},
 
-
 		//*****
 		// RFE SECTION
 		//*****
@@ -139,7 +137,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVRFESETTING, 
 			"This setting is not valid with the current RFE product"},
 		{WSA_ERR_INVPLLREFSOURCE, "Invalid PLL reference source"},
-
 
 		//*****
 		// File related
@@ -168,15 +165,13 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPSTATUSFAIL, "Failed to retrieve the sweep list status"},
 
 		{WSA_ERR_SWEEPENTRYSAVEFAIL, "Failed to save the current sweep entry"},
-		{WSA_ERR_SWEEPENTRYCOPYFAIL, "Failed to copy the current sweep entry into the sweep list"},
+		{WSA_ERR_SWEEPENTRYCOPYFAIL, "Failed to copy the entry settings into the template"},
 		{WSA_ERR_SWEEPENTRYNEWFAIL, "Failed to create a new sweep entry"},
 		{WSA_ERR_SWEEPENTRYDELETEFAIL, "Failed to delete the sweep list entry"},
 
 		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
 		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"}
-		
-
 	};
 
 	int id = 0;

@@ -81,6 +81,9 @@
 #define WSA_ERR_FREQOUTOFBOUND	(LNEG_NUM - 601)
 #define WSA_ERR_INVFREQRES		(LNEG_NUM - 602)
 #define WSA_ERR_PLLLOCKFAILED	(LNEG_NUM - 603)
+#define WSA_ERR_INVSTOPFREQ		(LNEG_NUM - 604)
+#define WSA_ERR_STARTOOB		(LNEG_NUM - 605)
+#define WSA_ERR_STOPOOB			(LNEG_NUM - 606)
 
 
 // ///////////////////////////////
@@ -99,16 +102,13 @@
 // ///////////////////////////////
 // TRIGGER ERRORS				//
 // ///////////////////////////////
-#define WSA_ERR_INVTRIGID		(LNEG_NUM - 1201)
-#define WSA_ERR_INVSTOPFREQ		(LNEG_NUM - 1202)
-#define WSA_ERR_STARTOOB		(LNEG_NUM - 1203)
-#define WSA_ERR_STOPOOB			(LNEG_NUM - 1204)
-#define WSA_ERR_INVSTARTRES		(LNEG_NUM - 1205)
-#define WSA_ERR_INVSTOPRES		(LNEG_NUM - 1206)
-#define WSA_ERR_INVTRIGRANGE	(LNEG_NUM - 1207)
-#define WSA_ERR_INVDWELL		(LNEG_NUM - 1208)
-#define WSA_ERR_INVTRIGGERMODE	(LNEG_NUM - 1209)
+#define WSA_ERR_INVTRIGGERMODE	(LNEG_NUM - 1201)
 
+
+// ///////////////////////////////
+// TIME RELATED ERRORS			//
+// ///////////////////////////////
+#define WSA_ERR_INVDWELL	(LNEG_NUM - 1301)
 
 // ///////////////////////////////
 // CTRL/CMD ERRORS				//
@@ -168,7 +168,7 @@
 // ///////////////////////////////
 // WARNINGS						//
 // ///////////////////////////////
-#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 4000)
+#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 10000)
 
 const char *_wsa_get_err_msg(int16_t err_id);
 
