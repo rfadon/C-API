@@ -2236,6 +2236,10 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, char* status)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
+	// check if the wsa returns an invalid sweep status
+	if (strcmp(query.output, "STOPPED") != 0 && strcmp(query.output, "RUNNING") != 0)
+		return WSA_ERR_SWEEPMODEUNDEF;
+
 	strcpy(status, query.output);
 	return 0;
 }
@@ -2356,14 +2360,14 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 int16_t wsa_sweep_start(struct wsa_device *dev) 
 {	
 	int16_t result = 0;
-	int32_t status;
+	char status[40];
 	int32_t size = 0;
 
 	// check if the wsa is already sweeping
 	result = wsa_get_sweep_status(dev, &status);
 	if (result < 0)
 		return result;
-	if (status == 1)
+	if (strcmp(status, "RUNNING") == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	// check if the sweep list is empty
@@ -2447,7 +2451,8 @@ int16_t wsa_sweep_resume(struct wsa_device *dev)
 	result = wsa_get_sweep_status(dev, &status);
 	if (result < 0)
 		return result;
-	if (status == 1)
+
+	if (strcmp(status, "RUNNING") == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	result = wsa_get_sweep_entry_size(dev, &size);
