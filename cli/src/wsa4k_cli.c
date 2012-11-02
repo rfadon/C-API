@@ -1719,8 +1719,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Missing the ID of the entry. See 'h'.\n");
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_copy(dev, (uint32_t) temp_long);
-				//else
-					// TODO message like invalid ID number
+				else
+					printf("Invalid ID number \n");
+
+
 			}
 			else if (strcmp(cmd_words[2], "DELETE") == 0) 
 			{
