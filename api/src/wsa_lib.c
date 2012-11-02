@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_lib.h"
@@ -54,11 +55,10 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	// TODO will need to replace with reading from reg or eeprom?
 	sprintf(dev->descr.prod_name, "%s", WSA4000);
 	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
-	sprintf(dev->descr.prod_version, "v2.3.0"); // temp value
+	sprintf(dev->descr.prod_version, "v0"); // temp value
 	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
-	sprintf(dev->descr.rfe_version, "v2.3.0"); // temp
-	strcpy(dev->descr.fw_version, "v2.3.0");
-
+	sprintf(dev->descr.rfe_version, "v0"); // temp
+	strcpy(dev->descr.fw_version, "v0");
 	
 	// 3rd, set some values base on the model
 	// TODO: read from regs/eeprom instead once available
@@ -478,18 +478,24 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 	char query_msg[MAX_STR_LEN];
 
 	// TODO: check WSA version/model # 
-	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
+	if (strcmp(dev->descr.intf_type, "USB") == 0) 
+	{	
 		return WSA_ERR_USBNOTAVBL;
 	}
-	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
-		while (1) {
+	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) 
+	{
+		while (1) 
+		{
 			// Making the assumption that we will not send more bytes
 			// than can fit into int16_t
 			// TODO: revisit this and move bytes_txed into the parameter list
 			bytes_txed = (int16_t) wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_txed < 0)
+			{
 				return bytes_txed;
-			else if (bytes_txed < len) {
+			}
+			else if (bytes_txed < len) 
+			{
 				if (resend_cnt > 3)
 					return WSA_ERR_CMDSENDFAILED;
 
@@ -497,21 +503,22 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 				resend_cnt++;
 			}
 			else
+			{
 				break;
+			}
 		}  
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		if (strstr(command, "DATA?") == NULL) {
+		if (strstr(command, "DATA?") == NULL) 
+		{
 			wsa_query_error(dev, query_msg);
-			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0)) {
+			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
 				return WSA_ERR_QUERYNORESP;
-			}
-
 			
 			if (strcmp(query_msg, "") != 0) {
-				if (strstr(query_msg, "-221") != NULL) {
+				if (strstr(query_msg, "-221") != NULL)
 					return WSA_WARNING_TRIGGER_CONFLICT;
-				}
+				
 				return WSA_ERR_SETFAILED;
 			}
 		}
@@ -547,7 +554,8 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	strcpy(resp.output, "");
 	resp.status = 0;
 
-	if((cmd_fptr = fopen(file_name, "r")) == NULL) {
+	if((cmd_fptr = fopen(file_name, "r")) == NULL) 
+	{
 		result = WSA_ERR_FILEREADFAILED;
 		printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), 
 			file_name);
@@ -564,26 +572,32 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 	fclose(cmd_fptr);
 
 	// process the command strings acquired
-	if (result > 0) {
+	if (result > 0) 
+	{
 		// Send each command line to WSA
 		lines = result;
-		for (i = 0; i < lines; i++) {
+		for (i = 0; i < lines; i++) 
+		{
 			// Send non-query cmds
-			if (strstr(cmd_strs[i], "?") == NULL) {
+			if (strstr(cmd_strs[i], "?") == NULL) 
+			{
 				result = wsa_send_command(dev, cmd_strs[i]);
 				// If a bad command is detected, continue? Prefer not.
-				if (result < 0) {
+				if (result < 0) 
+				{
 					printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
 					break;
 				}
 			}
 			
 			// Send query cmds
-			else {
+			else 
+			{
 				 result = wsa_send_query(dev, cmd_strs[i], &resp);			
 			
 				// If a bad command is detected, continue? Prefer not.
-				if (resp.status < 0) {
+				if (resp.status < 0) 
+				{
 					printf("WSA returned error %lld: \"%s\" (possibly: %s)\n", 
 						resp.status, resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDINVALID));
@@ -649,8 +663,10 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					_wsa_get_err_msg(bytes_got));
 				return bytes_got;
 			}
-			else if (bytes_got < len) {
-				if (resend_cnt > 3) {
+			else if (bytes_got < len) 
+			{
+				if (resend_cnt > 3) 
+				{
 					temp_resp.status = WSA_ERR_CMDSENDFAILED;
 					strcpy(temp_resp.output, 
 						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
@@ -661,9 +677,11 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 				resend_cnt++;
 			}
 			// Read back the output
-			else {
+			else 
+			{
 				recv_result = -1;
-				while (recv_result != 0 && loop_count < 5) {
+				while (recv_result != 0 && loop_count < 5) 
+				{
 					recv_result = wsa_sock_recv(dev->sock.cmd, 
 							(uint8_t*) temp_resp.output, 
 							MAX_STR_LEN, TIMEOUT, 
@@ -672,23 +690,23 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 					loop_count++;
 				}
 
-				if (recv_result == 0 && bytes_received < MAX_STR_LEN) {
+				if (recv_result == 0 && bytes_received < MAX_STR_LEN)
 					temp_resp.output[bytes_received] = '\0'; // add EOL to the string
-				}
-				else {
+				else
 					temp_resp.output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
-				}
 
 				break;
 			}
 		}
 
 		// TODO define what result should be
-		if (recv_result != 0) {
+		if (recv_result != 0) 
+		{
 			temp_resp.status = WSA_ERR_QUERYNORESP;
 			return WSA_ERR_QUERYNORESP;
 		}
-		else {
+		else 
+		{
 			temp_resp.status = bytes_received;
 		}
 	}
@@ -1012,23 +1030,15 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	// *****
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
-
-		// TODO: TEMPORARY WORKAROUND
-		// WSA returns a signed 14-bit integer padded with 2 most significant 0-bits
-		// to encode the number in 16 bits.
-		// Need to sign-extend by copying the value of bit 13 to bits 14 and 15
-		// so that the number can be treated as a signed 16-bit integer
-		// This workaround can be removed after the WSA firmware is updated
-		// to perform the sign-extension in the embedded firmware
-		if (data_buf[i] & 0x20)
+/*		if (data_buf[i] & 0x20)
 		{
 			i_buf[j] = (((int16_t) (data_buf[i] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 1]);
 		}
 		else
 		{
-			// Need to keep this line after temporary workaround is removed
+*/			// Need to keep this line after temporary workaround is removed
 			i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
-		}
+/*		}
 
 		if (data_buf[i + 2] & 0x20)
 		{
@@ -1036,9 +1046,9 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 		}
 		else
 		{
-			// Need to keep this line after temporary workaround is removed
+*/			// Need to keep this line after temporary workaround is removed
 			q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
-		}
+//		}
 				
 		// END TEMPORARY WORKAROUND
 		
@@ -1107,7 +1117,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 
 		freq_int_part = (long double) ((freq_word1 << 12) + (freq_word2 >> 20));
 		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
-		receiver->frequency = freq_int_part + (freq_dec_part / MHZ);
+		receiver->freq = freq_int_part + (freq_dec_part / MHZ);
 		
 		data_pos = data_pos + 8;
 	}
