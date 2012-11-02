@@ -29,7 +29,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWNRFEVSN, "Unknown WSA RFE version detected"},
 		{WSA_ERR_UNKNOWNFWRVSN, "Unknown WSA firmware version detected"},
 		{WSA_ERR_PRODOBSOLETE, "Product is obsolete and not supported"},
-		{WSA_ERR_DATAACCESSDENIED, "Read access denied, use the 'get read access' command"},
+		{WSA_ERR_DATAACCESSDENIED, "Read access denied, use the 'get acq access' command"},
 
 		//*****
 		// WSA Setup Related
@@ -171,7 +171,10 @@ const char *_wsa_get_err_msg(int16_t err_id)
 
 		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
-		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"}
+		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"},
+		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"},
+		{WSA_ERR_INVALID_DWELL, "Invalid dwell value"}
+
 	};
 
 	int id = 0;

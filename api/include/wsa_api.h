@@ -102,8 +102,8 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev);
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int64_t amplitude);
-int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int64_t* amplitude);
+int16_t wsa_set_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
+int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int32_t* amplitude);
 
 int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable);
 int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
@@ -113,11 +113,11 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
 // PLL Section                                                          //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_reference_pll(struct wsa_device* dev, int32_t *pll_ref);
-int16_t wsa_set_reference_pll(struct wsa_device* dev, int32_t pll_ref);
+int16_t wsa_get_reference_pll(struct wsa_device* dev, char* pll_ref);
+int16_t wsa_set_reference_pll(struct wsa_device* dev, char* pll_ref);
 
 int16_t wsa_reset_reference_pll(struct wsa_device* dev);
-int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t *lock_ref);
+int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -156,13 +156,13 @@ int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t seconds, int32_t micr
 int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, int32_t *type);
 int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, int32_t type);
 
-int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int64_t amplitude);
-int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int64_t* amplitude);
+int16_t wsa_set_sweep_trigger_level(struct wsa_device* dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
+int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64_t* stop_freq, int32_t* amplitude);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
 
-int16_t wsa_get_sweep_status(struct wsa_device *dev, int32_t *status);
+int16_t wsa_get_sweep_status(struct wsa_device *dev, char *status);
 int16_t wsa_sweep_entry_new(struct wsa_device *dev);
 int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t positon);
 

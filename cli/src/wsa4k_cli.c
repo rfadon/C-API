@@ -242,7 +242,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("  set sweep entry ant <1 | 2>\n");
 	printf("  set sweep entry dec <rate>\n");
 	printf("  set sweep entry gain <rf | if>\n");
-	printf("  set sweep entry freq <freq>\n");
+	printf("  set sweep entry freq <start stop>\n");
 	printf("  set sweep entry fshift <freq>\n");
 	printf("  set sweep entry ppb <packets>\n");
 	printf("  set sweep entry spp <samples>\n");
@@ -413,7 +413,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t packets_per_block;
 	int32_t enable = 0;
 	int32_t dec = 0;
-	int32_t sweep_status = 0;
 	int64_t freq = 0;
 	int64_t start_freq = 0;
 	int64_t stop_freq = 0;
@@ -433,6 +432,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	long double digitizer_rf_freq_offset = 0;
 	
 	char file_name[MAX_STRING_LEN];
+	char sweep_status[MAX_STRING_LEN];
 	FILE *iq_fptr;
 
 	// to calculate run time
@@ -481,13 +481,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_DATAACCESSDENIED;
 
 	// Get sweep status
-	result = wsa_get_sweep_status(dev, &sweep_status);
+	result = wsa_get_sweep_status(dev, sweep_status);
 	if (result < 0)
 		return result;
+	if (strcmp(sweep_status, "STOPPED") != 0 && strcmp(sweep_status, "RUNNING") != 0)
+	{
+		return WSA_ERR_SWEEPMODEUNDEF;
+	}
+
 
 	printf("Gathering WSA settings...");
 
-	if (sweep_status == 0) 
+	if (strcmp(sweep_status, "STOPPED") == 0) 
 	{	
 		// Flush content of the data socket
 		result = wsa_flush_data(dev);
@@ -619,7 +624,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	printf("Acquiring and saving data:\n ");
 	
 	// set capture block if not doing sweep
-	if (sweep_status == 0) 
+	if (strcmp(sweep_status, "STOPPED") == 0) 
 	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
@@ -778,7 +783,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		}
 		
 		// if capture mode is enabled, save the number of specified packets
-		if (sweep_status == 0)
+		if (strcmp(sweep_status, "STOPPED") == 0)
 		{
 			if (i >= packets_per_block) 
 			{
@@ -845,6 +850,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	uint8_t valid;
 	char* strtok_result;
+	char char_result[40];
 
 	int16_t temp_short;
 	int32_t temp_int;
@@ -855,11 +861,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t freq_value;
 	int64_t start_freq;
 	int64_t stop_freq;
-	int64_t amplitude;
+	int32_t amplitude;
 	enum wsa_gain gain;
 	int32_t dwell_seconds;
-	int32_t dwell_microseconds;
-
+	
 	strcpy(msg,"");
 
 	//*****
@@ -1059,6 +1064,24 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} //end get READ ACCESS
 
+		else if (strcmp(cmd_words[1], "REF") == 0)
+		{
+			if (strcmp(cmd_words[2], "PLL") == 0)
+			{
+				if(num_words > 3)
+				{
+					printf("Too many arguments for 'get ref pll' \n");
+				}
+				else
+				{
+					result = wsa_get_reference_pll(dev, char_result);
+					if (result >= 0) {
+						printf("Reference PLL: %s \n", char_result);
+					}
+				}
+			}
+		} //end get REF PLL
+		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
 		{
 			if (strcmp(cmd_words[2], "MODE") == 0) 
@@ -1318,6 +1341,29 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = WSA_ERR_INVNUMBER;
 			}
 		} // end set SPP
+
+		else if (strcmp(cmd_words[1], "REF") == 0)
+		{
+			if (strcmp(cmd_words[2], "PLL") == 0) 
+			{
+				if (strcmp(cmd_words[3], "INT") == 0 || strcmp(cmd_words[3], "EXT") == 0)
+				{
+					if(num_words > 4)
+					{
+						printf("Too many arguments for 'set ref pll' \n");
+					}
+					else
+					{
+						result = wsa_set_reference_pll(dev, cmd_words[3]);	
+					}
+				}
+				else
+				{
+					printf("Usage: 'set ref pll <ext | int>'\n");
+				}
+			}
+
+		}// end set REF PLL		
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
 		{
@@ -1363,7 +1409,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							if (to_double(strtok_result, &temp_double) < 0)
 								printf("Amplitude must be a valid number\n");
 							else
-								result = wsa_set_trigger_level(dev, start_freq, stop_freq, (int64_t) temp_double);
+								result = wsa_set_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
 						}
 					}
 				}
@@ -1520,30 +1566,31 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								return 0;
 							}
 
-							result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int64_t) temp_double);
+							result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
 						}
 					} 
 					else 
 					{
-						printf("Invalid 'set sweep trigger level'. See 'h'. \n");
+						printf("Invalid 'set sweep entry trigger level'. See 'h'. \n");
 					}// end set trigger level
 				}// end set trigger
 
 				else if (strcmp(cmd_words[3], "FREQ") == 0) 
 				{
-					if (strcmp(cmd_words[4], "") == 0) 
+					if (strcmp(cmd_words[4], "") == 0 || strcmp(cmd_words[5], "")  == 0) 
 					{
-						printf("Missing the frequency value. See 'h'.\n");
+						printf("Missing a frequency value. See 'h'.\n");
+					}
+					else if (num_words != 6) 
+					{
+						printf("Invalid 'set sweep entry freq '. See 'h'. \n");
 					}
 					else 
 					{
 						start_freq = (int64_t) (atof(cmd_words[4]) * MHZ);
 						stop_freq = (int64_t) (atof(cmd_words[5]) * MHZ);
 						result = wsa_set_sweep_freq(dev, start_freq, stop_freq);
-						if (result == WSA_ERR_FREQOUTOFBOUND)
-							sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
-								(double) dev->descr.min_tune_freq / MHZ, 
-								(double) dev->descr.max_tune_freq / MHZ);
+
 					}
 					//else
 						//TODO
@@ -1640,8 +1687,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		else if (strcmp(cmd_words[1], "STOP") == 0)
 		{
-			result = wsa_get_sweep_status(dev, &temp_int);
-			if (temp_int == 0)
+			result = wsa_get_sweep_status(dev, char_result);
+			if (strcmp(char_result, "STOPPED") == 0)
 				printf("Sweep mode is already disabled \n");
 			else
 				result =  wsa_sweep_stop(dev);
@@ -1659,9 +1706,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		else if (strcmp(cmd_words[1], "STATUS") == 0) 
 		{
-			result = wsa_get_sweep_status(dev, &temp_int);
+			result = wsa_get_sweep_status(dev, char_result);
 			if (result >= 0) 
-				printf("Sweep mode is %s.\n", (temp_int) ? "running" : "off");
+				printf("Sweep mode is %s.\n", char_result);
 		}
 
 		else if (strcmp(cmd_words[1], "ENTRY") == 0) 
@@ -2205,7 +2252,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int32_t packets_per_block;
     int64_t start_freq = 0;
 	int64_t stop_freq = 0;
-	int64_t amplitude = 0;
+	int32_t amplitude = 0;
 	int32_t enable = 0;
 	char dig1 = 0;
 	char dig2 = 0;
@@ -2275,7 +2322,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	if (result >= 0) {
 		printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
 		printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
-		printf("\t\t\t- Amplitude: %lld dBm\n", amplitude);
+		printf("\t\t\t- Amplitude: %ld dBm\n", amplitude);
 	}
 	else {
 		printf("\t\t- Error: Failed reading trigger levels.\n");
@@ -2316,7 +2363,7 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	int64_t freq = 0;
 	int64_t start_freq;
 	int64_t stop_freq;
-	int64_t amplitude;
+	int32_t amplitude;
 	enum wsa_gain gain;
 	char temp[10];
 
@@ -2388,7 +2435,7 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 	if (result < 0)
 		return result;
-	printf("      Range (MHz): %d - %d\n", start_freq/MHZ, stop_freq/MHZ);
+	printf("      Range (MHz): %u - %u\n", start_freq, stop_freq);
 	printf("      Amplitude: %d dBm\n", amplitude);
 
 	// print dwell sweep value
@@ -2436,9 +2483,9 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	else if ( list_values->trigger_enable == 1) 
 	{
 		printf("    Trigger mode: On\n");
-		printf("       Range (MHz): %d %d\n", (list_values->trigger_start_freq / MHZ),
+		printf("       Range (MHz): %0.3f %0.3f\n", (list_values->trigger_start_freq / MHZ),
 			 (list_values->trigger_stop_freq / MHZ));
-		printf("       Amplitude: %d dBm\n", list_values->trigger_amplitude);
+		printf("       Amplitude: %ld dBm\n", list_values->trigger_amplitude);
 	}
 	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
 
