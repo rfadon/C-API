@@ -471,8 +471,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 	
-	
-
 	// determine if the another user is capturing data
 	result = wsa_system_read_status(dev, &acq_status);
 	if (result < 0)
@@ -488,7 +486,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		return WSA_ERR_SWEEPMODEUNDEF;
 	}
-
 
 	printf("Gathering WSA settings...");
 
@@ -658,7 +655,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
 			break;
-		
+	
 		// Print only once the header line per file
 		// TODO the 2nd condition is temporary for now until save
 		// data format is determined. i == 1 cond'n might not applied then...
@@ -767,7 +764,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (!(iq_pkt_count % 10))
 			{
 				if (iq_pkt_count != packets_per_block)
-					printf(" ");
+					printf(" \n");
 			}
 			else 
 			{
@@ -1613,8 +1610,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
 								0.0, (float) dev->descr.inst_bw / MHZ);
 					}
-					//else
-						//TODO
+
 				} // end set FSHIFT
 
 				else if (strcmp(cmd_words[3], "FSTEP") == 0) 
@@ -1632,8 +1628,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								(double) dev->descr.min_tune_freq / MHZ, 
 								(double) dev->descr.max_tune_freq / MHZ);
 					}
-					//else
-						//TODO
+
 				} // end set FSTEP
 				
 				else if (strcmp(cmd_words[3], "PPB") == 0) 
@@ -1643,8 +1638,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					else if (!to_int(cmd_words[4], &temp_long)) 
 						result = wsa_set_sweep_packets_per_block(dev,	
 										(int32_t) temp_long);
-					//else
-						//TODO
+					else
+						printf("Invalid Packets Per Block Input");
 				} // end set PPB
 
 				else if (strcmp(cmd_words[3], "SPP") == 0) 
@@ -1662,8 +1657,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								WSA4000_MIN_SAMPLES_PER_PACKET,
 								WSA4000_MAX_SAMPLES_PER_PACKET);
 					}
-					//else
-						//TODO
 				} // end set SPP
 			} // end set sweep ENTRY
 			else 
@@ -1735,8 +1728,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_sweep_entry_delete_all(dev);
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_delete(dev, (uint32_t) temp_long);
-				//else
-					// TODO
+				else
+					printf("Invalid ID number");
 			}
 			else if (strcmp(cmd_words[2], "NEW") == 0) 
 			{
@@ -1748,8 +1741,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = print_sweep_entry(dev);
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = print_sweep_entry_information(dev, (int32_t) temp_long);
-				//else
-					// TODO
+				else
+					printf("Invalid ID number");
 			}
 			else if (strcmp(cmd_words[2], "SAVE") == 0) 
 			{
@@ -1757,8 +1750,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_sweep_entry_save(dev, 0);
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_save(dev, (uint32_t) temp_long);
-				// else
-					// TODO
+				else
+					printf("Invalid ID number");
+					
 			}
 			else 
 			{
