@@ -242,7 +242,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("  set sweep entry ant <1 | 2>\n");
 	printf("  set sweep entry dec <rate>\n");
 	printf("  set sweep entry gain <rf | if>\n");
-	printf("  set sweep entry freq <start stop>\n");
+	printf("  set sweep entry freq <start,stop>\n");
 	printf("  set sweep entry fshift <freq>\n");
 	printf("  set sweep entry ppb <packets>\n");
 	printf("  set sweep entry spp <samples>\n");
@@ -620,9 +620,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 		return WSA_ERR_MALLOCFAILED;
 	}
-	
-	printf("Acquiring and saving data:\n ");
-	
+
 	// set capture block if not doing sweep
 	if (strcmp(sweep_status, "STOPPED") == 0) 
 	{
@@ -638,22 +636,20 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(header);
 			free(i_buffer);
 			free(q_buffer);
-			
 			return result;
 		}
 	}
 
 	// Get the start time
 	get_current_time(&run_start_time);
-	
+
 	// Initialize counter i
-	i = 1;
+	i = 0;
 
 	// loop to save data in file
 	exit_loop = 0;
 	while (exit_loop != 1)
 	{
-
 		i++;
 		// Get the start time
 		get_current_time(&capture_start_time);
@@ -666,9 +662,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Print only once the header line per file
 		// TODO the 2nd condition is temporary for now until save
 		// data format is determined. i == 1 cond'n might not applied then...
-		if ((i == 2) && (header->stream_id == IF_DATA_STREAM_ID))
+			if ((i == 1) && (header->stream_id == IF_DATA_STREAM_ID))
 		{
-			if (sweep_status)
+			if (strcmp(sweep_status, "RUNNING") == 0) 
 			{
 				fprintf(iq_fptr, "#%d, cf:%lld, ss:NA, sec:%d, pico:%lld\n", 
 					1, 
@@ -752,7 +748,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		} 
 		else if (header->stream_id == IF_DATA_STREAM_ID) 
 		{			
-			if (i == 2)		
+			if (i == 1)		
 				expected_packet_order_indicator = header->packet_order_indicator;
 
 			if (header->packet_order_indicator != expected_packet_order_indicator)
@@ -770,7 +766,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		
 			if (!(iq_pkt_count % 10))
 			{
-				printf("saved packet #%u\n", iq_pkt_count);
 				if (iq_pkt_count != packets_per_block)
 					printf(" ");
 			}
@@ -781,7 +776,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 			iq_pkt_count++;
 		}
-		
+
 		// if capture mode is enabled, save the number of specified packets
 		if (strcmp(sweep_status, "STOPPED") == 0)
 		{
@@ -811,14 +806,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		get_current_time(&run_end_time);
 		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
 		
-		// a little tweak to make print out readable
-		if (packets_per_block % 10)
-			printf("\n");
 		printf("done.\n\n");
 		
-		//printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
-		//	capture_time_ms,
-		//	run_time_ms);
+		printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
+			capture_time_ms,
+			run_time_ms);
 	}
 		
 	fclose(iq_fptr);
@@ -1577,23 +1569,34 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				else if (strcmp(cmd_words[3], "FREQ") == 0) 
 				{
-					if (strcmp(cmd_words[4], "") == 0 || strcmp(cmd_words[5], "")  == 0) 
+					if (strcmp(cmd_words[4], "")  == 0) 
 					{
-						printf("Missing a frequency value. See 'h'.\n");
+						printf("Missing frequency value. See 'h'.\n");
 					}
-					else if (num_words != 6) 
+					else if (num_words != 5) 
 					{
 						printf("Invalid 'set sweep entry freq '. See 'h'. \n");
 					}
 					else 
 					{
-						start_freq = (int64_t) (atof(cmd_words[4]) * MHZ);
-						stop_freq = (int64_t) (atof(cmd_words[5]) * MHZ);
-						result = wsa_set_sweep_freq(dev, start_freq, stop_freq);
+							strtok_result = strtok(cmd_words[4], ",");
+							if (to_double(strtok_result, &temp_double) < 0) 
+							{
+								printf("Error: Start frequency must be a valid number\n");
+								return 0;
+							}
+							start_freq = (int64_t) (temp_double);
+							
+							strtok_result = strtok(NULL, ",");
+							if (to_double(strtok_result, &temp_double) < 0) 
+							{
+								printf("Error: Stop frequency must be a valid number\n");
+								return 0;
+							}
+						stop_freq = (int64_t) (temp_double);
+						result = wsa_set_sweep_freq(dev, start_freq * MHZ, stop_freq * MHZ);
 
 					}
-					//else
-						//TODO
 				} // end set FREQ
 
 				else if (strcmp(cmd_words[3], "FSHIFT") == 0) 
@@ -1698,7 +1701,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			result =  wsa_sweep_resume(dev);
 		}
-
+		
 		else if (strcmp(cmd_words[1], "FLUSH") == 0) 
 		{
 			result = wsa_flush_data(dev);

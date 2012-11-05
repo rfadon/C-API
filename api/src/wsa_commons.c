@@ -153,7 +153,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 			"Invalid number format. Check the required number type"},
 		{WSA_ERR_INVREGADDR, "Invalid register address"},
 		{WSA_ERR_MALLOCFAILED, "Memory allocation failed"},
-		{WSA_ERR_UNKNOWN_ERROR, "Unknow error"},	
+		{WSA_ERR_UNKNOWN_ERROR, "Unknown error"},	
 
 		//*****
 		// Sweep Errors   

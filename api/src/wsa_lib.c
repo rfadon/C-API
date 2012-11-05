@@ -1028,6 +1028,7 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	// *****
 	// Split up the IQ data bytes
 	// *****
+
 	for (i = 0; i < sample_size * 4; i += 4) {
 		// Gets the payload, each word = I2I1Q2Q1 bytes
 /*		if (data_buf[i] & 0x20)
@@ -1054,7 +1055,6 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 		
 		j++;
 	}
-	
 	return (i / 4);
 }
 
@@ -1076,7 +1076,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	double gain_if = 0;
 	double gain_rf = 0;
 
-	int64_t freq_word1 = 0;
+	int64_t freq_word1 = 0; 
 	int64_t freq_word2 = 0;
 	long double freq_int_part = 0;
 	long double freq_dec_part = 0;

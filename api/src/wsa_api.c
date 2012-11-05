@@ -412,8 +412,6 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 	{
 		// Note: don't rely on the value of result
 		result = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
-		if (result < 0)
-			return result;
 	}
 	
 	free(data_buffer);
@@ -664,7 +662,7 @@ int16_t wsa_system_abort_capture(struct wsa_device *dev)
 	int32_t size = 0;
 
 	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, &status);
+	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
 
@@ -2364,7 +2362,7 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 	int32_t size = 0;
 
 	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, &status);
+	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
 	if (strcmp(status, "RUNNING") == 0)
@@ -2445,10 +2443,10 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 int16_t wsa_sweep_resume(struct wsa_device *dev) 
 {
 	int16_t result = 0;
-	int32_t status = 0;
+	char status[40];
 	int32_t size = 0;
 
-	result = wsa_get_sweep_status(dev, &status);
+	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
 
@@ -2484,7 +2482,7 @@ int16_t wsa_sweep_entry_new(struct wsa_device *dev)
 	doutf(DHIGH, "In wsa_sweep_entry_new: %d - %s.\n", result, wsa_get_error_msg(result));
 	
 	return result;
-}
+} 
 
 /**
  * Save the sweep entry to a specified ID location in the sweep list.
