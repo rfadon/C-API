@@ -787,7 +787,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
-			if (kbhit() != 0) 
+			if (kbhit() != 0)
 			{
 				if (getch() == 0x1b) {    // esc key
 					if (result < 0)
