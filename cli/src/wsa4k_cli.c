@@ -790,6 +790,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (kbhit() != 0) 
 			{
 				if (getch() == 0x1b) {    // esc key
+					if (result < 0)
+						return result;
+ 
 					printf("\nEscape key pressed, data capture stopped...\n");
 					exit_loop = 1;
 				}
@@ -817,7 +820,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(header);
 	free(i_buffer);
 	free(q_buffer);
-	
 	return result;
 }
 

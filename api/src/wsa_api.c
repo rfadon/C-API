@@ -661,14 +661,6 @@ int16_t wsa_system_abort_capture(struct wsa_device *dev)
 	char status[40];
 	int32_t size = 0;
 
-	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, status);
-	if (result < 0)
-		return result;
-
-	if (strcmp(status, "RUNNING") == 0) 
-		return WSA_ERR_SWEEPALREADYRUNNING;
-
 	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
 	doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
 	if (result < 0)
@@ -2404,11 +2396,6 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	if (result < 0)
 		return result;
  
-	// flush remaining sweep data in the WSA
-	result = wsa_flush_data(dev);
-	if (result < 0)
-		return result;
-
 	start_time = clock();
 	end_time = 5000 + start_time;
 	
@@ -2422,10 +2409,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 									vrt_header_bytes, 
 									timeout, 
 									&bytes_received);
-		
-		//if (result < 0)
-		//	return result;
-	
+
 		free(vrt_header_buffer);
 	}
 	
