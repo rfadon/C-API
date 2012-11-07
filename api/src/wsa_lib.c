@@ -903,8 +903,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		return WSA_ERR_NOTIQFRAME;
 	}
 	header->stream_id = stream_identifier_word;
-	
-	
+
 	// *****
 	// set up and get the remaining words of each different type of packet accordingly
 	// *****
@@ -1024,35 +1023,14 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 	//int32_t result = 0;
 	int32_t i;
 	int32_t j = 0;
-
 	// *****
 	// Split up the IQ data bytes
 	// *****
 
 	for (i = 0; i < sample_size * 4; i += 4) {
-		// Gets the payload, each word = I2I1Q2Q1 bytes
-/*		if (data_buf[i] & 0x20)
-		{
-			i_buf[j] = (((int16_t) (data_buf[i] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 1]);
-		}
-		else
-		{
-*/			// Need to keep this line after temporary workaround is removed
-			i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
-/*		}
 
-		if (data_buf[i + 2] & 0x20)
-		{
-			q_buf[j] = (((int16_t) (data_buf[i + 2] |= 0xC0)) << 8) + ((int16_t) data_buf[i + 3]);
-		}
-		else
-		{
-*/			// Need to keep this line after temporary workaround is removed
-			q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
-//		}
-				
-		// END TEMPORARY WORKAROUND
-		
+		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
+		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		j++;
 	}
 	return (i / 4);
@@ -1118,7 +1096,6 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		freq_int_part = (long double) ((freq_word1 << 12) + (freq_word2 >> 20));
 		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
 		receiver->freq = freq_int_part + (freq_dec_part / MHZ);
-		
 		data_pos = data_pos + 8;
 	}
 	

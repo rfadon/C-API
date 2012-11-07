@@ -409,8 +409,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint8_t context_is = 0;
 	int16_t result = 0;
 	int32_t samples_per_packet;
-	int32_t field_indicator = 0;	
-	int32_t packets_per_block;
+	int32_t packets_per_block = 0;
 	int32_t enable = 0;
 	int32_t dec = 0;
 	int64_t freq = 0;
@@ -420,16 +419,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int8_t count = 0;
 	int16_t acq_status;
 	int32_t exit_loop;
-
-	double receiver_temperature = 0;
-	int32_t receiver_reference_point = 0;
-	double receiver_rf_gain = 0;
-	double receiver_if_gain = 0;
-	long double receiver_freq = 0;
-
-	double digitizer_reference_level = 0;
-	long double digitizer_bandwidth = 0;
-	long double digitizer_rf_freq_offset = 0;
+	int32_t title_printed = 0;
 	
 	char file_name[MAX_STRING_LEN];
 	char sweep_status[MAX_STRING_LEN];
@@ -439,7 +429,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	TIME_HOLDER run_start_time;
 	TIME_HOLDER run_end_time;
 	double run_time_ms = 0;
-	
+	int32_t res;
 	// to calculate data capture time
 	TIME_HOLDER capture_start_time;
 	TIME_HOLDER capture_end_time;
@@ -536,7 +526,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	generate_file_name(file_name, prefix, ext);
 	
 	// create a new file for data capture
-	if ((iq_fptr = fopen(file_name, "w")) == NULL) {
+	if ((iq_fptr = fopen(file_name, "a+")) == NULL) {
 		printf("\nError creating the file \"%s\"!\n", file_name);
 		
 		return WSA_ERR_FILECREATEFAILED;
@@ -659,8 +649,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Print only once the header line per file
 		// TODO the 2nd condition is temporary for now until save
 		// data format is determined. i == 1 cond'n might not applied then...
-			if ((i == 1) && (header->stream_id == IF_DATA_STREAM_ID))
+			if (title_printed == 0)
 		{
+
 			if (strcmp(sweep_status, "RUNNING") == 0) 
 			{
 				fprintf(iq_fptr, "#%d, cf:%lld, ss:NA, sec:%d, pico:%lld\n", 
@@ -678,6 +669,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					header->time_stamp.sec, 
 					header->time_stamp.psec);
 			}
+			title_printed = 1;
 		}
 		
 		// get the end time of each data capture
@@ -686,65 +678,56 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
 		// TODO handle the packet order indicator for rec'r & dig'r as well
-		if (header->stream_id == RECEIVER_STREAM_ID) 
+		res = (header->stream_id == RECEIVER_STREAM_ID);
+
+	   if ((header->stream_id == RECEIVER_STREAM_ID)) 
 		{
-			/*fprintf(iq_fptr, "receiver Packet Found\n");
-			field_indicator = receiver->indicator_field;
-
-			if((field_indicator & 0xf0000000) == 0xc0000000) 
+			
+			if((receiver->indicator_field & 0xf0000000) == 0xc0000000) 
 			{
-				receiver_reference_point = receiver->reference_point;
-				fprintf(iq_fptr, "Reference Point: %u\n", receiver_reference_point);			
+				fprintf(iq_fptr, " ref point: %u,", receiver->reference_point);			
 			}
 
-			if ((field_indicator & 0x0f000000) == 0x08000000) 
+			if ((receiver->indicator_field & 0x0f000000) == 0x08000000) 
 			{
-				receiver_freq = receiver->freq;
-				fprintf(iq_fptr, "Frequency: %.12E \n", receiver_freq);		
+				fprintf(iq_fptr, " freq: %llf Hz,", receiver->freq);		
 			}
 
-			if ((field_indicator & 0x00f00000) == 0x00800000) 
+			if ((receiver->indicator_field & 0x00f00000) == 0x00800000) 
 			{
-				receiver_if_gain= receiver->gain_if;
-				receiver_rf_gain= receiver->gain_rf;
-				fprintf(iq_fptr, "Reference IF Gain: %E\n", receiver_if_gain);
-				fprintf(iq_fptr, "Reference RF Gain: %E\n", receiver_rf_gain);
+				fprintf(iq_fptr, " if gain: %lf,",receiver->gain_if);
+				fprintf(iq_fptr, " rf gain: %lf,", receiver->gain_rf);
 			} 	
 			
-			if ((field_indicator & 0x0f000000) == 0x04000000) 
+			if ((receiver->indicator_field & 0x0f000000) == 0x04000000) 
 			{				
-				receiver_temperature = receiver->temperature;
-				fprintf(iq_fptr, "Temperature: %u\n", receiver_temperature);			
-			} */
+				fprintf(iq_fptr, "temp: %u", receiver->temperature);			
+			} 
 			i--;
 			continue;
 		} 
 		else if (header->stream_id == DIGITIZER_STREAM_ID) 
 		{
-			/*field_indicator = digitizer->indicator_field;
 
-			fprintf(iq_fptr, "Digitizer Packet Found\n");
-			if ((field_indicator & 0xf0000000) == 0xa0000000) 
+			if ((header->stream_id & 0xf0000000) == 0xa0000000) 
 			{
-				digitizer_bandwidth = digitizer->bandwidth;
-				fprintf(iq_fptr, "Bandwidth: %.12E \n", digitizer_bandwidth);
+				fprintf(iq_fptr, " bandwidth: %.12E,", digitizer->bandwidth);
 			} 			
 			
-			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
+			if ((header->stream_id & 0x0f000000) == 0x05000000 || (header->stream_id & 0x0f000000) == 0x04000000) 
 			{
-				digitizer_rf_freq_offset = digitizer->rf_freq_offset;
-				fprintf(iq_fptr, "RF Frequency Offset: %.12E \n", digitizer_rf_freq_offset);
+				fprintf(iq_fptr, "freq offset: %.12E,", digitizer->rf_frequency_offset);
 			}
 
-			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
-				digitizer_reference_level = digitizer->reference_level;
-				fprintf(iq_fptr, "Reference Level: %f\n", digitizer_reference_level);		
-			} */
+			if ((header->stream_id & 0x0f000000) == 0x05000000 || (header->stream_id & 0x0f000000) == 0x01000000) {
+				fprintf(iq_fptr, "ref lev: %f,",digitizer->reference_level);		
+			} 
 			i--;
 			continue;
 		} 
 		else if (header->stream_id == IF_DATA_STREAM_ID) 
-		{			
+		{
+			fprintf(iq_fptr, "sample size: %d\n", header->samples_per_packet);	
 			if (i == 1)		
 				expected_packet_order_indicator = header->packet_order_indicator;
 
