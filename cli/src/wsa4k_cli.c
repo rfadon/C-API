@@ -64,6 +64,8 @@
 #include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
 #include "wsa_api.h"
+#include "wsa_lib.h"
+#include "wsa_client.h"
 #include "wsa_error.h"
 #include "wsa_commons.h"
 
@@ -81,6 +83,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words);
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
+int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
 
@@ -481,10 +484,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	if (strcmp(sweep_status, "STOPPED") == 0) 
 	{	
-		// Flush content of the data socket
-		result = wsa_flush_data(dev);
-		if (result < 0)
-			return result;
 
 		// Get samples per packet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
@@ -803,6 +802,212 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(header);
 	free(i_buffer);
 	free(q_buffer);
+	return result;
+}
+
+/**
+ * Save data to a bin file with the file name format as:
+ * [prefix] YYYY-MM-DD_HHMMSSmmm.bin
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param prefix - A char pointer to a prefix string.
+ *
+ * @return 0 if successful, else a negative value.
+ */
+int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
+{
+	
+	int32_t packets_per_block = 0;
+	int32_t exit_loop;
+	int16_t result = 0;
+	int16_t acq_status;
+
+	char file_name[MAX_STRING_LEN];
+	char sweep_status[MAX_STRING_LEN];
+	FILE *iq_fptr;
+
+	// to calculate run time
+	TIME_HOLDER run_start_time;
+	TIME_HOLDER run_end_time;
+	double run_time_ms = 0;
+
+	int32_t bytes_received;
+	int16_t socket_receive_result = 0;
+
+	// to calculate data capture time
+	TIME_HOLDER capture_start_time;
+	TIME_HOLDER capture_end_time;
+	double capture_time_ms = 0;
+
+	uint16_t packet_size = 0;
+	// *****
+	// Create buffer to store raw data
+	// *****
+	uint8_t* vrt_header_buffer;	
+	int32_t vrt_header_bytes;
+
+	uint8_t* vrt_packet_buffer;
+	int32_t vrt_packet_bytes;
+
+	int32_t i;
+
+	
+	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
+	// folder called CAPTURES
+	generate_file_name(file_name, prefix, ext);
+	printf("got name: %s\n", file_name);
+
+
+	// determine if the another user is capturing data
+	result = wsa_system_read_status(dev, &acq_status);
+	if (result < 0)
+		return result;
+	else if (acq_status == 0) 
+		return WSA_ERR_DATAACCESSDENIED;
+
+	printf("tried to get acces\n");
+	// Get sweep status
+	result = wsa_get_sweep_status(dev, sweep_status);
+	if (result < 0)
+		return result;
+	if (strcmp(sweep_status, "STOPPED") != 0 && strcmp(sweep_status, "RUNNING") != 0)
+	{
+		return WSA_ERR_SWEEPMODEUNDEF;
+	}	
+	printf("got status\n");
+
+	if (strcmp(sweep_status, "RUNNING") == 0)
+	{
+		printf("Sweep Mode is enabled. \n Press 'ESC' key to stop data capture.\n");
+	} else
+		result = wsa_get_packets_per_block(dev, &packets_per_block);	
+	
+
+	// set capture block if not doing sweep
+	if (strcmp(sweep_status, "STOPPED") == 0) 
+	{
+		result = wsa_capture_block(dev);
+		if (result < 0)
+		{
+			doutf(DHIGH, "In save_data_to_bin_file: wsa_capture_block returned %d\n", result);
+			return result;
+		}
+	}
+
+
+	// create a new file for data capture
+	if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
+		printf("\nError creating the file \"%s\"!\n", prefix);
+		return WSA_ERR_FILECREATEFAILED;
+	}
+
+	// Get the start time
+	get_current_time(&run_start_time);
+
+	// Initialize counter i
+	i = 0;
+	printf("\n");
+	// loop to save data in file
+	exit_loop = 0;
+	while (exit_loop != 1)
+	{
+
+		i++;
+		// Get the start time
+		get_current_time(&capture_start_time);
+
+		// Set to get the first 2 words of the header to extract 
+		// packet size and packet type
+		vrt_header_bytes = 2 * BYTES_PER_VRT_WORD;
+		
+		// allocate space for the header buffer
+		vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
+		if (vrt_header_buffer == NULL)
+		{
+			fclose(iq_fptr);
+			return WSA_ERR_MALLOCFAILED;
+		}
+		
+		
+		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
+		fwrite (vrt_header_buffer , 1 , vrt_header_bytes, iq_fptr);
+		if (socket_receive_result < 0)
+		{
+			doutf(DHIGH, "Error in save_data_to_bin_file:  %s\n", wsa_get_error_msg(socket_receive_result));
+			fclose(iq_fptr);
+			free(vrt_header_buffer);
+			return socket_receive_result;
+		}
+
+		// retrieve the VRT packet size
+		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
+
+		
+		// allocate memory for the vrt packet without the first two words
+		vrt_packet_bytes = BYTES_PER_VRT_WORD * (packet_size - 2);
+		vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+		if (vrt_packet_buffer == NULL)
+		{
+			fclose(iq_fptr);
+			return WSA_ERR_MALLOCFAILED;
+		}
+		
+		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
+		doutf(DMED, "In save_data_to_bin_file: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+		
+		if (socket_receive_result < 0)
+			{
+				doutf(DHIGH, "Error in save_data_to_bin_file:  %s\n", wsa_get_error_msg(socket_receive_result));
+				fclose(iq_fptr);
+				free(vrt_packet_buffer);
+				free(vrt_header_buffer);
+				return socket_receive_result;
+			}
+
+		// if capture mode is enabled, save the number of specified packets
+		if (strcmp(sweep_status, "STOPPED") == 0)
+		{
+			if (i >= packets_per_block) 
+			{
+				exit_loop = 1;
+			}
+		}		
+		 
+
+		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
+		else 
+		{
+			if (kbhit() != 0)
+			{
+				if (getch() == 0x1b) {    // esc key
+					if (result < 0)
+						fclose(iq_fptr);
+						return result;
+ 
+					printf("\nEscape key pressed, data capture stopped...\n");
+					exit_loop = 1;
+				}
+			}
+		}
+	}
+
+	if (result >= 0) 
+	{
+		// get the total run end time
+		get_current_time(&run_end_time);
+		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
+		
+		printf("done.\n\n");
+		
+		printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
+			capture_time_ms,
+			run_time_ms);
+	}
+		
+	fclose(iq_fptr);
+	free(vrt_packet_buffer);
+	free(vrt_header_buffer);
 	return result;
 }
 
@@ -1776,6 +1981,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		else if (strcmp(cmd_words[0], "SAVE") == 0) 
 		{
+
 			// fix the declaration here?
 			char prefix[200];
 			char ext[10];
@@ -1811,7 +2017,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				n++;
 			}
 
-			result = save_data_to_file(dev, prefix, ext);
+			if (strcmp(ext, "bin") == 0 || strcmp(ext, "BIN") == 0)
+				result = save_data_to_bin_file(dev, prefix, ext);
+			else
+				result = save_data_to_file(dev, prefix, ext);
 		} // end save data
 
 		// User wants to run away...
@@ -2238,18 +2447,18 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int64_t stop_freq = 0;
 	int32_t amplitude = 0;
 	int32_t enable = 0;
-	char dig1 = 0;
-	char dig2 = 0;
-	char dig3 = 0;
+	char fw_ver[40];
 	enum wsa_gain gain;
 
 	printf("\nCurrent WSA's statistics:\n");
 	printf("\t- Current settings: \n");
 
 	// TODO handle the errors
-	result = wsa_get_fw_ver(dev);
+	result = wsa_get_fw_ver(dev, fw_ver);
 	if (result < 0)
 		printf("\t\t- Error: Failed getting the firmware version.\n");
+	else
+		printf("\t\t- Firmware Version: %s \n", fw_ver);
 
 	result = wsa_get_freq(dev, &freq);
 	if (result >= 0)
@@ -2357,13 +2566,13 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	result = wsa_get_sweep_freq(dev, &start_freq, &stop_freq);
 	if (result < 0)
 		return result;
-	printf("   Sweep range (MHz): %0.3d - %0.3d, ", start_freq/MHZ, stop_freq/MHZ);
+	printf("   Sweep range (MHz): %0.3f - %0.3f, ", (float) start_freq/MHZ, (float) stop_freq/MHZ);
 
 	// print fstep sweep value
 	result = wsa_get_sweep_freq_step(dev, &freq);
 	if (result < 0)
 		return result;
-	printf("Step: %0.3d \n", freq/MHZ);
+	printf("Step: %0.2f \n", freq/MHZ);
 
 	// print antenna sweep value
 	result = wsa_get_sweep_antenna(dev, &temp_int);
@@ -2450,7 +2659,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 		return result;
 	}
 
-	printf("  Sweep range (MHz): %d - %d, Step: %d \n", (list_values->start_freq / MHZ), (list_values->stop_freq / MHZ), list_values->fstep / MHZ);
+	printf("  Sweep range (MHz): %0.3f - %0.3f, Step: %0.3f \n", ((float) list_values->start_freq / MHZ),(float)  (list_values->stop_freq / MHZ), (float) list_values->fstep / MHZ);
 	printf("  Antenna port: %u \n", list_values->ant_port);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);

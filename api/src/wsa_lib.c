@@ -543,80 +543,85 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
  */
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
-	struct wsa_resp resp;
-	int16_t result = 0;
-	int16_t lines = 0;
-	char *cmd_strs[MAX_FILE_LINES]; // store user's input words
-	FILE *cmd_fptr;
-	int i;
+	  struct wsa_resp resp;
+    int16_t result = 0;
+    int16_t lines = 0;
+    char *cmd_strs[MAX_FILE_LINES]; // store user's input words
+    FILE *cmd_fptr;
+    char new_str[MAX_STR_LEN];
+    int i;
 
-	// set defaults
-	strcpy(resp.output, "");
-	resp.status = 0;
+    // set defaults
+    strcpy(resp.output, "");
+    resp.status = 0;
 
-	if((cmd_fptr = fopen(file_name, "r")) == NULL) 
-	{
-		result = WSA_ERR_FILEREADFAILED;
-		printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), 
-			file_name);
-		return result;
-	}
+    if((cmd_fptr = fopen(file_name, "r")) == NULL)
+    {
+        result = WSA_ERR_FILEREADFAILED;
+        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result),
+            file_name);
+        return result;
+    }
 
-	// Allocate memory
-	for (i = 0; i < MAX_FILE_LINES; i++)
-		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
+    // Allocate memory
+    for (i = 0; i < MAX_FILE_LINES; i++)
+        cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
 
-	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
-	
-	// don't need command file any more
-	fclose(cmd_fptr);
+    result = wsa_tokenize_file(cmd_fptr, cmd_strs);
+   
+    // don't need command file any more
+    fclose(cmd_fptr);
 
-	// process the command strings acquired
-	if (result > 0) 
-	{
-		// Send each command line to WSA
-		lines = result;
-		for (i = 0; i < lines; i++) 
-		{
-			// Send non-query cmds
-			if (strstr(cmd_strs[i], "?") == NULL) 
-			{
-				result = wsa_send_command(dev, cmd_strs[i]);
-				// If a bad command is detected, continue? Prefer not.
-				if (result < 0) 
-				{
-					printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
-					break;
-				}
-			}
-			
-			// Send query cmds
-			else 
-			{
-				 result = wsa_send_query(dev, cmd_strs[i], &resp);			
-			
-				// If a bad command is detected, continue? Prefer not.
-				if (resp.status < 0) 
-				{
-					printf("WSA returned error %lld: \"%s\" (possibly: %s)\n", 
-						resp.status, resp.output, 
-						_wsa_get_err_msg(WSA_ERR_CMDINVALID));
-					printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
-					break;
-				}
+    // process the command strings acquired
+    if (result > 0)
+    {
+        // Send each command line to WSA
+        lines = result;
+        for (i = 0; i < lines; i++)
+        {
+            strcpy(new_str, cmd_strs[i]);
+            strcat(new_str, "\n");
 
-				printf("\"%s\": %s\n", cmd_strs[i], resp.output);
-				result = lines;
-			}
-		}
-	}
+            // Send non-query cmds
+            if (strstr(new_str, "?") == NULL)
+            {
+                result = wsa_send_command(dev, new_str);
+                // If a bad command is detected, continue? Prefer not.
+                if (result < 0)
+                {
+                    printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
+                    break;
+                }
+            }
+           
+            // Send query cmds
+            else
+            {
+                result = wsa_send_query(dev, new_str, &resp);           
+           
+                // If a bad command is detected, continue? Prefer not.
+                if (resp.status < 0)
+                {
+                    printf("WSA returned error %lld: \"%s\" (possibly: %s)\n",
+                        resp.status, resp.output,
+                        _wsa_get_err_msg(WSA_ERR_CMDINVALID));
+                    printf("Line %d: '%s'.\n", i + 1, cmd_strs[i]);
+                    break;
+                }
 
-	// Free memory
-	for (i = 0; i < MAX_FILE_LINES; i++)
-		free(cmd_strs[i]);
+                printf("\"%s\" \n   WSA response: %s\n\n", cmd_strs[i], resp.output);
+                result = lines;
+            }
+        }
+    }
 
-	return result;
+    // Free memory
+    for (i = 0; i < MAX_FILE_LINES; i++)
+        free(cmd_strs[i]);
+
+    return result;
 }
+
 
 
 /**
@@ -820,7 +825,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	uint8_t* vrt_header_buffer;
 	uint8_t packet_order_indicator = 0;
 	int32_t vrt_header_bytes;
-		
+
 	uint8_t* vrt_packet_buffer;
 	int32_t vrt_packet_bytes;
 	
@@ -1208,6 +1213,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		ref_level_int_part = (double) ((ref_level_word & 0x0000ffc0));
 		ref_level_dec_part = (double) ((ref_level_word & 0x0000003f));
 		digitizer->reference_level = ref_level_int_part / 1000 + (ref_level_dec_part / 1000000);
+		printf("digitizer reference level is: %d \n", digitizer->reference_level);
 	}
 }
 

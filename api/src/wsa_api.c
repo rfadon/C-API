@@ -658,7 +658,6 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 int16_t wsa_system_abort_capture(struct wsa_device *dev)
 {
 	int16_t result = 0;
-	char status[40];
 	int32_t size = 0;
 
 	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
@@ -1102,10 +1101,10 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 // DEVICE SETTINGS					                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_fw_ver(struct wsa_device *dev)
+int16_t wsa_get_fw_ver(struct wsa_device *dev, char* fw_ver)
 {
 	struct wsa_resp query;		// store query results
-
+	char* strtok_result;
 	int16_t i = 0;
 	
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
@@ -1115,13 +1114,13 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	// TODO: decode base on the , position... there is a clean way to do it
-	// you can't assume there only that many characters, i.e. 44 to 49
-	printf("\t\t- Firmware Version: ");
-	for(i=44; i<49;i++)
-		printf("%c", query.output[i]);
 
-	printf("\n");
+	strtok_result = strtok(query.output, ",");
+	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok(NULL, ",");
+    strtok_result = strtok(NULL, ",");
+
+	strcpy(fw_ver,strtok_result);
 
 	return 0;
 }
@@ -2397,7 +2396,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		return result;
  
 	start_time = clock();
-	end_time = 5000 + start_time;
+	end_time = 2000 + start_time;
 	
 	// read the left over packets from the socket
 	while(clock() <= end_time) 

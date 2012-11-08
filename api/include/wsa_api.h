@@ -92,10 +92,10 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// DEVICE STATUS SECTION                                                     //
+// DEVICE VERSION SECTION                                                    //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_get_fw_ver(struct wsa_device *dev);
+int16_t wsa_get_fw_ver(struct wsa_device *dev, char* fw_ver);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable);
 
    
 // ////////////////////////////////////////////////////////////////////////////
-// PLL Section                                                          //
+// PLL Section                                                               //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_reference_pll(struct wsa_device* dev, char* pll_ref);
@@ -121,7 +121,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref);
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// SWEEP FUNCTIONS                                              //
+// SWEEP FUNCTIONS                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num);
