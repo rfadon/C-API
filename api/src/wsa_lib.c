@@ -1213,7 +1213,6 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		ref_level_int_part = (double) ((ref_level_word & 0x0000ffc0));
 		ref_level_dec_part = (double) ((ref_level_word & 0x0000003f));
 		digitizer->reference_level = ref_level_int_part / 1000 + (ref_level_dec_part / 1000000);
-		printf("digitizer reference level is: %d \n", digitizer->reference_level);
 	}
 }
 

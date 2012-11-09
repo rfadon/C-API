@@ -2322,6 +2322,8 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 	char temp_str[50];
 	int32_t size = 0;
 
+	result = wsa_get_sweep_entry_size(dev, &size);
+
 	// check if the id is out of bounds
 	if (id < 0 || id > size)
 		return WSA_ERR_SWEEPIDOOB;

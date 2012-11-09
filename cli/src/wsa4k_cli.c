@@ -413,12 +413,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t result = 0;
 	int32_t samples_per_packet;
 	int32_t packets_per_block = 0;
-	int32_t enable = 0;
-	int32_t dec = 0;
-	int64_t freq = 0;
-	int64_t start_freq = 0;
-	int64_t stop_freq = 0;
-	int64_t amplitude = 0;
+	char fw_ver[40];
 	int8_t count = 0;
 	int16_t acq_status;
 	int32_t exit_loop;
@@ -481,7 +476,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	printf("Gathering WSA settings...");
-
+	result = wsa_get_fw_ver(dev, fw_ver);
+	if (result < 0)
+		return result;
 	if (strcmp(sweep_status, "STOPPED") == 0) 
 	{	
 
@@ -495,17 +492,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		result = wsa_get_packets_per_block(dev, &packets_per_block);
 		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);	
 		if (result < 0)
-			return result;
-
-		// Get the centre frequency
-		result = wsa_get_freq(dev, &freq);
-		if (result < 0)
-
-		{
-			doutf(DHIGH, "Error in wsa_capture_block: %s\n", wsa_get_error_msg(result));
-			return result;
-		}	
-	
+			return result;	
 	printf(" done.\n");
 
 	}
@@ -645,31 +632,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (result < 0)
 			break;
 	
-		// Print only once the header line per file
-		// TODO the 2nd condition is temporary for now until save
-		// data format is determined. i == 1 cond'n might not applied then...
-			if (title_printed == 0)
-		{
-
-			if (strcmp(sweep_status, "RUNNING") == 0) 
-			{
-				fprintf(iq_fptr, "#%d, cf:%lld, ss:NA, sec:%d, pico:%lld\n", 
-					1, 
-					freq,
-					header->time_stamp.sec, 
-					header->time_stamp.psec);
-			}
-			else
-			{
-				fprintf(iq_fptr, "#%d, cf:%lld, ss:%ld, sec:%d, pico:%lld\n", 
-					1, 
-					freq, 
-					packets_per_block * header->samples_per_packet, 
-					header->time_stamp.sec, 
-					header->time_stamp.psec);
-			}
-			title_printed = 1;
-		}
 		
 		// get the end time of each data capture
 		get_current_time(&capture_end_time);
@@ -681,52 +643,33 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 	   if ((header->stream_id == RECEIVER_STREAM_ID)) 
 		{
-			
-			if((receiver->indicator_field & 0xf0000000) == 0xc0000000) 
-			{
-				fprintf(iq_fptr, " ref point: %u,", receiver->reference_point);			
-			}
-
-			if ((receiver->indicator_field & 0x0f000000) == 0x08000000) 
-			{
-				fprintf(iq_fptr, " freq: %llf Hz,", receiver->freq);		
-			}
-
-			if ((receiver->indicator_field & 0x00f00000) == 0x00800000) 
-			{
-				fprintf(iq_fptr, " if gain: %lf,",receiver->gain_if);
-				fprintf(iq_fptr, " rf gain: %lf,", receiver->gain_rf);
-			} 	
-			
-			if ((receiver->indicator_field & 0x0f000000) == 0x04000000) 
-			{				
-				fprintf(iq_fptr, "temp: %u", receiver->temperature);			
-			} 
 			i--;
 			continue;
 		} 
 		else if (header->stream_id == DIGITIZER_STREAM_ID) 
 		{
-
-			if ((header->stream_id & 0xf0000000) == 0xa0000000) 
-			{
-				fprintf(iq_fptr, " bandwidth: %.12E,", digitizer->bandwidth);
-			} 			
-			
-			if ((header->stream_id & 0x0f000000) == 0x05000000 || (header->stream_id & 0x0f000000) == 0x04000000) 
-			{
-				fprintf(iq_fptr, "freq offset: %.12E,", digitizer->rf_frequency_offset);
-			}
-
-			if ((header->stream_id & 0x0f000000) == 0x05000000 || (header->stream_id & 0x0f000000) == 0x01000000) {
-				fprintf(iq_fptr, "ref lev: %f,",digitizer->reference_level);		
-			} 
 			i--;
 			continue;
 		} 
-		else if (header->stream_id == IF_DATA_STREAM_ID) 
+		else if (header->stream_id == IF_DATA_STREAM_ID)
 		{
-			fprintf(iq_fptr, "sample size: %d\n", header->samples_per_packet);	
+			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == 0))) 
+		{
+			title_printed = 1;
+
+				fprintf(iq_fptr, "FwVersion,SwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
+				fprintf(iq_fptr, "%s,%d,%d,%d,%0.3f,%0.3f,%0.3f,%lf,%lf,%d,%0.2f\n",fw_ver,
+																						header->samples_per_packet, 
+																						header->time_stamp.sec,
+																						header->time_stamp.psec,
+																						(float) receiver->freq,
+																						(float) digitizer->bandwidth,
+																						(float) digitizer->rf_frequency_offset,
+																						(float) receiver->gain_if,
+																						(float) receiver->gain_rf,
+																						(float) receiver->reference_point,
+																						(float) digitizer->reference_level);
+			}
 			if (i == 1)		
 				expected_packet_order_indicator = header->packet_order_indicator;
 
@@ -821,7 +764,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	int32_t exit_loop;
 	int16_t result = 0;
 	int16_t acq_status;
-
+	int32_t iq_pkt_count = 0;
 	char file_name[MAX_STRING_LEN];
 	char sweep_status[MAX_STRING_LEN];
 	FILE *iq_fptr;
@@ -855,8 +798,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
-	printf("got name: %s\n", file_name);
-
 
 	// determine if the another user is capturing data
 	result = wsa_system_read_status(dev, &acq_status);
@@ -865,7 +806,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	else if (acq_status == 0) 
 		return WSA_ERR_DATAACCESSDENIED;
 
-	printf("tried to get acces\n");
 	// Get sweep status
 	result = wsa_get_sweep_status(dev, sweep_status);
 	if (result < 0)
@@ -874,7 +814,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	{
 		return WSA_ERR_SWEEPMODEUNDEF;
 	}	
-	printf("got status\n");
 
 	if (strcmp(sweep_status, "RUNNING") == 0)
 	{
@@ -894,13 +833,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		}
 	}
 
-
-	// create a new file for data capture
-	if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
-		printf("\nError creating the file \"%s\"!\n", prefix);
-		return WSA_ERR_FILECREATEFAILED;
-	}
-
 	// Get the start time
 	get_current_time(&run_start_time);
 
@@ -911,6 +843,12 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	exit_loop = 0;
 	while (exit_loop != 1)
 	{
+		
+		// create a new file for data capture
+		if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
+			printf("\nError creating the file \"%s\"!\n", prefix);
+			return WSA_ERR_FILECREATEFAILED;
+		}
 
 		i++;
 		// Get the start time
@@ -954,6 +892,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
 		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
+		fclose(iq_fptr);
 		doutf(DMED, "In save_data_to_bin_file: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 		
 		if (socket_receive_result < 0)
@@ -990,6 +929,17 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 				}
 			}
 		}
+		if (!(iq_pkt_count % 10))
+			{
+				if (iq_pkt_count != packets_per_block)
+					printf(" \n");
+			}
+			else 
+			{
+				printf(".");
+			}
+
+			iq_pkt_count++;
 	}
 
 	if (result >= 0) 
@@ -2572,7 +2522,7 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	result = wsa_get_sweep_freq_step(dev, &freq);
 	if (result < 0)
 		return result;
-	printf("Step: %0.2f \n", freq/MHZ);
+	printf("Step: %0.3f \n", (float) freq/MHZ);
 
 	// print antenna sweep value
 	result = wsa_get_sweep_antenna(dev, &temp_int);

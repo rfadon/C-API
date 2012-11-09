@@ -181,7 +181,6 @@ struct wsa_receiver_packet {
 	double gain_rf;
 	double temperature;
 };
-		
 //structure to hold digitizer packet data
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
