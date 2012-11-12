@@ -84,7 +84,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 int16_t wsa_set_cli_command_file(struct wsa_device *dev, char *file_name);
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
-int16_t print_sweep_entry(struct wsa_device *dev);
+int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
 
 /**
@@ -249,6 +249,8 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("  set sweep entry fshift <freq>\n");
 	printf("  set sweep entry ppb <packets>\n");
 	printf("  set sweep entry spp <samples>\n");
+	printf("  set sweep entry trigger mode <none | level>\n");
+	printf("  set sweep entry trigger level <start,stop,amplitude>\n");
 	printf("\n");
 }
 
@@ -1238,7 +1240,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else 
 			{
-				printf("Usage: 'get trigger <level | enable>'");
+				printf("Usage: 'get trigger <level | mode>'");
 			}
 		} // end get TRIGGER
 		
@@ -1661,14 +1663,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				else if (strcmp(cmd_words[3], "TRIGGER") == 0) 
 				{
-					if (strcmp(cmd_words[4], "ENABLE") == 0) 
+					if (strcmp(cmd_words[4], "MODE") == 0) 
 					{
-						if (strcmp(cmd_words[5], "OFF") == 0)
-							result = wsa_set_sweep_trigger_type(dev, 0);
-						else if (strcmp(cmd_words[5], "ON") == 0)
-							result = wsa_set_sweep_trigger_type(dev, 1);
+						if (num_words == 6) 
+							result = wsa_set_sweep_trigger_type(dev, cmd_words[5]);
 						else
-							printf("Invalid mode. Use ON or OFF. See 'h'. \n");
+							printf("Missing trigger type. See See 'h'. \n");
+							
 					} 
 					else if (strcmp(cmd_words[4], "LEVEL") == 0) 
 					{
@@ -1884,7 +1885,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else if (strcmp(cmd_words[2], "READ") == 0) 
 			{
 				if (num_words < 4)
-					result = print_sweep_entry(dev);
+					result = print_sweep_entry_template(dev);
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = print_sweep_entry_information(dev, (int32_t) temp_long);
 				else
@@ -2502,7 +2503,7 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
  * @param dev - a pointer to the wsa device
  * 
  */
-int16_t print_sweep_entry(struct wsa_device *dev) 
+int16_t print_sweep_entry_template(struct wsa_device *dev) 
 {	
 	int16_t result = 0;			// result returned from a function
 	float fshift = 0;
@@ -2513,6 +2514,7 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	int64_t start_freq;
 	int64_t stop_freq;
 	int32_t amplitude;
+	char trigger_type[40];
 	enum wsa_gain gain;
 	char temp[10];
 
@@ -2558,7 +2560,7 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 	result = wsa_get_sweep_freq_shift(dev, &fshift);
 	if (result < 0)
 		return result;
-	printf("   Frequency shift: %0.3f MHz \n", fshift/MHZ);
+	printf("   Frequency shift: %0.3f MHz \n", (float) fshift/MHZ);
 
 	// print gain if sweep value		
 	result = wsa_get_sweep_gain_if(dev, &temp_int);
@@ -2575,23 +2577,23 @@ int16_t print_sweep_entry(struct wsa_device *dev)
 
 	// print trigger status sweep value
 	printf("   Trigger settings:\n");
-	result = wsa_get_sweep_trigger_type(dev, &temp_int);
+	result = wsa_get_sweep_trigger_type(dev, trigger_type);
 	if (result < 0)
 		return result;
-	printf("      Trigger mode: %s\n", ((temp_int) ? "On" : "Off"));
+	printf("      Trigger mode: %s\n", trigger_type);
 
 	// print trigger level sweep value
 	result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 	if (result < 0)
 		return result;
-	printf("      Range (MHz): %u - %u\n", start_freq, stop_freq);
-	printf("      Amplitude: %d dBm\n", amplitude);
+	printf("      Range (MHz): %0.3f - %0.3f\n", (float) start_freq, (float) stop_freq);
+	printf("      Amplitude: %ld dBm\n", amplitude);
 
 	// print dwell sweep value
 	result = wsa_get_sweep_dwell(dev, &dwell_seconds, &dwell_microseconds);
 	if (result < 0)
 		return result;
-	printf("   Dwell time: %u.%u seconds\n", dwell_seconds, dwell_microseconds);
+	printf("   Dwell time: %u.%lu seconds\n", dwell_seconds, dwell_microseconds);
 
 	return 0;
 }
@@ -2619,21 +2621,21 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Antenna port: %u \n", list_values->ant_port);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);
-	printf("  Frequency shift: %f MHz\n", list_values->fshift);
+	printf("  Frequency shift: %0.3f MHz\n", (float) list_values->fshift);
 	printf("  Gain IF: %u \n", list_values->gain_if);
 	gain_rf_to_str(list_values->gain_rf, &temp[0]);
 	
 	printf("  Gain RF: %s\n", temp);
 	printf("  Trigger settings:\n");
-	if ( list_values->trigger_enable == 0) 
+    if (strcmp(list_values->trigger_type, "NONE") == 0) 
 	{
-		printf("    Trigger mode: Off\n");
+		printf("    Trigger mode: %s\n",list_values->trigger_type);
 	} 
-	else if ( list_values->trigger_enable == 1) 
+	else
 	{
-		printf("    Trigger mode: On\n");
-		printf("       Range (MHz): %0.3f %0.3f\n", (list_values->trigger_start_freq / MHZ),
-			 (list_values->trigger_stop_freq / MHZ));
+		printf("    Trigger mode: %s\n",list_values->trigger_type);
+		printf("       Range (MHz): %0.3f %0.3f\n", (float) (list_values->trigger_start_freq / MHZ),
+													(float)  (list_values->trigger_stop_freq / MHZ));
 		printf("       Amplitude: %ld dBm\n", list_values->trigger_amplitude);
 	}
 	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);

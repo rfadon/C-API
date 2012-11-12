@@ -210,7 +210,7 @@ struct wsa_sweep_list {
 	int32_t dwell_microseconds;
 	int32_t samples_per_packet;
 	int32_t packets_per_block;
-	int8_t trigger_enable;
+	char* trigger_type[40];
 	int64_t trigger_start_freq;
 	int64_t trigger_stop_freq;
 	int32_t trigger_amplitude;

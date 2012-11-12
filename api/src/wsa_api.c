@@ -622,6 +622,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 
 /**
  * Flush current data in the socket 
+ *
  * This function is used to remove remaining sweep data after a sweep is stopped
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
@@ -2110,18 +2111,15 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_freq,
  * @param enable - Trigger mode of selection: 0 - Off, 1 - On.
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
+int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, char* trigger_type)
 {
 	int16_t result = 0;
 	char temp_str[50];
 
-	if (enable < 0 || enable > 1)
-		return WSA_ERR_INVTRIGGERMODE;
-
-	if (!enable) 
-		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE NONE\n");
+	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
+		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE %s \n", trigger_type);
 	else
-		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE LEVEL\n");
+		return WSA_ERR_INVTRIGGERMODE;
 
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2138,21 +2136,19 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, int32_t enable)
  * 1 = triggered (trigger on), 0 = freerun (trigger off).
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, int32_t* enable)
+int16_t wsa_get_sweep_trigger_type(struct wsa_device* dev, char* type)
 {
 	struct wsa_resp query;
 	
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:TYPE?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
-
-	if (strcmp(query.output, "LEVEL") == 0)
-		*enable = 1;
-	else if (strcmp(query.output, "NONE") == 0)
-		*enable = 0;
+	
+	if(strcmp(query.output,"LEVEL") == 0 || strcmp(query.output,"NONE") == 0)
+	strcpy(type,query.output);
+	
 	else
-		*enable = -1; // TODO: handle error
-
+		return WSA_ERR_INVTRIGGERMODE;
 	return 0;
 }
 
@@ -2342,10 +2338,9 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 }
 
 /**
- * start sweeping through the current sweep list
+ * start sweep mode
  *
  * @param dev - A pointer to the WSA device structure.
- *
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_sweep_start(struct wsa_device *dev) 
@@ -2377,7 +2372,7 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 }
 
 /**
- * stop sweeping
+ * stop sweep mode
  * 
  * @param dev - A pointer to the WSA device structure.
  * @return 0 on success, or a negative number on error.
@@ -2385,12 +2380,12 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 int16_t wsa_sweep_stop(struct wsa_device *dev) 
 {
 	int16_t result = 0;
-	int32_t vrt_header_bytes = 2 * BYTES_PER_VRT_WORD;
-	uint8_t* vrt_header_buffer;
+	int32_t packet_size = WSA4000_MAX_SAMPLE_SIZE;
 	int32_t bytes_received = 0;
 	uint32_t timeout = 360;
 	clock_t start_time;
 	clock_t end_time;
+	uint8_t* packet;
 
 	result = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DHIGH, "In wsa_sweep_stop: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2403,15 +2398,15 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
+		packet = (uint8_t*) malloc(packet_size * sizeof(uint8_t));
 		
 		result = wsa_sock_recv_data(dev->sock.data, 
-									vrt_header_buffer, 
-									vrt_header_bytes, 
+									packet, 
+									packet_size, 
 									timeout, 
 									&bytes_received);
 
-		free(vrt_header_buffer);
+		free(packet);
 	}
 	
 	return 0;
@@ -2571,7 +2566,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
-	sweep_list->samples_per_packet = (int16_t) temp;
+	sweep_list->samples_per_packet = (int32_t) temp;
 
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
@@ -2591,7 +2586,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	strtok_result = strtok(NULL, ",");	
 	if (strstr(strtok_result, "LEVEL") != NULL)
 	{
-		sweep_list->trigger_enable = 1;
+		strcpy(sweep_list->trigger_type,strtok_result);
 
 		strtok_result = strtok(NULL, ",");
 		if (to_double(strtok_result, &temp) < 0)
@@ -2610,7 +2605,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	}
 	else if (strstr(strtok_result, "NONE") != NULL)
 	{
-		sweep_list->trigger_enable = 0;
+		strcpy(sweep_list->trigger_type,strtok_result);
 	}
 
 	return 0;
