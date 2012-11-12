@@ -657,18 +657,18 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			title_printed = 1;
 
-				fprintf(iq_fptr, "FwVersion,SwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
+				fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
 				fprintf(iq_fptr, "%s,%d,%d,%d,%0.3f,%0.3f,%0.3f,%lf,%lf,%d,%0.2f\n",fw_ver,
-																						header->samples_per_packet, 
-																						header->time_stamp.sec,
-																						header->time_stamp.psec,
-																						(float) receiver->freq,
-																						(float) digitizer->bandwidth,
-																						(float) digitizer->rf_frequency_offset,
-																						(float) receiver->gain_if,
-																						(float) receiver->gain_rf,
-																						(float) receiver->reference_point,
-																						(float) digitizer->reference_level);
+																					header->samples_per_packet, 
+																					header->time_stamp.sec,
+																					header->time_stamp.psec,
+																					(float) receiver->freq,
+																					(float) digitizer->bandwidth,
+																					(float) digitizer->rf_frequency_offset,
+																					(float) receiver->gain_if,
+																					(float) receiver->gain_rf,
+																					(float) receiver->reference_point,
+																					(float) digitizer->reference_level);
 			}
 			if (i == 1)		
 				expected_packet_order_indicator = header->packet_order_indicator;
@@ -712,9 +712,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
-			if (kbhit() != 0)
+			if (_kbhit() != 0)
 			{
-				if (getch() == 0x1b) {    // esc key
+				if (_getch() == 0x1b) {    // esc key
 					if (result < 0)
 						return result;
  
@@ -779,7 +779,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 
 	// to calculate data capture time
 	TIME_HOLDER capture_start_time;
-	TIME_HOLDER capture_end_time;
 	double capture_time_ms = 0;
 
 	uint16_t packet_size = 0;
@@ -917,12 +916,14 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
-			if (kbhit() != 0)
+			if (_kbhit() != 0)
 			{
-				if (getch() == 0x1b) {    // esc key
+				if (_getch() == 0x1b) {    // esc key
 					if (result < 0)
+					{
 						fclose(iq_fptr);
 						return result;
+					}
  
 					printf("\nEscape key pressed, data capture stopped...\n");
 					exit_loop = 1;
@@ -940,6 +941,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 			}
 
 			iq_pkt_count++;
+	
+		free(vrt_packet_buffer);
+		free(vrt_header_buffer);
 	}
 
 	if (result >= 0) 
@@ -956,8 +960,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	}
 		
 	fclose(iq_fptr);
-	free(vrt_packet_buffer);
-	free(vrt_header_buffer);
 	return result;
 }
 
