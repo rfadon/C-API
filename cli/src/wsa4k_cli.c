@@ -818,8 +818,11 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	{
 		printf("Sweep Mode is enabled. \n Press 'ESC' key to stop data capture.\n");
 	} else
+		
+		// get the ppb value
 		result = wsa_get_packets_per_block(dev, &packets_per_block);	
-	
+		if (result < 0)
+			return result;
 
 	// set capture block if not doing sweep
 	if (strcmp(sweep_status, "STOPPED") == 0) 
@@ -838,14 +841,15 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	// Initialize counter i
 	i = 0;
 	printf("\n");
-	// loop to save data in file
+
+	// loop to save data in bin file
 	exit_loop = 0;
 	while (exit_loop != 1)
 	{
 		
-		// create a new file for data capture
+		// create a new file for the binary data capture
 		if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
-			printf("\nError creating the file \"%s\"!\n", prefix);
+			printf("\nError creating the binary filefile \"%s\"!\n", prefix);
 			return WSA_ERR_FILECREATEFAILED;
 		}
 
@@ -867,7 +871,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		
 		
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);
-		fwrite (vrt_header_buffer , 1 , vrt_header_bytes, iq_fptr);
 		if (socket_receive_result < 0)
 		{
 			doutf(DHIGH, "Error in save_data_to_bin_file:  %s\n", wsa_get_error_msg(socket_receive_result));
@@ -875,10 +878,11 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 			free(vrt_header_buffer);
 			return socket_receive_result;
 		}
+		// save the header data to the .bin file
+		fwrite (vrt_header_buffer , 1 , vrt_header_bytes, iq_fptr);
 
 		// retrieve the VRT packet size
 		packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
-
 		
 		// allocate memory for the vrt packet without the first two words
 		vrt_packet_bytes = BYTES_PER_VRT_WORD * (packet_size - 2);
@@ -890,8 +894,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		}
 		
 		socket_receive_result = wsa_sock_recv_data(dev->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
-		fclose(iq_fptr);
 		doutf(DMED, "In save_data_to_bin_file: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 		
 		if (socket_receive_result < 0)
@@ -902,6 +904,10 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 				free(vrt_header_buffer);
 				return socket_receive_result;
 			}
+		
+		// save packet data to the bin file
+		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
+		fclose(iq_fptr);
 
 		// if capture mode is enabled, save the number of specified packets
 		if (strcmp(sweep_status, "STOPPED") == 0)
@@ -912,7 +918,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 			}
 		}		
 		 
-
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
@@ -940,8 +945,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 				printf(".");
 			}
 
-			iq_pkt_count++;
-	
+		iq_pkt_count++;
 		free(vrt_packet_buffer);
 		free(vrt_header_buffer);
 	}
