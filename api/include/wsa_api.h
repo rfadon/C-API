@@ -119,6 +119,7 @@ int16_t wsa_set_reference_pll(struct wsa_device* dev, char* pll_ref);
 int16_t wsa_reset_reference_pll(struct wsa_device* dev);
 int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref);
 
+int16_t wsa_get_lock_rf(struct wsa_device* dev, int32_t* lock_rf);
 
 // ////////////////////////////////////////////////////////////////////////////
 // SWEEP FUNCTIONS                                                           //

@@ -1206,9 +1206,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (strcmp(cmd_words[2], "PLL") == 0)
 			{
 				if(num_words > 3)
-				{
 					printf("Too many arguments for 'get ref pll' \n");
-				}
+				
 				else
 				{
 					result = wsa_get_reference_pll(dev, char_result);
@@ -1218,6 +1217,27 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} //end get REF PLL
+
+
+		else if (strcmp(cmd_words[1], "RF") == 0)
+		{	
+			if (strcmp(cmd_words[2], "LOCK") == 0)
+			{
+				if (strcmp(cmd_words[3], "STATUS") == 0)
+				{
+					if(num_words > 4)
+					printf("Too many arguments for 'get rf lock status' \n");
+
+					else
+					{
+					result = wsa_get_lock_rf(dev, &temp_int);
+					if (result >= 0) 
+						printf("RF Lock Status: %d \n", temp_int);
+				
+					}
+				}
+			}
+		} //end get RF LOCK STATUS
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
 		{

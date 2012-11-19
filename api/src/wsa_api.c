@@ -1403,6 +1403,35 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device* dev, int32_t* lock_ref)
 	return 0;
 }
 
+/**
+ * get the rf lock status
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param lock_rf returns 1 if locked, 0 if unlocked
+ * @return 0 on success, or a negative number on error.
+ */
+
+int16_t wsa_get_lock_rf(struct wsa_device* dev, int32_t* lock_rf)
+{
+    struct wsa_resp query;
+    int16_t result = 0;
+    double temp;
+
+    wsa_send_query(dev, "LOCK:RF?\n", &query);
+    if (query.status <= 0)
+        return (int16_t) query.status;
+
+    if (to_double(query.output, &temp) < 0)
+    {
+        printf("Error: WSA returned %ld.\n", temp);
+        return WSA_ERR_RESPUNKNOWN;
+    }
+
+    *lock_rf = (int32_t) temp;
+
+    return 0;
+}
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // Sweep Functions	(still in beta			                                             //
