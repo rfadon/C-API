@@ -1908,13 +1908,17 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
  * Sets the frequency step value in the user's
  * sweep entry
  * @param dev - A pointer to the WSA device structure.
- * @param fstep - A float pointer to store the frequency in Hz.
+ * @param step - A float pointer to store the frequency in Hz.
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 {
 	int16_t result = 0;
 	char temp_str[50];
+
+	result = wsa_verify_freq(device, step);
+	if (result < 0)
+		return result;
 
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
 	result = wsa_send_command(device, temp_str);
@@ -2524,6 +2528,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	// Convert the numbers & make sure no error
 	// ****
 
+
 	strtok_result = strtok(query.output, ",");
 	if (to_double(strtok_result, &temp) < 0)
 		return WSA_ERR_RESPUNKNOWN;
@@ -2606,6 +2611,8 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	else if (strstr(strtok_result, "NONE") != NULL)
 	{
 		strcpy(sweep_list->trigger_type,strtok_result);
+
+
 	}
 
 	return 0;

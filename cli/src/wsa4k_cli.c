@@ -86,7 +86,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
-
+int16_t determine_string_type(char *id); 
 /**
  * Print out the CLI options menu
  *
@@ -363,7 +363,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 {
 	int16_t result = 0;
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
-	char temp_str[MAX_STRING_LEN];
+	char temp_str[40];
 	char *temp_ptr;
 	uint8_t w = 0;	// an index
 	int i;
@@ -421,8 +421,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t exit_loop;
 	int32_t title_printed = 0;
 	
-	char file_name[MAX_STRING_LEN];
-	char sweep_status[MAX_STRING_LEN];
+	// context data
+
+
+	char file_name[40];
+	char sweep_status[40];
 	FILE *iq_fptr;
 
 	// to calculate run time
@@ -643,16 +646,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// TODO handle the packet order indicator for rec'r & dig'r as well
 		res = (header->stream_id == RECEIVER_STREAM_ID);
 
-	   if ((header->stream_id == RECEIVER_STREAM_ID)) 
+	   if (header->stream_id == RECEIVER_STREAM_ID || header->stream_id == DIGITIZER_STREAM_ID) 
 		{
 			i--;
 			continue;
 		} 
-		else if (header->stream_id == DIGITIZER_STREAM_ID) 
-		{
-			i--;
-			continue;
-		} 
+
 		else if (header->stream_id == IF_DATA_STREAM_ID)
 		{
 			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == 0))) 
@@ -767,8 +766,8 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	int16_t result = 0;
 	int16_t acq_status;
 	int32_t iq_pkt_count = 0;
-	char file_name[MAX_STRING_LEN];
-	char sweep_status[MAX_STRING_LEN];
+	char file_name[40];
+	char sweep_status[40];
 	FILE *iq_fptr;
 
 	// to calculate run time
@@ -982,6 +981,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
+	int16_t input_veri_result = 0; // result returned from varifying input cmd param
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[100];
 	int i;
@@ -1327,10 +1327,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else
 			{
-				result = wsa_set_antenna(dev, atoi(cmd_words[2]));
-				if (result == WSA_ERR_INVANTENNAPORT)
-					sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
-						WSA_RFE0560_MAX_ANT_PORT);
+				input_veri_result = determine_string_type(cmd_words[2]);
+				if (input_veri_result != 0)
+					printf("Invalid Input, antenna port must be a number\n");
+				else
+				{
+					result = wsa_set_antenna(dev, atoi(cmd_words[2]));
+					if (result == WSA_ERR_INVANTENNAPORT)
+						sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
+							WSA_RFE0560_MAX_ANT_PORT);
+				}
 			}
 		} // end set ANT
 
@@ -1352,10 +1358,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else
 			{
-				result = wsa_set_decimation(dev, (int32_t) atof(cmd_words[2]));
-				if (result == WSA_ERR_INVDECIMATIONRATE)
-					sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
-					dev->descr.min_decimation, dev->descr.max_decimation);
+				input_veri_result = determine_string_type(cmd_words[2]);
+				if (input_veri_result != 0)
+					printf("Invalid Input, decimation value must be a number\n");
+				else
+				{
+					result = wsa_set_decimation(dev, (int32_t) atof(cmd_words[2]));
+					if (result == WSA_ERR_INVDECIMATIONRATE)
+						sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+						dev->descr.min_decimation, dev->descr.max_decimation);
+				}
 			}
 		} // end set decimation rate
 
@@ -1367,12 +1379,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else 
 			{
-				freq_value = (int64_t) (atof(cmd_words[2]) * MHZ);
-				result = wsa_set_freq(dev, freq_value);
-				if (result == WSA_ERR_FREQOUTOFBOUND)
-					sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
-						(double) dev->descr.min_tune_freq / MHZ, 
-						(double) dev->descr.max_tune_freq / MHZ);
+				input_veri_result = determine_string_type(cmd_words[2]);
+				if (input_veri_result != 0)
+					printf("Invalid Input, frequency value must be a number\n");
+				else
+				{
+					freq_value = (int64_t) (atof(cmd_words[2]) * MHZ);
+					result = wsa_set_freq(dev, freq_value);
+					if (result == WSA_ERR_FREQOUTOFBOUND)
+						sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+							(double) dev->descr.min_tune_freq / MHZ, 
+							(double) dev->descr.max_tune_freq / MHZ);
+				}
 			}
 		} // end set FREQ
 
@@ -1384,11 +1402,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else 
 			{
-				fshift = (float) (atof(cmd_words[2]) * MHZ);
-				result = wsa_set_freq_shift(dev, fshift);
-				if (result == WSA_ERR_FREQOUTOFBOUND)
-					sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
-						0.0, (float) dev->descr.inst_bw / MHZ);
+				input_veri_result = determine_string_type(cmd_words[2]);
+				if (input_veri_result != 0)
+					printf("Invalid Input, frequency shift value must be a number\n");
+				else
+				{
+					fshift = (float) (atof(cmd_words[2]) * MHZ);
+					result = wsa_set_freq_shift(dev, fshift);
+					if (result == WSA_ERR_FREQOUTOFBOUND)
+						sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
+							0.0, (float) dev->descr.inst_bw / MHZ);
+				}
 			}
 		} // end set FSHIFT
 
@@ -1431,6 +1455,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else if (!to_int(cmd_words[3], &temp_long)) 
 				{
+
 					result = wsa_set_gain_if(dev, (int32_t) temp_long);
 					if (result == WSA_ERR_INVIFGAIN)
 						sprintf(msg, "\n\t- Valid range: %d to %d dB.", 
@@ -1590,13 +1615,22 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (strcmp(cmd_words[4], "") == 0) 
 						printf("Missing the antenna port value. See 'h'.\n");
 					else
-						result = wsa_set_sweep_antenna(dev, atoi(cmd_words[4]));
+					{
+						input_veri_result = determine_string_type(cmd_words[4]);
+						
+						if (input_veri_result != 0)
+							printf("Invalid Input, antenna port must be a number\n");
+						
+						else
+						{
+							result = wsa_set_sweep_antenna(dev, atoi(cmd_words[4]));
 					
-					if (result == WSA_ERR_INVANTENNAPORT)
-						sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
+							if (result == WSA_ERR_INVANTENNAPORT)
+								sprintf(msg, "\n\t- Valid ports: 1 to %d.", 
 								WSA_RFE0560_MAX_ANT_PORT);
+						}
+					}
 				}
-				
 				//end set ANT
 				else if (strcmp(cmd_words[3], "GAIN") == 0) {
 					if (strcmp(cmd_words[4], "RF") == 0) {
@@ -1655,10 +1689,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (strcmp(cmd_words[4], "") == 0) 
 						printf("Missing the decimation rate. See 'h'.\n");
 					
-					result = wsa_set_sweep_decimation(dev,(int32_t) atof(cmd_words[4]));
-					if (result == WSA_ERR_INVDECIMATIONRATE)
-						sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
-								dev->descr.min_decimation, dev->descr.max_decimation);
+					input_veri_result = determine_string_type(cmd_words[4]);
+						
+					if (input_veri_result != 0)
+						printf("Invalid Input, decimation value must be a number\n");
+						
+					else
+					{
+						result = wsa_set_sweep_decimation(dev,(int32_t) atof(cmd_words[4]));
+						if (result == WSA_ERR_INVDECIMATIONRATE)
+							sprintf(msg, "\n\t- Valid range: %d to %d.",	// TODO #s
+									dev->descr.min_decimation, dev->descr.max_decimation);
+					}
 				} // end set decimation rate
 
 				else if (strcmp(cmd_words[3], "TRIGGER") == 0) 
@@ -1723,22 +1765,22 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else 
 					{
-							strtok_result = strtok(cmd_words[4], ",");
-							if (to_double(strtok_result, &temp_double) < 0) 
-							{
-								printf("Error: Start frequency must be a valid number\n");
-								return 0;
-							}
-							start_freq = (int64_t) (temp_double);
-							
-							strtok_result = strtok(NULL, ",");
-							if (to_double(strtok_result, &temp_double) < 0) 
-							{
-								printf("Error: Stop frequency must be a valid number\n");
-								return 0;
-							}
-						stop_freq = (int64_t) (temp_double);
-						result = wsa_set_sweep_freq(dev, start_freq * MHZ, stop_freq * MHZ);
+						strtok_result = strtok(cmd_words[4], ",");
+						if (to_double(strtok_result, &temp_double) < 0) 
+						{
+							printf("Error: Start frequency must be a valid number\n");
+							return 0;
+						}
+						start_freq = (int64_t) (temp_double);
+						
+						strtok_result = strtok(NULL, ",");
+						if (to_double(strtok_result, &temp_double) < 0) 
+						{
+							printf("Error: Stop frequency must be a valid number\n");
+							return 0;
+						}
+					stop_freq = (int64_t) (temp_double);
+					result = wsa_set_sweep_freq(dev, start_freq * MHZ, stop_freq * MHZ);
 
 					}
 				} // end set FREQ
@@ -1751,11 +1793,19 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else 
 					{
-						fshift = (float) (atof(cmd_words[4]) * MHZ);
-						result = wsa_set_sweep_freq_shift(dev, fshift);
-						if (result == WSA_ERR_FREQOUTOFBOUND)
-							sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
-								0.0, (float) dev->descr.inst_bw / MHZ);
+						input_veri_result = determine_string_type(cmd_words[4]);
+						
+						if (input_veri_result != 0)
+							printf("Invalid Input, frequency shift value must be a number\n");
+						
+						else
+						{
+							fshift = (float) (atof(cmd_words[4]) * MHZ);
+							result = wsa_set_sweep_freq_shift(dev, fshift);
+							if (result == WSA_ERR_FREQOUTOFBOUND)
+								sprintf(msg, "\n\t- Valid range: %0.2f to %0.2f MHz.",
+									0.0, (float) dev->descr.inst_bw / MHZ);
+						}
 					}
 
 				} // end set FSHIFT
@@ -1768,12 +1818,20 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else 
 					{
-						freq_value = (int64_t) (atof(cmd_words[4]) * MHZ);
-						result = wsa_set_sweep_freq_step(dev, freq_value);
-						if (result == WSA_ERR_FREQOUTOFBOUND)
-							sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
-								(double) dev->descr.min_tune_freq / MHZ, 
-								(double) dev->descr.max_tune_freq / MHZ);
+						input_veri_result = determine_string_type(cmd_words[4]);
+						
+						if (input_veri_result != 0)
+							printf("Invalid Input, frequency step must be a number\n");
+						
+						else
+						{
+							freq_value = (int64_t) (atof(cmd_words[4]) * MHZ);
+							result = wsa_set_sweep_freq_step(dev, freq_value);
+							if (result == WSA_ERR_FREQOUTOFBOUND)
+								sprintf(msg, "\n\t- Valid range: %0.2lf to %0.2lf MHz.",
+									(double) dev->descr.min_tune_freq / MHZ, 
+									(double) dev->descr.max_tune_freq / MHZ);
+						}
 					}
 
 				} // end set FSTEP
@@ -2022,7 +2080,7 @@ int16_t do_wsa(const char *wsa_addr)
 	char intf_str[200];			// store the interface method string
 	char *in_buf;
 	int16_t result = 0;			// result returned from a function
-	char temp_str[MAX_STRING_LEN];
+	char temp_str[40];
 
 
 	// Create the TCPIP interface method string
@@ -2071,7 +2129,7 @@ int16_t start_cli(void)
 {
 	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
-	char in_str[MAX_STRING_LEN];	// store user's input string
+	char in_str[40];	// store user's input string
 	char *in_buf;
 	const char *wsa_addr;			// store the desired WSA IP address
 	int16_t result = 0;				// result returned from a function
@@ -2501,6 +2559,7 @@ int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
 /**
  * Print the settings of the user's sweep entry
  * @param dev - a pointer to the wsa device
+ * @return 0 on success, or a negative number on error.
  * 
  */
 int16_t print_sweep_entry_template(struct wsa_device *dev) 
@@ -2599,7 +2658,10 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 }
 
 /**
- *
+ * Print the settings of the sweep entry in the wsa of the specified id
+ * @param dev - a pointer to the wsa device
+ * @param id - position of sweep entry
+ * @return 0 on success, or a negative number on error
  */
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id) 
 {	
@@ -2643,4 +2705,56 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	free(list_values);
 	
 	return 0;
+}
+
+/**
+ * determine if a string contains numbers or strings
+ * @param string - string to be examined
+ * @return 0 if its a number, 1 if its a string, or a negative number on error.
+ * 
+ */
+int16_t determine_string_type(char *input) 
+{	
+
+
+	int i;
+	int16_t found_num = 0;
+	int16_t found_alph = 0;
+	int16_t found_sym = 0;
+	int16_t found_neg_sym = 0;
+
+	// loop every char in the input string
+	for(i = 0; i < strlen(input); i++) {
+
+		
+		// case of a negative sign used
+		if ( i == 0 && input[i] == 0x2d)
+			found_neg_sym = 1;
+
+		// determine if the char is a number
+		else if (input[i] >= 0x30 && input[i] <= 0x39)
+			found_num = 1;
+
+		// determine if the char is an alphabet
+		else if ((input[i] >= 0x41 && input[i] <= 0x5a) || (input[i] >= 0x61 && input[i] <= 0x7a)) 
+			found_alph = 1;
+		
+		else
+			found_sym = 1;
+	}
+	
+	// if only numbers 
+	if (found_num == 1  && found_alph == 0 && found_sym == 0)
+		return 0;
+	
+	// if only letters
+	else if (found_alph == 1 &&  found_num == 0 && found_sym == 0 && found_neg_sym == 0)
+		return 1;
+	
+	// if a symbol or a combination of letters/alphabets
+	else
+		return -5;
+
+
+
 }
