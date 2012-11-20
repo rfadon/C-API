@@ -1301,6 +1301,55 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 	return 0;
 }
 
+/**
+ * Gets the current trigger mode of the WSA
+ * or freerun (trigger off).
+ * @param dev - A pointer to the WSA device structure.
+ * @param enable - Trigger mode of selection.
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_trigger_type(struct wsa_device* dev, char* trigger_type)
+{
+	int16_t result = 0;
+	char temp_str[50];
+
+	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
+		sprintf(temp_str, "TRIGGER:TYPE %s \n", trigger_type);
+	else
+		return WSA_ERR_INVTRIGGERMODE;
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0)
+		return result;
+	
+	return 0;
+}
+
+/**
+ * Sets the WSA's capture mode to triggered (trigger on)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param enable - An char containing the trigger mode. 
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_trigger_type(struct wsa_device* dev, char* type)
+{
+	struct wsa_resp query;
+	
+	wsa_send_query(dev, "TRIGGER:TYPE?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	if(strcmp(query.output,"LEVEL") == 0 || strcmp(query.output,"NONE") == 0)
+	strcpy(type,query.output);
+	
+	else
+		return WSA_ERR_INVTRIGGERMODE;
+	return 0;
+}
+
 // ////////////////////////////////////////////////////////////////////////////
 // PLL Reference CONTROL SECTION                                             //
 // ////////////////////////////////////////////////////////////////////////////
@@ -2001,7 +2050,7 @@ int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t seconds, int32_t 
 	char temp_str[50];
 
 	if ((seconds < 0) || (microseconds < 0))
-	return WSA_ERR_INVALID_DWELL;
+	return WSA_ERR_INVDWELL;
 
 	sprintf(temp_str, "SWEEP:ENTRY:DWELL %u,%u\n", seconds, microseconds);
 	result = wsa_send_command(device, temp_str);
@@ -2231,9 +2280,10 @@ int16_t wsa_set_sweep_iteration(struct wsa_device* device, int32_t interation)
 
 	result = wsa_send_command(device, temp_str);
 	if (result < 0)
+	{
 	doutf(DHIGH, "In wsa_set_sweep_iteration: %d - %s.\n", result, wsa_get_error_msg(result));
-	if (result < 0)
 		return result;
+	}
 	
 	return 0;
 }
@@ -2412,13 +2462,15 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
  */
 int16_t wsa_sweep_stop(struct wsa_device *dev) 
 {
-	int16_t result = 0;
-	int32_t packet_size = WSA4000_MAX_SAMPLE_SIZE;
-	int32_t bytes_received = 0;
-	uint32_t timeout = 360;
-	clock_t start_time;
-	clock_t end_time;
-	uint8_t* packet;
+    int16_t result = 0;
+    int32_t bytes_received = 0;
+    uint8_t* packet;
+    int32_t packet_size = WSA4000_MAX_SAMPLE_SIZE;
+
+    // Timeout parameters
+    uint32_t timeout = 360;
+    clock_t start_time;
+    clock_t end_time;
 
 	result = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DHIGH, "In wsa_sweep_stop: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2517,7 +2569,7 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t id)
 	if (result < 0)
 		return result;
 
-	if (id < 0 || id > (size + 1))
+	if (id < 0 || id >= (size + 1))
 		return WSA_ERR_SWEEPIDOOB;
 
 	sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", id);
@@ -2543,10 +2595,17 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	char temp_str[50];
 	struct wsa_resp query;		// store query results
 	double temp;
+	int32_t size = 0;
+	int16_t result;
 	char* strtok_result;
 	
-	if (id < 0)
-		return WSA_ERR_INVNUMBER;
+	// check if id is out of bounds
+	result = wsa_get_sweep_entry_size(dev, &size);
+	if (result < 0)
+		return result;
+
+	if (id < 0 || id >= (size + 1))
+		return WSA_ERR_SWEEPIDOOB;
 
 	sprintf(temp_str, "SWEEP:ENTRY:READ? %d\n", id);
 	wsa_send_query(dev, temp_str, &query);

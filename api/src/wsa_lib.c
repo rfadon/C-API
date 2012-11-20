@@ -1176,7 +1176,6 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		band_int_part = (long double) ((band_word1 << 12) + (band_word2 >> 20));
 		band_dec_part = (long double) (band_word2 & 0x000fffff);
 		digitizer->bandwidth = band_int_part + (band_dec_part / MHZ);
-		printf("bandwidth is: %0.3f \n" , (float) digitizer->bandwidth);
 		data_pos = data_pos + 8;
 	}
 

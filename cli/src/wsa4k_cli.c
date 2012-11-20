@@ -150,7 +150,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("  get trigger level\n"
 		"\t- Get the current level trigger settings\n");
 	printf("  get trigger mode\n"
-		"\t- Check whether trigger mode is enabled\n");
+		"\t- Check the current trigger mode\n");
 	printf("\n");
 
 	printf("  set ant <1 | 2>\n"
@@ -187,9 +187,9 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  Range: %hu - %hu, inclusive.\n"
 		"\t  ex: set spp 2000\n",
 		WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
-	printf("  set trigger enable <on | off>\n"
-		"\t- Set trigger mode on or off. When set to off, WSA will be in freerun.\n"
-		"\t  ex: set trigger enable on\n");
+	printf("  set trigger mode <level | none>\n"
+		"\t- Set trigger mode. When set to none, WSA will be in freerun.\n"
+		"\t  ex: set trigger mode level\n");
 	printf("  set trigger level <start,stop,amplitude>\n"
 		"\t- Configure the level trigger with values:\n"
 		"\t\t1) Start frequency (in MHz)\n"
@@ -420,9 +420,21 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t acq_status;
 	int32_t exit_loop;
 	int32_t title_printed = 0;
+	int32_t dec = 0;
 	
 	// context data
+	int32_t field_indicator;
+	
+	// receiver data
+	int32_t reference_point = 0;
+	enum wsa_gain rf_gain = 0;
+	int32_t if_gain = 0;
+	int64_t frequency = 0;
 
+	// digitizer data
+	int32_t reference_level = 0;
+	int64_t bandwidth = 0;
+	float rf_frequency_offset = 0;
 
 	char file_name[40];
 	char sweep_status[40];
@@ -432,7 +444,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	TIME_HOLDER run_start_time;
 	TIME_HOLDER run_end_time;
 	double run_time_ms = 0;
-	int32_t res;
+
 	// to calculate data capture time
 	TIME_HOLDER capture_start_time;
 	TIME_HOLDER capture_end_time;
@@ -463,7 +475,40 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// TODO smarter way of saving header is to allow users to enable
 	// which header info to include...
 	// *****
-	
+
+	printf("Gathering WSA settings...");	
+
+	// get initial reference point
+	result = wsa_get_antenna(dev, &reference_point);
+	if (result < 0)
+		return result;
+
+	// get initial frequency value
+	result = wsa_get_freq(dev, &frequency);
+	if (result < 0)
+		return result;
+
+	// get initial gain if 
+	result = wsa_get_gain_if(dev, &if_gain);
+	if (result < 0)
+		return result;
+
+	// get initial fshift
+	result = wsa_get_freq_shift(dev, &rf_frequency_offset);
+	if (result < 0)
+		return result;
+
+	// get initial bandwidth
+		result = wsa_get_decimation(dev, &dec);
+	if (result < 0)
+		return result;
+	if (dec == 0)
+		bandwidth = WSA4000_INST_BW;
+	else
+		bandwidth = WSA4000_INST_BW / dec;
+
+
+
 	// determine if the another user is capturing data
 	result = wsa_system_read_status(dev, &acq_status);
 	if (result < 0)
@@ -480,7 +525,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_SWEEPMODEUNDEF;
 	}
 
-	printf("Gathering WSA settings...");
 	result = wsa_get_fw_ver(dev, fw_ver);
 	if (result < 0)
 		return result;
@@ -644,10 +688,47 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
 		// TODO handle the packet order indicator for rec'r & dig'r as well
-		res = (header->stream_id == RECEIVER_STREAM_ID);
 
 	   if (header->stream_id == RECEIVER_STREAM_ID || header->stream_id == DIGITIZER_STREAM_ID) 
 		{
+			
+			// handle possible receiver changes
+			field_indicator = receiver->indicator_field;
+
+			if((field_indicator & 0xf0000000) == 0xc0000000) 
+			{
+				reference_point = (int32_t) receiver->reference_point;		
+			}
+
+			else if ((field_indicator & 0x0f000000) == 0x08000000) 
+			{
+				frequency = (int64_t) receiver->freq;		
+			}
+
+			else if ((field_indicator & 0x00f00000) == 0x00800000) 
+			{
+				if_gain = (int32_t) receiver->gain_if;
+				rf_gain = (int32_t) receiver->gain_rf;
+
+			} 	
+			
+			// handle possible digitizer changes
+			field_indicator = digitizer->indicator_field;
+
+			if ((field_indicator & 0xf0000000) == 0xa0000000) 
+			{
+				bandwidth = (int64_t) digitizer->bandwidth;
+			} 			
+			
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
+			{
+				rf_frequency_offset = (float)  digitizer->rf_frequency_offset;
+			}
+
+			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
+				reference_level = (int32_t) digitizer->reference_level;	
+			}
+
 			i--;
 			continue;
 		} 
@@ -659,17 +740,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			title_printed = 1;
 
 				fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
-				fprintf(iq_fptr, "%s,%d,%d,%d,%0.3f,%0.3f,%0.3f,%lf,%lf,%d,%0.2f\n",fw_ver,
+				fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%0.2f\n",fw_ver,
 																					header->samples_per_packet, 
 																					header->time_stamp.sec,
 																					header->time_stamp.psec,
-																					(float) receiver->freq,
-																					(float) digitizer->bandwidth,
-																					(float) digitizer->rf_frequency_offset,
-																					(float) receiver->gain_if,
-																					(float) receiver->gain_rf,
-																					(float) receiver->reference_point,
-																					(float) digitizer->reference_level);
+																					(float) frequency,
+																					(float) bandwidth,
+																					(float) rf_frequency_offset,
+																					(float) if_gain,
+																					(float) rf_gain,
+																					(int32_t) reference_point,
+																					(float) reference_level);
 			}
 			if (i == 1)		
 				expected_packet_order_indicator = header->packet_order_indicator;
@@ -1243,10 +1324,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (strcmp(cmd_words[2], "MODE") == 0) 
 			{
-				result = wsa_get_trigger_enable(dev, &temp_int);
+				result = wsa_get_trigger_type(dev, char_result);
 				if (result >= 0)
-					printf("Trigger mode: %s\n", (temp_int) ? "On" : "Off");
-			}
+					printf("Trigger mode: %s\n", char_result);
+			} // end get TRIGGER MODE
+
 			else if (strcmp(cmd_words[2], "LEVEL") == 0) 
 			{
 				result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
@@ -1261,7 +1343,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else 
 			{
 				printf("Usage: 'get trigger <level | mode>'");
-			}
+			}// end get TRIGGER LEVEL
 		} // end get TRIGGER
 		
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
@@ -1349,7 +1431,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				input_veri_result = determine_string_type(cmd_words[2]);
 				if (input_veri_result != 0)
-					printf("Invalid Input, antenna port must be a number\n");
+					printf("Invalid input, antenna port must be a number\n");
 				else
 				{
 					result = wsa_set_antenna(dev, atoi(cmd_words[2]));
@@ -1380,7 +1462,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				input_veri_result = determine_string_type(cmd_words[2]);
 				if (input_veri_result != 0)
-					printf("Invalid Input, decimation value must be a number\n");
+					printf("Invalid input, decimation value must be a number\n");
 				else
 				{
 					result = wsa_set_decimation(dev, (int32_t) atof(cmd_words[2]));
@@ -1424,7 +1506,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				input_veri_result = determine_string_type(cmd_words[2]);
 				if (input_veri_result != 0)
-					printf("Invalid Input, frequency shift value must be a number\n");
+					printf("Invalid input, frequency shift value must be a number\n");
 				else
 				{
 					fshift = (float) (atof(cmd_words[2]) * MHZ);
@@ -1549,15 +1631,15 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		else if (strcmp(cmd_words[1], "TRIGGER") == 0) 
 		{
-			if (strcmp(cmd_words[2], "ENABLE") == 0) 
+
+			if (strcmp(cmd_words[2], "MODE") == 0) 
 			{
-				if (strcmp(cmd_words[3], "ON") == 0)
-					result = wsa_set_trigger_enable(dev, 1);
-				else if (strcmp(cmd_words[3], "OFF") == 0)
-					result = wsa_set_trigger_enable(dev, 0);
-				else
-					printf("Usage: 'set trigger enable <on | off>'\n");
+						if (num_words == 4) 
+							result = wsa_set_trigger_type(dev, cmd_words[3]);
+						else
+							printf("Missing trigger type. See See 'h'. \n");				
 			}
+
 			else if (strcmp(cmd_words[2], "LEVEL") == 0) 
 			{
 				if (num_words < 4) 
@@ -1639,7 +1721,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						input_veri_result = determine_string_type(cmd_words[4]);
 						
 						if (input_veri_result != 0)
-							printf("Invalid Input, antenna port must be a number\n");
+							printf("Invalid input, antenna port must be a number\n");
 						
 						else
 						{
@@ -1712,7 +1794,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					input_veri_result = determine_string_type(cmd_words[4]);
 						
 					if (input_veri_result != 0)
-						printf("Invalid Input, decimation value must be a number\n");
+						printf("Invalid input, decimation value must be a number\n");
 						
 					else
 					{
@@ -1816,7 +1898,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						input_veri_result = determine_string_type(cmd_words[4]);
 						
 						if (input_veri_result != 0)
-							printf("Invalid Input, frequency shift value must be a number\n");
+							printf("Invalid input, frequency shift value must be a number\n");
 						
 						else
 						{
@@ -1841,7 +1923,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						input_veri_result = determine_string_type(cmd_words[4]);
 						
 						if (input_veri_result != 0)
-							printf("Invalid Input, frequency step must be a number\n");
+							printf("Invalid input, frequency step must be a number\n");
 						
 						else
 						{
@@ -1941,7 +2023,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_copy(dev, (uint32_t) temp_long);
 				else
-					printf("Invalid ID number \n");
+					printf("ID value must be an integer number. \n");
 
 
 			}
@@ -1954,7 +2036,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_delete(dev, (uint32_t) temp_long);
 				else
-					printf("Invalid ID number");
+					printf("ID value must be an integer number.\n");
 			}
 			else if (strcmp(cmd_words[2], "NEW") == 0) 
 			{
@@ -1967,7 +2049,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = print_sweep_entry_information(dev, (int32_t) temp_long);
 				else
-					printf("Invalid ID number");
+					printf("ID value must be an integer number.\n");
 			}
 			else if (strcmp(cmd_words[2], "SAVE") == 0) 
 			{
@@ -1976,7 +2058,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else if (!to_int(cmd_words[3], &temp_long))
 					result = wsa_sweep_entry_save(dev, (uint32_t) temp_long);
 				else
-					printf("Invalid ID number");
+					printf("ID value must be an integer number. \n");
 					
 			}
 			else 

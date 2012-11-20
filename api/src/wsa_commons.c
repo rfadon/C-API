@@ -172,8 +172,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
 		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"},
-		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"},
-		{WSA_ERR_INVALID_DWELL, "Invalid dwell value"}
+		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"}
 
 	};
 

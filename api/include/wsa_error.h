@@ -164,7 +164,6 @@
 #define WSA_ERR_SWEEPNOTRUNNING	(LNEG_NUM - 3011)
 #define WSA_ERR_SWEEPIDOOB	(LNEG_NUM - 3012)
 #define WSA_ERR_SWEEPMODEUNDEF (LNEG_NUM - 3013)
-#define WSA_ERR_INVALID_DWELL (LNEG_NUM - 3014)
 
 // ///////////////////////////////
 // WARNINGS						//
