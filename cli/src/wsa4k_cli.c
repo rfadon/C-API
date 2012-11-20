@@ -165,7 +165,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Set the centre frequency in MHz\n"
 		"\t  Range: %.2f - %.2f MHz inclusively, excluding 40.1 - 89.9 MHz.\n"
 		"\t  Resolution %.2f MHz.\n"
-		"\t  ex: set freq 441.5\n", 
+		"\t  ex: set freq 441.5\n",
 		(float) MIN_FREQ/MHZ, (float) MAX_FREQ/MHZ, (float) FREQ_RES/MHZ);
 	printf("  set fshift <freq>\n"
 		"\t- Set the frequency shift in MHz\n"
@@ -2773,14 +2773,13 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	
 	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
 
-	printf("Sweep Entry %d Settings:\n", id);
 	result = wsa_sweep_entry_read(dev, id, list_values);
 	if (result < 0) 
 	{
 		free(list_values);
 		return result;
 	}
-
+	printf("Sweep Entry %d Settings:\n", id);
 	printf("  Sweep range (MHz): %0.3f - %0.3f, Step: %0.3f \n", ((float) list_values->start_freq / MHZ),(float)  (list_values->stop_freq / MHZ), (float) list_values->fstep / MHZ);
 	printf("  Antenna port: %u \n", list_values->ant_port);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
@@ -2809,6 +2808,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	return 0;
 }
 
+// TODO: SEPERATE INTO TWO FUNCTIONS TO CHECK FOR STRING/INT INDIVIDUALLY
 /**
  * determine if a string contains numbers or strings
  * @param string - string to be examined
@@ -2818,20 +2818,18 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 int16_t determine_string_type(char *input) 
 {	
 
-
 	int i;
 	int16_t found_num = 0;
 	int16_t found_alph = 0;
 	int16_t found_sym = 0;
-	int16_t found_neg_sym = 0;
+	int16_t found_neg_sign = 0;
 
 	// loop every char in the input string
 	for(i = 0; i < strlen(input); i++) {
 
-		
 		// case of a negative sign used
 		if ( i == 0 && input[i] == 0x2d)
-			found_neg_sym = 1;
+			found_neg_sign = 1;
 
 		// determine if the char is a number
 		else if (input[i] >= 0x30 && input[i] <= 0x39)
@@ -2840,7 +2838,7 @@ int16_t determine_string_type(char *input)
 		// determine if the char is an alphabet
 		else if ((input[i] >= 0x41 && input[i] <= 0x5a) || (input[i] >= 0x61 && input[i] <= 0x7a)) 
 			found_alph = 1;
-		
+
 		else
 			found_sym = 1;
 	}
@@ -2850,13 +2848,11 @@ int16_t determine_string_type(char *input)
 		return 0;
 	
 	// if only letters
-	else if (found_alph == 1 &&  found_num == 0 && found_sym == 0 && found_neg_sym == 0)
+	else if (found_alph == 1 &&  found_num == 0 && found_sym == 0 && found_neg_sign == 0)
 		return 1;
 	
 	// if a symbol or a combination of letters/alphabets
 	else
-		return -5;
-
-
-
+		return WSA_ERR_INVINPUT;
+	
 }

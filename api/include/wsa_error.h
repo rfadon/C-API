@@ -146,6 +146,7 @@
 #define WSA_ERR_INVREGADDR		(LNEG_NUM - 2001)
 #define WSA_ERR_MALLOCFAILED	(LNEG_NUM - 2002)
 #define WSA_ERR_UNKNOWN_ERROR	(LNEG_NUM - 2003)
+#define WSA_ERR_INVINPUT	(LNEG_NUM - 2004)
 
 // ///////////////////////////////
 // SWEEP ERRORS					//
