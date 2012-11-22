@@ -419,19 +419,19 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int8_t count = 0;
 	int16_t acq_status;
 	int32_t exit_loop;
-	int32_t title_printed = 0;
+	int32_t title_printed = FALSE;
 	int32_t dec = 0;
 	
-	// context data
+	// to store field indicator of context data
 	int32_t field_indicator;
 	
-	// receiver data
+	// to store receiver data
 	int32_t reference_point = 0;
 	enum wsa_gain rf_gain = 0;
 	int32_t if_gain = 0;
 	int64_t frequency = 0;
 
-	// digitizer data
+	// to store digitizer data
 	int32_t reference_level = 0;
 	int64_t bandwidth = 0;
 	float rf_frequency_offset = 0;
@@ -465,7 +465,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t *i_buffer;		// To store the integer I data
 	int16_t *q_buffer;		// To store the integer Q data
 	
-	uint8_t expected_packet_order_indicator = 0;
+	uint8_t expected_if_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
+	uint8_t expected_digitizer_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
+	uint8_t expected_receiver_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
+
 	int32_t iq_pkt_count = 1;
 	int32_t i;
 	int j;
@@ -687,55 +690,90 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		// TODO handle the packet order indicator for rec'r & dig'r as well
 
-	   if (header->stream_id == RECEIVER_STREAM_ID || header->stream_id == DIGITIZER_STREAM_ID) 
+	   if (header->packet_type == CONTEXT_PACKET_TYPE) 
 		{
-			
 			// handle possible receiver changes
-			field_indicator = receiver->indicator_field;
-
-			if((field_indicator & 0xf0000000) == 0xc0000000) 
+			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
-				reference_point = (int32_t) receiver->reference_point;		
+				field_indicator = receiver->indicator_field;
+
+				// initialize receiver packet order indicator
+				if (expected_receiver_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
+					expected_receiver_packet_order_indicator = receiver->packet_order_indicator;
+
+				// verify the receiver packet order indicator
+				if (receiver->packet_order_indicator != expected_receiver_packet_order_indicator)
+				{
+					result = WSA_ERR_PACKETOUTOFORDER;
+					break;
+				}
+
+				// handle change in reference point
+				if ((field_indicator & REFERENCE_POINT_FIELD_INDICATOR_MASK) == REFERENCE_POINT_FIELD_INDICATOR) 
+					reference_point = (int32_t) receiver->reference_point;		
+				
+				// handle change in frequency
+				else if ((field_indicator & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR) 
+					frequency = (int64_t) receiver->freq;		
+
+				// handle change in gain rf/if 
+				else if ((field_indicator & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR) 
+				{
+					if_gain = (int32_t) receiver->gain_if;
+					rf_gain = (int32_t) receiver->gain_rf;
+				}
+				
+				expected_receiver_packet_order_indicator++;
+
+				// reset packet order indicator to original value
+				if (expected_receiver_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 			}
-
-			else if ((field_indicator & 0x0f000000) == 0x08000000) 
-			{
-				frequency = (int64_t) receiver->freq;		
-			}
-
-			else if ((field_indicator & 0x00f00000) == 0x00800000) 
-			{
-				if_gain = (int32_t) receiver->gain_if;
-				rf_gain = (int32_t) receiver->gain_rf;
-
-			} 	
-			
 			// handle possible digitizer changes
-			field_indicator = digitizer->indicator_field;
-
-			if ((field_indicator & 0xf0000000) == 0xa0000000) 
+			else if (header->stream_id == DIGITIZER_STREAM_ID)
 			{
-				bandwidth = (int64_t) digitizer->bandwidth;
-			} 			
+				field_indicator = digitizer->indicator_field;
+				
+				// initialize digitizer packet order indicator
+				if (expected_digitizer_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
+					expected_receiver_packet_order_indicator = digitizer->packet_order_indicator;
+
+				// verify the receiver packet order indicator
+				if (digitizer->packet_order_indicator != expected_receiver_packet_order_indicator)
+				{
+					result = WSA_ERR_PACKETOUTOFORDER;
+					break;
+				}
+
+				// handle change in bandwidth
+				if ((field_indicator & 0xf0000000) == 0xa0000000) 
+					bandwidth = (int64_t) digitizer->bandwidth;
+		
+				// handle change in frequency offset
+				else if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
+					rf_frequency_offset = (float)  digitizer->rf_frequency_offset;
+
+				// handle change in reference level
+				else if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000)
+					reference_level = (int32_t) digitizer->reference_level;
+
+				expected_receiver_packet_order_indicator++;
+
+				// reset packet order indicator to original value
+				if (expected_digitizer_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 			
-			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
-			{
-				rf_frequency_offset = (float)  digitizer->rf_frequency_offset;
-			}
-
-			if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000) {
-				reference_level = (int32_t) digitizer->reference_level;	
 			}
 
 			i--;
 			continue;
 		} 
 
-		else if (header->stream_id == IF_DATA_STREAM_ID)
+		else if (header->packet_type == IF_PACKET_TYPE && header->stream_id == IF_DATA_STREAM_ID)
 		{
-			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == 0))) 
+			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == FALSE))) 
 		{
-			title_printed = 1;
+			title_printed = TRUE;
 
 				fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
 				fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%0.2f\n",fw_ver,
@@ -750,18 +788,19 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 																					(int32_t) reference_point,
 																					(float) reference_level);
 			}
-			if (i == 1)		
-				expected_packet_order_indicator = header->packet_order_indicator;
 
-			if (header->packet_order_indicator != expected_packet_order_indicator)
-			{				
+			if (expected_if_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)		
+				expected_if_packet_order_indicator = header->packet_order_indicator;
+
+			if (header->packet_order_indicator != expected_if_packet_order_indicator)
+			{
 				result = WSA_ERR_PACKETOUTOFORDER;
 				break;
 			}
 
-			expected_packet_order_indicator++;	
-			if (expected_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_packet_order_indicator = 0;
+			expected_if_packet_order_indicator++;	
+			if (expected_if_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+				expected_if_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 
 			for (j = 0; j < header->samples_per_packet; j++)
 				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
@@ -784,7 +823,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			if (i >= packets_per_block) 
 			{
-				exit_loop = 1;
+				exit_loop = TRUE;
 			}
 		}		
 		 
@@ -792,14 +831,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
-			if (_kbhit() != 0)
+			if (_kbhit() != FALSE)
 			{
 				if (_getch() == 0x1b) {    // esc key
 					if (result < 0)
 						return result;
  
 					printf("\nEscape key pressed, data capture stopped...\n");
-					exit_loop = 1;
+					exit_loop = TRUE;
 				}
 			}
 		}

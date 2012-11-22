@@ -964,11 +964,19 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	
 	if (stream_identifier_word == RECEIVER_STREAM_ID) 
 	{
+		// store the receiver data in the receiver structure
 		extract_receiver_packet_data(vrt_packet_buffer, receiver);
+		
+		// store the packet order indicator in the receiver structure
+		receiver->packet_order_indicator = header->packet_order_indicator;
 	} 
 	else if (stream_identifier_word == DIGITIZER_STREAM_ID) 
 	{
+		// store the digitizer data in the digitizer structure
 		extract_digitizer_packet_data(vrt_packet_buffer, digitizer);
+
+		// store the packet order indicator in the digitizer structure
+		digitizer->packet_order_indicator = header->packet_order_indicator;
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
 	else if (stream_identifier_word == IF_DATA_STREAM_ID)
@@ -1073,7 +1081,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 								(int32_t) temp_buffer[15]);
 	
 	//determine if reference point data is present
-	if ((temp_buffer[12] & 0xf0) == 0xc0) 
+	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR_MASK) == REFERENCE_POINT_FIELD_INDICATOR) 
 	{
 		
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
@@ -1086,7 +1094,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if frequency data is present
-	if ((temp_buffer[12] & 0x0f) == 0x08) 
+	if ((receiver->indicator_field & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR) 
 	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1105,7 +1113,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if gain data is present
-	if ((temp_buffer[13] & 0xf0) == 0x80) 
+	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR) 
 	{		
 		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
 							temp_buffer[data_pos + 1]) / 128.0;
@@ -1116,11 +1124,11 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		data_pos = data_pos + 4;		
 	}
 
-	//determine of temperature data is present
-	if ((temp_buffer[13] & 0x0f) == 0x04) {
+	// TODO: handle temperature
+	/*if ((receiver->indicator_field & 0x0f) == 0x04) {
 		receiver->temperature = ((int16_t) (temp_buffer[data_pos + 2] << 8) + 
 					temp_buffer[data_pos + 3]) / 64.0;
-	}
+	}*/
 }
 		
 		

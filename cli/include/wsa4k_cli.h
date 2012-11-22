@@ -3,6 +3,7 @@
 
 #include "thinkrf_stdint.h"
 #include "wsa4k_cli_os_specific.h"
+#include "wsa_lib.h"
 
 #define MAX_CMD_WORDS 50
 #define MAX_STRING_LEN 500
@@ -19,6 +20,8 @@
 #define FALSE	0
 #define TRUE	1
 
+// initial context packet order indicator
+#define UNASSIGNED_PACKET_ORDER_INDICATOR MAX_PACKET_ORDER_INDICATOR + 1
 
 extern uint8_t debug_mode;
 extern uint8_t call_mode;

@@ -17,11 +17,38 @@
 #define BYTES_PER_VRT_WORD 4
 
 #define MAX_PACKET_ORDER_INDICATOR 15
+#define MIN_PACKET_ORDER_INDICATOR 0
 
 // VRT context packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
 #define IF_DATA_STREAM_ID 0x90000003
+
+// Packet types
+#define CONTEXT_PACKET_TYPE 4
+#define IF_PACKET_TYPE 1
+
+// Receiver context field indicator masks
+#define REFERENCE_POINT_FIELD_INDICATOR_MASK 0xf0000000
+#define FREQ_FIELD_INDICATOR_MASK 0x0f000000
+#define GAIN_FIELD_INDICATOR_MASK 0x00f00000
+
+// Receiver context data field indicator
+#define REFERENCE_POINT_FIELD_INDICATOR 0xc0000000
+#define FREQ_FIELD_INDICATOR 0x08000000
+#define GAIN_FIELD_INDICATOR 0x00800000
+
+// Digitizer context field indicator masks
+#define BANDWIDTH_FIELD_INDICATOR_MASK 0xf0000000
+#define REFERENCE_LEVEL_FIELD_INDICATOR_MASK 0x0f000000
+#define RF_FREQUENCY_OFFSET_INDICATOR_MASK 0x0f000000
+
+// Digitizer context data field indicator
+#define BANDWIDTH_FIELD_INDICATOR 0xa0000000
+#define REFERENCE_LEVEL_FIELD_INDICATOR 0x01000000
+#define RF_FREQUENCY_OFFSET_INDICATOR 0x04000000
+#define REFERENCE_LEVEL_WITH_RF_FREQUENCY_OFFSET_FIELD_INDICATOR 0x05000000
+
 
 
 // *****
@@ -175,15 +202,18 @@ struct wsa_vrt_packet_header {
 //structure to hold receiver packet data
 struct wsa_receiver_packet {
 	int32_t indicator_field;
+	uint8_t packet_order_indicator;
 	int32_t reference_point;
 	long double freq;
 	double gain_if;
 	double gain_rf;
 	double temperature;
 };
+
 //structure to hold digitizer packet data
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
+	uint8_t packet_order_indicator;
 	long double bandwidth;
 	double reference_level;
 	long double rf_frequency_offset;
