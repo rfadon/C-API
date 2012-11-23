@@ -29,7 +29,6 @@ int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t* status);
 int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
 						  float *value);
 
-
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////

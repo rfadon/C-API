@@ -1081,7 +1081,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 								(int32_t) temp_buffer[15]);
 	
 	//determine if reference point data is present
-	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR_MASK) == REFERENCE_POINT_FIELD_INDICATOR) 
+	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR) > 0) 
 	{
 		
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
@@ -1094,7 +1094,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if frequency data is present
-	if ((receiver->indicator_field & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR) 
+	if ((receiver->indicator_field & FREQ_FIELD_INDICATOR) > 0) 
 	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1110,11 +1110,12 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
 		receiver->freq = freq_int_part + (freq_dec_part / MHZ);
 		data_pos = data_pos + 8;
+
 	}
 	
 	//determine if gain data is present
-	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR) 
-	{		
+	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR) > 0) 
+	{
 		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
 							temp_buffer[data_pos + 1]) / 128.0;
 
@@ -1169,7 +1170,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	
 	
 	//determine if bandwidth data is present	
-	if ((temp_buffer[12] & 0xf0) == 0xA0) {
+	if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR) > 0) {
 		
 		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1189,7 +1190,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 
 
 	//determine if rf frequency offset data is present
-	if ( (temp_buffer[12] & 0xff) == 0x84) 
+	if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR) > 0) 
 	{
 			
 		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
@@ -1209,7 +1210,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		data_pos = data_pos + 8;
 	}
 	//determine if the reference level is present
-	if ((temp_buffer[12] & 0x0f) == 0x01) 
+	if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR) > 0) 
 	{
 					
 		ref_level_word= ((((int32_t) temp_buffer[data_pos]) << 24) +

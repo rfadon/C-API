@@ -411,19 +411,14 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
  */
 int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 {
-	uint8_t context_is = 0;
 	int16_t result = 0;
 	int32_t samples_per_packet;
 	int32_t packets_per_block = 0;
 	char fw_ver[40];
-	int8_t count = 0;
 	int16_t acq_status;
 	int32_t exit_loop;
 	int32_t title_printed = FALSE;
 	int32_t dec = 0;
-	
-	// to store field indicator of context data
-	int32_t field_indicator;
 	
 	// to store receiver data
 	int32_t reference_point = 0;
@@ -695,74 +690,72 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			// handle possible receiver changes
 			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
-				field_indicator = receiver->indicator_field;
-
+				
 				// initialize receiver packet order indicator
 				if (expected_receiver_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
 					expected_receiver_packet_order_indicator = receiver->packet_order_indicator;
-
+				
 				// verify the receiver packet order indicator
 				if (receiver->packet_order_indicator != expected_receiver_packet_order_indicator)
 				{
 					result = WSA_ERR_PACKETOUTOFORDER;
 					break;
 				}
-
-				// handle change in reference point
-				if ((field_indicator & REFERENCE_POINT_FIELD_INDICATOR_MASK) == REFERENCE_POINT_FIELD_INDICATOR) 
-					reference_point = (int32_t) receiver->reference_point;		
-				
-				// handle change in frequency
-				else if ((field_indicator & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR) 
-					frequency = (int64_t) receiver->freq;		
-
-				// handle change in gain rf/if 
-				else if ((field_indicator & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR) 
-				{
-					if_gain = (int32_t) receiver->gain_if;
-					rf_gain = (int32_t) receiver->gain_rf;
-				}
 				
 				expected_receiver_packet_order_indicator++;
 
 				// reset packet order indicator to original value
 				if (expected_receiver_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+				expected_receiver_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+
+				// handle change in reference point
+				if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR) != 0) 
+					reference_point = (int32_t) receiver->reference_point;		
+				
+				// handle change in frequency
+				else if ((receiver->indicator_field  & FREQ_FIELD_INDICATOR) != 0) 
+					frequency = (int64_t) receiver->freq;		
+
+				// handle change in gain rf/if 
+				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR) != 0) 
+				{
+					if_gain = (int32_t) receiver->gain_if;
+					rf_gain = (int32_t) receiver->gain_rf;
+				}
 			}
+
 			// handle possible digitizer changes
 			else if (header->stream_id == DIGITIZER_STREAM_ID)
 			{
-				field_indicator = digitizer->indicator_field;
 				
 				// initialize digitizer packet order indicator
 				if (expected_digitizer_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
-					expected_receiver_packet_order_indicator = digitizer->packet_order_indicator;
-
-				// verify the receiver packet order indicator
-				if (digitizer->packet_order_indicator != expected_receiver_packet_order_indicator)
+					expected_digitizer_packet_order_indicator = digitizer->packet_order_indicator;			
+				
+				// verify the digitizer packet order indicator
+				if (digitizer->packet_order_indicator != expected_digitizer_packet_order_indicator)
 				{
 					result = WSA_ERR_PACKETOUTOFORDER;
 					break;
 				}
+				
+				expected_digitizer_packet_order_indicator++;
+
+				// reset  digitizer packet order indicator to original value
+				if (expected_digitizer_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 
 				// handle change in bandwidth
-				if ((field_indicator & 0xf0000000) == 0xa0000000) 
+				if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR) != 0) 
 					bandwidth = (int64_t) digitizer->bandwidth;
 		
 				// handle change in frequency offset
-				else if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x04000000) 
+				else if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR) != 0)
 					rf_frequency_offset = (float)  digitizer->rf_frequency_offset;
 
 				// handle change in reference level
-				else if (( field_indicator & 0x0f000000) == 0x05000000 || (field_indicator & 0x0f000000) == 0x01000000)
-					reference_level = (int32_t) digitizer->reference_level;
-
-				expected_receiver_packet_order_indicator++;
-
-				// reset packet order indicator to original value
-				if (expected_digitizer_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
-			
+				else if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR) != 0)
+					reference_level = (int32_t) digitizer->reference_level;			
 			}
 
 			i--;
@@ -772,9 +765,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		else if (header->packet_type == IF_PACKET_TYPE && header->stream_id == IF_DATA_STREAM_ID)
 		{
 			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == FALSE))) 
-		{
-			title_printed = TRUE;
-
+			{
+				title_printed = TRUE;
 				fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
 				fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%0.2f\n",fw_ver,
 																					header->samples_per_packet, 
@@ -794,11 +786,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 			if (header->packet_order_indicator != expected_if_packet_order_indicator)
 			{
+
 				result = WSA_ERR_PACKETOUTOFORDER;
 				break;
 			}
 
 			expected_if_packet_order_indicator++;	
+			
 			if (expected_if_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
 				expected_if_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 
@@ -827,7 +821,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			}
 		}		
 		 
-
 		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
@@ -917,6 +910,13 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	// folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
 
+	// create a new file for the binary data capture
+	if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
+		printf("\nError creating the binary filefile \"%s\"!\n", prefix);
+		return WSA_ERR_FILECREATEFAILED;
+	}
+
+
 	// determine if the another user is capturing data
 	result = wsa_system_acq_status(dev, &acq_status);
 	if (result < 0)
@@ -966,12 +966,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	while (exit_loop != 1)
 	{
 		
-		// create a new file for the binary data capture
-		if ((iq_fptr = fopen(file_name, "ab+")) == NULL) {
-			printf("\nError creating the binary filefile \"%s\"!\n", prefix);
-			return WSA_ERR_FILECREATEFAILED;
-		}
-
 		i++;
 		// Get the start time
 		get_current_time(&capture_start_time);
@@ -1026,7 +1020,6 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		
 		// save packet data to the bin file
 		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
-		fclose(iq_fptr);
 
 		// if capture mode is enabled, save the number of specified packets
 		if (strcmp(sweep_status, "STOPPED") == 0)
@@ -1101,12 +1094,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int16_t result = 0;			// result returned from a function
 	int16_t input_veri_result = 0; // result returned from varifying input cmd param
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
-	char msg[100];
+	char msg[MAX_STRING_LEN];
 	int i;
 	uint8_t valid;
 	char* strtok_result;
-	char char_result[40];
-
+	char char_result[MAX_STRING_LEN];
+	
 	int16_t temp_short;
 	int32_t temp_int;
 	long temp_long;
@@ -1438,12 +1431,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 		} // end run CMDF
-		
+
 		else 
 		{
-			printf("Did you mean 'run cmdf <scpi | cli> <file name>'?");
+			printf("Invalid 'run' command, Try 'h'\n");
 		}
 	} // end RUN
+
 
 	//*****
 	// Handle SET commands
