@@ -86,7 +86,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
-int16_t determine_string_type(char *id); 
+
 /**
  * Print out the CLI options menu
  *
@@ -1452,7 +1452,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else
 			{
-				input_veri_result = determine_string_type(cmd_words[2]);
+				input_veri_result = determine_if_int(cmd_words[2]);
 				if (input_veri_result != 0)
 					printf("Invalid input, antenna port must be a number.\n");
 				else
@@ -1483,7 +1483,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else
 			{
-				input_veri_result = determine_string_type(cmd_words[2]);
+				input_veri_result = determine_if_int(cmd_words[2]);
 				if (input_veri_result != 0)
 					printf("Invalid input, decimation value must be a number.\n");
 				else
@@ -1504,7 +1504,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else 
 			{
-				input_veri_result = determine_string_type(cmd_words[2]);
+				input_veri_result = determine_if_int(cmd_words[2]);
 				if (input_veri_result != 0)
 					printf("Invalid input, frequency value must be a number.\n");
 				else
@@ -1527,7 +1527,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 			else 
 			{
-				input_veri_result = determine_string_type(cmd_words[2]);
+				input_veri_result = determine_if_int(cmd_words[2]);
 				if (input_veri_result != 0)
 					printf("Invalid input, frequency shift value must be a number.\n");
 				else
@@ -1738,7 +1738,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Missing the antenna port value. See 'h'.\n");
 					else
 					{
-						input_veri_result = determine_string_type(cmd_words[4]);
+						input_veri_result = determine_if_int(cmd_words[4]);
 						
 						if (input_veri_result != 0)
 							printf("Invalid input, antenna port must be a number\n");
@@ -1811,7 +1811,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (strcmp(cmd_words[4], "") == 0) 
 						printf("Missing the decimation rate. See 'h'.\n");
 					
-					input_veri_result = determine_string_type(cmd_words[4]);
+					input_veri_result = determine_if_int(cmd_words[4]);
 						
 					if (input_veri_result != 0)
 						printf("Invalid input, decimation value must be a number.\n");
@@ -1914,7 +1914,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else 
 					{
-						input_veri_result = determine_string_type(cmd_words[4]);
+						input_veri_result = determine_if_int(cmd_words[4]);
 						
 						if (input_veri_result != 0)
 							printf("Invalid input, frequency shift value must be a number.\n");
@@ -1939,7 +1939,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 					else 
 					{
-						input_veri_result = determine_string_type(cmd_words[4]);
+						input_veri_result = determine_if_int(cmd_words[4]);
 						
 						if (input_veri_result != 0)
 							printf("Invalid input, frequency step must be a number.\n");
@@ -2827,53 +2827,4 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	free(list_values);
 	
 	return 0;
-}
-
-// TODO: SEPERATE INTO TWO FUNCTIONS TO CHECK FOR STRING/INT INDIVIDUALLY
-/**
- * determine if a string contains numbers or strings
- * @param string - string to be examined
- * @return 0 if its a number, 1 if its a string, or a negative number on error.
- * 
- */
-int16_t determine_string_type(char *input) 
-{	
-
-	int i;
-	int16_t found_num = 0;
-	int16_t found_alph = 0;
-	int16_t found_sym = 0;
-	int16_t found_neg_sign = 0;
-
-	// loop every char in the input string
-	for(i = 0; i < strlen(input); i++) {
-
-		// case of a negative sign used
-		if ( i == 0 && input[i] == 0x2d)
-			found_neg_sign = 1;
-
-		// determine if the char is a number
-		else if (input[i] >= 0x30 && input[i] <= 0x39)
-			found_num = 1;
-
-		// determine if the char is an alphabet
-		else if ((input[i] >= 0x41 && input[i] <= 0x5a) || (input[i] >= 0x61 && input[i] <= 0x7a)) 
-			found_alph = 1;
-
-		else
-			found_sym = 1;
-	}
-	
-	// if only numbers 
-	if (found_num == 1  && found_alph == 0 && found_sym == 0)
-		return 0;
-	
-	// if only letters
-	else if (found_alph == 1 &&  found_num == 0 && found_sym == 0 && found_neg_sign == 0)
-		return 1;
-	
-	// if a symbol or a combination of letters/alphabets
-	else
-		return WSA_ERR_INVINPUT;
-	
 }

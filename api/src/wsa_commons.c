@@ -196,7 +196,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 	return _wsa_get_err_msg(WSA_ERR_UNKNOWN_ERROR);
 }
 
-
 /**
  * Tokenized all the words/strings in a file.
  * Pointer to the tokens is stored in cmd_strs.
@@ -288,6 +287,46 @@ int16_t to_double(char *num_str, double *val)
 	}
 
 	*val = temp_val;
+
+	return 0;
+}
+
+/**
+ * determine if a string contains numbers
+ * @param string - string to be examined
+ *
+ * @return 0 if its an int,  or a negative number on error.
+ * 
+ */
+int16_t determine_if_int(char *input) 
+{	
+
+	int i;
+	int decimal_place_count = 0; // keep track of how many decimal places
+
+	// loop every char in the input string
+	for(i = 0; i < strlen(input); i++) {
+
+		// check if there is a negative sign that is not in the first char
+		if (i == 0 && input[i] == 0x2d)
+			continue;
+
+		// keep track of the number of decimal places
+		else if (input[i] == 0x2e)
+		{
+			decimal_place_count++;
+
+			if (decimal_place_count > 1)
+				return WSA_ERR_INVINPUT;
+			else
+				continue;
+		}
+			
+		// determine if the char is a number
+		else if (input[i] < 0x30 || input[i] > 0x39)    
+			return WSA_ERR_INVINPUT;
+
+	}
 
 	return 0;
 }

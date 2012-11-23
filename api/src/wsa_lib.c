@@ -901,10 +901,10 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 			+ (uint32_t) vrt_header_buffer[7];
 	if ((stream_identifier_word != RECEIVER_STREAM_ID) && 
 		(stream_identifier_word != DIGITIZER_STREAM_ID) && 
-		(stream_identifier_word != IF_DATA_STREAM_ID))
+		(stream_identifier_word != IF_DATA_STREAM_ID) &&
+		(stream_identifier_word != SWEEP_DATA_STREAM_ID))
 	{
 		free(vrt_header_buffer);
-		
 		return WSA_ERR_NOTIQFRAME;
 	}
 	header->stream_id = stream_identifier_word;
@@ -961,8 +961,12 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	doutf(DLOW, "psec: 0x%016llX %llu\n", 
 		header->time_stamp.psec, 
 		header->time_stamp.psec);
-	
-	if (stream_identifier_word == RECEIVER_STREAM_ID) 
+	if (stream_identifier_word == SWEEP_DATA_STREAM_ID) 
+	{
+		printf("got a sweep id \n");
+	}
+
+	else if (stream_identifier_word == RECEIVER_STREAM_ID) 
 	{
 		// store the receiver data in the receiver structure
 		extract_receiver_packet_data(vrt_packet_buffer, receiver);
