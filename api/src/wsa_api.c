@@ -386,6 +386,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
+		struct wsa_sweep_packet* const sweep_info,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
 		int32_t samples_per_packet)		
@@ -397,7 +398,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, data_buffer);
+	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer,sweep_info, data_buffer);
 	doutf(DMED, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	if (result < 0)
 	{
@@ -2355,14 +2356,17 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
  * start sweep mode
  *
  * @param dev - A pointer to the WSA device structure
+ * @param sweep_start_id - An id to be set in the first sweep packet
+ * after a sweep has been initiated
  *
  * @return 0 on success, or a negative number on error
  */
-int16_t wsa_sweep_start(struct wsa_device *dev) 
+int16_t wsa_sweep_start(struct wsa_device *dev, int64_t sweep_start_id) 
 {	
 	int16_t result = 0;
 	char status[40];
 	int32_t size = 0;
+	char temp_str[50];
 
 	// check if the wsa is already sweeping
 	result = wsa_get_sweep_status(dev, status);
@@ -2375,12 +2379,24 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 	result = wsa_get_sweep_entry_size(dev, &size);
 	if (result < 0)
 		return result;
+	
 	if (size <= 0) 
 		return WSA_ERR_SWEEPLISTEMPTY;
-	
-	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
-	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
 
+	if (sweep_start_id == EMPTY_SWEEP_START_ID)
+		result = wsa_send_command(dev, "SWEEP:LIST:START\n");
+	
+	else if (sweep_start_id < WSA4000_MIN_SWEEP_START_ID || sweep_start_id > WSA4000_MAX_SWEEP_START_ID)
+			return WSA_ERR_INVSWEEPSTARTID;
+
+	else
+	{
+		sprintf(temp_str, "SWEEP:LIST:START %lld \n",sweep_start_id);
+		result = wsa_send_command(dev, temp_str);
+	}
+
+	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
+	
 	return result;
 }
 

@@ -40,6 +40,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
+		struct wsa_sweep_packet* const sweep,
 		int16_t* const i_buffer,
 		int16_t* const q_buffer,
 		int32_t samples_per_packet);
@@ -172,7 +173,7 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id);
 int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id);
 int16_t wsa_sweep_entry_delete_all(struct wsa_device *dev);
 int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_sweep_list* const sweep_list);
-int16_t wsa_sweep_start(struct wsa_device *dev);
+int16_t wsa_sweep_start(struct wsa_device *dev, int64_t sweep_start_id);
 int16_t wsa_sweep_stop(struct wsa_device *dev);
 int16_t wsa_sweep_resume(struct wsa_device *dev);
 int16_t wsa_get_sweep_entry_size(struct wsa_device* device, int32_t *size);

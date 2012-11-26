@@ -19,24 +19,34 @@
 #define MAX_PACKET_ORDER_INDICATOR 15
 #define MIN_PACKET_ORDER_INDICATOR 0
 
+#define EMPTY_SWEEP_START_ID -4000
+
+
+// *****
+// VRT PACKET related IDs/masks
+// *****
 // VRT context packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
 #define IF_DATA_STREAM_ID 0x90000003
 #define SWEEP_DATA_STREAM_ID 0x90000004
+
 // Packet types
 #define CONTEXT_PACKET_TYPE 4
 #define IF_PACKET_TYPE 1
 
-// Receiver context data field indicator
-#define REFERENCE_POINT_FIELD_INDICATOR 0xc0000000
-#define FREQ_FIELD_INDICATOR 0x08000000
-#define GAIN_FIELD_INDICATOR 0x00800000
+// Receiver context data field indicator masks
+#define REFERENCE_POINT_FIELD_INDICATOR_MASK 0x40000000
+#define FREQ_FIELD_INDICATOR_MASK 0x08000000
+#define GAIN_FIELD_INDICATOR_MASK 0x00800000
 
-// Digitizer context data field indicator
-#define BANDWIDTH_FIELD_INDICATOR 0xa0000000
-#define RF_FREQUENCY_OFFSET_INDICATOR 0x04000000
-#define REFERENCE_LEVEL_FIELD_INDICATOR 0x01000000
+// Digitizer context data field indicator masks
+#define BANDWIDTH_FIELD_INDICATOR_MASK 0xa0000000
+#define RF_FREQUENCY_OFFSET_INDICATOR_MASK 0x04000000
+#define REFERENCE_LEVEL_FIELD_INDICATOR_MASK 0x01000000
+
+// Sweep packet data field indicator masks
+#define sweep_start_id_INDICATOR_MASK 0x10000001
 
 // *****
 // SCPI related registers/bits
@@ -104,6 +114,9 @@
 #define WSA4000_MIN_SWEEP_ITERATION 0
 #define WSA4000_MAX_SWEEP_ITERATION 4294967295 // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
 
+// sweep id values
+#define WSA4000_MIN_SWEEP_START_ID 0
+#define WSA4000_MAX_SWEEP_START_ID  4294967295
 
 // *****
 // RFE0440 SPECIFIC
@@ -206,6 +219,12 @@ struct wsa_digitizer_packet {
 	long double rf_frequency_offset;
 };
 
+//structure to hold sweep packet data
+struct wsa_sweep_packet {
+	int32_t indicator_field;
+	int64_t sweep_start_id;
+};
+
 // These values will be defined in a future release
 struct wsa_vrt_packet_trailer {
 	uint8_t valid_data_indicator;
@@ -268,6 +287,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
+		struct wsa_sweep_packet* const sweep_start_packet,
 		uint8_t* const data_buffer);
 		
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 

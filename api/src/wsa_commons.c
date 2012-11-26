@@ -174,7 +174,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
 		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"},
-		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"}
+		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"},
+		{WSA_ERR_INVSWEEPSTARTID, "Sweep Start ID is out of bounds"}
 
 	};
 
@@ -298,21 +299,21 @@ int16_t to_double(char *num_str, double *val)
  * @return 0 if its an int,  or a negative number on error.
  * 
  */
-int16_t determine_if_int(char *input) 
+int16_t determine_if_int(char *string) 
 {	
 
 	int i;
 	int decimal_place_count = 0; // keep track of how many decimal places
 
 	// loop every char in the input string
-	for(i = 0; i < strlen(input); i++) {
+	for(i = 0; i < strlen(string); i++) {
 
 		// check if there is a negative sign that is not in the first char
-		if (i == 0 && input[i] == 0x2d)
+		if (i == 0 && string[i] == 0x2d)
 			continue;
 
 		// keep track of the number of decimal places
-		else if (input[i] == 0x2e)
+		else if (string[i] == 0x2e)
 		{
 			decimal_place_count++;
 
@@ -323,10 +324,35 @@ int16_t determine_if_int(char *input)
 		}
 			
 		// determine if the char is a number
-		else if (input[i] < 0x30 || input[i] > 0x39)    
+		else if (string[i] < 0x30 || string[i] > 0x39)    
 			return WSA_ERR_INVINPUT;
 
 	}
 
 	return 0;
 }
+
+
+/**
+ * determine if char contains a negative sign
+ * @param string - string to be examined
+ *
+ * @return 0 if a negative sign is found,  1 if a negative sign is found.
+ * 
+ */
+int16_t determine_if_unsigned(char *string)
+{
+
+	int i;
+
+	// loop every char in the input string
+	for(i = 0; i < strlen(string); i++) {
+		
+		if (string[i] == 0x2d)
+			return WSA_ERR_INVINPUT;
+
+	}
+
+	return 0;
+}
+

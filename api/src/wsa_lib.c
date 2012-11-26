@@ -23,7 +23,7 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size); 
 void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
 void extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
-
+void extract_sweep_packet_data(uint8_t* temp_buffer,struct wsa_sweep_packet* const sweep_start_packet);
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
@@ -409,7 +409,6 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 	
 	return result;
 }
-
 
 /**
  * Close the device connection if one is started, stop any existing data 
@@ -820,6 +819,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
+		struct wsa_sweep_packet* const sweep_start_packet,
 		uint8_t* const data_buffer)
 {	
 	uint8_t* vrt_header_buffer;
@@ -961,10 +961,11 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	doutf(DLOW, "psec: 0x%016llX %llu\n", 
 		header->time_stamp.psec, 
 		header->time_stamp.psec);
-	if (stream_identifier_word == SWEEP_DATA_STREAM_ID) 
-	{
-		printf("got a sweep id \n");
-	}
+	
+	if (stream_identifier_word == SWEEP_DATA_STREAM_ID)
+		// store the sweep data in the appropriate field
+		extract_sweep_packet_data(vrt_packet_buffer, sweep_start_packet);
+		
 
 	else if (stream_identifier_word == RECEIVER_STREAM_ID) 
 	{
@@ -1067,10 +1068,8 @@ int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf,
 void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver)
 {	
 	int32_t reference_point = 0;
-	
 	double gain_if = 0;
 	double gain_rf = 0;
-
 	int64_t freq_word1 = 0; 
 	int64_t freq_word2 = 0;
 	long double freq_int_part = 0;
@@ -1085,20 +1084,18 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 								(int32_t) temp_buffer[15]);
 	
 	//determine if reference point data is present
-	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR) > 0) 
+	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR_MASK)== REFERENCE_POINT_FIELD_INDICATOR_MASK) 
 	{
-		
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
 							(((int32_t) temp_buffer[data_pos + 1]) << 16) +
 							(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
 							(int32_t) temp_buffer[data_pos + 3]);
 		receiver->reference_point = reference_point;
-
 		data_pos = data_pos + 4;
 	}
 	
 	//determine if frequency data is present
-	if ((receiver->indicator_field & FREQ_FIELD_INDICATOR) > 0) 
+	if ((receiver->indicator_field  & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR_MASK)
 	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1118,7 +1115,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if gain data is present
-	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR) > 0) 
+	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR_MASK) 
 	{
 		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
 							temp_buffer[data_pos + 1]) / 128.0;
@@ -1174,7 +1171,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	
 	
 	//determine if bandwidth data is present	
-	if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR) > 0) {
+	if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR_MASK) ==  BANDWIDTH_FIELD_INDICATOR_MASK) {
 		
 		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1194,7 +1191,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 
 
 	//determine if rf frequency offset data is present
-	if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR) > 0) 
+	if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR_MASK) == RF_FREQUENCY_OFFSET_INDICATOR_MASK) 
 	{
 			
 		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
@@ -1214,10 +1211,10 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		data_pos = data_pos + 8;
 	}
 	//determine if the reference level is present
-	if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR) > 0) 
+	if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR_MASK) == REFERENCE_LEVEL_FIELD_INDICATOR_MASK) 
 	{
 					
-		ref_level_word= ((((int32_t) temp_buffer[data_pos]) << 24) +
+		ref_level_word = ((((int32_t) temp_buffer[data_pos]) << 24) +
 						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
 						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
 						(int32_t) temp_buffer[data_pos + 3]);	
@@ -1228,3 +1225,33 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	}
 }
 
+
+/**
+ * Decodes the raw sweep packet and store it in the sweep
+ * structure 
+ *
+ * @param temp_buffer - pointer that points to the header of the sweep packet
+ * note: the first two words are not included, the first word that temp points to is the 
+ * timestamp. please review the program's guide for further information on vrt packets are stored
+ * @param sweep_start_packet - a pointer structure to store the sweep data 
+ * @return None
+ */
+void extract_sweep_packet_data(uint8_t* temp_buffer,struct wsa_sweep_packet* const sweep_start_packet)
+{
+	int32_t data_pos = 16;
+
+	////store the indicator field, which contains the content of the packet
+	sweep_start_packet->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
+								(((int32_t) temp_buffer[13]) << 16) +
+								(((int32_t) temp_buffer[14]) << 8) + 
+								(int32_t) temp_buffer[15]);
+
+	if ((sweep_start_packet->indicator_field & sweep_start_id_INDICATOR_MASK) > 0) 
+	{
+	sweep_start_packet->sweep_start_id = ((((int64_t) temp_buffer[data_pos]) << 24) +
+						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int64_t) temp_buffer[data_pos + 3]);	
+	}
+
+}
