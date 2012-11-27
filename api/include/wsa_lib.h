@@ -19,21 +19,19 @@
 #define MAX_PACKET_ORDER_INDICATOR 15
 #define MIN_PACKET_ORDER_INDICATOR 0
 
-#define EMPTY_SWEEP_START_ID -4000
-
-
 // *****
 // VRT PACKET related IDs/masks
 // *****
-// VRT context packet stream indentifier
+// VRT packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
 #define IF_DATA_STREAM_ID 0x90000003
-#define SWEEP_DATA_STREAM_ID 0x90000004
+#define EXTENSION_STREAM_ID 0x90000004
 
 // Packet types
-#define CONTEXT_PACKET_TYPE 4
 #define IF_PACKET_TYPE 1
+#define CONTEXT_PACKET_TYPE 4
+#define EXTENSION_PACKET_TYPE 5
 
 // Receiver context data field indicator masks
 #define REFERENCE_POINT_FIELD_INDICATOR_MASK 0x40000000
@@ -46,7 +44,7 @@
 #define REFERENCE_LEVEL_FIELD_INDICATOR_MASK 0x01000000
 
 // Sweep packet data field indicator masks
-#define sweep_start_id_INDICATOR_MASK 0x10000001
+#define SWEEP_START_ID_INDICATOR_MASK 0x00000001
 
 // *****
 // SCPI related registers/bits
@@ -94,6 +92,21 @@
 #define WSA4000_INST_BW 125000000ULL
 #define WSA4000_MIN_SAMPLE_SIZE 128
 #define WSA4000_MAX_SAMPLE_SIZE (32 * 1024 * 1024)
+
+// rf gain modes
+#define WSA4000_VLOW_RF_GAIN "VLOW"
+#define WSA4000_LOW_RF_GAIN "LOW"
+#define WSA4000_MEDIUM_RF_GAIN "MEDIUM"
+#define WSA4000_MED_RF_GAIN "MED"
+#define WSA4000_HIGH_RF_GAIN "HIGH"
+
+
+enum wsa_gain {
+	WSA_GAIN_HIGH = 1,
+	WSA_GAIN_MED,
+	WSA_GAIN_LOW,
+	WSA_GAIN_VLOW
+};
 
 #define WSA4000_MIN_SAMPLES_PER_PACKET 128
 
@@ -154,14 +167,6 @@
 // Control commands syntax supported types
 #define SCPI "SCPI"	/* SCPI control commands syntax */
 
-
-enum wsa_gain {
-	WSA_GAIN_HIGH = 1,
-	WSA_GAIN_MED,
-	WSA_GAIN_LOW,
-	WSA_GAIN_VLOW
-};
-
 // ////////////////////////////////////////////////////////////////////////////
 // STRUCTS DEFINES                                                           //
 // ////////////////////////////////////////////////////////////////////////////
@@ -191,6 +196,7 @@ struct wsa_time {
 	uint64_t psec;
 };
 
+//structure to hold the header of a packet
 struct wsa_vrt_packet_header {
 	uint8_t packet_order_indicator;
 	uint16_t samples_per_packet;
@@ -215,13 +221,14 @@ struct wsa_digitizer_packet {
 	int32_t indicator_field;
 	uint8_t packet_order_indicator;
 	long double bandwidth;
-	double reference_level;
+	int16_t reference_level;
 	long double rf_frequency_offset;
 };
 
-//structure to hold sweep packet data
-struct wsa_sweep_packet {
+//structure to hold extension packet data
+struct wsa_extension_packet {
 	int32_t indicator_field;
+	uint8_t packet_order_indicator;
 	int64_t sweep_start_id;
 };
 
@@ -250,7 +257,7 @@ struct wsa_sweep_list {
 	int64_t trigger_start_freq;
 	int64_t trigger_stop_freq;
 	int32_t trigger_amplitude;
-	enum wsa_gain gain_rf;
+	char gain_rf[40];
 };
  
 struct wsa_socket {
@@ -287,7 +294,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
-		struct wsa_sweep_packet* const sweep_start_packet,
+		struct wsa_extension_packet* const extension,
 		uint8_t* const data_buffer);
 		
 int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 

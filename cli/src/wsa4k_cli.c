@@ -86,7 +86,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
-
+int16_t decode_reference_level(int64_t freq, enum wsa_gain gain, int32_t *reference_level);
+int16_t decode_rf_gain(char* str_gain_rf, int16_t *int_gain_rf);
 /**
  * Print out the CLI options menu
  *
@@ -118,7 +119,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("  save [name] [ext:<type>]\n"
 		"\t- Save data to a file with optional prefix string.\n"
 		"\t  Output: [name] YYYY-MM-DD_HHMMSSmmm.[ext]\n"
-		"\t  'ext' type: csv (default), xsl\n"
+		"\t  'ext' type: csv (default), xsl, bin (raw VRT packets)\n"
 		"\t  Ex: save Test trial ext:xsl\n"
 		"\t      save\n");
 	printf("\n");
@@ -422,12 +423,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	
 	// to store receiver data
 	int32_t reference_point = 0;
-	enum wsa_gain rf_gain = 0;
 	int32_t if_gain = 0;
+	int32_t int_rf_gain = 0;
 	int64_t frequency = 0;
 
 	// to store digitizer data
-	int32_t reference_level = 0;
+	int16_t reference_level = 0;
 	int64_t bandwidth = 0;
 	float rf_frequency_offset = 0;
 
@@ -453,7 +454,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_vrt_packet_trailer* trailer;
 	struct wsa_receiver_packet* receiver;
 	struct wsa_digitizer_packet* digitizer;
-	struct wsa_sweep_packet* sweep_start_packet;
+	struct wsa_extension_packet* extension;
 	
 	// *****
 	// Create buffers to store the decoded I & Q from the raw data
@@ -467,7 +468,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint8_t expected_if_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
 	uint8_t expected_digitizer_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
 	uint8_t expected_receiver_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
-	uint8_t expected_sweep_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
+	uint8_t expected_extention_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
 
 	int32_t iq_pkt_count = 1;
 	int32_t i;
@@ -480,7 +481,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 
 	printf("Gathering WSA settings...");	
-
+	result = wsa_system_request_acquisition_access(dev, &acq_status);
 	// get initial reference point
 	result = wsa_get_antenna(dev, &reference_point);
 	if (result < 0)
@@ -495,7 +496,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_gain_if(dev, &if_gain);
 	if (result < 0)
 		return result;
-
+		
 	// get initial fshift
 	result = wsa_get_freq_shift(dev, &rf_frequency_offset);
 	if (result < 0)
@@ -506,9 +507,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
 	if (dec == 0)
-		bandwidth = WSA4000_INST_BW;
-	else
-		bandwidth = WSA4000_INST_BW / dec;
+		dec = 1;
+	
+	bandwidth = WSA4000_INST_BW / dec;
 
 	// determine if the another user is capturing data
 	result = wsa_system_acq_status(dev, &acq_status);
@@ -615,8 +616,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// allocate sweep packet buffer space
-	sweep_start_packet = (struct wsa_sweep_packet*) malloc(sizeof(struct wsa_sweep_packet));
-	if (sweep_start_packet == NULL)
+	extension = (struct wsa_extension_packet*) malloc(sizeof(struct wsa_extension_packet));
+	if (extension == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate sweep info\n");
 		fclose(iq_fptr); 
@@ -640,7 +641,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(trailer);
 		free(header);
 		free(i_buffer);
-		free(sweep_start_packet);
+		free(extension);
 
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -658,7 +659,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(header);
 		free(i_buffer);
 		free(q_buffer);
-		free(sweep_start_packet);
+		free(extension);
 
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -678,7 +679,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(header);
 			free(i_buffer);
 			free(q_buffer);
-			free(sweep_start_packet);
+			free(extension);
 			return result;
 		}
 	}
@@ -697,7 +698,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// Get the start time
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer, sweep_start_packet, 
+		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer, extension, 
 					i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
 			break;
@@ -708,11 +709,21 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// sum it up
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
-		// TODO handle the packet order indicator for rec'r & dig'r as well
+		// TODO handle the packet order indicator for rec'r & dig'r as well		
 
-	   if (header->packet_type == CONTEXT_PACKET_TYPE) 
+		// handle extension packets
+		if (header->packet_type == EXTENSION_PACKET_TYPE) 
 		{
-			// handle possible receiver changes
+			// TODO find meaningful way to convey the sweep_start_id to the user
+			//if (header->stream_id == EXTENSION_STREAM_ID)
+
+			i--;
+			continue;
+		}
+		// handle context packets
+		if (header->packet_type == CONTEXT_PACKET_TYPE) 
+		{
+			// handle receiver packet
 			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
 				
@@ -743,7 +754,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) != 0) 
 				{
 					if_gain = (int32_t) receiver->gain_if;
-					rf_gain = (int32_t) receiver->gain_rf;
+					int_rf_gain = (int32_t) receiver->gain_rf;
 				}
 			}
 
@@ -778,83 +789,84 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 				// handle change in reference level
 				else if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR_MASK) == REFERENCE_LEVEL_FIELD_INDICATOR_MASK)
-					reference_level = (int32_t) digitizer->reference_level;			
+					reference_level = (int16_t) digitizer->reference_level;			
 			}
 
 			i--;
 			continue;
 		} 
 
-		else if (header->packet_type == IF_PACKET_TYPE && header->stream_id == IF_DATA_STREAM_ID)
+		// handle if packet types
+		else if (header->packet_type == IF_PACKET_TYPE)
 		{
-			if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == FALSE))) 
+			if (header->stream_id == IF_DATA_STREAM_ID)
 			{
-				title_printed = TRUE;
-				fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
-				fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%0.2f\n",fw_ver,
-																					header->samples_per_packet, 
-																					header->time_stamp.sec,
-																					header->time_stamp.psec,
-																					(float) frequency,
-																					(float) bandwidth,
-																					(float) rf_frequency_offset,
-																					(float) if_gain,
-																					(float) rf_gain,
-																					(int32_t) reference_point,
-																					(float) reference_level);
-			}
-
-			if (expected_if_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)		
-				expected_if_packet_order_indicator = header->packet_order_indicator;
-
-			if (header->packet_order_indicator != expected_if_packet_order_indicator)
-			{
-
-				result = WSA_ERR_PACKETOUTOFORDER;
-				break;
-			}
-
-			expected_if_packet_order_indicator++;	
 			
-			if (expected_if_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_if_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+				if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == FALSE))) 
+				{
+					title_printed = TRUE;
+					fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
+					fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%lf\n",fw_ver,
+																						header->samples_per_packet, 
+																						header->time_stamp.sec,
+																						header->time_stamp.psec,
+																						(float) frequency,
+																						(float) bandwidth,
+																						(float) rf_frequency_offset,
+																						(float) if_gain,
+																						(float) int_rf_gain,
+																						(int32_t) reference_point,
+																						(float) reference_level);
+				}
 
-			for (j = 0; j < header->samples_per_packet; j++)
-				fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+				if (expected_if_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)		
+					expected_if_packet_order_indicator = header->packet_order_indicator;
+
+				if (header->packet_order_indicator != expected_if_packet_order_indicator)
+				{
+
+					result = WSA_ERR_PACKETOUTOFORDER;
+					break;
+				}
+
+				expected_if_packet_order_indicator++;	
+			
+				if (expected_if_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+					expected_if_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+
+				for (j = 0; j < header->samples_per_packet; j++)
+					fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
 		
-			if (!(iq_pkt_count % 10))
-			{
-				if (iq_pkt_count != packets_per_block)
-					printf(" \n");
-			}
-			else 
-			{
-				printf(".");
-			}
+				if (!(iq_pkt_count % 10))
+				{
+					if (iq_pkt_count != packets_per_block)
+						printf(" \n");
+				}
+				else 
+					printf(".");
 
-			iq_pkt_count++;
-		}
+				iq_pkt_count++;
 
-		// if capture mode is enabled, save the number of specified packets
-		if (strcmp(sweep_status, "STOPPED") == 0)
-		{
-			if (i >= packets_per_block) 
-			{
-				exit_loop = TRUE;
-			}
-		}		
+				// if capture mode is enabled, save the number of specified packets
+				if (strcmp(sweep_status, "STOPPED") == 0)
+				{
+					if (i >= packets_per_block) 
+					{
+						exit_loop = TRUE;
+					}
+				}		
 		 
-		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
-		else 
-		{
-			if (_kbhit() != FALSE)
-			{
-				if (_getch() == 0x1b) {    // esc key
-					if (result < 0)
-						return result;
- 
-					printf("\nEscape key pressed, data capture stopped...\n");
-					exit_loop = TRUE;
+				// if sweep mode is enabled, capture data until the 'ESC' key is pressed
+				else 
+				{
+					if (_kbhit() != FALSE)
+					{
+						if (_getch() == 0x1b) {    // esc key
+							 
+							printf("\nEscape key pressed, data capture stopped...\n");
+							exit_loop = TRUE;
+						}
+					}
 				}
 			}
 		}
@@ -880,7 +892,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(header);
 	free(i_buffer);
 	free(q_buffer);
-	free(sweep_start_packet);
+	free(extension);
 
 	return result;
 }
@@ -1135,8 +1147,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int64_t start_freq;
 	int64_t stop_freq;
 	int32_t amplitude;
-	enum wsa_gain gain;
-	int64_t sweep_start_id;
 	int32_t dwell_seconds;
 	
 	strcpy(msg,"");
@@ -1255,13 +1265,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else
 				{
-					result = wsa_get_gain_rf(dev, &gain);
+					result = wsa_get_gain_rf(dev, char_result);
 					if (result >= 0) 
-					{
-						char temp[10];
-						gain_rf_to_str(gain, &temp[0]);
-						printf("Current RF gain: %s\n", temp);
-					}
+						printf("Current RF gain: %s\n", char_result);
+					
 				}
 			}  // end get GAIN RF
 
@@ -1288,9 +1295,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			} // end get GAIN IF
 
 			else
-			{
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
-			}
+
 		} // end get GAIN
 
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
@@ -1333,9 +1339,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Data acquisition access %s.\n", (temp_short) ? "obtained" : "denied");
 			}
 			else
-			{
 				printf("Did you mean \"access\"?\n");
-			}
+
 		} //end get READ ACCESS
 
 		else if (strcmp(cmd_words[1], "REF") == 0)
@@ -1389,9 +1394,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 			}
 			else 
-			{
 				printf("Usage: 'get trigger <level | mode>'");
-			}// end get TRIGGER LEVEL
+			// end get TRIGGER LEVEL
+
 		} // end get TRIGGER
 		
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
@@ -1562,31 +1567,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (strcmp(cmd_words[2], "RF") == 0) 
 			{
-				valid = TRUE;
+				if (strcmp(cmd_words[3], "") == 0)
+					printf("Missing the gain parameter, See 'h'.\n");
 
-				// Convert to wsa_gain type
-				if (strstr(cmd_words[3], "HIGH") != NULL)
-					gain = WSA_GAIN_HIGH;
-				else if (strstr(cmd_words[3], "MED") != NULL)
-					gain = WSA_GAIN_MED;
-				else if (strstr(cmd_words[3], "VLOW") != NULL)
-					gain = WSA_GAIN_VLOW;
-				else if (strstr(cmd_words[3], "LOW") != NULL)
-					gain = WSA_GAIN_LOW;
-				else if (strcmp(cmd_words[3], "") == 0) 
-				{
-					printf("Missing the gain paramter. See 'h'.\n");
-					valid = FALSE;
-				}
-				else 
-				{ 
-					printf("Invalid RF gain setting.\n"
-						"Use HIGH, MED, LOW, or VLOW.\n");
-					valid = FALSE;
-				}
+				else if (strcmp(cmd_words[3], "MEDIUM") == 0)	
+					sprintf(cmd_words[3], "MED");
 
-				if (valid)
-					result = wsa_set_gain_rf(dev, gain);
+				result = wsa_set_gain_rf(dev, cmd_words[3]);
+
 			} // end set GAIN RF
 
 			else if (strcmp(cmd_words[2], "IF") == 0) 
@@ -1753,29 +1741,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				//end set SWEEP ENTRY ANT
 				else if (strcmp(cmd_words[3], "GAIN") == 0) {
 					if (strcmp(cmd_words[4], "RF") == 0) {
-						enum wsa_gain gain = (enum wsa_gain) NULL;
-						valid = TRUE;
-
-						// Convert to wsa_gain type
-						if (strstr(cmd_words[5], "HIGH") != NULL)
-							gain = WSA_GAIN_HIGH;
-						else if (strstr(cmd_words[5], "MED") != NULL)
-							gain = WSA_GAIN_MED;
-						else if (strstr(cmd_words[5], "VLOW") != NULL)
-							gain = WSA_GAIN_VLOW;
-						else if (strstr(cmd_words[5], "LOW") != NULL)
-							gain = WSA_GAIN_LOW;
-						else if (strcmp(cmd_words[5], "") == 0) {
-							printf("Missing the gain paramter. See 'h'.\n");
-							valid = FALSE;
-						}
-						else { 
-							printf("Invalid RF gain setting. See 'h'.\n");
-							valid = FALSE;
-						}
-
-						if (valid)
-							result = wsa_set_sweep_gain_rf(dev, gain);
+						if (strcmp(cmd_words[5], "") == 0)
+							printf("Missing the gain rf value. See 'h'.\n");
+						else
+							result = wsa_set_sweep_gain_rf(dev, cmd_words[5]);
 					} // end set SWEEP ENTRY GAIN RF
 
 					else if (strcmp(cmd_words[4], "IF") == 0) 
@@ -1989,11 +1958,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	{
 		if  (strcmp(cmd_words[1], "START") == 0) 
 		{
-			if (num_words == 2)
-			{
-			sweep_start_id = EMPTY_SWEEP_START_ID;
-			result = wsa_sweep_start(dev,sweep_start_id);
-			}
+			if (num_words == 2)			
+			result = wsa_sweep_start(dev);
 
 			else if (num_words == 3)
 			{
@@ -2004,10 +1970,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					return 0;
 				}
 				else
-				{
-					sweep_start_id = (int64_t) (atof(cmd_words[2]));
-					result =  wsa_sweep_start(dev,sweep_start_id);
-				}
+					result =  wsa_sweep_start_id(dev,(int64_t) (atof(cmd_words[2])));
 			}
 			else
 				printf("Invalid 'sweep start'. See 'h'.\n");
@@ -2602,7 +2565,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	int32_t enable = 0;
 	char fw_ver[40];
 	char trigger_mode[40];
-	enum wsa_gain gain;
+	char gain[10];
 
 	printf("\nCurrent WSA's statistics:\n");
 	printf("\t- Current settings: \n");
@@ -2626,12 +2589,10 @@ void print_wsa_stat(struct wsa_device *dev) {
 	else
 		printf("\t\t- Error: Failed getting the gain IF value.\n");
 
-	result = wsa_get_gain_rf(dev, &gain);
-	if (result >= 0) {
-		char temp[10];
-		gain_rf_to_str(gain, &temp[0]);
-		printf("\t\t- Gain RF: %s\n", temp);
-	}
+	result = wsa_get_gain_rf(dev, gain);
+	
+	if (result >= 0)
+		printf("\t\t- Gain RF: %s\n",  gain);
 	else
 		printf("\t\t- Error: Failed getting the gain RF value.\n");
 	
@@ -2707,7 +2668,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 	int64_t stop_freq;
 	int32_t amplitude;
 	char trigger_type[40];
-	enum wsa_gain gain;
 	char temp[10];
 
 	printf("Current Sweep Entry Template Settings:\n");
@@ -2761,10 +2721,9 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 	printf("   Gain IF: %d dBm \n", temp_int);
 
 	// print gain rf sweep value
-	result = wsa_get_sweep_gain_rf(dev, &gain);
+	result = wsa_get_sweep_gain_rf(dev, temp);
 	if (result < 0)
 		return result;
-	gain_rf_to_str(gain, &temp[0]);
 	printf("   Gain RF: %s\n", temp);
 
 	// print trigger status sweep value
@@ -2799,7 +2758,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id) 
 {	
 	int16_t result;
-	char temp[10];
 	struct wsa_sweep_list* list_values;
 	
 	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
@@ -2817,9 +2775,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);
 	printf("  Frequency shift: %0.3f MHz\n", (float) list_values->fshift);
 	printf("  Gain IF: %u \n", list_values->gain_if);
-	gain_rf_to_str(list_values->gain_rf, &temp[0]);
-	
-	printf("  Gain RF: %s\n", temp);
+	printf("  Gain RF: %s\n", list_values->gain_rf);
 	printf("  Trigger settings:\n");
     if (strcmp(list_values->trigger_type, "NONE") == 0) 
 	{
@@ -2836,5 +2792,58 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 
 	free(list_values);
 	
+	return 0;
+}
+
+
+/**
+ * retrieve the noise reference level from a list of constants 
+ * based on rf gain/ center frequency
+ * @param freq - center frequency
+ * @param gain - rf gain
+ * @param reference_level
+ *
+ * @return 0 if signed,  negative number if unsigned
+ * 
+ */
+int16_t decode_reference_level(int64_t freq, enum wsa_gain gain, int32_t *reference_level)
+{
+
+
+	//Constant reference levels based on frequency/gain
+
+	//frequency (in MHz), ref(vlow), ref(low), ref(med), ref(high)
+	int32_t reference_levels[23][5] = 
+    {
+		{ 30,   -35, -35, -35, -35},
+        { 50,   -35, -42, -42, -42},
+        { 100,   67,  39,   4, -44},
+        { 500,   41,  14, -10, -36},
+        { 1000,  34,   9, -16, -36},
+        { 1500,  32,   8, -16, -37},
+        { 2000,  33,  10, -14, -35},
+        { 2500,  34,  12, -11, -36},
+        { 3000,  35,  13,  -9, -32},
+        { 3500,  35,  13,  -8, -32},
+        { 4000,  35,  13,  -6, -30},
+        { 4500,  54,  28,  12, -23},
+        { 5000,  55,  29,  14, -21},
+        { 5500,  56,  30,  16, -20},
+        { 6000,  56,  31,  17, -17},
+        { 6500,  56,  32,  19, -15},
+        { 7000,  58,  36,  22, -14},
+        { 7500,  64,  37,  23,  -9},
+        { 8000,  63,  38,  23, -11},
+        { 8500,  61,  33,  22, -12},
+        { 9000,  63,  35,  23, -12},
+        { 9500,  65,  37,  25, -10},
+        { 10000,  65,  39,  28, -4}, 
+	};
+
+	printf("reference level is: %d", reference_levels[0][0]);
+
+
+
+	*reference_level = 0;
 	return 0;
 }

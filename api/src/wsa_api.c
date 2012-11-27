@@ -58,8 +58,6 @@
 // Local functions                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
-enum wsa_gain gain_rf_strtonum(char *str);
-
 
 // Verify if the frequency is valid (within allowed range)
 int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
@@ -71,24 +69,6 @@ int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 	return 0;
 }
 
-// Convert gain RF string to an enum type
-enum wsa_gain gain_rf_strtonum(char *str)
-{
-	enum wsa_gain gain;
-	
-	if (strstr(str, "HIGH") != NULL)
-		gain = WSA_GAIN_HIGH;
-	else if (strstr(str, "MED") != NULL)
-		gain = WSA_GAIN_MED;
-	else if (strstr(str, "VLOW") != NULL)
-		gain = WSA_GAIN_VLOW;
-	else if (strstr(str, "LOW") != NULL)
-		gain = WSA_GAIN_LOW;
-	else
-		gain = (enum wsa_gain) NULL;
-
-	return gain;
-}
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -232,19 +212,19 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
  *
  * @return 0 on successful or negative error number.
  */
-int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
-						  float *value)
-{
-	// TODO Check version of WSA & return the correct info here
-	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
-		return WSA_ERR_INVRFGAIN;
-	}
-	else {
-		*value = dev->descr.abs_max_amp[gain];
-	}
-
-	return 0;
-}
+//int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
+//						  float *value)
+//{
+//	// TODO Check version of WSA & return the correct info here
+//	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
+//		return WSA_ERR_INVRFGAIN;
+//	}
+//	else {
+//		*value = dev->descr.abs_max_amp[gain];
+//	}
+//
+//	return 0;
+//}
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -386,7 +366,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
-		struct wsa_sweep_packet* const sweep_info,
+		struct wsa_extension_packet* const sweep_info,
 		int16_t* const i_buffer, 
 		int16_t* const q_buffer,
 		int32_t samples_per_packet)		
@@ -886,14 +866,21 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
  *
  * @return 0 on successful, or a negative number on error.
  */
-int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
+int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 {
 	struct wsa_resp query;		// store query results
 
 	wsa_send_query(dev, "INPUT:GAIN:RF?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
-	*gain = gain_rf_strtonum(query.output);
+	strcpy(gain,query.output);
+
+	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_MEDIUM_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+		return WSA_ERR_INVRFGAIN;
 
 	return 0;
 }
@@ -913,23 +900,18 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
   * @par Errors:
  * - Gain setting not allow.
  */
-int16_t wsa_set_gain_rf (struct wsa_device *dev, enum wsa_gain gain)
+int16_t wsa_set_gain_rf (struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
 
-	if (gain > WSA_GAIN_VLOW || gain < WSA_GAIN_HIGH)
+	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
 		return WSA_ERR_INVRFGAIN;
 
-	strcpy(temp_str, "INPUT:GAIN:RF ");
-	switch(gain) {
-		case(WSA_GAIN_HIGH):	strcat(temp_str, "HIGH"); break;
-		case(WSA_GAIN_MED):		strcat(temp_str, "MED"); break;
-		case(WSA_GAIN_LOW):		strcat(temp_str, "LOW"); break;
-		case(WSA_GAIN_VLOW):	strcat(temp_str, "VLOW"); break;
-		default:		strcat(temp_str, "ERROR"); break;
-	}
-	strcat(temp_str, "\n");
+	sprintf(temp_str, "INPUT:GAIN:RF %s\n", gain);
 
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1604,7 +1586,7 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
+int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 {	
 	struct wsa_resp query;		// store query results
 
@@ -1612,7 +1594,14 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
-	*gain = gain_rf_strtonum(query.output);
+	strcpy(gain,query.output);
+
+	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+	return WSA_ERR_INVRFGAIN;
+
 
 	return 0;
 }
@@ -1625,23 +1614,19 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain *gain)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, enum wsa_gain gain)
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
 	char temp_str[50];
 
-	if (gain > WSA_GAIN_VLOW || gain < WSA_GAIN_HIGH)
+	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
+		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
 		return WSA_ERR_INVRFGAIN;
 
-	strcpy(temp_str, "SWEEP:ENTRY:GAIN:RF ");
-	switch(gain) {
-		case(WSA_GAIN_HIGH):    strcat(temp_str, "HIGH"); break;
-		case(WSA_GAIN_MED):     strcat(temp_str, "MED"); break;
-		case(WSA_GAIN_LOW):     strcat(temp_str, "LOW"); break;
-		case(WSA_GAIN_VLOW):    strcat(temp_str, "VLOW"); break;
-		default:                strcat(temp_str, "ERROR"); break;
-	}
-	strcat(temp_str, "\n");
+
+	sprintf(temp_str, "SWEEP:ENTRY:GAIN:RF %s \n", gain);
 
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2356,12 +2341,47 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
  * start sweep mode
  *
  * @param dev - A pointer to the WSA device structure
+ *
+ * @return 0 on success, or a negative number on error
+ */
+int16_t wsa_sweep_start(struct wsa_device *dev) 
+{	
+	int16_t result = 0;
+	char status[40];
+	int32_t size = 0;
+
+	// check if the wsa is already sweeping
+	result = wsa_get_sweep_status(dev, status);
+	if (result < 0)
+		return result;
+	if (strcmp(status, "RUNNING") == 0)
+		return WSA_ERR_SWEEPALREADYRUNNING;
+
+	// check if the sweep list is empty
+	result = wsa_get_sweep_entry_size(dev, &size);
+	if (result < 0)
+		return result;
+	
+	else if (size <= 0) 
+		return WSA_ERR_SWEEPLISTEMPTY;
+	
+	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
+	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
+	
+	return result;
+}
+
+
+/**
+ * start sweep mode with a specified sweep_id
+ *
+ * @param dev - A pointer to the WSA device structure
  * @param sweep_start_id - An id to be set in the first sweep packet
  * after a sweep has been initiated
  *
  * @return 0 on success, or a negative number on error
  */
-int16_t wsa_sweep_start(struct wsa_device *dev, int64_t sweep_start_id) 
+int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id) 
 {	
 	int16_t result = 0;
 	char status[40];
@@ -2380,12 +2400,10 @@ int16_t wsa_sweep_start(struct wsa_device *dev, int64_t sweep_start_id)
 	if (result < 0)
 		return result;
 	
-	if (size <= 0) 
+	else if (size <= 0) 
 		return WSA_ERR_SWEEPLISTEMPTY;
-
-	if (sweep_start_id == EMPTY_SWEEP_START_ID)
-		result = wsa_send_command(dev, "SWEEP:LIST:START\n");
 	
+	// determine if value is valid
 	else if (sweep_start_id < WSA4000_MIN_SWEEP_START_ID || sweep_start_id > WSA4000_MAX_SWEEP_START_ID)
 			return WSA_ERR_INVSWEEPSTARTID;
 
@@ -2395,7 +2413,7 @@ int16_t wsa_sweep_start(struct wsa_device *dev, int64_t sweep_start_id)
 		result = wsa_send_command(dev, temp_str);
 	}
 
-	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_sweep_start_id: %d - %s.\n", result, wsa_get_error_msg(result));
 	
 	return result;
 }
@@ -2595,7 +2613,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	
 	// Convert to wsa_gain type
 	strtok_result = strtok(NULL, ",");
-	sweep_list->gain_rf = gain_rf_strtonum(strtok_result);
+	strcpy(sweep_list->gain_rf,strtok_result);
 
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)

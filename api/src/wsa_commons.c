@@ -337,7 +337,7 @@ int16_t determine_if_int(char *string)
  * determine if char contains a negative sign
  * @param string - string to be examined
  *
- * @return 0 if a negative sign is found,  1 if a negative sign is found.
+ * @return 0 if unsigned,  negative number if signed.
  * 
  */
 int16_t determine_if_unsigned(char *string)

@@ -20,10 +20,9 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-int16_t copy_sweep_data(uint8_t* data_buf, uint8_t* sweep_data_buf, uint16_t size); 
 void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
 void extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
-void extract_sweep_packet_data(uint8_t* temp_buffer,struct wsa_sweep_packet* const sweep_start_packet);
+void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_packet* const extension);
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
@@ -802,9 +801,11 @@ const char *wsa_get_error_msg(int16_t err_code)
  * @param trailer - A pointer to \b wsa_vrt_packet_trailer structure to store 
  *		the VRT trailer information
  *@param receiver - a pointer to \b wsa_receiver_packet strucuture to store
- *		the Context data
+ *		the receiver Context data
  *@param digitizer - a pointer to \b wsa_digitizer_packet strucuture to store
- *		the Context data
+ *		the digitizer Context data
+ *@param extension - a pointer to \b wsa_extension_packet strucuture to store
+ *		the custom Context data
  * @param data_buffer - A uint8_t pointer buffer to store the raw I and Q data
  *		in bytes. Its size is determined by the number of 
  *		16-bit \b samples_per_packet words multiplied by 4 
@@ -819,7 +820,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		struct wsa_vrt_packet_trailer* const trailer,
 		struct wsa_receiver_packet* const receiver,
 		struct wsa_digitizer_packet* const digitizer,
-		struct wsa_sweep_packet* const sweep_start_packet,
+		struct wsa_extension_packet* const extension,
 		uint8_t* const data_buffer)
 {	
 	uint8_t* vrt_header_buffer;
@@ -902,7 +903,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	if ((stream_identifier_word != RECEIVER_STREAM_ID) && 
 		(stream_identifier_word != DIGITIZER_STREAM_ID) && 
 		(stream_identifier_word != IF_DATA_STREAM_ID) &&
-		(stream_identifier_word != SWEEP_DATA_STREAM_ID))
+		(stream_identifier_word != EXTENSION_STREAM_ID))
 	{
 		free(vrt_header_buffer);
 		return WSA_ERR_NOTIQFRAME;
@@ -962,9 +963,15 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		header->time_stamp.psec, 
 		header->time_stamp.psec);
 	
-	if (stream_identifier_word == SWEEP_DATA_STREAM_ID)
+	if (stream_identifier_word == EXTENSION_STREAM_ID)
+	{
 		// store the sweep data in the appropriate field
-		extract_sweep_packet_data(vrt_packet_buffer, sweep_start_packet);
+		extract_extension_packet_data(vrt_packet_buffer, extension);
+		
+		// store the packet order indicator in the extension structure
+		extension->packet_order_indicator = header->packet_order_indicator;
+
+	}
 		
 
 	else if (stream_identifier_word == RECEIVER_STREAM_ID) 
@@ -1157,7 +1164,7 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	long double rf_freq_int_part = 0;
 	long double rf_freq_dec_part = 0;
 
-	int32_t ref_level_word = 0;
+	int16_t ref_level_word = 0;
 	double ref_level_int_part = 0;
 	double ref_level_dec_part = 0;
 
@@ -1214,44 +1221,40 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 	if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR_MASK) == REFERENCE_LEVEL_FIELD_INDICATOR_MASK) 
 	{
 					
-		ref_level_word = ((((int32_t) temp_buffer[data_pos]) << 24) +
-						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
-						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int32_t) temp_buffer[data_pos + 3]);	
+		ref_level_word = ((((int16_t) (temp_buffer[data_pos + 2] << 8))) +
+						(((int16_t) (temp_buffer[data_pos + 3]))));	
 
-		ref_level_int_part = (double) ((ref_level_word & 0x0000ffc0));
-		ref_level_dec_part = (double) ((ref_level_word & 0x0000003f));
-		digitizer->reference_level = ref_level_int_part / 1000 + (ref_level_dec_part / 1000000);
+		digitizer->reference_level = (int16_t) (ref_level_word >> 7);
 	}
 }
 
 
 /**
- * Decodes the raw sweep packet and store it in the sweep
+ * Decodes the raw exntension packet and store it in the sweep
  * structure 
  *
- * @param temp_buffer - pointer that points to the header of the sweep packet
+ * @param temp_buffer - pointer that points to the header of the extension packet
  * note: the first two words are not included, the first word that temp points to is the 
  * timestamp. please review the program's guide for further information on vrt packets are stored
- * @param sweep_start_packet - a pointer structure to store the sweep data 
+ * @param extension - a pointer structure to store the enxtension data 
  * @return None
  */
-void extract_sweep_packet_data(uint8_t* temp_buffer,struct wsa_sweep_packet* const sweep_start_packet)
+void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_packet* const extension)
 {
 	int32_t data_pos = 16;
 
 	////store the indicator field, which contains the content of the packet
-	sweep_start_packet->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
+	extension->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 
-	if ((sweep_start_packet->indicator_field & sweep_start_id_INDICATOR_MASK) > 0) 
+	if ((extension->indicator_field & SWEEP_START_ID_INDICATOR_MASK) == SWEEP_START_ID_INDICATOR_MASK) 
 	{
-	sweep_start_packet->sweep_start_id = ((((int64_t) temp_buffer[data_pos]) << 24) +
+	extension->sweep_start_id = ((((int64_t) temp_buffer[data_pos]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
 						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int64_t) temp_buffer[data_pos + 3]);	
+						(int64_t) temp_buffer[data_pos + 3]);
 	}
 
 }
