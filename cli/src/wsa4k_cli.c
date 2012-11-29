@@ -86,8 +86,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
-int16_t decode_reference_level(int64_t freq, enum wsa_gain gain, int32_t *reference_level);
-int16_t decode_rf_gain(char* str_gain_rf, int16_t *int_gain_rf);
+int16_t decode_reference_level(char* gain, int64_t frequency,  int16_t *reference_level);
+int16_t decode_rf_gain(char* rf_gain, int64_t frequency, int32_t *int_gain_rf);
 /**
  * Print out the CLI options menu
  *
@@ -416,6 +416,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t samples_per_packet;
 	int32_t packets_per_block = 0;
 	char fw_ver[40];
+	char str_rf_gain[10];
 	int16_t acq_status;
 	int32_t exit_loop;
 	int32_t title_printed = FALSE;
@@ -496,7 +497,23 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_gain_if(dev, &if_gain);
 	if (result < 0)
 		return result;
-		
+
+	// get initial gain rf 
+	result = wsa_get_gain_rf(dev, str_rf_gain);
+	if (result < 0)
+		return result;
+
+	// decode gain rf value
+	result = decode_rf_gain(str_rf_gain, frequency, &int_rf_gain);
+	if (result < 0)
+		return result;
+
+	
+	// retrieve reference level from constants 
+	result = decode_reference_level(str_rf_gain, frequency, &reference_level);
+	if (result < 0)
+		return result;
+
 	// get initial fshift
 	result = wsa_get_freq_shift(dev, &rf_frequency_offset);
 	if (result < 0)
@@ -522,7 +539,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_sweep_status(dev, sweep_status);
 	if (result < 0)
 		return result;
-	if (strcmp(sweep_status, "STOPPED") != 0 && strcmp(sweep_status, "RUNNING") != 0)
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) != 0 && strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) != 0)
 	{
 		return WSA_ERR_SWEEPMODEUNDEF;
 	}
@@ -530,7 +547,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	result = wsa_get_fw_ver(dev, fw_ver);
 	if (result < 0)
 		return result;
-	if (strcmp(sweep_status, "STOPPED") == 0) 
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
 	{	
 
 		// Get samples per packet
@@ -665,7 +682,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// set capture block if not doing sweep
-	if (strcmp(sweep_status, "STOPPED") == 0) 
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
 	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
@@ -726,7 +743,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			// handle receiver packet
 			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
-				
+				printf("indicator field is: %x \n",receiver->indicator_field); 
 				// initialize receiver packet order indicator
 				if (expected_receiver_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
 					expected_receiver_packet_order_indicator = receiver->packet_order_indicator;
@@ -751,10 +768,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					frequency = (int64_t) receiver->freq;		
 
 				// handle change in gain rf/if 
-				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) != 0) 
+				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR_MASK) 
 				{
 					if_gain = (int32_t) receiver->gain_if;
 					int_rf_gain = (int32_t) receiver->gain_rf;
+					printf("gain rf received is: %lf \n", (float) int_rf_gain);
 				}
 			}
 
@@ -802,7 +820,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (header->stream_id == IF_DATA_STREAM_ID)
 			{
 			
-				if ( (strcmp(sweep_status, "RUNNING") == 0 || (strcmp(sweep_status, "STOPPED") == 0 && title_printed == FALSE))) 
+				if ( (strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0 || (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0 && title_printed == FALSE))) 
 				{
 					title_printed = TRUE;
 					fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
@@ -848,7 +866,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				iq_pkt_count++;
 
 				// if capture mode is enabled, save the number of specified packets
-				if (strcmp(sweep_status, "STOPPED") == 0)
+				if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0)
 				{
 					if (i >= packets_per_block) 
 					{
@@ -965,12 +983,12 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 	result = wsa_get_sweep_status(dev, sweep_status);
 	if (result < 0)
 		return result;
-	if (strcmp(sweep_status, "STOPPED") != 0 && strcmp(sweep_status, "RUNNING") != 0)
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) != 0 && strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) != 0)
 	{
 		return WSA_ERR_SWEEPMODEUNDEF;
 	}	
 
-	if (strcmp(sweep_status, "RUNNING") == 0)
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0)
 	{
 		printf("Sweep Mode is enabled. \n Press 'ESC' key to stop data capture.\n");
 	} else
@@ -981,7 +999,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 			return result;
 
 	// set capture block if not doing sweep
-	if (strcmp(sweep_status, "STOPPED") == 0) 
+	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
 	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
@@ -1059,7 +1077,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
 		fwrite (vrt_packet_buffer , 1 , vrt_packet_bytes, iq_fptr);
 
 		// if capture mode is enabled, save the number of specified packets
-		if (strcmp(sweep_status, "STOPPED") == 0)
+		if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0)
 		{
 			if (i >= packets_per_block) 
 			{
@@ -1133,7 +1151,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
 	int i;
-	uint8_t valid;
 	char* strtok_result;
 	char char_result[MAX_STRING_LEN];
 	
@@ -1570,10 +1587,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				if (strcmp(cmd_words[3], "") == 0)
 					printf("Missing the gain parameter, See 'h'.\n");
 
-				else if (strcmp(cmd_words[3], "MEDIUM") == 0)	
-					sprintf(cmd_words[3], "MED");
+				else
+				{
+					// user can use medium as well as med
+					if (strcmp(cmd_words[3], "MEDIUM") == 0)	
+						sprintf(cmd_words[3], "MED");
 
-				result = wsa_set_gain_rf(dev, cmd_words[3]);
+					result = wsa_set_gain_rf(dev, cmd_words[3]);
+				}
 
 			} // end set GAIN RF
 
@@ -1744,7 +1765,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						if (strcmp(cmd_words[5], "") == 0)
 							printf("Missing the gain rf value. See 'h'.\n");
 						else
+						{
+							// user can use medium as well as med
+							if (strcmp(cmd_words[5], "MEDIUM") == 0)	
+							sprintf(cmd_words[5], "MED");
+							
 							result = wsa_set_sweep_gain_rf(dev, cmd_words[5]);
+						}
 					} // end set SWEEP ENTRY GAIN RF
 
 					else if (strcmp(cmd_words[4], "IF") == 0) 
@@ -1979,7 +2006,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if (strcmp(cmd_words[1], "STOP") == 0)
 		{
 			result = wsa_get_sweep_status(dev, char_result);
-			if (strcmp(char_result, "STOPPED") == 0)
+			if (strcmp(char_result, WSA4000_SWEEP_STATE_STOPPED) == 0)
 				printf("Sweep mode is already disabled.\n");
 			else
 				result =  wsa_sweep_stop(dev);
@@ -2803,17 +2830,24 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
  * @param gain - rf gain
  * @param reference_level
  *
- * @return 0 if signed,  negative number if unsigned
+  * @return 0 on success, or a negative number on error
  * 
  */
-int16_t decode_reference_level(int64_t freq, enum wsa_gain gain, int32_t *reference_level)
+int16_t decode_reference_level(char* rf_gain, int64_t frequency,  int16_t *reference_level)
 {
 
+	int i;
 
+	// store column position of reference level 
+	int16_t reference_level_column_pos = 0;
+	
+	// store row position of reference level, initialize to error incase frequency is invalid
+	int16_t reference_level_row_pos = WSA_ERR_FREQOUTOFBOUND;
 	//Constant reference levels based on frequency/gain
 
+
 	//frequency (in MHz), ref(vlow), ref(low), ref(med), ref(high)
-	int32_t reference_levels[23][5] = 
+	int16_t reference_level_values[23][5] = 
     {
 		{ 30,   -35, -35, -35, -35},
         { 50,   -35, -42, -42, -42},
@@ -2840,10 +2874,109 @@ int16_t decode_reference_level(int64_t freq, enum wsa_gain gain, int32_t *refere
         { 10000,  65,  39,  28, -4}, 
 	};
 
-	printf("reference level is: %d", reference_levels[0][0]);
+		// identify column position of gain rf based on the gain char 
+	if (strcmp(rf_gain,WSA4000_VLOW_RF_GAIN) == 0)
+		reference_level_column_pos = 1;
 
+	else if (strcmp(rf_gain,WSA4000_LOW_RF_GAIN) == 0)
+		reference_level_column_pos = 2;
 
+	else if (strcmp(rf_gain,WSA4000_MED_RF_GAIN) == 0)
+		reference_level_column_pos = 3;
 
-	*reference_level = 0;
+	else if (strcmp(rf_gain,WSA4000_HIGH_RF_GAIN) == 0)
+		reference_level_column_pos = 4;
+	else
+		reference_level_column_pos = WSA_ERR_INVRFGAIN;
+
+	if (reference_level_column_pos < 0)
+		return reference_level_column_pos;
+
+	for (i = 0; i < 23; i++)
+	{	
+
+		// check if frequency is in the range 
+		if ( (int16_t) (frequency / MHZ) <= reference_level_values[i][0]){
+			reference_level_row_pos = (int16_t) i;
+			break;
+		}
+	}
+	
+	if (reference_level_row_pos < 0)
+		return reference_level_row_pos;
+
+	*reference_level =  reference_level_values[reference_level_row_pos][ reference_level_column_pos];
 	return 0;
 }
+
+
+/**
+ * decode the gain rf value based on  center frequency/rf gain level 
+ *
+ * @param freq - center frequency
+ * @param gain - rf gain
+ * Valid gain settings are:
+ * - 'HIGH'
+ * - 'MED'
+ * - 'LOW' 
+ * - 'VLOW'
+ * @param int_gain_rf - integer form of gain rf
+ *
+ * @return 0 on success, or a negative number on error
+ * 
+ */
+int16_t decode_rf_gain(char* str_gain_rf, int64_t frequency, int32_t *int_gain_rf)
+{
+	
+	int i;
+
+	// store position of required gain 
+	int16_t gain_column_pos = 0;
+	
+	// initialize the row position to an error, in case the frequency value is invalid
+	int16_t gain_row_pos = WSA_ERR_FREQOUTOFBOUND;
+
+	// frequency (in MHz), ref(vlow), ref(low), ref(med), ref(high)
+	int32_t gain_rf_values[4][5] = 
+    {
+		{   40,   28,  28,   28,  28},
+        {  450,  -50, -25,   20,  55},
+        { 4400,  -30,  -5,   18,  41},
+        {10000,   25,   0,   32,  48},
+	};
+
+	// identify column position of gain rf based on the gain char 
+	if (strcmp(str_gain_rf,WSA4000_VLOW_RF_GAIN) == 0)
+		gain_column_pos = 1;
+	else if (strcmp(str_gain_rf,WSA4000_LOW_RF_GAIN) == 0)
+		gain_column_pos = 2;
+	else if (strcmp(str_gain_rf,WSA4000_MED_RF_GAIN) == 0)
+		gain_column_pos = 3;
+	else if (strcmp(str_gain_rf,WSA4000_HIGH_RF_GAIN) == 0)
+		gain_column_pos = 4;
+	else
+		gain_column_pos = WSA_ERR_INVRFGAIN;
+
+	if (gain_column_pos < 0)
+		return gain_column_pos;
+
+	for (i = 0; i < 4; i++)
+	{	
+
+		// check if frequency is in the range 
+		if ( (int32_t) (frequency / MHZ) <= gain_rf_values[i][0]){
+			gain_row_pos = (int16_t) i;
+			break;
+		}
+	}
+
+	if (gain_row_pos < 0)
+		return gain_row_pos;
+
+	*int_gain_rf = gain_rf_values[gain_row_pos][gain_column_pos];
+	
+	return 0;
+}
+
+
+

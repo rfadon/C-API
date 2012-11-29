@@ -96,7 +96,6 @@
 // rf gain modes
 #define WSA4000_VLOW_RF_GAIN "VLOW"
 #define WSA4000_LOW_RF_GAIN "LOW"
-#define WSA4000_MEDIUM_RF_GAIN "MEDIUM"
 #define WSA4000_MED_RF_GAIN "MED"
 #define WSA4000_HIGH_RF_GAIN "HIGH"
 
@@ -130,6 +129,13 @@ enum wsa_gain {
 // sweep id values
 #define WSA4000_MIN_SWEEP_START_ID 0
 #define WSA4000_MAX_SWEEP_START_ID  4294967295
+
+// sweep states
+
+#define WSA4000_SWEEP_STATE_RUNNING "RUNNING"
+#define WSA4000_SWEEP_STATE_STOPPED "STOPPED"
+
+
 
 // *****
 // RFE0440 SPECIFIC

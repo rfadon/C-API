@@ -612,7 +612,7 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 	if (result < 0)
 		return result;
 
-	if (strcmp(status, "RUNNING") == 0) 
+	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	result = wsa_send_command(dev, "SWEEP:FLUSH\n");
@@ -862,7 +862,7 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
  * Gets the current quantized RF front end gain setting of the RFE.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param gain - A \b wsa_gain pointer type to store the current RF gain value.
+ * @param gain - A char pointer to store the current RF gain value.
  *
  * @return 0 on successful, or a negative number on error.
  */
@@ -878,7 +878,6 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
 		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
 		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_MEDIUM_RF_GAIN) != 0 &&
 		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
 		return WSA_ERR_INVRFGAIN;
 
@@ -889,16 +888,14 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
  * Sets the quantized \b gain (sensitivity) level for the RFE of the WSA.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param gain - The gain setting of type wsa_gain to set for WSA. \n
+ * @param gain - A char pointer containing the rf gain setting to set for WSA. \n
  * Valid gain settings are:
- * - WSA_GAIN_HIGH
- * - WSA_GAIN_MED
- * - WSA_GAIN_LOW 
- * - WSA_GAIN_VLOW
+ * - 'HIGH'
+ * - 'MED'
+ * - 'LOW' 
+ * - 'VLOW'
  * 
  * @return 0 on success, or a negative number on error.
-  * @par Errors:
- * - Gain setting not allow.
  */
 int16_t wsa_set_gain_rf (struct wsa_device *dev, char *gain)
 {
@@ -1610,8 +1607,13 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
  * Set the RF gain to the sweep entry template
  *
  * @param dev - A pointer to the WSA device structure.
- * @param gain - An enum wsa_gain storing the RF gain value to be set
- *
+ * @param gain - A char pointer containing the rf gain setting to set for WSA. \n
+ * Valid gain settings are:
+ * - 'HIGH'
+ * - 'MED'
+ * - 'LOW' 
+ * - 'VLOW'
+ * 
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
@@ -2219,7 +2221,7 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, char* status)
 		return (int16_t) query.status;
 
 	// check if the wsa returns an invalid sweep status
-	if (strcmp(query.output, "STOPPED") != 0 && strcmp(query.output, "RUNNING") != 0)
+	if (strcmp(query.output, WSA4000_SWEEP_STATE_STOPPED) != 0 && strcmp(query.output, WSA4000_SWEEP_STATE_RUNNING) != 0)
 		return WSA_ERR_SWEEPMODEUNDEF;
 
 	strcpy(status, query.output);
@@ -2354,7 +2356,7 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
-	if (strcmp(status, "RUNNING") == 0)
+	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	// check if the sweep list is empty
@@ -2392,7 +2394,7 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
-	if (strcmp(status, "RUNNING") == 0)
+	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	// check if the sweep list is empty
@@ -2480,7 +2482,7 @@ int16_t wsa_sweep_resume(struct wsa_device *dev)
 	if (result < 0)
 		return result;
 
-	if (strcmp(status, "RUNNING") == 0) 
+	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	result = wsa_get_sweep_entry_size(dev, &size);
