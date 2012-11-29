@@ -216,13 +216,15 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
 //						  float *value)
 //{
 //	// TODO Check version of WSA & return the correct info here
-//	if (gain < WSA_GAIN_VLOW || gain > WSA_GAIN_HIGH) {		
-//		return WSA_ERR_INVRFGAIN;
-//	}
-//	else {
+//	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
+//	strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
+//	strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
+//	strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+//		return WSA_ERR_INVRFGAIN;	
+//	
+//	else 
 //		*value = dev->descr.abs_max_amp[gain];
-//	}
-//
+//	
 //	return 0;
 //}
 
@@ -352,6 +354,8 @@ int16_t wsa_capture_block(struct wsa_device* const device)
  *      VRT receiver context information
  * @param digitizer - A point to \b wsa_digitizer packet structure to store the
  *      VRT digitizer context information
+ * @param extension - a pointer to \b wsa_extension_packet strucuture to store
+ *		the custom Context data
  * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
  *		I data buffer with size specified by samples_per_packet.
  * @param q_buffer - A 16-bit signed integer pointer for the unscaled 
@@ -862,7 +866,7 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
  * Gets the current quantized RF front end gain setting of the RFE.
  *
  * @param dev - A pointer to the WSA device structure.
- * @param gain - A char pointer to store the current RF gain value.
+ * @param gain - A char pointer to store the current RF gain setting.
  *
  * @return 0 on successful, or a negative number on error.
  */
@@ -2378,8 +2382,8 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
  * start sweep mode with a specified sweep_id
  *
  * @param dev - A pointer to the WSA device structure
- * @param sweep_start_id - An id to be set in the first sweep packet
- * after a sweep has been initiated
+ * @param sweep_start_id - A  sweep start id to be sent in an
+ * extension packet after a sweep has started
  *
  * @return 0 on success, or a negative number on error
  */
@@ -2421,8 +2425,8 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 }
 
 /**
- * stop sweep mode
- * 
+ * stop sweep mode, and read remaining data in the 
+ * socket
  * @param dev - A pointer to the WSA device structure
  *
  * @return 0 on success, or a negative number on error

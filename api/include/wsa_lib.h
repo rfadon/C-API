@@ -43,7 +43,7 @@
 #define RF_FREQUENCY_OFFSET_INDICATOR_MASK 0x04000000
 #define REFERENCE_LEVEL_FIELD_INDICATOR_MASK 0x01000000
 
-// Sweep packet data field indicator masks
+// extension packet data field indicator masks
 #define SWEEP_START_ID_INDICATOR_MASK 0x00000001
 
 // *****

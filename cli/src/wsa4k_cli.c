@@ -632,7 +632,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	// allocate sweep packet buffer space
+	// allocate extension packet buffer space
 	extension = (struct wsa_extension_packet*) malloc(sizeof(struct wsa_extension_packet));
 	if (extension == NULL)
 	{
@@ -743,7 +743,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			// handle receiver packet
 			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
-				printf("indicator field is: %x \n",receiver->indicator_field); 
+				
 				// initialize receiver packet order indicator
 				if (expected_receiver_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
 					expected_receiver_packet_order_indicator = receiver->packet_order_indicator;
@@ -772,7 +772,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				{
 					if_gain = (int32_t) receiver->gain_if;
 					int_rf_gain = (int32_t) receiver->gain_rf;
-					printf("gain rf received is: %lf \n", (float) int_rf_gain);
 				}
 			}
 

@@ -293,7 +293,9 @@ int16_t to_double(char *num_str, double *val)
 }
 
 /**
- * determine if a string contains numbers
+ * determine if a string contains characters
+ * that represent a number (including one negative sign
+   in the beginning of the string and a decimal place)
  * @param string - string to be examined
  *
  * @return 0 if its an int,  or a negative number on error.
