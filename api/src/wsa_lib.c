@@ -1236,25 +1236,26 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
  * @param temp_buffer - pointer that points to the header of the extension packet
  * note: the first two words are not included, the first word that temp points to is the 
  * timestamp. please review the program's guide for further information on vrt packets are stored
- * @param extension - a pointer structure to store the enxtension data 
+ * @param extension - a pointer structure to store the enxtension packet data 
  * @return None
  */
 void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_packet* const extension)
 {
 	int32_t data_pos = 16;
 
-	////store the indicator field, which contains the content of the packet
+	// store the indicator field, which contains the content of the packet
 	extension->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 
+	// determine if a sweep start id is in the packet
 	if ((extension->indicator_field & SWEEP_START_ID_INDICATOR_MASK) == SWEEP_START_ID_INDICATOR_MASK) 
 	{
-	extension->sweep_start_id = ((((int64_t) temp_buffer[data_pos]) << 24) +
-						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int64_t) temp_buffer[data_pos + 3]);
+	extension->sweep_start_id = ((((uint32_t) temp_buffer[data_pos]) << 24) +
+						(((uint32_t) temp_buffer[data_pos + 1]) << 16) +
+						(((uint32_t) temp_buffer[data_pos + 2]) << 8) + 
+			    		(uint32_t) temp_buffer[data_pos + 3]);
 	}
 
 }

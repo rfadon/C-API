@@ -11,7 +11,7 @@ endif
 ifeq ($(BUILD_PLATFORM), windows)
 PATH_SEPARATOR = \\
 
-VERSION=${shell git describe --dirty='+'}
+VERSION=${shell git describe --dirty=''}
 
 CC = cl
 AR = lib
@@ -29,7 +29,7 @@ else
 
 PATH_SEPARATOR = /
 
-VERSION=$(shell git describe --dirty='+')
+VERSION=$(shell git describe --dirty='')
 
 CC = gcc
 AR = ar

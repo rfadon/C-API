@@ -487,7 +487,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
 	else if (acq_status == 0) 
-		return WSA_ERR_DATAACCESSDENIED;
+	{
+		printf("Read access denied, use the 'get acq access' \n");
+		return result;
+	}
 
 	// Get sweep status
 	result = wsa_get_sweep_status(dev, sweep_status);

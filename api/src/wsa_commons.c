@@ -29,7 +29,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWNRFEVSN, "Unknown WSA RFE version detected"},
 		{WSA_ERR_UNKNOWNFWRVSN, "Unknown WSA firmware version detected"},
 		{WSA_ERR_PRODOBSOLETE, "Product is obsolete and not supported"},
-		{WSA_ERR_DATAACCESSDENIED, "Read access denied, use the 'get acq access' command"},
+		{WSA_ERR_DATAACCESSDENIED, "Read access denied"},
 
 		//*****
 		// WSA Setup Related

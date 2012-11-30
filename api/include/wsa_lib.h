@@ -235,7 +235,7 @@ struct wsa_digitizer_packet {
 struct wsa_extension_packet {
 	int32_t indicator_field;
 	uint8_t packet_order_indicator;
-	int64_t sweep_start_id;
+	uint32_t sweep_start_id;
 };
 
 // These values will be defined in a future release
