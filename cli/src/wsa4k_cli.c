@@ -2010,7 +2010,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else
 					printf("ID value must be an integer number.\n");
 
-
+				
 			} // end SWEEP ENTRY COPY
 
 			else if (strcmp(cmd_words[2], "DELETE") == 0) 
@@ -2026,7 +2026,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			} // end SWEEP ENTRY DELETE
 
 			else if (strcmp(cmd_words[2], "NEW") == 0) 
-				result = wsa_sweep_entry_new(dev);
+				result = wsa_sweep_entry_new(dev);    
 			
 			// end SWEEP ENTRY NEW
 
