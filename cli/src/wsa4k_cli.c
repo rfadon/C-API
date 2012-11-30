@@ -86,8 +86,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext);
 int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char *ext);
 int16_t print_sweep_entry_template(struct wsa_device *dev);
 int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id);
-int16_t decode_reference_level(char* gain, int64_t frequency,  int16_t *reference_level);
-int16_t decode_rf_gain(char* rf_gain, int64_t frequency, int32_t *int_gain_rf);
+
 /**
  * Print out the CLI options menu
  *
@@ -416,7 +415,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t samples_per_packet;
 	int32_t packets_per_block = 0;
 	char fw_ver[40];
-	char str_rf_gain[10];
 	int16_t acq_status;
 	int32_t exit_loop;
 	int32_t title_printed = FALSE;
@@ -425,7 +423,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// to store receiver data
 	int32_t reference_point = 0;
 	int32_t if_gain = 0;
-	int32_t int_rf_gain = 0;
+	int32_t rf_gain = 0;
 	int64_t frequency = 0;
 
 	// to store digitizer data
@@ -469,7 +467,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	uint8_t expected_if_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
 	uint8_t expected_digitizer_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
 	uint8_t expected_receiver_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
-	uint8_t expected_extention_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
+	uint8_t expected_extension_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
 
 	int32_t iq_pkt_count = 1;
 	int32_t i;
@@ -482,51 +480,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 
 	printf("Gathering WSA settings...");	
-	result = wsa_system_request_acquisition_access(dev, &acq_status);
-	// get initial reference point
-	result = wsa_get_antenna(dev, &reference_point);
-	if (result < 0)
-		return result;
-
-	// get initial frequency value
-	result = wsa_get_freq(dev, &frequency);
-	if (result < 0)
-		return result;
-
-	// get initial gain if 
-	result = wsa_get_gain_if(dev, &if_gain);
-	if (result < 0)
-		return result;
-
-	// get initial gain rf 
-	result = wsa_get_gain_rf(dev, str_rf_gain);
-	if (result < 0)
-		return result;
-
-	// decode gain rf value
-	result = decode_rf_gain(str_rf_gain, frequency, &int_rf_gain);
-	if (result < 0)
-		return result;
-
 	
-	// retrieve reference level from constants 
-	result = decode_reference_level(str_rf_gain, frequency, &reference_level);
-	if (result < 0)
-		return result;
-
-	// get initial fshift
-	result = wsa_get_freq_shift(dev, &rf_frequency_offset);
-	if (result < 0)
-		return result;
-
-	// get initial bandwidth
-		result = wsa_get_decimation(dev, &dec);
-	if (result < 0)
-		return result;
-	if (dec == 0)
-		dec = 1;
-	
-	bandwidth = WSA4000_INST_BW / dec;
 
 	// determine if the another user is capturing data
 	result = wsa_system_acq_status(dev, &acq_status);
@@ -731,6 +685,23 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// handle extension packets
 		if (header->packet_type == EXTENSION_PACKET_TYPE) 
 		{
+			// initialize extension packet order indicator
+			if (expected_extension_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
+				expected_extension_packet_order_indicator = extension->packet_order_indicator;			
+				
+			// verify the extension packet order indicator
+			if (extension->packet_order_indicator != expected_extension_packet_order_indicator)
+			{
+				result = WSA_ERR_PACKETOUTOFORDER;
+				break;
+			}
+				
+			expected_extension_packet_order_indicator++;
+
+			// reset  extension packet order indicator to original value
+			if (expected_extension_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
+			expected_extension_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+			
 			// TODO find meaningful way to convey the sweep_start_id to the user
 			//if (header->stream_id == EXTENSION_STREAM_ID)
 
@@ -771,7 +742,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR_MASK) 
 				{
 					if_gain = (int32_t) receiver->gain_if;
-					int_rf_gain = (int32_t) receiver->gain_rf;
+					rf_gain = (int32_t) receiver->gain_rf;
 				}
 			}
 
@@ -831,7 +802,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 																						(float) bandwidth,
 																						(float) rf_frequency_offset,
 																						(float) if_gain,
-																						(float) int_rf_gain,
+																						(float) rf_gain,
 																						(int32_t) reference_point,
 																						(float) reference_level);
 				}
@@ -2817,162 +2788,6 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
 
 	free(list_values);
-	
-	return 0;
-}
-
-
-/**
- * retrieve the noise reference level from a list of constants 
- * based on rf gain/ center frequency
- * @param freq - center frequency
- * @param gain - rf gain
- * @param reference_level
- *
-  * @return 0 on success, or a negative number on error
- * 
- */
-int16_t decode_reference_level(char* rf_gain, int64_t frequency,  int16_t *reference_level)
-{
-
-	int i;
-
-	// store column position of reference level 
-	int16_t reference_level_column_pos = 0;
-	
-	// store row position of reference level, initialize to error incase frequency is invalid
-	int16_t reference_level_row_pos = WSA_ERR_FREQOUTOFBOUND;
-	//Constant reference levels based on frequency/gain
-
-
-	//frequency (in MHz), ref(vlow), ref(low), ref(med), ref(high)
-	int16_t reference_level_values[23][5] = 
-    {
-		{ 30,   -35, -35, -35, -35},
-        { 50,   -35, -42, -42, -42},
-        { 100,   67,  39,   4, -44},
-        { 500,   41,  14, -10, -36},
-        { 1000,  34,   9, -16, -36},
-        { 1500,  32,   8, -16, -37},
-        { 2000,  33,  10, -14, -35},
-        { 2500,  34,  12, -11, -36},
-        { 3000,  35,  13,  -9, -32},
-        { 3500,  35,  13,  -8, -32},
-        { 4000,  35,  13,  -6, -30},
-        { 4500,  54,  28,  12, -23},
-        { 5000,  55,  29,  14, -21},
-        { 5500,  56,  30,  16, -20},
-        { 6000,  56,  31,  17, -17},
-        { 6500,  56,  32,  19, -15},
-        { 7000,  58,  36,  22, -14},
-        { 7500,  64,  37,  23,  -9},
-        { 8000,  63,  38,  23, -11},
-        { 8500,  61,  33,  22, -12},
-        { 9000,  63,  35,  23, -12},
-        { 9500,  65,  37,  25, -10},
-        { 10000,  65,  39,  28, -4}, 
-	};
-
-		// identify column position of gain rf based on the gain char 
-	if (strcmp(rf_gain,WSA4000_VLOW_RF_GAIN) == 0)
-		reference_level_column_pos = 1;
-
-	else if (strcmp(rf_gain,WSA4000_LOW_RF_GAIN) == 0)
-		reference_level_column_pos = 2;
-
-	else if (strcmp(rf_gain,WSA4000_MED_RF_GAIN) == 0)
-		reference_level_column_pos = 3;
-
-	else if (strcmp(rf_gain,WSA4000_HIGH_RF_GAIN) == 0)
-		reference_level_column_pos = 4;
-	else
-		reference_level_column_pos = WSA_ERR_INVRFGAIN;
-
-	if (reference_level_column_pos < 0)
-		return reference_level_column_pos;
-
-	for (i = 0; i < 23; i++)
-	{	
-
-		// check if frequency is in the range 
-		if ( (int16_t) (frequency / MHZ) <= reference_level_values[i][0]){
-			reference_level_row_pos = (int16_t) i;
-			break;
-		}
-	}
-	
-	if (reference_level_row_pos < 0)
-		return reference_level_row_pos;
-
-	*reference_level =  reference_level_values[reference_level_row_pos][ reference_level_column_pos];
-	return 0;
-}
-
-
-/**
- * decode the gain rf value based on  center frequency/rf gain level 
- *
- * @param freq - center frequency
- * @param gain - rf gain
- * Valid gain settings are:
- * - 'HIGH'
- * - 'MED'
- * - 'LOW' 
- * - 'VLOW'
- * @param int_gain_rf - integer form of gain rf
- *
- * @return 0 on success, or a negative number on error
- * 
- */
-int16_t decode_rf_gain(char* str_gain_rf, int64_t frequency, int32_t *int_gain_rf)
-{
-	
-	int i;
-
-	// store position of required gain 
-	int16_t gain_column_pos = 0;
-	
-	// initialize the row position to an error, in case the frequency value is invalid
-	int16_t gain_row_pos = WSA_ERR_FREQOUTOFBOUND;
-
-	// frequency (in MHz), ref(vlow), ref(low), ref(med), ref(high)
-	int32_t gain_rf_values[4][5] = 
-    {
-		{   40,   28,  28,   28,  28},
-        {  450,  -50, -25,   20,  55},
-        { 4400,  -30,  -5,   18,  41},
-        {10000,   25,   0,   32,  48},
-	};
-
-	// identify column position of gain rf based on the gain char 
-	if (strcmp(str_gain_rf,WSA4000_VLOW_RF_GAIN) == 0)
-		gain_column_pos = 1;
-	else if (strcmp(str_gain_rf,WSA4000_LOW_RF_GAIN) == 0)
-		gain_column_pos = 2;
-	else if (strcmp(str_gain_rf,WSA4000_MED_RF_GAIN) == 0)
-		gain_column_pos = 3;
-	else if (strcmp(str_gain_rf,WSA4000_HIGH_RF_GAIN) == 0)
-		gain_column_pos = 4;
-	else
-		gain_column_pos = WSA_ERR_INVRFGAIN;
-
-	if (gain_column_pos < 0)
-		return gain_column_pos;
-
-	for (i = 0; i < 4; i++)
-	{	
-
-		// check if frequency is in the range 
-		if ( (int32_t) (frequency / MHZ) <= gain_rf_values[i][0]){
-			gain_row_pos = (int16_t) i;
-			break;
-		}
-	}
-
-	if (gain_row_pos < 0)
-		return gain_row_pos;
-
-	*int_gain_rf = gain_rf_values[gain_row_pos][gain_column_pos];
 	
 	return 0;
 }
