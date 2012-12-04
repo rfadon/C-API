@@ -2140,7 +2140,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		else if ((strcmp(cmd_words[0], "Q") == 0) || 
 				(strstr(cmd_words[0], "QUIT") != NULL))
 		{
-			return -1;
+			return TRUE;
 		} // end quit
 
 		// Keep going if nothing is entered
@@ -2162,11 +2162,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			printf("ERROR %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
 			if (result == WSA_ERR_QUERYNORESP) {
 				printf("Possibly due to loss of Ethernet connection.\n\n");
-				user_quit = 1;
+				user_quit = TRUE;
 			}
 		}
 	}
-	return 0;
+	return user_quit;
 }
 
 /**
