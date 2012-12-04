@@ -619,7 +619,7 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
-	result = wsa_send_command(dev, "SWEEP:FLUSH\n");
+	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
 	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
 	
 	return result;
@@ -1769,7 +1769,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	wsa_send_query(device, "SWEEP:ENTRY:DECIMATION?\n", &query);
+	wsa_send_query(device, ":SWEEP:ENTRY:DECIMATION?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -1808,7 +1808,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
 		(rate > device->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 
-	sprintf(temp_str, "SWEEP:ENTRY:DECIMATION %d\n", rate);
+	sprintf(temp_str, ":SWEEP:ENTRY:DECIMATION %d\n", rate);
 	result = wsa_send_command(device, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
 

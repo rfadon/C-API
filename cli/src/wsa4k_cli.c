@@ -177,7 +177,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  RF options: HIGH, MEDium, LOW, VLOW.\n"
 		"\t  IF range: %d to %d dBm, inclusive.\n"
 		"\t  ex: set gain rf high;\n"
-		"\t      set gain if -20.\n", MIN_IF_GAIN, MAX_IF_GAIN);
+		"\t      set gain if -5.\n", MIN_IF_GAIN, MAX_IF_GAIN);
 	printf("  set ppb <packets>\n"
 		"\t- Set the number of packets per block to be captured\n"
 		"\t  The maximum value will depend on the \"samples per packet\" setting\n"
@@ -196,6 +196,8 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t\t2) Stop frequency (in MHz)\n"
 		"\t\t3) Amplitude (in dBm)\n"
 		"\t  ex: set trigger level 2410,2450,-50\n");
+	printf("  system flush\n"
+		"\t- Clear the WSA4000 internal buffer of remaining sweep data\n");
 	printf("\n");
 
 	printf("//////////////////////////////////////////////////////////////////\n");
@@ -211,8 +213,6 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Execute the current sweep list from the first entry\n");
 	printf("  sweep stop\n"
 		"\t- Stop the sweep process\n");
-	printf("  sweep flush\n"
-		"\t- Clear the WSA4000 internal buffer of remaining sweep data\n");
 	printf("  sweep status\n"
 		"\t- Get the current sweep status, running or stopped\n");
 	printf("\n");
@@ -850,9 +850,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				// if sweep mode is enabled, capture data until the 'ESC' key is pressed
 				else 
 				{
-					if (_kbhit() != FALSE)
+					if (kbhit() != FALSE)
 					{
-						if (_getch() == 0x1b) {    // esc key
+						if (getch() == 0x1b) {    // esc key
 							 
 							printf("\nEscape key pressed, data capture stopped...\n");
 							exit_loop = TRUE;
@@ -1117,11 +1117,11 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char* prefix, char* ext)
  * @return 1 if 'q'uit is set, 0 for no error.
  */
 int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
-					int16_t num_words)
+						int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
 	int16_t input_veri_result = 0; // result returned from varifying input cmd param
-	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
+	int8_t user_quit = 1;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
 	int i;
 	char* strtok_result;
@@ -1797,36 +1797,35 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 					else if (strcmp(cmd_words[4], "LEVEL") == 0) 
 					{
-						if (num_words == 6) 
+						if (num_words < 6) 
+							printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
+						else
 						{
+							// get start frequency
 							strtok_result = strtok(cmd_words[5], ",");
 							if (to_double(strtok_result, &temp_double) < 0) 
-							{
 								printf("Error: Start frequency must be a valid number\n");
-								return 0;
-							}
-							start_freq = (int64_t) (temp_double);
+
+							start_freq = (int64_t) (temp_double * MHZ);
 							
+							// get stop frequency
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0) 
-							{
 								printf("Error: Stop frequency must be a valid number\n");
-								return 0;
-							}
-							stop_freq = (int64_t) (temp_double);
-									
+
+							stop_freq = (int64_t) (temp_double * MHZ);
+							
+							// get amplitude
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0)
-							{
 								printf("Error: Amplitude must be a valid number\n");
-								return 0;
-							}
 
-							result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
-							
+							amplitude = (int32_t) temp_double;
+
+							printf("got before function call \n");
+							result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, amplitude);
+							printf("got after function call\n");
 						}
-						else 
-							printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
 					} 
 					else 
 						printf("Invalid 'set sweep entry trigger'. See 'h'.\n");
@@ -1990,11 +1989,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			result =  wsa_sweep_resume(dev);
 		} // end SWEEP RESUME
 		
-		else if (strcmp(cmd_words[1], "FLUSH") == 0) 
-		{
-			result = wsa_flush_data(dev);
-		} // end SWEEP FLUSH
-		
 		else if (strcmp(cmd_words[1], "STATUS") == 0) 
 		{
 			result = wsa_get_sweep_status(dev, char_result);
@@ -2130,23 +2124,32 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				result = save_data_to_file(dev, prefix, ext);
 		} // end save data
 
+		
+		else if (strcmp(cmd_words[0], "SYSTEM") == 0) 
+		{
+			if (strcmp(cmd_words[1], "FLUSH") == 0) 
+			result = wsa_flush_data(dev);
+			else
+				printf("Invalid 'system' command. See 'h'.\n");
+
+		} // end SYSTEM FLUSH
+		
+		
+		
 		// User wants to run away...
 		else if ((strcmp(cmd_words[0], "Q") == 0) || 
 				(strstr(cmd_words[0], "QUIT") != NULL))
 		{
-			user_quit = TRUE;
+			return -1;
 		} // end quit
 
 		// Keep going if nothing is entered
 		else if (strcmp(cmd_words[0], "") == 0) 
-		{
-			// Do nothing
-		}
+			return 0;
 
 		else
-		{
 			user_quit = -1;
-		}
+
 	} // End handling non get/set cmds.
 
 	// Print out the errors
@@ -2159,12 +2162,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			printf("ERROR %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
 			if (result == WSA_ERR_QUERYNORESP) {
 				printf("Possibly due to loss of Ethernet connection.\n\n");
-				user_quit = TRUE;
+				user_quit = 1;
 			}
 		}
 	}
-
-	return user_quit;
+	return 0;
 }
 
 /**
@@ -2324,6 +2326,7 @@ int16_t start_cli(void)
 
 	return 0;
 }
+
 
 void call_mode_print_help(char* argv) {
 	fprintf(stderr, "Usage:\n %s -c [-h] -ip=<#.#.#.# or host name> "

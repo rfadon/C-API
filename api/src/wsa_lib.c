@@ -149,8 +149,9 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 
 	if (to_int(query.output, &temp_val) < 0)
 		return WSA_ERR_RESPUNKNOWN;
+	
 	stb_reg = (uint8_t) temp_val;
-
+	
 	if (stb_reg & SCPI_SBR_EVTAVL) {
 		// loop until output is ""
 		do {
