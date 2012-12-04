@@ -2096,10 +2096,9 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
 	if (stop_freq <= start_freq)
 		return WSA_ERR_INVSTOPFREQ;
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
-
+	
 	return result;
 }
 

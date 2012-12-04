@@ -1121,7 +1121,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 {
 	int16_t result = 0;			// result returned from a function
 	int16_t input_veri_result = 0; // result returned from varifying input cmd param
-	int8_t user_quit = 1;	// determine if user has entered 'q' command
+	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
 	int i;
 	char* strtok_result;
@@ -1797,35 +1797,37 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 					else if (strcmp(cmd_words[4], "LEVEL") == 0) 
 					{
-						if (num_words < 6) 
-							printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
-						else
-						{
-							// get start frequency
-							strtok_result = strtok(cmd_words[5], ",");
-							if (to_double(strtok_result, &temp_double) < 0) 
-								printf("Error: Start frequency must be a valid number\n");
-
-							start_freq = (int64_t) (temp_double * MHZ);
-							
-							// get stop frequency
-							strtok_result = strtok(NULL, ",");
-							if (to_double(strtok_result, &temp_double) < 0) 
-								printf("Error: Stop frequency must be a valid number\n");
-
-							stop_freq = (int64_t) (temp_double * MHZ);
-							
-							// get amplitude
-							strtok_result = strtok(NULL, ",");
-							if (to_double(strtok_result, &temp_double) < 0)
-								printf("Error: Amplitude must be a valid number\n");
-
-							amplitude = (int32_t) temp_double;
-
-							printf("got before function call \n");
-							result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, amplitude);
-							printf("got after function call\n");
-						}
+						//if (num_words < 6) 
+						//	printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
+						//else
+						//{
+						//	// get start frequency
+						//	strtok_result = strtok(cmd_words[5], ",");
+						//	if (to_double(strtok_result, &temp_double) < 0) 
+						//		printf("Start frequency must be a valid number\n");
+						//	
+						//	else 
+						//	{
+						//		start_freq = (int64_t) (temp_double);
+						//	
+						//		// get stop frequency
+						//		strtok_result = strtok(NULL, ",");
+						//		if (to_double(strtok_result, &temp_double) < 0) 
+						//			printf("Error: Stop frequency must be a valid number\n");
+						//		else 
+						//		{
+						//			stop_freq = (int64_t) (temp_double);
+						//	
+						//			// get amplitude
+						//			strtok_result = strtok(NULL, ",");
+						//			if (to_double(strtok_result, &temp_double) < 0)
+						//				printf("Error: Amplitude must be a valid number\n");
+						//			else
+						//				result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
+						//		}
+						//	 
+						//	}
+						//}
 					} 
 					else 
 						printf("Invalid 'set sweep entry trigger'. See 'h'.\n");
@@ -1924,9 +1926,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				else if (strcmp(cmd_words[3], "SPP") == 0) 
 				{
 					if (num_words < 4) 
-					{
 						printf("Missing the samples per packet value. See 'h'.\n");
-					}
+
 					else if (!to_int(cmd_words[4], &temp_long)) 
 					{
 						result = wsa_set_sweep_samples_per_packet(dev, 
@@ -1937,19 +1938,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								WSA4000_MAX_SAMPLES_PER_PACKET);
 					}
 				} // end set SPP
+				else 
+					printf("Invalid 'set sweep entry'. See 'h'.\n");  
 			} // end set sweep ENTRY
 			else 
-			{
-				printf("Invalid 'set sweep entry'. See 'h'.\n");
-			}
-		}	// end set SWEEP
-		
-		else 
-		{
-			printf("Invalid 'set'. See 'h'.\n");
-		}
-	} // end SET
+				printf("Invalid 'set sweep'. See 'h'.\n");
 
+		}	// end set SWEEP
+		else 
+			printf("Invalid 'set'. See 'h'.\n");
+	} // end set
+
+		
 	//*****
 	// Handle SWEEP commands
 	//*****
@@ -2138,14 +2138,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		// User wants to run away...
 		else if ((strcmp(cmd_words[0], "Q") == 0) || 
-				(strstr(cmd_words[0], "QUIT") != NULL))
+				(strcmp(cmd_words[0], "QUIT") == 0))
 		{
-			return TRUE;
+			user_quit = TRUE;
 		} // end quit
 
 		// Keep going if nothing is entered
 		else if (strcmp(cmd_words[0], "") == 0) 
-			return 0;
+		{
+			// do nothing
+		}
 
 		else
 			user_quit = -1;
