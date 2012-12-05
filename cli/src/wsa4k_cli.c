@@ -363,7 +363,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 {
 	int16_t result = 0;
 	char *cmd_words[MAX_CMD_WORDS]; // store user's input words
-	char temp_str[40];
+	char temp_str[MAX_STRING_LEN];
 	char *temp_ptr;
 	uint8_t w = 0;	// an index
 	int i;
@@ -1676,8 +1676,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							strtok_result = strtok(NULL, ",");
 							if (to_double(strtok_result, &temp_double) < 0)
 								printf("Amplitude must be a valid number\n");
-							else
+							else{
 								result = wsa_set_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
+								printf("confirm change was made \n");
+							}
+							
 						}
 					}
 				}
@@ -1797,37 +1800,37 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 					else if (strcmp(cmd_words[4], "LEVEL") == 0) 
 					{
-						//if (num_words < 6) 
-						//	printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
-						//else
-						//{
-						//	// get start frequency
-						//	strtok_result = strtok(cmd_words[5], ",");
-						//	if (to_double(strtok_result, &temp_double) < 0) 
-						//		printf("Start frequency must be a valid number\n");
-						//	
-						//	else 
-						//	{
-						//		start_freq = (int64_t) (temp_double);
-						//	
-						//		// get stop frequency
-						//		strtok_result = strtok(NULL, ",");
-						//		if (to_double(strtok_result, &temp_double) < 0) 
-						//			printf("Error: Stop frequency must be a valid number\n");
-						//		else 
-						//		{
-						//			stop_freq = (int64_t) (temp_double);
-						//	
-						//			// get amplitude
-						//			strtok_result = strtok(NULL, ",");
-						//			if (to_double(strtok_result, &temp_double) < 0)
-						//				printf("Error: Amplitude must be a valid number\n");
-						//			else
-						//				result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
-						//		}
-						//	 
-						//	}
-						//}
+						if (num_words < 6) 
+							printf("Usage: 'set sweep trigger level <start>,<stop>,<amplitude>'\n");
+						else
+						{
+							// get start frequency
+							strtok_result = strtok(cmd_words[5], ",");
+							if (to_double(strtok_result, &temp_double) < 0) 
+								printf("Start frequency must be a valid number\n");
+							
+							else 
+							{
+								start_freq = (int64_t) (temp_double * MHZ);
+							
+								// get stop frequency
+								strtok_result = strtok(NULL, ",");
+								if (to_double(strtok_result, &temp_double) < 0) 
+									printf("Error: Stop frequency must be a valid number\n");
+								else 
+								{
+									stop_freq = (int64_t) (temp_double * MHZ);
+							
+									// get amplitude
+									strtok_result = strtok(NULL, ",");
+									if (to_double(strtok_result, &temp_double) < 0)
+										printf("Error: Amplitude must be a valid number\n");
+									else
+										result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
+								}
+							 
+							}
+						}
 					} 
 					else 
 						printf("Invalid 'set sweep entry trigger'. See 'h'.\n");
@@ -2153,11 +2156,11 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			user_quit = -1;
 
 	} // End handling non get/set cmds.
-
+	printf("confirm change was made \n");
 	// Print out the errors
 	if (result < 0) {
 		
-		if (result == WSA_WARNING_TRIGGER_CONFLICT)
+		if (result <=  WARNING_NUM)
 			printf("WARNING %d: %s. %s\n", result, wsa_get_err_msg(result), msg);
 		else
 		{
@@ -2182,10 +2185,10 @@ int16_t do_wsa(const char *wsa_addr)
 {	
 	struct wsa_device wsa_dev;	// the wsa device structure
 	struct wsa_device *dev;
-	char intf_str[200];			// store the interface method string
+	char intf_str[MAX_STRING_LEN];			// store the interface method string
 	char *in_buf;
 	int16_t result = 0;			// result returned from a function
-	char temp_str[40];
+	char temp_str[MAX_STRING_LEN];
 
 
 	// Create the TCPIP interface method string
@@ -2234,7 +2237,7 @@ int16_t start_cli(void)
 {
 	uint8_t user_quit = FALSE;		// determine if user exits the CLI tool
 	time_t dateStamp = time(NULL);	// use for display in the start of CLI
-	char in_str[40];	// store user's input string
+	char in_str[MAX_STRING_LEN];	// store user's input string
 	char *in_buf;
 	const char *wsa_addr;			// store the desired WSA IP address
 	int16_t result = 0;				// result returned from a function

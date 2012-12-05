@@ -10,7 +10,7 @@
 
 // A large 16-bit negative number
 #define LNEG_NUM (-10000)
-
+#define WARNING_NUM (LNEG_NUM  - 10000)
 
 // ///////////////////////////////
 // WSA RELATED ERRORS			//
@@ -169,7 +169,7 @@
 // ///////////////////////////////
 // WARNINGS						//
 // ///////////////////////////////
-#define WSA_WARNING_TRIGGER_CONFLICT	(LNEG_NUM - 10000)
+#define WSA_WARNING_TRIGGER_CONFLICT	(WARNING_NUM - 0)
 
 const char *_wsa_get_err_msg(int16_t err_id);
 
