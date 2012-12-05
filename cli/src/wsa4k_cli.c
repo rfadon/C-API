@@ -797,11 +797,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				{
 					title_printed = TRUE;
 					fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
-					fprintf(iq_fptr, "%s,%d,%d,%u,%0.3f,%0.3f,%lf,%lf,%lf,%d,%lf\n",fw_ver,
+					fprintf(iq_fptr, "%s,%d,%lu,%llu,%lld,%0.3f,%lf,%lf,%lf,%d,%lf\n",fw_ver,
 																						header->samples_per_packet, 
 																						header->time_stamp.sec,
 																						header->time_stamp.psec,
-																						(float) frequency,
+																						frequency,
 																						(float) bandwidth,
 																						(float) rf_frequency_offset,
 																						(float) if_gain,
@@ -1369,7 +1369,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				result = wsa_get_trigger_type(dev, char_result);
 				if (result >= 0)
-					printf("Trigger mode: %s\n", char_result);
+					printf("Trigger mode running: %s\n", char_result);
 			} // end get TRIGGER MODE
 
 			else if (strcmp(cmd_words[2], "LEVEL") == 0) 
@@ -1811,24 +1811,30 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 							
 							else 
 							{
+
 								start_freq = (int64_t) (temp_double * MHZ);
-							
+
 								// get stop frequency
 								strtok_result = strtok(NULL, ",");
 								if (to_double(strtok_result, &temp_double) < 0) 
 									printf("Error: Stop frequency must be a valid number\n");
 								else 
 								{
+
 									stop_freq = (int64_t) (temp_double * MHZ);
-							
+	
 									// get amplitude
 									strtok_result = strtok(NULL, ",");
 									if (to_double(strtok_result, &temp_double) < 0)
 										printf("Error: Amplitude must be a valid number\n");
-									else
-										result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, (int32_t) temp_double);
+									else 
+									{
+										amplitude = (int32_t) temp_double;
+										result = wsa_set_sweep_trigger_level(dev, start_freq, stop_freq, amplitude);
+
+									}
+								
 								}
-							 
 							}
 						}
 					} 
@@ -2050,15 +2056,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					
 			}
 			else 
-			{
-				printf("Need a 3rd parameter. See 'h'.\n");
-			}
+				printf("Invalid 'sweep entry' command. See 'h'.\n");
+
 		} // end ENTRY 
 		
 		else 
-		{
 			printf("Invalid 'sweep' command. See 'h'.\n");
-		}
+
 	} // end SWEEP
 
 	//*****
@@ -2136,10 +2140,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Invalid 'system' command. See 'h'.\n");
 
 		} // end SYSTEM FLUSH
-		
-		
-		
-		// User wants to run away...
+
+		// User wants to quit
 		else if ((strcmp(cmd_words[0], "Q") == 0) || 
 				(strcmp(cmd_words[0], "QUIT") == 0))
 		{
@@ -2156,7 +2158,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			user_quit = -1;
 
 	} // End handling non get/set cmds.
-	printf("confirm change was made \n");
 	// Print out the errors
 	if (result < 0) {
 		
@@ -2623,7 +2624,7 @@ void print_wsa_stat(struct wsa_device *dev) {
 	printf("\t\t- Trigger Settings: \n");
 	result = wsa_get_trigger_type(dev, trigger_mode);
 	if (result >= 0)
-			printf("\t\t\t- Trigger Mode: %s\n", trigger_mode);	
+			printf("\t\t\t- Trigger mode running: %s\n", trigger_mode);	
 	else 
 		printf("\t\t- Error: Failed reading the trigger mode.\n");
 
@@ -2739,7 +2740,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 	result = wsa_get_sweep_trigger_type(dev, trigger_type);
 	if (result < 0)
 		return result;
-	printf("      Trigger mode: %s\n", trigger_type);
+	printf("      Trigger mode running: %s\n", trigger_type);
 
 	// print trigger level sweep value
 	result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
@@ -2787,7 +2788,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Trigger settings:\n");
     if (strcmp(list_values->trigger_type, "NONE") == 0) 
 	{
-		printf("    Trigger mode: %s\n",list_values->trigger_type);
+		printf("    Trigger mode running: %s\n",list_values->trigger_type);
 	} 
 	else
 	{

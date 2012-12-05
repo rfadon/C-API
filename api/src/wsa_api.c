@@ -417,7 +417,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
 		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
@@ -486,7 +486,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device* device, int32_t* samples_p
 int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_block)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	
 	if (packets_per_block < WSA4000_MIN_PACKETS_PER_BLOCK)
 		return WSA_ERR_INVNUMBER;
@@ -583,7 +583,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	// TODO get min & max rate
 	if (((rate != 0) && (rate < dev->descr.min_decimation)) || 
@@ -705,7 +705,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, cfreq);
 	if (result < 0)
@@ -771,7 +771,7 @@ int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
 int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	int64_t range = dev->descr.inst_bw;
 
 	// verify the value bwn -125 to 125MHz, "inclusive"
@@ -846,7 +846,7 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -904,7 +904,7 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 int16_t wsa_set_gain_rf (struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
 		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
@@ -978,7 +978,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -1046,7 +1046,7 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -1109,7 +1109,7 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev, char* fw_ver)
 int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, start_freq);
 	if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1211,7 +1211,7 @@ int16_t wsa_get_trigger_level(struct wsa_device* dev, int64_t* start_freq, int64
 int16_t wsa_set_trigger_enable(struct wsa_device* dev, int32_t enable)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (enable < 0 || enable > 1)
 		return WSA_ERR_INVTRIGGERMODE;
@@ -1271,7 +1271,7 @@ int16_t wsa_get_trigger_enable(struct wsa_device* dev, int32_t* enable)
 int16_t wsa_set_trigger_type(struct wsa_device* dev, char* trigger_type)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
 		sprintf(temp_str, "TRIGGER:TYPE %s \n", trigger_type);
@@ -1347,7 +1347,7 @@ int16_t wsa_get_reference_pll(struct wsa_device* dev, char* pll_ref)
 int16_t wsa_set_reference_pll(struct wsa_device* dev, char* pll_ref)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(pll_ref, "INT") == 0 || strcmp(pll_ref, "EXT") == 0)
 		sprintf(temp_str, "SOURCE:REFERENCE:PLL %s\n", pll_ref); 
@@ -1371,7 +1371,7 @@ int16_t wsa_set_reference_pll(struct wsa_device* dev, char* pll_ref)
 int16_t wsa_reset_reference_pll(struct wsa_device* dev)
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[MAX_STR_LEN];
 	
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
 	result = wsa_send_command(dev, temp_str);
@@ -1496,7 +1496,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num) 
 {
 	int16_t result = 0;
-	char temp_str[30];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -1563,7 +1563,7 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	
 	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
 		return WSA_ERR_INVRFESETTING;
@@ -1623,7 +1623,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
 		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
@@ -1688,7 +1688,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, int32_t* sam
 int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, int32_t samples_per_packet)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
 		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
@@ -1741,7 +1741,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device* device, uint32_t* pac
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t packets_per_block)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (packets_per_block < WSA4000_MIN_PACKETS_PER_BLOCK)
 		return WSA_ERR_INVNUMBER;
@@ -1801,7 +1801,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device* device, int32_t* rate)
 int16_t wsa_set_sweep_decimation(struct wsa_device* device, int32_t rate)
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	// TODO get min & max rate
 	if (((rate != 0) && (rate < device->descr.min_decimation)) || 
@@ -1871,7 +1871,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device* device, int64_t* start_freq, int64
 int16_t wsa_set_sweep_freq(struct wsa_device* device, int64_t start_freq, int64_t stop_freq )
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	
 	// verify start freq value
 	result = wsa_verify_freq(device, start_freq);
@@ -1937,7 +1937,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device* device, float* fshift)
 int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	int64_t range = device->descr.inst_bw;
 
 	// verify the value bwn -125 to 125MHz, "inclusive"
@@ -1962,7 +1962,7 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device* device, float fshift)
 int16_t wsa_set_sweep_freq_step(struct wsa_device* device, int64_t step)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(device, step);
 	if (result < 0)
@@ -2016,7 +2016,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device* device, int64_t* fstep)
 int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t seconds, int32_t microseconds)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if ((seconds < 0) || (microseconds < 0))
 	return WSA_ERR_INVDWELL;
@@ -2040,7 +2040,7 @@ int16_t wsa_set_sweep_dwell(struct wsa_device* device, int32_t seconds, int32_t 
 int16_t wsa_get_sweep_dwell(struct wsa_device* device, int32_t* seconds, int32_t* microseconds)
 {
 	struct wsa_resp query;		// store query results
-	double temp =5;
+	double temp = 5;
 	char* strtok_result;
 
 	wsa_send_query(device, "SWEEP:ENTRY:DWELL?\n", &query);
@@ -2083,22 +2083,24 @@ int16_t wsa_get_sweep_dwell(struct wsa_device* device, int32_t* seconds, int32_t
 int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, start_freq);
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 		return WSA_ERR_STARTOOB;
 
 	result = wsa_verify_freq(dev, stop_freq);
+
 	if (result == WSA_ERR_FREQOUTOFBOUND)
 		return WSA_ERR_STOPOOB;
 
 	if (stop_freq <= start_freq)
 		return WSA_ERR_INVSTOPFREQ;
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
-	
+
+	doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
 	return result;
 }
 
@@ -2167,7 +2169,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device* dev, int64_t* start_freq,
 int16_t wsa_set_sweep_trigger_type(struct wsa_device* dev, char* trigger_type)
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
 		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE %s \n", trigger_type);
@@ -2273,7 +2275,7 @@ int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id)
 {
 	int16_t result;
 	int32_t size;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	
 	// check if id is out of bounds
 	result = wsa_get_sweep_entry_size(dev, &size);
@@ -2299,7 +2301,7 @@ int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id)
 int16_t wsa_sweep_entry_delete_all(struct wsa_device *dev) 
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	
 	sprintf(temp_str, "SWEEP:ENTRY:DELETE ALL\n");
 	result = wsa_send_command(dev, temp_str);
@@ -2320,7 +2322,7 @@ int16_t wsa_sweep_entry_delete_all(struct wsa_device *dev)
 int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id) 
 {
 	int16_t result = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	int32_t size = 0;
 
 	result = wsa_get_sweep_entry_size(dev, &size);
@@ -2391,7 +2393,7 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 	int16_t result = 0;
 	char status[40];
 	int32_t size = 0;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 
 	// check if the wsa is already sweeping
 	result = wsa_get_sweep_status(dev, status);
@@ -2531,7 +2533,7 @@ int16_t wsa_sweep_entry_new(struct wsa_device *dev)
 int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t id) 
 {
 	int16_t result;
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	int32_t size = 0;
 
 	// check if id is out of bounds
@@ -2562,7 +2564,7 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t id)
  */
 int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_sweep_list* const sweep_list)
 {
-	char temp_str[50];
+	char temp_str[MAX_STR_LEN];
 	struct wsa_resp query;		// store query results
 	double temp;
 	int32_t size = 0;
