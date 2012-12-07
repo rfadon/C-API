@@ -186,7 +186,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Set the number of samples per packet to be captured\n"
 		"\t  Range: %hu - %hu, inclusive.\n"
 		"\t  ex: set spp 2000\n",
-		WSA4000_MIN_SAMPLES_PER_PACKET, WSA4000_MAX_SAMPLES_PER_PACKET);
+		WSA4000_MIN_SPP, WSA4000_MAX_SPP);
 	printf("  set trigger mode <level | none>\n"
 		"\t- Set trigger mode. When set to none, WSA will be in freerun.\n"
 		"\t  ex: set trigger mode level\n");
@@ -414,22 +414,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int16_t result = 0;
 	int32_t samples_per_packet;
 	int32_t packets_per_block = 0;
+	int32_t iq_pkt_count = 1;
 	char fw_ver[40];
 	int16_t acq_status;
 	int32_t exit_loop;
 	int32_t title_printed = FALSE;
 	int32_t dec = 0;
-	
-	// to store receiver data
-	int32_t reference_point = 0;
-	int32_t if_gain = 0;
-	int32_t rf_gain = 0;
-	int64_t frequency = 0;
-
-	// to store digitizer data
-	int16_t reference_level = 0;
-	int64_t bandwidth = 0;
-	float rf_frequency_offset = 0;
+	int32_t i;
+	int j;
 
 	char file_name[40];
 	char sweep_status[40];
@@ -464,14 +456,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// *****
 	// Initialize packet order indicators of all the packet types
 	// *****
-	uint8_t expected_if_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
-	uint8_t expected_digitizer_packet_order_indicator = UNASSIGNED_PACKET_ORDER_INDICATOR;
-	uint8_t expected_receiver_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
-	uint8_t expected_extension_packet_order_indicator =  UNASSIGNED_PACKET_ORDER_INDICATOR;
+	uint8_t expected_if_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
+	uint8_t expected_digitizer_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
+	uint8_t expected_receiver_pkt_count =  UNASSIGNED_VRT_PKT_COUNT;
+	uint8_t expected_extension_pkt_count =  UNASSIGNED_VRT_PKT_COUNT;
 
-	int32_t iq_pkt_count = 1;
-	int32_t i;
-	int j;
 
 	// *****
 	// Get parameters to stored in the file
@@ -479,8 +468,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	// which header info to include...
 	// *****
 
-	printf("Gathering WSA settings...");	
-	
+	printf("Gathering WSA settings... ");	
 
 	// determine if the another user is capturing data
 	result = wsa_system_acq_status(dev, &acq_status);
@@ -488,25 +476,22 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return result;
 	else if (acq_status == 0) 
 	{
-		printf("Read access denied, use the 'get acq access' \n");
+		printf("\nError: Data acquisition access denied, do 'get acq access' "
+				"command to request the access, then do 'save' command again.\n");
 		return result;
-	}
-
-	// Get sweep status
-	result = wsa_get_sweep_status(dev, sweep_status);
-	if (result < 0)
-		return result;
-	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) != 0 && strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) != 0)
-	{
-		return WSA_ERR_SWEEPMODEUNDEF;
 	}
 
 	result = wsa_get_fw_ver(dev, fw_ver);
 	if (result < 0)
 		return result;
+
+	// Get sweep status
+	result = wsa_get_sweep_status(dev, sweep_status);
+	if (result < 0)
+		return result;
+
 	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
 	{	
-
 		// Get samples per packet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
 		doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
@@ -518,26 +503,25 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		doutf(DMED, "In save_data_to_file: wsa_get_packets_per_block returned %hd\n", result);	
 		if (result < 0)
 			return result;	
-	printf(" done.\n");
-
+		
+		printf(" done.\nData capture begins\n");
 	}
-
-	// if sweep mode is enabled, samples per packet is set to the 
-	// maximum value to hold iq packets with variant sizes
 	else
 	{
 		printf(" done.\n");
-		printf("Sweep Mode is enabled. \n Press 'ESC' key to stop data capture.\n");
+		printf("Capturing data in sweep mode continuously.\n"
+				"   Use 'ESC' key to stop saving data to a file.\n");
+	
+		// Set spp to default maximum to hold iq packets with variant sizes
 		samples_per_packet = dev->descr.max_sample_size;
 	}
 	
 	
-	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
-	// folder called CAPTURES
+	// create and verify file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" 
+	// in a folder called CAPTURES
 	generate_file_name(file_name, prefix, ext);
-	
-	// create a new file for data capture
-	if ((iq_fptr = fopen(file_name, "a+")) == NULL) {
+	if ((iq_fptr = fopen(file_name, "a+")) == NULL) 
+	{
 		printf("\nError creating the file \"%s\"!\n", file_name);
 		
 		return WSA_ERR_FILECREATEFAILED;
@@ -603,7 +587,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-
 	// Allocate i buffer space
 	i_buffer = (int16_t*) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
 	if (i_buffer == NULL)
@@ -654,56 +637,60 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(i_buffer);
 			free(q_buffer);
 			free(extension);
+
 			return result;
 		}
 	}
 
-	// Get the start time
+	// Initialize values
+	i = 0;
+	exit_loop = 0;
+
+	// Get the data saving start time
 	get_current_time(&run_start_time);
 
-	// Initialize counter i
-	i = 0;
-
 	// loop to save data in file
-	exit_loop = 0;
 	while (exit_loop != 1)
 	{
 		i++;
-		// Get the start time
+		
+		// Get the start time of each packet capture
 		get_current_time(&capture_start_time);
 
-		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer, extension, 
-					i_buffer, q_buffer, samples_per_packet);
+		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
+					extension, i_buffer, q_buffer, samples_per_packet);
 		if (result < 0)
 			break;
-	
 		
-		// get the end time of each data capture
+		// get the end time of each packet  capture
 		get_current_time(&capture_end_time);
-		// sum it up
+		
+		// sum the total packets capture time
 		capture_time_ms += get_time_difference(&capture_start_time, &capture_end_time);
 
-		// TODO handle the packet order indicator for rec'r & dig'r as well		
-
 		// handle extension packets
-		if (header->packet_type == EXTENSION_PACKET_TYPE) 
+		if (header->packet_type == EXTENSION_PACKET_TYPE)
 		{
 			// initialize extension packet order indicator
-			if (expected_extension_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
-				expected_extension_packet_order_indicator = extension->packet_order_indicator;			
+			if (expected_extension_pkt_count == UNASSIGNED_VRT_PKT_COUNT)
+				expected_extension_pkt_count = extension->pkt_count;			
 				
 			// verify the extension packet order indicator
-			if (extension->packet_order_indicator != expected_extension_packet_order_indicator)
+			if (extension->pkt_count != expected_extension_pkt_count)
 			{
+				printf("Error: VRT extension context packet count is out of "
+					"order, expecting: %d, received: %d\n", 
+					expected_extension_pkt_count, extension->pkt_count);
 				result = WSA_ERR_PACKETOUTOFORDER;
+
 				break;
 			}
-				
-			expected_extension_packet_order_indicator++;
 
-			// reset  extension packet order indicator to original value
-			if (expected_extension_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-			expected_extension_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+			// if pkt count reaches max value, reset to the beginning
+			if (expected_extension_pkt_count >= MAX_VRT_PKT_COUNT)
+				expected_extension_pkt_count = MIN_VRT_PKT_COUNT;
+			else
+				expected_extension_pkt_count++;
 			
 			// TODO find meaningful way to convey the sweep_start_id to the user
 			//if (header->stream_id == EXTENSION_STREAM_ID)
@@ -711,76 +698,56 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			i--;
 			continue;
 		}
+
 		// handle context packets
-		if (header->packet_type == CONTEXT_PACKET_TYPE) 
+		else if (header->packet_type == CONTEXT_PACKET_TYPE) 
 		{
-			// handle receiver packet
+			// handle receiver context packet
 			if (header->stream_id == RECEIVER_STREAM_ID)
 			{
-				
 				// initialize receiver packet order indicator
-				if (expected_receiver_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
-					expected_receiver_packet_order_indicator = receiver->packet_order_indicator;
+				if (expected_receiver_pkt_count == UNASSIGNED_VRT_PKT_COUNT)
+					expected_receiver_pkt_count = receiver->pkt_count;
 				
 				// verify the receiver packet order indicator
-				if (receiver->packet_order_indicator != expected_receiver_packet_order_indicator)
+				if (receiver->pkt_count != expected_receiver_pkt_count)
 				{
+					printf("Error: VRT receiver context packet count is out of"
+						" order, expecting: %d, received: %d\n", 
+					expected_receiver_pkt_count, receiver->pkt_count);
 					result = WSA_ERR_PACKETOUTOFORDER;
 					break;
 				}
-				expected_receiver_packet_order_indicator++;
-				// reset packet order indicator to original value
-				if (expected_receiver_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_receiver_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
 
-				// handle change in reference point
-				if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR_MASK) == REFERENCE_POINT_FIELD_INDICATOR_MASK)
-					reference_point = (int32_t) receiver->reference_point;		
-
-				// handle change in frequency
-				else if ((receiver->indicator_field  & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR_MASK)
-					frequency = (int64_t) receiver->freq;		
-
-				// handle change in gain rf/if 
-				else if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR_MASK) 
-				{
-					if_gain = (int32_t) receiver->gain_if;
-					rf_gain = (int32_t) receiver->gain_rf;
-				}
+				// if pkt count reaches max value, reset to the beginning
+				if (expected_receiver_pkt_count >= MAX_VRT_PKT_COUNT)
+					expected_receiver_pkt_count = MIN_VRT_PKT_COUNT;
+				else
+					expected_receiver_pkt_count++;
 			}
 
-			// handle possible digitizer changes
+			// handle digitizer context packet
 			else if (header->stream_id == DIGITIZER_STREAM_ID)
 			{
-				
 				// initialize digitizer packet order indicator
-				if (expected_digitizer_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)
-					expected_digitizer_packet_order_indicator = digitizer->packet_order_indicator;			
+				if (expected_digitizer_pkt_count == UNASSIGNED_VRT_PKT_COUNT)
+					expected_digitizer_pkt_count = digitizer->pkt_count;			
 				
 				// verify the digitizer packet order indicator
-				if (digitizer->packet_order_indicator != expected_digitizer_packet_order_indicator)
+				if (digitizer->pkt_count != expected_digitizer_pkt_count)
 				{
+					printf("Error: VRT digitizer context packet count is out of"
+						" order, expecting: %d, received: %d\n", 
+					expected_digitizer_pkt_count, digitizer->pkt_count);
 					result = WSA_ERR_PACKETOUTOFORDER;
 					break;
-				}
-				
-				expected_digitizer_packet_order_indicator++;
+				}				
 
-				// reset  digitizer packet order indicator to original value
-				if (expected_digitizer_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-				expected_digitizer_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
-
-				// handle change in bandwidth
-				if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR_MASK) == BANDWIDTH_FIELD_INDICATOR_MASK) 
-					bandwidth = (int64_t) digitizer->bandwidth;
-		
-				// handle change in frequency offset
-				else if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR_MASK) == RF_FREQUENCY_OFFSET_INDICATOR_MASK)
-					rf_frequency_offset = (float)  digitizer->rf_frequency_offset;
-
-				// handle change in reference level
-				else if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR_MASK) == REFERENCE_LEVEL_FIELD_INDICATOR_MASK)
-					reference_level = (int16_t) digitizer->reference_level;			
+				// if pkt count reaches max value, reset to the beginning
+				if (expected_digitizer_pkt_count >= MAX_VRT_PKT_COUNT)
+					expected_digitizer_pkt_count = MIN_VRT_PKT_COUNT;
+				else
+					expected_digitizer_pkt_count++;
 			}
 
 			i--;
@@ -792,49 +759,48 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		{
 			if (header->stream_id == IF_DATA_STREAM_ID)
 			{
-			
-				if ( (strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0 || (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0 && title_printed == FALSE))) 
+				if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
+					expected_if_pkt_count = header->pkt_count;
+
+				if (header->pkt_count != expected_if_pkt_count)
 				{
-					title_printed = TRUE;
-					fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefPoint,RefLevel\n");	
-					fprintf(iq_fptr, "%s,%d,%lu,%llu,%lld,%0.3f,%lf,%lf,%lf,%d,%lf\n",fw_ver,
-																						header->samples_per_packet, 
-																						header->time_stamp.sec,
-																						header->time_stamp.psec,
-																						frequency,
-																						(float) bandwidth,
-																						(float) rf_frequency_offset,
-																						(float) if_gain,
-																						(float) rf_gain,
-																						(int32_t) reference_point,
-																						(float) reference_level);
-				}
-
-				if (expected_if_packet_order_indicator == UNASSIGNED_PACKET_ORDER_INDICATOR)		
-					expected_if_packet_order_indicator = header->packet_order_indicator;
-
-				if (header->packet_order_indicator != expected_if_packet_order_indicator)
-				{
-
+					printf("Error: VRT IF data packet count is out of"
+						" order, expecting: %d, received: %d\n", 
+					expected_if_pkt_count, header->pkt_count);
 					result = WSA_ERR_PACKETOUTOFORDER;
 					break;
 				}
-
-				expected_if_packet_order_indicator++;	
 			
-				if (expected_if_packet_order_indicator > MAX_PACKET_ORDER_INDICATOR)
-					expected_if_packet_order_indicator = MIN_PACKET_ORDER_INDICATOR;
+				if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
+					expected_if_pkt_count = MIN_VRT_PKT_COUNT;
+				else
+					expected_if_pkt_count++;
+			
+				if (((strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0) ||
+					(strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0 && title_printed == FALSE))) 
+				{
+					title_printed = TRUE;
+					fprintf(iq_fptr, "FwVersion,SampleSize,Seconds,Picoseconds,"
+							"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
+					fprintf(iq_fptr, "%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
+							fw_ver,
+							header->samples_per_packet, 
+							header->time_stamp.sec,
+							header->time_stamp.psec,
+							(int64_t) receiver->freq,
+							(float) digitizer->bandwidth,
+							(float) digitizer->rf_freq_offset,
+							(float) receiver->gain_if,
+							(float) receiver->gain_rf,
+							(float) digitizer->reference_level);
+				}	
 
 				for (j = 0; j < header->samples_per_packet; j++)
 					fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
 		
+				printf(".");
 				if (!(iq_pkt_count % 10))
-				{
-					if (iq_pkt_count != packets_per_block)
-						printf(" \n");
-				}
-				else 
-					printf(".");
+					printf("\n");
 
 				iq_pkt_count++;
 
@@ -842,34 +808,27 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0)
 				{
 					if (i >= packets_per_block) 
-					{
+					{		
+						printf("\nCapture done.\n\n");
 						exit_loop = TRUE;
 					}
 				}		
 		 
 				// if sweep mode is enabled, capture data until the 'ESC' key is pressed
-				else 
-				{
-					if (kbhit() != FALSE)
-					{
-						if (getch() == 0x1b) {    // esc key
-							 
-							printf("\nEscape key pressed, data capture stopped...\n");
-							exit_loop = TRUE;
-						}
-					}
+				else if (kbhit() && (getch() == 0x1b)) // esc key	
+				{			 
+					printf("\n'Esc' key pressed, data capture stopped.\n\n");
+					exit_loop = TRUE;
 				}
-			}
-		}
-	}
+			} // end if IF_DATA_STREAM_ID
+		} // end if IF_PACKET_TYPE
+	} // end save data while loop
 
 	if (result >= 0) 
 	{
 		// get the total run end time
 		get_current_time(&run_end_time);
 		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
-		
-		printf("done.\n\n");
 		
 		printf("(Data capture time: %.3f sec; Total run time: %.3f sec)\n", 
 			capture_time_ms,
@@ -1305,10 +1264,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (strcmp(cmd_words[2], "MAX") == 0)
 					printf("Maximum samples per packet: %hu\n", 
-						WSA4000_MAX_SAMPLES_PER_PACKET);
+						WSA4000_MAX_SPP);
 				else if (strcmp(cmd_words[2], "MIN") == 0)
 					printf("Minimum samples per packet: %hu\n", 
-						WSA4000_MIN_SAMPLES_PER_PACKET);
+						WSA4000_MIN_SPP);
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
@@ -1614,8 +1573,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
 					if (result == WSA_ERR_INVSAMPLESIZE)
 						sprintf(msg, "\n\t- Valid range: %hu to %hu.",
-							WSA4000_MIN_SAMPLES_PER_PACKET,
-							WSA4000_MAX_SAMPLES_PER_PACKET);
+							WSA4000_MIN_SPP,
+							WSA4000_MAX_SPP);
 				}
 				else
 					result = WSA_ERR_INVNUMBER;
@@ -1943,8 +1902,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								(int32_t) temp_long);
 						if (result == WSA_ERR_INVSAMPLESIZE)
 							sprintf(msg, "\n\t- Valid range: %hu to %hu.\n",
-								WSA4000_MIN_SAMPLES_PER_PACKET,
-								WSA4000_MAX_SAMPLES_PER_PACKET);
+								WSA4000_MIN_SPP,
+								WSA4000_MAX_SPP);
 					}
 				} // end set SPP
 				else 
@@ -2649,10 +2608,10 @@ void print_wsa_stat(struct wsa_device *dev) {
 int16_t gain_rf_to_str(enum wsa_gain gain, char *gain_str)
 {
 	switch(gain) {
-		case(WSA_GAIN_HIGH):	strcpy(gain_str, "HIGH"); break;
-		case(WSA_GAIN_MED):		strcpy(gain_str, "MEDIUM"); break;
-		case(WSA_GAIN_LOW):		strcpy(gain_str, "LOW"); break;
-		case(WSA_GAIN_VLOW):	strcpy(gain_str, "VLOW"); break;
+		case(WSA_GAIN_HIGH): strcpy(gain_str, WSA_GAIN_HIGH_STRING); break;
+		case(WSA_GAIN_MED):	 strcpy(gain_str, WSA_GAIN_MED_STRING); break;
+		case(WSA_GAIN_LOW):	 strcpy(gain_str, WSA_GAIN_LOW_STRING); break;
+		case(WSA_GAIN_VLOW): strcpy(gain_str, WSA_GAIN_VLOW_STRING); break;
 		default: strcpy(gain_str, "Unknown"); break;
 	}
 	

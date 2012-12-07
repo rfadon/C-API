@@ -42,7 +42,7 @@ void generate_file_name(char* file_name, const char* prefix, const char* extensi
 		extension);
 }
 
-void open_captures_directory()
+void open_captures_directory(void)
 {
 	char dir[500];	// be generous b/c overflow will kill ur program.
 
@@ -55,7 +55,7 @@ void open_captures_directory()
 		printf("Open failed!\n");
 }
 
-void print_captures_directory()
+void print_captures_directory(void)
 {
 	printf("File directory is: \"%s\\CAPTURES\\\"\n", 
 		_getcwd(NULL, 0));

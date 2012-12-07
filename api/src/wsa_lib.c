@@ -21,8 +21,8 @@ int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
 void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
-void extract_digitizer_packet_data(uint8_t* temp_buffer,struct wsa_digitizer_packet* const digitizer);
-void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_packet* const extension);
+void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer);
+void extract_extension_packet_data(uint8_t* temp_buffer, struct wsa_extension_packet* const extension);
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
@@ -62,22 +62,18 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	// 3rd, set some values base on the model
 	// TODO: read from regs/eeprom instead once available
 	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
-		dev->descr.max_sample_size = WSA4000_MAX_SAMPLE_SIZE;
-		dev->descr.inst_bw = (uint64_t) WSA4000_INST_BW;
+		dev->descr.max_sample_size = WSA4000_MAX_CAPTURE_BLOCK;
+		dev->descr.inst_bw = (uint64_t) WSA4000_IBW;
 		
 		// if it's RFE0440
 		if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0) {
 			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0440_MAX_FREQ;
 			dev->descr.min_tune_freq = (uint64_t) WSA_RFE0440_MIN_FREQ;
 			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
-			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
-				WSA_RFE0440_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MED] = 
-				WSA_RFE0440_ABS_AMP_MED;
-			dev->descr.abs_max_amp[WSA_GAIN_LOW] = 
-				WSA_RFE0440_ABS_AMP_LOW;
-			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = 
-				WSA_RFE0440_ABS_AMP_VLOW;
+			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_RFE0440_ABS_AMP_HIGH;
+			dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_RFE0440_ABS_AMP_MED;
+			dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_RFE0440_ABS_AMP_LOW;
+			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_RFE0440_ABS_AMP_VLOW;
 		}
 
 		// if it's RFE0560
@@ -89,14 +85,10 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			dev->descr.min_if_gain = WSA_RFE0560_MIN_IF_GAIN;
 			dev->descr.max_decimation = WSA_RFE0560_MAX_DECIMATION;
 			dev->descr.min_decimation = WSA_RFE0560_MIN_DECIMATION;
-			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = 
-				WSA_RFE0560_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MED] = 
-				WSA_RFE0560_ABS_AMP_MED;
-			dev->descr.abs_max_amp[WSA_GAIN_LOW] = 
-				WSA_RFE0560_ABS_AMP_LOW;
-			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = 
-				WSA_RFE0560_ABS_AMP_VLOW;
+			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_RFE0560_ABS_AMP_HIGH;
+			dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_RFE0560_ABS_AMP_MED;
+			dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_RFE0560_ABS_AMP_LOW;
+			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_RFE0560_ABS_AMP_VLOW;
 		}
 	}
 
@@ -825,7 +817,6 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		uint8_t* const data_buffer)
 {	
 	uint8_t* vrt_header_buffer;
-	uint8_t packet_order_indicator = 0;
 	int32_t vrt_header_bytes;
 
 	uint8_t* vrt_packet_buffer;
@@ -840,7 +831,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	uint16_t iq_packet_size;
 
 	// reset header
-	header->packet_order_indicator = 0;
+	header->pkt_count = 0;
 	header->samples_per_packet = 0;
 	header->time_stamp.sec = 0;
 	header->time_stamp.psec = 0;
@@ -861,12 +852,17 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	}
 
 	// retrieve the first two words of the packet to determine if the packet contains IQ data or context data
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_header_buffer, vrt_header_bytes, TIMEOUT, &bytes_received);	
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
+												vrt_header_buffer, 
+												vrt_header_bytes, 
+												TIMEOUT, 
+												&bytes_received);	
 	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_header_buffer);
+
 		return socket_receive_result;
 	}
 	
@@ -877,14 +873,13 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	// Get the packet type
 	header->packet_type = vrt_header_buffer[0] >> 4;
 		
-	// Get the 4-bit "Pkt Count" number, referred to here as "packet_order_indicator"
+	// Get the 4-bit VRT "Pkt Count"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 	// It provides a simple verification that packets are arriving in the right order
-	packet_order_indicator = (uint8_t) vrt_header_buffer[1] & 0x0f;	
-	doutf(DLOW, "Packet order indicator: %hu 0x%02X\n", packet_order_indicator, packet_order_indicator);
-	header->packet_order_indicator = packet_order_indicator;
+	header->pkt_count = (uint8_t) vrt_header_buffer[1] & 0x0f;	
+	doutf(DLOW, "Packet order indicator: 0x%02X\n", header->pkt_count);
 	
-	//Check TSI field for 01 & get sec time stamp at the 3rd word
+	// Check TSI field for 0x01 & get sec time stamp at the 3rd word
 	if (!((vrt_header_buffer[1] & 0xC0) >> 6)) 
 	{
 		doutf(DHIGH, "ERROR: Second timestamp is not of UTC type.\n");
@@ -896,7 +891,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	packet_size = (((uint16_t) vrt_header_buffer[2]) << 8) + (uint16_t) vrt_header_buffer[3];
 	header->samples_per_packet = packet_size - VRT_HEADER_SIZE - VRT_TRAILER_SIZE;
 	
-	//Store the Stream Identifier to determine if the packet is an IQ packet or a context packet
+	// Store the Stream Identifier to determine if the packet is an IQ packet or a context packet
 	stream_identifier_word = (((uint32_t) vrt_header_buffer[4]) << 24) 
 			+ (((uint32_t) vrt_header_buffer[5]) << 16) 
 			+ (((uint32_t) vrt_header_buffer[6]) << 8) 
@@ -922,11 +917,15 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	{
 		return WSA_ERR_MALLOCFAILED;
 	}
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+
+	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
+		vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n",
+		socket_receive_result);
 	if (socket_receive_result < 0)
 	{
-		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
+		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", 
+			wsa_get_error_msg(socket_receive_result));
 		free(vrt_packet_buffer);
 		free(vrt_header_buffer);
 
@@ -966,30 +965,24 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	
 	if (stream_identifier_word == EXTENSION_STREAM_ID)
 	{
-		// store the sweep data in the appropriate field
+		// extract and store the extension context data
 		extract_extension_packet_data(vrt_packet_buffer, extension);
 		
-		// store the packet order indicator in the extension structure
-		extension->packet_order_indicator = header->packet_order_indicator;
-
+		extension->pkt_count = header->pkt_count;
 	}
-		
-
 	else if (stream_identifier_word == RECEIVER_STREAM_ID) 
 	{
-		// store the receiver data in the receiver structure
+		// extract and store the receiver context data
 		extract_receiver_packet_data(vrt_packet_buffer, receiver);
 		
-		// store the packet order indicator in the receiver structure
-		receiver->packet_order_indicator = header->packet_order_indicator;
+		receiver->pkt_count = header->pkt_count;
 	} 
 	else if (stream_identifier_word == DIGITIZER_STREAM_ID) 
 	{
-		// store the digitizer data in the digitizer structure
+		// extract and store the digitizer context data
 		extract_digitizer_packet_data(vrt_packet_buffer, digitizer);
-
-		// store the packet order indicator in the digitizer structure
-		digitizer->packet_order_indicator = header->packet_order_indicator;
+		
+		digitizer->pkt_count = header->pkt_count;
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
 	else if (stream_identifier_word == IF_DATA_STREAM_ID)
@@ -1009,8 +1002,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 		// *****
 		// Copy the IQ data payload to the provided buffer
 		// *****
-		memcpy(data_buffer, vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
-				iq_packet_size * BYTES_PER_VRT_WORD);
+		memcpy(data_buffer, 
+			vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
+			iq_packet_size * BYTES_PER_VRT_WORD);
 	}
 		
 	free(vrt_packet_buffer);
@@ -1092,7 +1086,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 								(int32_t) temp_buffer[15]);
 	
 	//determine if reference point data is present
-	if ((receiver->indicator_field & REFERENCE_POINT_FIELD_INDICATOR_MASK)== REFERENCE_POINT_FIELD_INDICATOR_MASK) 
+	if ((receiver->indicator_field & REF_POINT_INDICATOR_MASK)== REF_POINT_INDICATOR_MASK) 
 	{
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
 							(((int32_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1103,7 +1097,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if frequency data is present
-	if ((receiver->indicator_field  & FREQ_FIELD_INDICATOR_MASK) == FREQ_FIELD_INDICATOR_MASK)
+	if ((receiver->indicator_field  & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
 	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
@@ -1123,7 +1117,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	}
 	
 	//determine if gain data is present
-	if ((receiver->indicator_field & GAIN_FIELD_INDICATOR_MASK) == GAIN_FIELD_INDICATOR_MASK) 
+	if ((receiver->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK) 
 	{
 		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
 							temp_buffer[data_pos + 1]) / 128.0;
@@ -1177,10 +1171,10 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 	
-	
 	//determine if bandwidth data is present	
-	if ((digitizer->indicator_field & BANDWIDTH_FIELD_INDICATOR_MASK) ==  BANDWIDTH_FIELD_INDICATOR_MASK) {
-		
+	if ((digitizer->indicator_field & BW_INDICATOR_MASK) ==  
+		BW_INDICATOR_MASK) 
+	{		
 		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
 						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
@@ -1197,11 +1191,10 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 		data_pos = data_pos + 8;
 	}
 
-
 	//determine if rf frequency offset data is present
-	if ((digitizer->indicator_field & RF_FREQUENCY_OFFSET_INDICATOR_MASK) == RF_FREQUENCY_OFFSET_INDICATOR_MASK) 
+	if ((digitizer->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == 
+		RF_FREQ_OFFSET_INDICATOR_MASK) 
 	{
-			
 		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
 						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
@@ -1214,12 +1207,14 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 
 		rf_freq_int_part = (long double) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
 		rf_freq_dec_part = (long double) (rf_freq_word2 & 0x000fffff);
-		digitizer->rf_frequency_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
+		digitizer->rf_freq_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
 		
 		data_pos = data_pos + 8;
 	}
+
 	//determine if the reference level is present
-	if ((digitizer->indicator_field & REFERENCE_LEVEL_FIELD_INDICATOR_MASK) == REFERENCE_LEVEL_FIELD_INDICATOR_MASK) 
+	if ((digitizer->indicator_field & REF_LEVEL_INDICATOR_MASK) == 
+		REF_LEVEL_INDICATOR_MASK) 
 	{
 					
 		ref_level_word = ((((int16_t) (temp_buffer[data_pos + 2] << 8))) +
@@ -1240,7 +1235,8 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
  * @param extension - a pointer structure to store the enxtension packet data 
  * @return None
  */
-void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_packet* const extension)
+void extract_extension_packet_data(uint8_t* temp_buffer,
+		struct wsa_extension_packet* const extension)
 {
 	int32_t data_pos = 16;
 
@@ -1253,10 +1249,10 @@ void extract_extension_packet_data(uint8_t* temp_buffer,struct wsa_extension_pac
 	// determine if a sweep start id is in the packet
 	if ((extension->indicator_field & SWEEP_START_ID_INDICATOR_MASK) == SWEEP_START_ID_INDICATOR_MASK) 
 	{
-	extension->sweep_start_id = ((((uint32_t) temp_buffer[data_pos]) << 24) +
-						(((uint32_t) temp_buffer[data_pos + 1]) << 16) +
-						(((uint32_t) temp_buffer[data_pos + 2]) << 8) + 
-			    		(uint32_t) temp_buffer[data_pos + 3]);
+		extension->sweep_start_id = 
+				((((uint32_t) temp_buffer[data_pos]) << 24) +
+				(((uint32_t) temp_buffer[data_pos + 1]) << 16) +
+				(((uint32_t) temp_buffer[data_pos + 2]) << 8) + 
+			    (uint32_t) temp_buffer[data_pos + 3]);
 	}
-
 }

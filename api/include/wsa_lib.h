@@ -11,17 +11,17 @@
 #define NUM_RF_GAINS 5	// including 0 but not use
 #define MHZ 1000000ULL
 
-#define VRT_HEADER_SIZE 5
 
+// *****
+// VRT PACKET related
+// *****
+#define VRT_HEADER_SIZE 5
 #define VRT_TRAILER_SIZE 1
 #define BYTES_PER_VRT_WORD 4
 
-#define MAX_PACKET_ORDER_INDICATOR 15
-#define MIN_PACKET_ORDER_INDICATOR 0
+#define MAX_VRT_PKT_COUNT 15
+#define MIN_VRT_PKT_COUNT 0
 
-// *****
-// VRT PACKET related IDs/masks
-// *****
 // VRT packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
@@ -34,21 +34,25 @@
 #define EXTENSION_PACKET_TYPE 5
 
 // Receiver context data field indicator masks
-#define REFERENCE_POINT_FIELD_INDICATOR_MASK 0x40000000
-#define FREQ_FIELD_INDICATOR_MASK 0x08000000
-#define GAIN_FIELD_INDICATOR_MASK 0x00800000
+#define REF_POINT_INDICATOR_MASK 0x40000000
+#define FREQ_INDICATOR_MASK 0x08000000
+#define GAIN_INDICATOR_MASK 0x00800000
 
 // Digitizer context data field indicator masks
-#define BANDWIDTH_FIELD_INDICATOR_MASK 0xa0000000
-#define RF_FREQUENCY_OFFSET_INDICATOR_MASK 0x04000000
-#define REFERENCE_LEVEL_FIELD_INDICATOR_MASK 0x01000000
+#define BW_INDICATOR_MASK 0xa0000000
+#define RF_FREQ_OFFSET_INDICATOR_MASK 0x04000000
+#define REF_LEVEL_INDICATOR_MASK 0x01000000
 
 // extension packet data field indicator masks
 #define SWEEP_START_ID_INDICATOR_MASK 0x00000001
 
+
 // *****
 // SCPI related registers/bits
 // *****
+
+// Control commands syntax supported types
+#define SCPI "SCPI"	/* SCPI control commands syntax */
 
 // Status Byte Register SBR, use with SRE
 #define SCPI_SBR_EVTAVL 0x04	// Error/event queue available
@@ -58,7 +62,6 @@
 #define SCPI_SBR_RQS 0x40		// Request Service register
 #define SCPI_SBR_OSR 0x80		// Operational Status register
 
-
 // Standard Event Status Register ESR, use with ESE
 #define SCPI_ESR_OPC 0x00	// Operation complete
 #define SCPI_ESR_QYE 0x04	// Query error
@@ -67,74 +70,48 @@
 #define SCPI_ESR_CME 0x20	// Command error
 #define SCPI_ESR_PON 0x80	// Power ON
 
-
 // Operation Status Register OSR
 #define SCPI_OSR_CALI 0x0001	// RFE Calibrating
 #define SCPI_OSR_SETT 0x0002	// Settling
 #define SCPI_OSR_SWE  0x0008	// Sweeping
 //#define SCPI_OSR_MEAS 0x0010	// Measuring?
 #define SCPI_OSR_TRIG 0x0020	// Triggering
-#define SCPI_OSR_CORR 0x0080	//Correcting which? IQ or DC ?
-
+#define SCPI_OSR_CORR 0x0080	// Correcting which? IQ or DC ?
 
 // Questionable Status Register QSR
 #define SCPI_QSR_POW 0x0002		// Battery power ?
 #define SCPI_QSR_TEMP 0x0010	// Temperature ?
 #define SCPI_QSR_FREQ 0x0020	// Frequency unlocked ?
 #define SCPI_QSR_PHAS 0x0040	// IQ out of phase ?
-#define SCPI_QSR_CALI 0x0100	//RFE Calibration ?
+#define SCPI_QSR_CALI 0x0100	// RFE Calibration ?
 
 
 //*****
-// WSA specific values
+// WSA4000 specific values
 //*****
 #define WSA4000 "WSA4000"
-#define WSA4000_INST_BW 125000000ULL
-#define WSA4000_MIN_SAMPLE_SIZE 128
-#define WSA4000_MAX_SAMPLE_SIZE (32 * 1024 * 1024)
-
-// rf gain modes
-#define WSA4000_VLOW_RF_GAIN "VLOW"
-#define WSA4000_LOW_RF_GAIN "LOW"
-#define WSA4000_MED_RF_GAIN "MED"
-#define WSA4000_HIGH_RF_GAIN "HIGH"
-
-
-enum wsa_gain {
-	WSA_GAIN_HIGH = 1,
-	WSA_GAIN_MED,
-	WSA_GAIN_LOW,
-	WSA_GAIN_VLOW
-};
-
-#define WSA4000_MIN_SAMPLES_PER_PACKET 128
+#define WSA4000_IBW 125000000ULL
+#define WSA4000_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
 
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA4000_MAX_SAMPLES_PER_PACKET (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
-#define WSA4000_MIN_PACKETS_PER_BLOCK 1
-#define WSA4000_MAX_PACKETS_PER_BLOCK INT_MAX
+#define WSA4000_MAX_SPP (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
+#define WSA4000_MIN_SPP 128
+#define WSA4000_MIN_PPB 1
+#define WSA4000_MAX_PPB UINT_MAX
 
-// PLL Values
-#define PLL_ENT 1   
-#define PLL_EXT 2
-
-// *****
-// SWEEP SPECIFIC SPECIFIC
-// *****
+// sweep iterations
 #define WSA4000_MIN_SWEEP_ITERATION 0
-#define WSA4000_MAX_SWEEP_ITERATION 4294967295 // RANDOM NUMBER FOR NOW. CHECK VRT & DDR SIZE.
+#define WSA4000_MAX_SWEEP_ITERATION UINT_MAX
 
 // sweep id values
 #define WSA4000_MIN_SWEEP_START_ID 0
-#define WSA4000_MAX_SWEEP_START_ID  4294967295
+#define WSA4000_MAX_SWEEP_START_ID  UINT_MAX
 
 // sweep states
-
 #define WSA4000_SWEEP_STATE_RUNNING "RUNNING"
 #define WSA4000_SWEEP_STATE_STOPPED "STOPPED"
-
 
 
 // *****
@@ -163,15 +140,28 @@ enum wsa_gain {
 #define WSA_RFE0560_FREQRES	100000ULL // to read in the register
 #define WSA_RFE0560_MAX_ANT_PORT 2
 
-
 // TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S -> Read from eeprom
 #define WSA_RFE0560_ABS_AMP_HIGH 0
 #define WSA_RFE0560_ABS_AMP_MED 15
 #define WSA_RFE0560_ABS_AMP_LOW 15
 #define WSA_RFE0560_ABS_AMP_VLOW 15
 
-// Control commands syntax supported types
-#define SCPI "SCPI"	/* SCPI control commands syntax */
+
+// *****
+// Commons for different products
+// *****
+// RF gain modes
+#define WSA_GAIN_VLOW_STRING "VLOW"
+#define WSA_GAIN_LOW_STRING "LOW"
+#define WSA_GAIN_MED_STRING "MEDIUM"
+#define WSA_GAIN_HIGH_STRING "HIGH"
+
+enum wsa_gain {
+	WSA_GAIN_HIGH = 1,
+	WSA_GAIN_MED,
+	WSA_GAIN_LOW,
+	WSA_GAIN_VLOW
+};
 
 // ////////////////////////////////////////////////////////////////////////////
 // STRUCTS DEFINES                                                           //
@@ -204,7 +194,7 @@ struct wsa_time {
 
 //structure to hold the header of a packet
 struct wsa_vrt_packet_header {
-	uint8_t packet_order_indicator;
+	uint8_t pkt_count;
 	uint16_t samples_per_packet;
 	uint8_t packet_type;
 	uint32_t stream_id;
@@ -214,7 +204,7 @@ struct wsa_vrt_packet_header {
 //structure to hold receiver packet data
 struct wsa_receiver_packet {
 	int32_t indicator_field;
-	uint8_t packet_order_indicator;
+	uint8_t pkt_count;
 	int32_t reference_point;
 	long double freq;
 	double gain_if;
@@ -225,16 +215,16 @@ struct wsa_receiver_packet {
 //structure to hold digitizer packet data
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
-	uint8_t packet_order_indicator;
+	uint8_t pkt_count;
 	long double bandwidth;
 	int16_t reference_level;
-	long double rf_frequency_offset;
+	long double rf_freq_offset;
 };
 
 //structure to hold extension packet data
 struct wsa_extension_packet {
 	int32_t indicator_field;
-	uint8_t packet_order_indicator;
+	uint8_t pkt_count;
 	uint32_t sweep_start_id;
 };
 

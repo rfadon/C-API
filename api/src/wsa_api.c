@@ -216,10 +216,10 @@ int16_t wsa_set_command_file(struct wsa_device *dev, char *file_name)
 //						  float *value)
 //{
 //	// TODO Check version of WSA & return the correct info here
-//	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
-//	strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
-//	strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-//	strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+//	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 //		return WSA_ERR_INVRFGAIN;	
 //	
 //	else 
@@ -382,7 +382,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device* const dev,
 	// allocate the data buffer
 	data_buffer = (uint8_t*) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 			
-	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer,sweep_info, data_buffer);
+	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer);
 	doutf(DMED, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	if (result < 0)
 	{
@@ -419,8 +419,8 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
-		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
+	if ((samples_per_packet < WSA4000_MIN_SPP) || 
+		(samples_per_packet > WSA4000_MAX_SPP))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
@@ -457,8 +457,8 @@ int16_t wsa_get_samples_per_packet(struct wsa_device* device, int32_t* samples_p
 	}
 
 	// Verify the validity of the return value
-	if ((temp < WSA4000_MIN_SAMPLES_PER_PACKET) || 
-		(temp > WSA4000_MAX_SAMPLES_PER_PACKET))
+	if ((temp < WSA4000_MIN_SPP) || 
+		(temp > WSA4000_MAX_SPP))
 	{
 		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
@@ -488,9 +488,9 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 	
-	if (packets_per_block < WSA4000_MIN_PACKETS_PER_BLOCK)
+	if (packets_per_block < WSA4000_MIN_PPB)
 		return WSA_ERR_INVNUMBER;
-	else if (packets_per_block > WSA4000_MAX_PACKETS_PER_BLOCK) 
+	else if (packets_per_block > WSA4000_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
 
 	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
@@ -879,10 +879,10 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 		return (int16_t) query.status;
 	strcpy(gain,query.output);
 
-	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 		return WSA_ERR_INVRFGAIN;
 
 	return 0;
@@ -906,10 +906,10 @@ int16_t wsa_set_gain_rf (struct wsa_device *dev, char *gain)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 		return WSA_ERR_INVRFGAIN;
 
 	sprintf(temp_str, "INPUT:GAIN:RF %s\n", gain);
@@ -1597,10 +1597,10 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 
 	strcpy(gain,query.output);
 
-	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 	return WSA_ERR_INVRFGAIN;
 
 
@@ -1625,10 +1625,10 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(gain,WSA4000_VLOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_LOW_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_MED_RF_GAIN) != 0 &&
-		strcmp(gain,WSA4000_HIGH_RF_GAIN) != 0)
+	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+		strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 		return WSA_ERR_INVRFGAIN;
 
 
@@ -1665,8 +1665,8 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device* device, int32_t* sam
 	}
 
 	// Verify the validity of the return value
-	if ((temp < WSA4000_MIN_SAMPLES_PER_PACKET) || 
-		(temp > WSA4000_MAX_SAMPLES_PER_PACKET))
+	if ((temp < WSA4000_MIN_SPP) || 
+		(temp > WSA4000_MAX_SPP))
 	{
 		printf("Error: WSA returned %ld.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
@@ -1690,8 +1690,8 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device* device, int32_t samp
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if ((samples_per_packet < WSA4000_MIN_SAMPLES_PER_PACKET) || 
-		(samples_per_packet > WSA4000_MAX_SAMPLES_PER_PACKET))
+	if ((samples_per_packet < WSA4000_MIN_SPP) || 
+		(samples_per_packet > WSA4000_MAX_SPP))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
@@ -1743,9 +1743,9 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device* device, uint32_t pack
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if (packets_per_block < WSA4000_MIN_PACKETS_PER_BLOCK)
+	if (packets_per_block < WSA4000_MIN_PPB)
 		return WSA_ERR_INVNUMBER;
-	else if (packets_per_block > WSA4000_MAX_PACKETS_PER_BLOCK) 
+	else if (packets_per_block > WSA4000_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %u\n", packets_per_block);
@@ -2226,10 +2226,12 @@ int16_t wsa_get_sweep_status(struct wsa_device* device, char* status)
 		return (int16_t) query.status;
 
 	// check if the wsa returns an invalid sweep status
-	if (strcmp(query.output, WSA4000_SWEEP_STATE_STOPPED) != 0 && strcmp(query.output, WSA4000_SWEEP_STATE_RUNNING) != 0)
+	if ((strcmp(query.output, WSA4000_SWEEP_STATE_STOPPED) != 0) &&
+		(strcmp(query.output, WSA4000_SWEEP_STATE_RUNNING) != 0))
 		return WSA_ERR_SWEEPMODEUNDEF;
 
 	strcpy(status, query.output);
+
 	return 0;
 }
 
@@ -2437,7 +2439,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
     int16_t result = 0;
     int32_t bytes_received = 0;
     uint8_t* packet;
-    int32_t packet_size = WSA4000_MAX_SAMPLE_SIZE;
+    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
 
     // Timeout parameters
     uint32_t timeout = 360;

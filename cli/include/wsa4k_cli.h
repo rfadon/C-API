@@ -14,14 +14,11 @@
 #define MAX_BUF_SIZE 20
 #define MAX_FS 1000
 
-#define CTRL_PORT 37001	/* Connection protocol's port to use with TCPIP */
-#define DATA_PORT 37000
-
 #define FALSE	0
 #define TRUE	1
 
 // initial context packet order indicator
-#define UNASSIGNED_PACKET_ORDER_INDICATOR MAX_PACKET_ORDER_INDICATOR + 1
+#define UNASSIGNED_VRT_PKT_COUNT (MAX_VRT_PKT_COUNT + 1)
 
 extern uint8_t debug_mode;
 extern uint8_t call_mode;
@@ -33,8 +30,8 @@ int16_t process_call_mode(int32_t argc, char **argv);
 void get_current_time(TIME_HOLDER* msec_buf);
 double get_time_difference(TIME_HOLDER* start_time, TIME_HOLDER* end_time);
 void generate_file_name(char* file_name, const char* prefix, const char* extension);
-void print_captures_directory();
-void open_captures_directory();
+void print_captures_directory(void);
+void open_captures_directory(void);
 
 
 #endif
