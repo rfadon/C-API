@@ -829,6 +829,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	
 	uint16_t packet_size = 0;
 	uint16_t iq_packet_size;
+	
+	uint8_t has_trailer = 0;
+	uint32_t trailer_word = 0;
 
 	// reset header
 	header->pkt_count = 0;
@@ -869,6 +872,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	// *****
 	// Decode the first 2 words from the header
 	// *****
+
+	has_trailer = (vrt_packet_buffer[0] & 0x04) >> 2;
 	
 	// Get the packet type
 	header->packet_type = vrt_header_buffer[0] >> 4;
@@ -915,6 +920,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
 	if (vrt_packet_buffer == NULL)
 	{
+		free(vrt_header_buffer);
 		return WSA_ERR_MALLOCFAILED;
 	}
 
@@ -989,22 +995,33 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	{
 		iq_packet_size = header->samples_per_packet;
 		
-		// *****
-		// TODO: Handle the trailer word here once it is available
-		// *****s
-		//if (vrt_packet_buffer[0] & 0x04)
-		// Placeholder values for now:
-		trailer->valid_data_indicator = 0;
-		trailer->ref_lock_indicator = 0;
-		trailer->over_range_indicator = 0;
-		trailer->sample_loss_indicator = 0;
-
-		// *****
-		// Copy the IQ data payload to the provided buffer
-		// *****
+		// Copy only the IQ data payload to the provided buffer
 		memcpy(data_buffer, 
 			vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
 			iq_packet_size * BYTES_PER_VRT_WORD);
+
+		// Handle the trailer word
+		if (has_trailer)
+		{
+			memcpy(&trailer_word,
+				vrt_packet_buffer + (((VRT_HEADER_SIZE - 2) + iq_packet_size) * BYTES_PER_VRT_WORD),
+				1 * BYTES_PER_VRT_WORD);
+			doutf(DLOW, "trailer_word: %08x\n", trailer_word);
+			
+			trailer->valid_data_indicator = 
+				((trailer_word >> 30) & 0x1) ? ((trailer_word >> 18) & 0x1) : 0;
+			trailer->ref_lock_indicator =
+				((trailer_word >> 29) & 0x1) ? ((trailer_word >> 17) & 0x1) : 0;
+			trailer->over_range_indicator =
+				((trailer_word >> 25) & 0x1) ? ((trailer_word >> 13) & 0x1) : 0;
+			trailer->sample_loss_indicator =
+				((trailer_word >> 24) & 0x1) ? ((trailer_word >> 12) & 0x1) : 0;
+			
+			doutf(DLOW, "Valid_data: %d\n", trailer->valid_data_indicator);
+			doutf(DLOW, "Ref-lock: %d\n", trailer->ref_lock_indicator);
+			doutf(DLOW, "Over-range: %d\n", trailer->over_range_indicator);
+			doutf(DLOW, "Sample loss: %d\n", trailer->sample_loss_indicator);
+		}
 	}
 		
 	free(vrt_packet_buffer);
