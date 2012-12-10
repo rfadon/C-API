@@ -101,14 +101,6 @@
 #define WSA4000_MIN_PPB 1
 #define WSA4000_MAX_PPB UINT_MAX
 
-// sweep iterations
-#define WSA4000_MIN_SWEEP_ITERATION 0
-#define WSA4000_MAX_SWEEP_ITERATION UINT_MAX
-
-// sweep id values
-#define WSA4000_MIN_SWEEP_START_ID 0
-#define WSA4000_MAX_SWEEP_START_ID  UINT_MAX
-
 // sweep states
 #define WSA4000_SWEEP_STATE_RUNNING "RUNNING"
 #define WSA4000_SWEEP_STATE_STOPPED "STOPPED"
@@ -285,15 +277,15 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_send_query(struct wsa_device *dev, char *command, 
 						struct wsa_resp *resp);
 
-int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		struct wsa_receiver_packet* const receiver,
-		struct wsa_digitizer_packet* const digitizer,
-		struct wsa_extension_packet* const extension,
-		uint8_t* const data_buffer);
+int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device, 
+		struct wsa_vrt_packet_header * const header, 
+		struct wsa_vrt_packet_trailer * const trailer,
+		struct wsa_receiver_packet * const receiver,
+		struct wsa_digitizer_packet * const digitizer,
+		struct wsa_extension_packet * const extension,
+		uint8_t * const data_buffer);
 		
-int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
+int32_t wsa_decode_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);

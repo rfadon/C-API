@@ -156,7 +156,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWN_ERROR, "Unknown error"},
 		{WSA_ERR_INVINPUT, "Invalid input"},
 
-
 		//*****
 		// Sweep Errors   
 		//*****
@@ -199,8 +198,12 @@ const char *_wsa_get_err_msg(int16_t err_id)
 
 /**
  * Tokenized all the words/strings in a file.
- * Pointer to the tokens is stored in cmd_strs.
- * Return the number of tokens read.
+ *
+ * @param fptr - a file pointer to the file to be the tokeninzed
+ * @para cmd_strs - an char pointer, pointing to a char array used to stored 
+ *		the tokens.
+ *
+ * @return the number of tokens read.
  */
 int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 {
@@ -242,27 +245,84 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	return next;
 }
 
+
+/**
+ * Check if the input string is a decimal type
+ *
+ * @param in_str - A char pointer pointing to the input string
+ *
+ * @return 1 if the string is valid else 0
+ */
+int32_t is_decimal(char *in_str)
+{   
+    int i;
+
+    // loop every char in the input string
+    for(i = 0; i < (int) strlen(in_str); i++)
+    {
+		// valid if negative sign is in the first letter
+		if (i == 0 && in_str[i] == '-')
+			continue;
+		
+        if ((in_str[i] < '0' || in_str[i] > '9') && (in_str[i] != '.'))
+			return 0;
+    }
+   
+    return 1;
+}
+
+/**
+ * Check if the input string is an integer type
+ *
+ * @param in_str - A char pointer pointing to the input string
+ *
+ * @return 1 if the string is valid else 0
+ */
+int32_t is_integer(char *in_str)
+{   
+    int i;
+
+    // loop every char in the input string
+    for(i = 0; i < (int) strlen(in_str); i++)
+    {
+		// valid if negative sign is in the first letter
+		if (i == 0 && in_str[i] == '-')
+			continue;
+		
+        if (in_str[i] < '0' || in_str[i] > '9')
+			return 0;
+    }
+   
+    return 1;
+}
+
 /**
  * Convert a string to a long number type
+ *
+ * @param num_str - A char pointer pointing to the string to be converted
+ * @param val - A pointer to 'long int' type to store the converted value 
+ *				if valid
+ * 
+ * @return 0 if no error else a negative value
  */
 int16_t to_int(char *num_str, long int *val)
 {
 	char *temp;
 	long int temp_val;
 	
-	if (num_str == NULL) {
+	if (num_str == NULL)
 		return WSA_ERR_INVNUMBER;
-	}
 
-	errno = 0; // to distinguish success/failure after calling strtol
+	if (!is_integer(num_str))
+		return WSA_ERR_INVNUMBER;
+
+	errno = 0;
 	temp_val = strtol(num_str, &temp, 0);
-	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN))
-		|| (errno != 0 && temp_val == 0)) {
+	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN)) ||
+		(errno != 0 && temp_val == 0))
 		return WSA_ERR_INVNUMBER;
-	}
-	else if (temp == num_str) {
+	else if (temp == num_str)
 		return WSA_ERR_INVNUMBER;
-	}
 
 	*val = temp_val;
 
@@ -270,91 +330,31 @@ int16_t to_int(char *num_str, long int *val)
 }
 
 /**
- * Convert a string to a long number type
+ * Convert a string to a double type
+ *
+ * @param num_str - A char pointer pointing to the string to be converted
+ * @param val - A pointer to 'double' type to store the converted value 
+ *				if valid
+ * 
+ * @return 0 if no error else a negative value
  */
 int16_t to_double(char *num_str, double *val)
 {
 	char *temp;
 	double temp_val;
 	
-	if (num_str == NULL) {
+	if (num_str == NULL)
 		return WSA_ERR_INVNUMBER;
-	}
+	
+	if (!is_decimal(num_str))
+		return WSA_ERR_INVNUMBER;
 
-	errno = 0; // to distinguish success/failure after calling strtol
+	errno = 0;
 	temp_val = strtod(num_str, &temp);
-	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str) {
+	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str)
 		return WSA_ERR_INVNUMBER;
-	}
 
 	*val = temp_val;
 
 	return 0;
 }
-
-/**
- * determine if a string contains characters
- * that represent a number (including one negative sign
-   in the beginning of the string and a decimal place)
- * @param string - string to be examined
- *
- * @return 0 if its an int,  or a negative number on error.
- * 
- */
-int16_t determine_if_int(char *string) 
-{	
-
-	int i;
-	int decimal_place_count = 0; // keep track of how many decimal places
-
-	// loop every char in the input string
-	for(i = 0; i < strlen(string); i++) {
-
-		// check if there is a negative sign that is not in the first char
-		if (i == 0 && string[i] == 0x2d)
-			continue;
-
-		// keep track of the number of decimal places
-		else if (string[i] == 0x2e)
-		{
-			decimal_place_count++;
-
-			if (decimal_place_count > 1)
-				return WSA_ERR_INVINPUT;
-			else
-				continue;
-		}
-			
-		// determine if the char is a number
-		else if (string[i] < 0x30 || string[i] > 0x39)    
-			return WSA_ERR_INVINPUT;
-
-	}
-
-	return 0;
-}
-
-
-/**
- * determine if char contains a negative sign
- * @param string - string to be examined
- *
- * @return 0 if unsigned,  negative number if signed.
- * 
- */
-int16_t determine_if_unsigned(char *string)
-{
-
-	int i;
-
-	// loop every char in the input string
-	for(i = 0; i < strlen(string); i++) {
-		
-		if (string[i] == 0x2d)
-			return WSA_ERR_INVINPUT;
-
-	}
-
-	return 0;
-}
-

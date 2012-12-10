@@ -20,9 +20,9 @@ int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t _wsa_open(struct wsa_device *dev);
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output);
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output);
-void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver);
-void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer);
-void extract_extension_packet_data(uint8_t* temp_buffer, struct wsa_extension_packet* const extension);
+void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_packet * const receiver);
+void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_packet * const digitizer);
+void extract_extension_packet_data(uint8_t *temp_buffer, struct wsa_extension_packet * const extension);
 
 // Initialized the \b wsa_device descriptor structure
 // Return 0 on success or a 16-bit negative number on error.
@@ -437,7 +437,7 @@ int16_t wsa_disconnect(struct wsa_device *dev)
  *
  * @return Resolved IP address or INADDR_NONE when failed.
  */
-int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port) 
+int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port)
 {
 	int16_t result;
 
@@ -534,7 +534,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
  */
 int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 {
-	  struct wsa_resp resp;
+	struct wsa_resp resp;
     int16_t result = 0;
     int16_t lines = 0;
     char *cmd_strs[MAX_FILE_LINES]; // store user's input words
@@ -808,18 +808,18 @@ const char *wsa_get_error_msg(int16_t err_code)
  *
  * @return  0 on success or a negative value on error
  */
-int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device, 
-		struct wsa_vrt_packet_header* const header, 
-		struct wsa_vrt_packet_trailer* const trailer,
-		struct wsa_receiver_packet* const receiver,
-		struct wsa_digitizer_packet* const digitizer,
-		struct wsa_extension_packet* const extension,
-		uint8_t* const data_buffer)
+int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device, 
+		struct wsa_vrt_packet_header * const header, 
+		struct wsa_vrt_packet_trailer * const trailer,
+		struct wsa_receiver_packet * const receiver,
+		struct wsa_digitizer_packet * const digitizer,
+		struct wsa_extension_packet * const extension,
+		uint8_t * const data_buffer)
 {	
-	uint8_t* vrt_header_buffer;
+	uint8_t *vrt_header_buffer;
 	int32_t vrt_header_bytes;
 
-	uint8_t* vrt_packet_buffer;
+	uint8_t *vrt_packet_buffer;
 	int32_t vrt_packet_bytes;
 	
 	uint32_t stream_identifier_word = 0;
@@ -873,7 +873,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
 	// Decode the first 2 words from the header
 	// *****
 
-	has_trailer = (vrt_packet_buffer[0] & 0x04) >> 2;
+	has_trailer = (vrt_header_buffer[0] & 0x04) >> 2;
 	
 	// Get the packet type
 	header->packet_type = vrt_header_buffer[0] >> 4;
@@ -1054,37 +1054,38 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device* const device,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_frame(uint8_t* data_buf, int16_t *i_buf, int16_t *q_buf, 
+int32_t wsa_decode_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size)
 {
-	//int32_t result = 0;
 	int32_t i;
 	int32_t j = 0;
-	// *****
+
 	// Split up the IQ data bytes
-	// *****
-
-	for (i = 0; i < sample_size * 4; i += 4) {
-
+	for (i = 0; i < sample_size * 4; i += 4) 
+	{
 		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
 		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		j++;
 	}
+
 	return (i / 4);
 }
 
 
 /**
  * Decodes the raw receiver context packet and store it in the receiver 
- * structure 
+ * structure
+ * @note: The first two words of the VRT context packet are not passed to here. 
+ * The first word that \b temp_buffer points to is the timestamp. See the 
+ * Programmer's Guide for further information on VRT packets.
  *
- * @param temp_buffer - pointer that points to the header of the receiver packet
- * note: the first two words are not included, the first word that temp points to is the 
- * timestamp. please review the program's guide for further information on how context packets are stored
- * @param receiver - a pointer structure to store the receiver data 
+ * @param temp_buffer - A char pointer pointing to the timestamp, 'second' time
+ *				field of the receiver packet
+ * @param extension - A pointer to the receiver packet structure
+ *
  * @return None
  */
-void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_packet* const receiver)
+void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_packet * const receiver)
 {	
 	int32_t reference_point = 0;
 	double gain_if = 0;
@@ -1094,15 +1095,15 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 	long double freq_int_part = 0;
 	long double freq_dec_part = 0;
 	
-	int8_t data_pos = 16; // increment data index
+	int8_t data_pos = 16; // to increment data index
 	
-	//store the indicator field, which contains the content of the packet
+	// store the indicator field, which contains the content of the packet
 	receiver->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
 								(((int32_t) temp_buffer[14]) << 8) + 
 								(int32_t) temp_buffer[15]);
 	
-	//determine if reference point data is present
+	// determine if reference point data is present
 	if ((receiver->indicator_field & REF_POINT_INDICATOR_MASK)== REF_POINT_INDICATOR_MASK) 
 	{
 		reference_point = ((((int32_t) temp_buffer[data_pos]) << 24) +
@@ -1113,7 +1114,7 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		data_pos = data_pos + 4;
 	}
 	
-	//determine if frequency data is present
+	// determine if frequency data is present
 	if ((receiver->indicator_field  & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
 	{
 		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
@@ -1130,10 +1131,9 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
 		receiver->freq = freq_int_part + (freq_dec_part / MHZ);
 		data_pos = data_pos + 8;
-
 	}
 	
-	//determine if gain data is present
+	// determine if gain data is present
 	if ((receiver->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK) 
 	{
 		receiver->gain_if = ((int16_t) (temp_buffer[data_pos] << 8) + 
@@ -1155,15 +1155,18 @@ void extract_receiver_packet_data(uint8_t* temp_buffer, struct wsa_receiver_pack
 		
 /**
  * Decodes the raw digitizer context packet and store it in the digitizer 
- * structure 
+ * structure.
+ * @note: The first two words of the VRT context packet are not passed to here. 
+ * The first word that \b temp_buffer points to is the timestamp. See the 
+ * Programmer's Guide for further information on VRT packets.
  *
- * @param temp_buffer - pointer that points to the header of the digitizer packet
- * note: the first two words are not included, the first word that temp points to is the 
- * timestamp. please review the program's guide for further information on how context packets are stored
- * @param digitizer - a pointer structure to store the digitizer data 
+ * @param temp_buffer - A char pointer pointing to the timestamp, 'second' time
+ *			field of the digitizer packet
+ * @param digitizer - A pointer the digitizer packet structure
+ *
  * @return None
  */
-void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_packet* const digitizer) 
+void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_packet * const digitizer) 
 {
 
 	int64_t band_word1 = 0;
@@ -1243,17 +1246,20 @@ void extract_digitizer_packet_data(uint8_t* temp_buffer, struct wsa_digitizer_pa
 
 
 /**
- * Decodes the raw exntension packet and store it in the sweep
+ * Decodes the raw extension packet and store it in the sweep
  * structure 
+ * @note: The first two words of the VRT context packet are not passed to here. 
+ * The first word that \b temp_buffer points to is the timestamp. See the 
+ * Programmer's Guide for further information on VRT packets.
  *
- * @param temp_buffer - pointer that points to the header of the extension packet
- * note: the first two words are not included, the first word that temp points to is the 
- * timestamp. please review the program's guide for further information on vrt packets are stored
- * @param extension - a pointer structure to store the enxtension packet data 
+ * @param temp_buffer - A char pointer pointing to the timestamp, 'second' time
+ *				field of the extension packet
+ * @param extension - A pointer to the extension packet structure
+ * 
  * @return None
  */
-void extract_extension_packet_data(uint8_t* temp_buffer,
-		struct wsa_extension_packet* const extension)
+void extract_extension_packet_data(uint8_t *temp_buffer,
+		struct wsa_extension_packet * const extension)
 {
 	int32_t data_pos = 16;
 

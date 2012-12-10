@@ -25,16 +25,23 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 void *get_in_addr(struct sockaddr *sock_addr)
 {
 	if (sock_addr->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*) sock_addr)->sin_addr);
+		return &(((struct sockaddr_in *) sock_addr)->sin_addr);
 	}
 
-	return &(((struct sockaddr_in6*) sock_addr)->sin6_addr);
+	return &(((struct sockaddr_in6 *) sock_addr)->sin6_addr);
 }
 
 
 /**
  * Local function that does address check with all the proper socket setup and
  * call getaddrinfo() to verify.
+ *
+ * @param sock_addr - a const char pointer, storing the IP address
+ * @param sock_port - a const char pointer, storing the socket port
+ * @param ai_list - a pointer to addrinfo structure, storing the desired 
+ *		socket setup
+ *
+ * @return 0 upon successful, or a negative value when failed.
  */
 int16_t _addr_check(const char *sock_addr, const char *sock_port,
 					struct addrinfo *ai_list)
@@ -70,8 +77,8 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
  * Given a client address string and the port number, determine if it's 
  * a dotted-quad IP address or a domain address.
  *
- * @param sock_addr - 
- * @param sock_port -
+ * @param sock_addr - a const char pointer, storing the IP address
+ * @param sock_port - a const char pointer, storing the socket port
  *
  * @return 0 upon successful, or a negative value when failed.
  */
@@ -127,9 +134,9 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
  * Look up, verify and establish the socket once deemed valid
  *
  * @param sock_name - Name of the socket (ex. server, client)
- * @param sock_addr -
- * @param sock_fd -
- * @param sock_port -
+ * @param sock_addr - A const char pointer, storing the IP address
+ * @param sock_fd - A int32_t pointer, storing specific socket value to be set up
+ * @param sock_port - A const char pointer, storing the socket port
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
@@ -201,9 +208,9 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 /**
  * Sends a string to the server.  
  *
- * @param sock_fd -
- * @param out_str -
- * @param len -
+ * @param sock_fd - The socket at which the data will be received.
+ * @param out_str - A pointer to the string to be sent out
+ * @param len - An int32_t value, storing the lenght of the string to be sent
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
@@ -254,8 +261,8 @@ int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
  * 
  * @return 0 on success or a negative value on error
  */		
-int16_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
-					  uint32_t time_out, int32_t* bytes_received)
+int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
+					  uint32_t time_out, int32_t *bytes_received)
 {
 	fd_set read_fd;		// temp file descriptor for select()
 	int32_t ret_val;	// return value of a function
@@ -339,8 +346,8 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t* rx_buf_ptr, int32_t buf_size,
  * 
  * @return 0 on success or a negative value on error
  */
-int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr, 
-						   int32_t buf_size, uint32_t time_out, int32_t* total_bytes)
+int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr, 
+						   int32_t buf_size, uint32_t time_out, int32_t *total_bytes)
 {
 	int16_t recv_result = 0;
 	int32_t bytes_received = 0;
@@ -377,6 +384,3 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t* rx_buf_ptr,
 	return 0;
 }
 
-
-// TODO: get_sock_ack() ?
-//		 wsa_get_host_info() ?
