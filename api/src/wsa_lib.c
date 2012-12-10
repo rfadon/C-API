@@ -556,7 +556,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
     // Allocate memory
     for (i = 0; i < MAX_FILE_LINES; i++)
-        cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STR_LEN);
+        cmd_strs[i] = (char *) malloc(sizeof(char) * MAX_STR_LEN);
 
     result = wsa_tokenize_file(cmd_fptr, cmd_strs);
    
@@ -679,7 +679,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 				while (recv_result != 0 && loop_count < 5) 
 				{
 					recv_result = wsa_sock_recv(dev->sock.cmd, 
-							(uint8_t*) temp_resp.output, 
+							(uint8_t *) temp_resp.output, 
 							MAX_STR_LEN, TIMEOUT, 
 							&bytes_received);
 
@@ -848,7 +848,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	vrt_header_bytes = 2 * BYTES_PER_VRT_WORD;
 	
 	// allocate space for the header buffer
-	vrt_header_buffer = (uint8_t*) malloc(vrt_header_bytes * sizeof(uint8_t));
+	vrt_header_buffer = (uint8_t *) malloc(vrt_header_bytes * sizeof(uint8_t));
 	if (vrt_header_buffer == NULL)
 	{
 		return WSA_ERR_MALLOCFAILED;
@@ -917,7 +917,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	
 	// allocate memory for the vrt packet without the first two words
 	vrt_packet_bytes = BYTES_PER_VRT_WORD * (packet_size - 2);
-	vrt_packet_buffer = (uint8_t*) malloc(vrt_packet_bytes * sizeof(uint8_t));
+	vrt_packet_buffer = (uint8_t *) malloc(vrt_packet_bytes * sizeof(uint8_t));
 	if (vrt_packet_buffer == NULL)
 	{
 		free(vrt_header_buffer);

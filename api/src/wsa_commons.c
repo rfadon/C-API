@@ -218,7 +218,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	rewind(fptr);
 	
 	// allocate memory to contain the whole file:
-	buffer = (char*) malloc (sizeof(char) * fSize);
+	buffer = (char *) malloc (sizeof(char) * fSize);
 	if (buffer == NULL) {
 		fputs("Memory error", stderr); 	
 		return WSA_ERR_MALLOCFAILED;

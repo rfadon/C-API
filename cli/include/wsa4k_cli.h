@@ -5,6 +5,8 @@
 #include "wsa4k_cli_os_specific.h"
 #include "wsa_lib.h"
 
+#define getch__() getch()
+
 #define MAX_CMD_WORDS 50
 #define MAX_STRING_LEN 500
 #define MAX_FILE_LINES 300

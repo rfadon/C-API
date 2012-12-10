@@ -2445,7 +2445,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		packet = (uint8_t*) malloc(packet_size * sizeof(uint8_t));
+		packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
 		
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 

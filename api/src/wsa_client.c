@@ -111,7 +111,7 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 		memset(&in, 0, sizeof(in));
 		in.sin_family = AF_INET;
 		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct
+		getnameinfo((struct sockaddr *) &in, sizeof(struct
 			sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
 
 		return dst;
@@ -122,7 +122,7 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 		memset(&in, 0, sizeof(in));
 		in.sin6_family = AF_INET6;
 		memcpy(&in.sin6_addr, src, sizeof(struct in6_addr));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct
+		getnameinfo((struct sockaddr *) &in, sizeof(struct
 			sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
 
 		return dst;
@@ -310,7 +310,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 		// read incoming data buf_size at a time
 		// Need to cast the buffer pointer to char*
 		// since that is the data type on Windows
-		ret_val = recv(sock_fd, (char*) rx_buf_ptr, buf_size, 0);
+		ret_val = recv(sock_fd, (char *) rx_buf_ptr, buf_size, 0);
 		
 		// checked the return value
 		if (ret_val == 0) {

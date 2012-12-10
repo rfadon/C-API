@@ -59,7 +59,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-#include <conio.h>
 
 #include "wsa4k_cli_os_specific.h"
 #include "wsa4k_cli.h"
@@ -316,7 +315,7 @@ int16_t wsa_do_cli_command_file(struct wsa_device *dev, char *file_name)
 
 	// Allocate memory
 	for (i = 0; i < MAX_FILE_LINES; i++)
-		cmd_strs[i] = (char*) malloc(sizeof(char) * MAX_STRING_LEN);
+		cmd_strs[i] = (char *) malloc(sizeof(char) * MAX_STRING_LEN);
 
 	result = wsa_tokenize_file(cmd_fptr, cmd_strs);
 	
@@ -371,7 +370,7 @@ int16_t process_cmd_string(struct wsa_device *dev, char *cmd_str)
 
 	// Allocate memory
 	for (i = 0; i < MAX_CMD_WORDS; i++)
-		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
+		cmd_words[i] = (char *) malloc(MAX_STRING_LEN * sizeof(char));
 
 	// clear up the words first
 	for (i = 0; i < MAX_CMD_WORDS; i++)
@@ -511,7 +510,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	// Allocate header buffer space
-	header = (struct wsa_vrt_packet_header*) malloc(sizeof(struct wsa_vrt_packet_header));
+	header = (struct wsa_vrt_packet_header *) malloc(sizeof(struct wsa_vrt_packet_header));
 	if (header == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate header\n");
@@ -520,7 +519,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate trailer buffer space
-	trailer = (struct wsa_vrt_packet_trailer*) malloc(sizeof(struct wsa_vrt_packet_trailer));
+	trailer = (struct wsa_vrt_packet_trailer *) malloc(sizeof(struct wsa_vrt_packet_trailer));
 	if (trailer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate trailer\n");
@@ -530,7 +529,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// allocate receiver packet buffer space
-	receiver = (struct wsa_receiver_packet*) malloc(sizeof(struct wsa_receiver_packet));
+	receiver = (struct wsa_receiver_packet *) malloc(sizeof(struct wsa_receiver_packet));
 	if (receiver == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate receiver\n");
@@ -541,7 +540,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// allocate digitizer packet buffer space
-	digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
+	digitizer = (struct wsa_digitizer_packet *) malloc(sizeof(struct wsa_digitizer_packet));
 	if (digitizer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate digitizer\n");
@@ -553,7 +552,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// allocate extension packet buffer space
-	extension = (struct wsa_extension_packet*) malloc(sizeof(struct wsa_extension_packet));
+	extension = (struct wsa_extension_packet *) malloc(sizeof(struct wsa_extension_packet));
 	if (extension == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate sweep info\n");
@@ -958,7 +957,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 
 		// allocate memory for the vrt packet without the first two words
 		vrt_bytes = BYTES_PER_VRT_WORD * (packet_size - 2);
-		vrt_buffer = (uint8_t*) malloc(vrt_bytes * sizeof(uint8_t));
+		vrt_buffer = (uint8_t *) malloc(vrt_bytes * sizeof(uint8_t));
 		if (vrt_buffer == NULL)
 		{
 			fclose(iq_fptr);
@@ -2321,7 +2320,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 
 	// Allocate memory
 	for (i = 0; i < MAX_CMD_WORDS; i++) {
-		cmd_words[i] = (char*) malloc(MAX_STRING_LEN * sizeof(char));
+		cmd_words[i] = (char *) malloc(MAX_STRING_LEN * sizeof(char));
 		strcpy(cmd_words[i], "");
 	}
 
@@ -2722,7 +2721,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	int16_t result;
 	struct wsa_sweep_list *list_values;
 	
-	list_values = (struct wsa_sweep_list*) malloc(sizeof(struct wsa_sweep_list));
+	list_values = (struct wsa_sweep_list *) malloc(sizeof(struct wsa_sweep_list));
 
 	result = wsa_sweep_entry_read(dev, id, list_values);
 	if (result < 0) 
