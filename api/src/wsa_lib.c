@@ -242,7 +242,7 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
 	}
 	else 
 	{
-		printf("WSA returns: %s\n", resp.output);
+		printf("WSA returned: %s\n", resp.output);
 		strcpy(output, resp.output); // TODO verify this output
 	}
 
