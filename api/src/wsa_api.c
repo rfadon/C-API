@@ -452,7 +452,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -460,7 +460,7 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 	if ((temp < WSA4000_MIN_SPP) || 
 		(temp > WSA4000_MAX_SPP))
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -522,7 +522,7 @@ int16_t wsa_get_packets_per_block(struct wsa_device *dev, int32_t *packets_per_b
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -553,7 +553,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	// convert & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -561,7 +561,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation)) 
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -670,14 +670,14 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -739,14 +739,14 @@ int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 
 	if (temp < -range || temp > range) 
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -812,14 +812,15 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) 
+	if (((int32_t) temp < dev->descr.min_if_gain) || 
+		((int32_t) temp > dev->descr.max_if_gain))
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -944,14 +945,14 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) 
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1013,14 +1014,14 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
 	if (temp < 0 || temp > 1) 
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 		
@@ -1149,14 +1150,14 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	strtok_result = strtok(query.output, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1166,14 +1167,14 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1183,7 +1184,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1239,14 +1240,14 @@ int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
 	if (temp < 0 || temp > 1) 
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 		
@@ -1395,7 +1396,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
 
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1424,7 +1425,7 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 
     if (to_double(query.output, &temp) < 0)
     {
-        printf("Error: WSA returned %ld.\n", temp);
+        printf("Error: WSA returned '%ld'.\n", temp);
         return WSA_ERR_RESPUNKNOWN;
     }
 
@@ -1462,14 +1463,14 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) 
 	{
-		printf("Error: WSA returned %ld.\n", temp); 
+		printf("Error: WSA returned '%ld'.\n", temp); 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1529,14 +1530,14 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) 
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1654,7 +1655,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1662,7 +1663,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 	if ((temp < WSA4000_MIN_SPP) || 
 		(temp > WSA4000_MAX_SPP))
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1715,7 +1716,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, uint32_t *packet
 	// Convert the number & make sure no error
 	if (to_int(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1775,7 +1776,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate)
 	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation))
 	{
-		printf("Error: WSA returned %ld.\n", temp);
+		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*rate = (int32_t) temp;
@@ -1832,7 +1833,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1841,7 +1842,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1912,7 +1913,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1989,7 +1990,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -2045,7 +2046,7 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
 	strtok_result = strtok(query.output, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*seconds = (int32_t) temp;
@@ -2054,7 +2055,7 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*microseconds = (int32_t) temp;
@@ -2123,7 +2124,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	strtok_result = strtok(query.output, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*start_freq = (int64_t) temp;
@@ -2132,7 +2133,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*stop_freq = (int64_t) temp;
@@ -2141,7 +2142,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	strtok_result = strtok(NULL, ",");
 	if (to_double(strtok_result, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}	
 	*amplitude = (int32_t) temp;
@@ -2250,7 +2251,7 @@ int16_t wsa_get_sweep_entry_size(struct wsa_device *dev, int32_t *size)
 	// Convert the number & make sure no error
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned %s.\n", query.output);
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	

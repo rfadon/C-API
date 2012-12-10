@@ -422,7 +422,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t i = 0;
 	int32_t j;
 
-	char file_name[40];
+	char file_name[MAX_STR_LEN];
 	char sweep_status[40];
 	FILE *iq_fptr;
 
@@ -533,8 +533,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (receiver == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate receiver\n");
-		free(trailer);
 		free(header);
+		free(trailer);
 		
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -544,9 +544,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (digitizer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate digitizer\n");
-		free(receiver);
-		free(trailer);
 		free(header);
+		free(trailer);
+		free(receiver);
 		
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -556,9 +556,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (extension == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate sweep info\n");
-		free(receiver);
-		free(trailer);
 		free(header);
+		free(trailer);
+		free(receiver);
 		free(digitizer);
 		
 		return WSA_ERR_MALLOCFAILED;
@@ -569,11 +569,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate i_buffer\n");
+		free(header);
+		free(trailer);
 		free(receiver);
 		free(digitizer);
-		free(trailer);
-		free(header);
-		free(i_buffer);
 		free(extension);
 
 		return WSA_ERR_MALLOCFAILED;
@@ -584,13 +583,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (q_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate q_buffer\n");
-		free(digitizer);
-		free(receiver);
-		free(trailer);
 		free(header);
-		free(i_buffer);
-		free(q_buffer);
+		free(trailer);
+		free(receiver);
+		free(digitizer);
 		free(extension);
+		free(i_buffer);
 
 		return WSA_ERR_MALLOCFAILED;
 	}
@@ -602,13 +600,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		if (result < 0)
 		{
 			doutf(DHIGH, "In save_data_to_file: wsa_capture_block returned %d\n", result);
-			free(digitizer);
-			free(receiver);
-			free(trailer);
 			free(header);
+			free(trailer);
+			free(receiver);
+			free(digitizer);
+			free(extension);
 			free(i_buffer);
 			free(q_buffer);
-			free(extension);
 
 			return result;
 		}
@@ -621,14 +619,14 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	{
 		printf("\nError creating the file \"%s\"!\n", file_name);
 		
-		fclose(iq_fptr);
-		free(digitizer);
-		free(receiver);
-		free(trailer);
 		free(header);
+		free(trailer);
+		free(receiver);
+		free(digitizer);
+		free(extension);
 		free(i_buffer);
 		free(q_buffer);
-		free(extension);
+
 		return WSA_ERR_FILECREATEFAILED;
 	}
 
@@ -810,7 +808,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		} // end if IF_PACKET_TYPE
 	} // end save data while loop
 
-	if (result >= 0) 
+	if (result >= 0)
 	{
 		// get the total run end time
 		get_current_time(&run_end_time);
@@ -820,15 +818,15 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			capture_time_ms,
 			run_time_ms);
 	}
-		
+
 	fclose(iq_fptr);
-	free(digitizer);
-	free(receiver);
-	free(trailer);
 	free(header);
+	free(trailer);
+	free(receiver);
+	free(digitizer);
+	free(extension);
 	free(i_buffer);
 	free(q_buffer);
-	free(extension);
 
 	return result;
 }
@@ -854,7 +852,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 	int16_t result = 0;
 	int32_t i = 0;
 
-	char file_name[40];
+	char file_name[MAX_STR_LEN];
 	char sweep_status[40];
 	FILE *iq_fptr;
 
@@ -1356,7 +1354,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 
 			file_name = cmd_words[3];
-printf("file_name: %s\n", file_name);
+
 			for (i = 4; i < num_words; i++) 
 			{
 				strcat(file_name, " ");
@@ -2036,7 +2034,7 @@ printf("file_name: %s\n", file_name);
 		else if (strcmp(cmd_words[0], "SAVE") == 0) 
 		{
 			// TODO fix the declaration here?
-			char prefix[200];
+			char prefix[MAX_STR_LEN];
 			char ext[10];
 			int n = 1;
 			char *temp;
