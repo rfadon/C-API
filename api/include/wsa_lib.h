@@ -145,7 +145,7 @@
 // RF gain modes
 #define WSA_GAIN_VLOW_STRING "VLOW"
 #define WSA_GAIN_LOW_STRING "LOW"
-#define WSA_GAIN_MED_STRING "MEDIUM"
+#define WSA_GAIN_MED_STRING "MED"
 #define WSA_GAIN_HIGH_STRING "HIGH"
 
 enum wsa_gain {

@@ -1484,8 +1484,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				
 				// user can use 'medium' as well as 'med'
-				if (strcmp(cmd_words[3], "MED") == 0)	
-					strcpy(cmd_words[3], "MEDIUM");
+				if (strcmp(cmd_words[3], "MEDIUM") == 0)	
+					strcpy(cmd_words[3], "MED");
 
 				result = wsa_set_gain_rf(dev, cmd_words[3]);
 			} // end set GAIN RF
@@ -1777,8 +1777,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						}
 
 						// user can use 'medium' as well as 'med'
-						if (strcmp(cmd_words[5], "MED") == 0)	
-							sprintf(cmd_words[5], "MEDIUM");
+						if (strcmp(cmd_words[5], "MEDIUM") == 0)	
+							sprintf(cmd_words[5], "MED");
 						
 						result = wsa_set_sweep_gain_rf(dev, cmd_words[5]);
 					} // end set SWEEP ENTRY GAIN RF
@@ -2195,7 +2195,11 @@ int16_t start_cli(void)
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
+#ifdef CLI_VERSION
 	printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
+#else
+	printf("\t\t\t(Version: %s)\n\n", "custom_build");
+#endif
 
 	do {
 		//*****

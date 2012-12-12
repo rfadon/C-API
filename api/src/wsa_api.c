@@ -1591,7 +1591,6 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 		return (int16_t) query.status;
 
 	strcpy(gain,query.output);
-
 	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
 		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
 		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
