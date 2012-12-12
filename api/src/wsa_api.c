@@ -558,7 +558,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	}
 
 	// make sure the returned value is valid
-	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
+	if (((temp != 1) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation)) 
 	{
 		printf("Error: WSA returned '%ld'.\n", temp);
@@ -586,7 +586,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	char temp_str[MAX_STR_LEN];
 
 	// TODO get min & max rate
-	if (((rate != 0) && (rate < dev->descr.min_decimation)) || 
+	if (((rate != 1) && (rate < dev->descr.min_decimation)) || 
 		(rate > dev->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 
@@ -1629,6 +1629,7 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 
 	sprintf(temp_str, "SWEEP:ENTRY:GAIN:RF %s \n", gain);
 
+
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
 
@@ -1773,7 +1774,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate)
 		return WSA_ERR_RESPUNKNOWN;
 
 	// make sure the returned value is valid
-	if (((temp != 0) && (temp < dev->descr.min_decimation)) || 
+	if (((temp != 1) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation))
 	{
 		printf("Error: WSA returned '%ld'.\n", temp);
@@ -1799,7 +1800,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate)
 	char temp_str[MAX_STR_LEN];
 
 	// TODO get min & max rate
-	if (((rate != 0) && (rate < dev->descr.min_decimation)) || 
+	if (((rate != 1) && (rate < dev->descr.min_decimation)) || 
 		(rate > dev->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 

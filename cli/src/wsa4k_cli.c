@@ -158,7 +158,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Turn the RFE's preselect BPF stage on or off.\n");
 	printf("  set dec <rate>\n"
 		"\t- Set the decimation rate\n"
-		"\t  Range: 0 (for off), %d - %d.\n", 
+		"\t  Range: 1 (for off), %d - %d.\n", 
 		dev->descr.min_decimation, dev->descr.max_decimation);
 	printf("  set freq <freq>\n"
 		"\t- Set the centre frequency in MHz\n"
@@ -1423,7 +1423,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				result = wsa_set_decimation(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVDECIMATIONRATE)
-					sprintf(msg, "\n   - Valid range: %d to %d.", // TODO #s
+					sprintf(msg, "\n   - Valid range: (1 off), %d to %d.", // TODO #s
 					dev->descr.min_decimation, dev->descr.max_decimation);
 			}
 			else
@@ -1777,8 +1777,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						}
 
 						// user can use 'medium' as well as 'med'
-						if (strcmp(cmd_words[5], "MEDIUM") == 0)	
-							sprintf(cmd_words[5], "MED");
+						if (strcmp(cmd_words[5], "MED") == 0)	
+							sprintf(cmd_words[5], "MEDIUM");
 						
 						result = wsa_set_sweep_gain_rf(dev, cmd_words[5]);
 					} // end set SWEEP ENTRY GAIN RF
@@ -2195,7 +2195,7 @@ int16_t start_cli(void)
 	// Print some opening screen start messages:
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
-	printf("\t\t\t(Version: thinkrf_v2.5.2)\n\n");
+	printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
 
 	do {
 		//*****
