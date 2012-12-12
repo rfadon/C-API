@@ -1117,10 +1117,10 @@ void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_pack
 	// determine if frequency data is present
 	if ((receiver->indicator_field  & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
 	{
-		freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-					(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-					(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-					(int64_t) temp_buffer[data_pos + 3]);
+		freq_word1 = ((((int32_t) temp_buffer[data_pos]) << 24) +
+					(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+					(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+					(int32_t) temp_buffer[data_pos + 3]);
 
 		freq_word2 = ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
 					(((int64_t) temp_buffer[data_pos + 5]) << 16) +
@@ -1169,10 +1169,10 @@ void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_pack
 void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_packet * const digitizer) 
 {
 
-	int64_t band_word1 = 0;
-	int64_t band_word2 = 0;
-	long double band_int_part = 0;
-	long double band_dec_part = 0;
+	int64_t bw_word1 = 0;
+	int64_t bw_word2 = 0;
+	long double bw_int_part = 0;
+	long double bw_dec_part = 0;
 
 	int64_t rf_freq_word1 = 0;
 	int64_t rf_freq_word2 = 0;
@@ -1195,19 +1195,19 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 	if ((digitizer->indicator_field & BW_INDICATOR_MASK) ==  
 		BW_INDICATOR_MASK) 
 	{		
-		band_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int64_t) temp_buffer[data_pos + 3]);
+		bw_word1 = ((((int32_t) temp_buffer[data_pos]) << 24) +
+						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int32_t) temp_buffer[data_pos + 3]);
 
-		band_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
+		bw_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 5]) << 16) +
 						(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 						(int64_t) temp_buffer[data_pos + 7]);
 		
-		band_int_part = (long double) ((band_word1 << 12) + (band_word2 >> 20));
-		band_dec_part = (long double) (band_word2 & 0x000fffff);
-		digitizer->bandwidth = band_int_part + (band_dec_part / MHZ);
+		bw_int_part = (long double) ((bw_word1 << 12) + (bw_word2 >> 20));
+		bw_dec_part = (long double) (bw_word2 & 0x000fffff);
+		digitizer->bandwidth = bw_int_part + (bw_dec_part / MHZ);
 		data_pos = data_pos + 8;
 	}
 
@@ -1215,10 +1215,10 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 	if ((digitizer->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == 
 		RF_FREQ_OFFSET_INDICATOR_MASK) 
 	{
-		rf_freq_word1 = ((((int64_t) temp_buffer[data_pos]) << 24) +
-						(((int64_t) temp_buffer[data_pos + 1]) << 16) +
-						(((int64_t) temp_buffer[data_pos + 2]) << 8) + 
-						(int64_t) temp_buffer[data_pos + 3]);
+		rf_freq_word1 = ((((int32_t) temp_buffer[data_pos]) << 24) +
+						(((int32_t) temp_buffer[data_pos + 1]) << 16) +
+						(((int32_t) temp_buffer[data_pos + 2]) << 8) + 
+						(int32_t) temp_buffer[data_pos + 3]);
 
 		rf_freq_word2 =  ((((int64_t) temp_buffer[data_pos + 4]) << 24) +
 						(((int64_t) temp_buffer[data_pos + 5]) << 16) +
@@ -1227,7 +1227,7 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 
 		rf_freq_int_part = (long double) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
 		rf_freq_dec_part = (long double) (rf_freq_word2 & 0x000fffff);
-		digitizer->rf_freq_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
+		digitizer->rf_freq_offset = rf_freq_int_part;
 		
 		data_pos = data_pos + 8;
 	}
