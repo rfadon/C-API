@@ -849,6 +849,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 	uint16_t packet_size = 0;
 	int32_t bytes_received;
 
+	uint32_t stream_identifier_word = 0;
 	int16_t acq_status;
 	int32_t exit_loop = 0;
 	int16_t result = 0;
@@ -946,6 +947,15 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 			free(vrt_buffer);
 			return result;
 		}
+		// Store the Stream Identifier to determine if the packet is an IQ packet or a context packet
+		stream_identifier_word = (((uint32_t) vrt_buffer[4]) << 24) 
+		+ (((uint32_t) vrt_buffer[5]) << 16) 
+		+ (((uint32_t) vrt_buffer[6]) << 8) 
+		+ (uint32_t) vrt_buffer[7];
+		
+		// reduce the i counter if the packet does not contain if data
+		if (stream_identifier_word != IF_DATA_STREAM_ID)
+			i--;
 		
 		// save the first two words header data to the .bin file
 		fwrite(vrt_buffer, 1, vrt_bytes, iq_fptr);
