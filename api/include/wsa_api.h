@@ -53,7 +53,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
     
 int16_t wsa_flush_data(struct wsa_device *dev);
 
-int16_t wsa_system_request_acquisition_access(struct wsa_device *dev, int16_t *status);
+int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t *status);
 int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status);
 
 int16_t wsa_system_abort_capture(struct wsa_device *dev);

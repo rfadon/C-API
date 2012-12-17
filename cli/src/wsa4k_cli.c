@@ -1250,7 +1250,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (strcmp(cmd_words[2], "ACCESS") == 0)
 			{
-				result = wsa_system_request_acquisition_access(dev, &temp_short);
+				result = wsa_system_request_acq_access(dev, &temp_short);
 				if (result >= 0)
 					printf("Data acquisition access %s.\n", 
 						(temp_short) ? "obtained" : "denied");

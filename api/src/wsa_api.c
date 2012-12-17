@@ -234,12 +234,15 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
 // ////////////////////////////////////////////////////////////////////////////
 
 /**
- * Request read data access from the wsa
- * @param dev - A pointer to the WSA device structure.
- * @param status - returns if the read access was acquired (1 if access granted, 0 if access is denied)
- *@return 0 on success, or a negative number on error.
+ * Request read data access from the WSA
+ *
+ * @param dev - A pointer to the WSA device structure
+ * @param status - An int16_t pointer storing the read access request result,
+ *                 1 if the access is granted, 0 if denied
+ *
+ * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_system_request_acquisition_access(struct wsa_device *dev, int16_t* status)
+int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t* status)
 {
 	struct wsa_resp query;		// store query results
 
@@ -253,15 +256,14 @@ int16_t wsa_system_request_acquisition_access(struct wsa_device *dev, int16_t* s
 		*status = 0;
 
 	return 0;
-
 }
 
 /**
  * Determine the current status of the WSA acquistion lock
  *
  * @param dev - A pointer to the WSA device structure
- * @param status - An int16_t point storing the acquisition lock status 
- * (1 - have the acquisition access, 0 - does not have the access)
+ * @param status - An int16_t pointer storing the acquisition lock status, 
+ * 1 - have the acquisition access, 0 - does not have the access
  *
  * @return 0 on success, or a negative number on error.
  */
