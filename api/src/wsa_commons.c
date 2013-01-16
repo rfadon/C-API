@@ -30,7 +30,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWNFWRVSN, "Unknown WSA firmware version detected"},
 		{WSA_ERR_PRODOBSOLETE, "Product is obsolete and not supported"},
 		{WSA_ERR_DATAACCESSDENIED, "Read access denied"},
-
+		
 		//*****
 		// WSA Setup Related
 		//*****
@@ -358,3 +358,33 @@ int16_t to_double(char *num_str, double *val)
 
 	return 0;
 }
+
+/**
+ * determine if a char is present in a scpi command
+ *
+ * @param string - A char pointer pointing to the string to be searched
+ * @param symbol - A char that contains the character to be searched for in the string 
+ *				if valid
+ * 
+ * @return 0 if the symbol is inside the string, else a negative value
+ */
+int16_t find_char_in_string(const char *command, char *symbol)
+{
+	int32_t length;
+	int32_t i;
+	char temp_char;
+	length = (int32_t) strlen(command);
+
+	for (i = 0; i <= length; i++)
+	{
+		strcpy(&temp_char, &command[i]);
+
+		if (strcmp(&temp_char,symbol) == 0)
+		return 0;
+	}
+
+	return WSA_ERR_CMDINVALID;
+}
+
+
+

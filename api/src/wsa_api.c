@@ -57,11 +57,12 @@
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
+int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq);
 
 // Verify if the frequency is valid (within allowed range)
-int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
+int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq)
 {
+	
 	// verify the frequency value
 	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)
 		return WSA_ERR_FREQOUTOFBOUND;
@@ -194,6 +195,44 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
 	return wsa_send_command_file(dev, file_name);
 }
 
+/**
+ * Send a scpi command to the wsa and query for a response
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param command - A char pointer to the scpi command
+ * @param response - A char pointer to hold the response from the wsa
+ *
+ */
+int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
+{
+	struct wsa_resp query;		
+	
+	
+	sprintf(command,"%s\n",command);
+	
+	wsa_send_query(dev, command, &query);
+	strcpy(response, query.output);
+
+	return (int16_t) query.status;
+}
+
+/**
+ * Send a scpi command to the wsa
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param command - A pointer to the scpi command
+ *
+ */
+int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
+{
+	int16_t result;
+	sprintf(command,"%s\n",command);
+	
+	result = wsa_send_command(dev, command);
+	
+	return result;
+
+}
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
@@ -446,7 +485,6 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 {
 	struct wsa_resp query;		// store query results
 	long temp;
-
 	wsa_send_query(dev, "TRACE:SPPACKET?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -470,7 +508,6 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 
 	return 0;
 }
-
 
 /**
  * Sets the number of VRT packets per each capture block.
@@ -708,7 +745,6 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
 	result = wsa_verify_freq(dev, cfreq);
 	if (result < 0)
 		return result;
@@ -2280,7 +2316,7 @@ int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id)
 	result = wsa_get_sweep_entry_size(dev, &size);
 	if (result < 0)
 		return WSA_ERR_SWEEPENTRYDELETEFAIL;
-	if (id < 1 || id > size)
+	if (id < 0 || id > size)
 		return WSA_ERR_SWEEPIDOOB;
 
 	sprintf(temp_str, "SWEEP:ENTRY:DELETE %u\n", id);
@@ -2453,7 +2489,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
-									timeout, 
+									timeout,	
 									&bytes_received);
 
 		free(packet);

@@ -53,7 +53,7 @@
 
 // Control commands syntax supported types
 #define SCPI "SCPI"	/* SCPI control commands syntax */
-
+#define SCPI_QUERY_CMD "?"
 // Status Byte Register SBR, use with SRE
 #define SCPI_SBR_EVTAVL 0x04	// Error/event queue available
 #define SCPI_SBR_QSR 0x08		// Questionable Status register
@@ -168,9 +168,9 @@ struct wsa_descriptor {
 	char fw_version[20];
 	char intf_type[20];
 	uint64_t inst_bw;
-	uint32_t max_sample_size;
-	uint64_t max_tune_freq;
-	uint64_t min_tune_freq;
+	int32_t max_sample_size;
+	int64_t max_tune_freq;
+	int64_t min_tune_freq;
 	uint64_t freq_resolution;
 	int32_t max_if_gain;
 	int32_t min_if_gain;

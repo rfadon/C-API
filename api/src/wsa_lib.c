@@ -675,6 +675,7 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			// Read back the output
 			else 
 			{
+
 				recv_result = -1;
 				while (recv_result != 0 && loop_count < 5) 
 				{
@@ -877,7 +878,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	
 	// Get the packet type
 	header->packet_type = vrt_header_buffer[0] >> 4;
-		
+	
 	// Get the 4-bit VRT "Pkt Count"
 	// This counter increments from 0 to 15 and repeats again from 0 in a never-ending loop.
 	// It provides a simple verification that packets are arriving in the right order

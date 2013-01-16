@@ -23,7 +23,6 @@
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 6)
 #define WSA_ERR_DATAACCESSDENIED (LNEG_NUM - 7)
 
-
 // ///////////////////////////////
 // WSA SETUP ERRORS				//
 // ///////////////////////////////

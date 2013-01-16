@@ -645,6 +645,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
 					extension, i_buffer, q_buffer, samples_per_packet);
+			
 		if (result < 0)
 			break;
 		
@@ -1051,8 +1052,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	char *strtok_result;
 	char char_result[MAX_STRING_LEN];
+	char query_status[MAX_STRING_LEN];
 	char *file_name;
-	
 	int16_t temp_short;
 	int32_t temp_int;
 	long temp_long;
@@ -1387,7 +1388,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}
 	} // end RUN
 
-
 	//*****
 	// Handle SET commands
 	//*****
@@ -1396,9 +1396,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		if (strcmp(cmd_words[1], "ANT") == 0) 
 		{
 			if (num_words < 3) 
-			{
 				printf("Missing the antenna port value. See 'h'.\n");
-			}
+
 			else if (!to_int(cmd_words[2], &temp_long))
 			{
 				result = wsa_set_antenna(dev, (int32_t) temp_long);
@@ -1407,10 +1406,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						WSA_RFE0560_MAX_ANT_PORT);
 			}
 			else
-			{
 				printf("Invalid input. Antenna port must be a positive "
 						"integer number. See 'h'.\n");
-			}
 		} // end set ANT
 
 		else if (strcmp(cmd_words[1], "BPF") == 0) 
