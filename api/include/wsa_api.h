@@ -157,8 +157,8 @@ int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
 int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_packet);
 int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet);
 
-int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, uint32_t *packets_per_block);
-int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block);
+int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets_per_block);
+int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_per_block);
 
 int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *type);
 int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *type);

@@ -1742,7 +1742,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
  *
  * @return 0 if successful, or a negative number on error.
  */
-int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, uint32_t *packets_per_block)
+int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets_per_block)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
@@ -1758,7 +1758,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, uint32_t *packet
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*packets_per_block = (uint32_t) temp;
+	*packets_per_block = (int32_t) temp;
 
 	return 0;
 }
@@ -1771,7 +1771,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, uint32_t *packet
  *
  * @return 0 if success, or a negative number on error.
  */
-int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets_per_block)
+int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_per_block)
 {
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
@@ -1781,7 +1781,7 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, uint32_t packets
 	else if (packets_per_block > WSA4000_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
 
-	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %u\n", packets_per_block);
+	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %d\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_packets_per_block: %d - %s.\n", result, wsa_get_error_msg(result));
 

@@ -1052,7 +1052,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int i;
 	char *strtok_result;
 	char char_result[MAX_STRING_LEN];
-	char query_status[MAX_STRING_LEN];
 	char *file_name;
 	int16_t temp_short;
 	int32_t temp_int;
@@ -2745,7 +2744,7 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Antenna port: %u \n", list_values->ant_port);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);
-	printf("  Frequency shift: %0.3f MHz\n", (float) list_values->fshift);
+	printf("  Frequency shift: %0.3f MHz\n", (float) (list_values->fshift/MHZ));
 	printf("  Gain IF: %u \n", list_values->gain_if);
 	printf("  Gain RF: %s\n", list_values->gain_rf);
 	printf("  Trigger settings:\n");
