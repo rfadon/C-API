@@ -114,7 +114,7 @@ int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type);
 int16_t wsa_set_trigger_type(struct wsa_device *dev, char *type);
    
 // ////////////////////////////////////////////////////////////////////////////
-// PLL Section                                                               //
+// PLL SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref);
@@ -124,9 +124,19 @@ int16_t wsa_reset_reference_pll(struct wsa_device *dev);
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref);
 int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 
+///////////////////////////////////////////////////////////////////////////////
+// STREAM CONTROL SECTION                                                    //
+///////////////////////////////////////////////////////////////////////////////
+
+
+int16_t wsa_stream_start(struct wsa_device * const dev);
+int16_t wsa_get_stream_status(struct wsa_device * const dev, char *type);
+int16_t wsa_stream_stop(struct wsa_device * const dev);
+
 // ////////////////////////////////////////////////////////////////////////////
-// SWEEP FUNCTIONS                                                           //
+// SWEEP CONTROL SECTION                                                     //
 // ////////////////////////////////////////////////////////////////////////////
+
 int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num);
 

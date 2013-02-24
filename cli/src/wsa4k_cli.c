@@ -198,6 +198,23 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("\n");
 	printf("  system flush\n"
 		"\t- Clear the WSA4000 internal buffer of remaining sweep data\n");
+
+	printf("\n");
+
+	printf("//////////////////////////////////////////////////////////////////\n");
+	printf("//                Stream Capture Commands                        //\n");
+	printf("//////////////////////////////////////////////////////////////////\n");
+
+	printf("\n"); 
+	printf("Commands for Stream Execution:\n");
+	printf("  stream start\n"
+		"\t- Initialize the streaming of IQ data\n");
+	printf("  stream stop\n"
+		"\t- Stop the streaming process\n");
+	printf("  stream status\n"
+		"\t- Get the current stream status, running or stopped\n");
+
+
 	printf("\n");
 
 	printf("//////////////////////////////////////////////////////////////////\n");
@@ -1917,7 +1934,42 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		}
 	} // end set
 
-		
+	//*****
+	// Handle STREAM commands
+	//*****
+	else if (strcmp(cmd_words[0], "STREAM") == 0)
+	{
+		if  (strcmp(cmd_words[1], "START") == 0) 
+		{
+			if (num_words == 2)
+				result = wsa_stream_start(dev);
+			else
+				printf("Too many arguments for 'stream start'.\n");
+		} // end STREAM START
+
+		else if  (strcmp(cmd_words[1], "STOP") == 0) 
+		{
+			if (num_words == 2)
+				result = wsa_stream_stop(dev);
+			else
+				printf("Too many arguments for 'stream stop'.\n");
+		} // end STREAM STOP
+
+		else if  (strcmp(cmd_words[1], "STATUS") == 0) 
+		{
+			if (num_words == 2)
+			{
+				result = wsa_get_stream_status(dev, char_result);
+				if (result >= 0) 
+					printf("Stream mode is %s.\n", char_result);
+			}
+			else
+				printf("Too many arguments for 'stream stop'.\n");
+		} // end STREAM STATUS
+		else
+			printf("Invalid 'stream' command. See 'h'.\n");
+	} // end STREAM
+
 	//*****
 	// Handle SWEEP commands
 	//*****
@@ -2708,7 +2760,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 	result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 	if (result < 0)
 		return result;
-	printf("      Range (MHz): %0.3f - %0.3f\n", (float) start_freq, (float) stop_freq);
+	printf("      Range (MHz): %0.3f - %0.3f\n", (float) start_freq/MHZ, (float) stop_freq/MHZ);
 	printf("      Amplitude: %ld dBm\n", amplitude);
 
 	// print dwell sweep value

@@ -349,6 +349,26 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
 
 
 /**
+ * Aborts the current data capturing process (sweep mode/stream mode) and puts the WSA system into
+ * capture block mode
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_abort_capture(struct wsa_device * const dev)
+{
+	int16_t result = 0;
+
+	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
+	doutf(DHIGH, "Error in wsa_abort_capture: %d - %s\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
  * Reads one VRT packet containing raw IQ data. 
  * Each packet consists of a header, a data payload, and a trailer.
  * The number of samples expected in the packet is indicated by
@@ -1321,7 +1341,7 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
  * Sets the WSA's capture mode to triggered (trigger on)
  *
  * @param dev - A pointer to the WSA device structure.
- * @param enable - An char containing the trigger mode. 
+ * @param type - An char containing the trigger mode. 
  * 
  * @return 0 on success, or a negative number on error.
  */
@@ -1341,9 +1361,9 @@ int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type)
 	return 0;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-// PLL Reference CONTROL SECTION                                             //
-// ////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+// PLL REFERENCE CONTROL SECTION                                            //
+//////////////////////////////////////////////////////////////////////////////
 
 /**
  * Gets the PLL Reference Source
@@ -1473,8 +1493,94 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
+// STREAM CONTROL SECTION                                                    //
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initiates the capture, storage and streaming of IQ data in the WSA
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_stream_start(struct wsa_device * const dev)
+{
+	int16_t result = 0;
+
+	result = wsa_send_command(dev, "TRACE:STREAM:START\n");
+	doutf(DHIGH, "Error in wsa_stream_start: %d - %s\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Returns the WSA's current stream running status
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param type - An char containing the trigger mode.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_get_stream_status(struct wsa_device * const dev, char *type)
+{
+	struct wsa_resp query;
+	wsa_send_query(dev, "TRACE:STREAM:STATUS?\n", &query);
+	
+	strcpy(type, query.output);
+	return 0;
+}
+
+/**
+ * stops stream mode in the WSA, and read remaining data in the socket.
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_stream_stop(struct wsa_device * const dev)
+{
+    int16_t result = 0;
+    int32_t bytes_received = 0;
+    uint8_t *packet;
+    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
+
+    // Timeout parameters
+    uint32_t timeout = 360;
+    clock_t start_time;
+    clock_t end_time;
+	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
+	doutf(DHIGH, "Error in wsa_stream_stop: %d - %s\n", result, wsa_get_error_msg(result));
+
+	if (result < 0)
+		return result;
+	start_time = clock();
+	end_time = 2000 + start_time;
+	
+	// read the left over packets from the socket
+	while(clock() <= end_time) 
+	{
+		packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
+		
+		result = wsa_sock_recv_data(dev->sock.data, 
+									packet, 
+									packet_size, 
+									timeout,	
+									&bytes_received);
+
+		free(packet);
+	}
+	
+	return 0;
+}
+
+
 // ////////////////////////////////////////////////////////////////////////////
-// Sweep Functions	                                                         //
+// SWEEP CONTROL SECTION                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
 
@@ -2463,6 +2569,7 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
  */
 int16_t wsa_sweep_stop(struct wsa_device *dev) 
 {
+
     int16_t result = 0;
     int32_t bytes_received = 0;
     uint8_t *packet;

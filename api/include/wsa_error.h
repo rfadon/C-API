@@ -148,6 +148,11 @@
 #define WSA_ERR_INVINPUT	(LNEG_NUM - 2004)
 
 // ///////////////////////////////
+// STREAM ERRORS  				//
+// ///////////////////////////////
+
+
+// ///////////////////////////////
 // SWEEP ERRORS					//
 // ///////////////////////////////
 #define WSA_ERR_SWEEPSTARTFAIL	(LNEG_NUM - 3000)
@@ -165,6 +170,13 @@
 #define WSA_ERR_SWEEPIDOOB	(LNEG_NUM - 3012)
 #define WSA_ERR_SWEEPMODEUNDEF (LNEG_NUM - 3013)
 #define WSA_ERR_INVSWEEPSTARTID (LNEG_NUM - 3014)
+
+// ///////////////////////////////
+// STREAM ERRORS  				//
+// ///////////////////////////////
+#define WSA_ERR_STREAMALREADYRUNNING	(LNEG_NUM - 3000)
+#define WSA_ERR_STREAMNOTRUNNING     (LNEG_NUM - 3001)
+
 // ///////////////////////////////
 // WARNINGS						//
 // ///////////////////////////////
