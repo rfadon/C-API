@@ -22,6 +22,7 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name);
 int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response);
 int16_t wsa_send_scpi(struct wsa_device *dev, char *command);
 
+
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
@@ -29,12 +30,19 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char *command);
 int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
 						  float *value);
 
+
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
-int16_t wsa_capture_block(struct wsa_device * const dev);
+int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t *status);
+int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status);
+
 int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode);
+int16_t wsa_system_abort_capture(struct wsa_device *dev);
+int16_t wsa_flush_data(struct wsa_device *dev);
+
+int16_t wsa_capture_block(struct wsa_device * const dev);
 
 int16_t wsa_read_vrt_packet (struct wsa_device * const dev, 
 		struct wsa_vrt_packet_header * const header, 
@@ -54,13 +62,7 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 
 int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
-    
-int16_t wsa_flush_data(struct wsa_device *dev);
 
-int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t *status);
-int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status);
-
-int16_t wsa_system_abort_capture(struct wsa_device *dev);
 
 // ////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
@@ -71,6 +73,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq);
 
 int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift);
 int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift);
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //
@@ -113,7 +116,8 @@ int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable);
 
 int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type);
 int16_t wsa_set_trigger_type(struct wsa_device *dev, char *type);
-   
+
+
 // ////////////////////////////////////////////////////////////////////////////
 // PLL SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
@@ -125,13 +129,14 @@ int16_t wsa_reset_reference_pll(struct wsa_device *dev);
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref);
 int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // STREAM CONTROL SECTION                                                    //
 ///////////////////////////////////////////////////////////////////////////////
 
-
 int16_t wsa_stream_start(struct wsa_device * const dev);
 int16_t wsa_stream_stop(struct wsa_device * const dev);
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // SWEEP CONTROL SECTION                                                     //

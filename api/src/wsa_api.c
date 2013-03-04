@@ -285,7 +285,7 @@ int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t* status)
 {
 	struct wsa_resp query;		// store query results
 
-	wsa_send_query(dev, "SYSTem:LOCK:REQuest? ACQuisition\n", &query);
+	wsa_send_query(dev, "SYST:LOCK:REQ? ACQ\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -310,7 +310,7 @@ int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status)
 {
 	struct wsa_resp query;		// store query results
 
-	wsa_send_query(dev, ":SYSTem:LOCK:HAVE? ACQuisition\n", &query);	
+	wsa_send_query(dev, ":SYST:LOCK:HAVE? ACQ\n", &query);	
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
@@ -321,6 +321,93 @@ int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status)
 
 	return 0;
 }
+
+
+/**
+ * Flush the current data in the WSA's internal buffer.
+ *
+ * @param dev - A pointer to the WSA device structure
+ *
+ * @return 0 on success, or a negative number on error
+ */
+int16_t wsa_flush_data(struct wsa_device *dev) 
+{
+	int16_t result = 0;
+	int32_t size = 0;
+	char status[40];
+
+	// check if the wsa is already sweeping
+	result = wsa_get_sweep_status(dev, status);
+	if (result < 0)
+		return result;
+
+	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
+		return WSA_ERR_SWEEPALREADYRUNNING;
+
+	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
+	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
+	
+	return result;
+}
+
+
+/**
+ * Abort the current data capturing process and put the WSA into the manual mode
+ * (i.e. no sweep or triggering or streaming)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_system_abort_capture(struct wsa_device *dev)
+{
+	int16_t result = 0;
+	int32_t size = 0;
+
+	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
+	doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Returns the WSA's current capture mode 
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An char containing the wsa's capture mode.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
+{
+	struct wsa_resp query;
+	wsa_send_query(dev, "SYST:CAPT:MODE?\n", &query);
+	
+	strcpy(mode, query.output);
+	return 0;
+}
+
+/**
+ * Aborts the current data capturing process (sweep mode/stream mode) and puts the WSA system into
+ * capture block mode
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_abort_capture(struct wsa_device * const dev)
+{
+	int16_t result = 0;
+
+	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
+	doutf(DHIGH, "Error in wsa_abort_capture: %d - %s\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
 
 /**
  * Instruct the WSA to capture a block of signal data
@@ -346,44 +433,6 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
 
 	return result;
 }
-
-/**
- * Returns the WSA's current capture mode 
- * \n
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param mode - An char containing the wsa's capture mode.
- *
- * @return 0 on success or a negative value on error
- */
-int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
-{
-	struct wsa_resp query;
-	wsa_send_query(dev, "SYSTem:CAPTure:MODE?\n", &query);
-	
-	strcpy(mode, query.output);
-	return 0;
-}
-
-/**
- * Aborts the current data capturing process (sweep mode/stream mode) and puts the WSA system into
- * capture block mode
- * \n
- * 
- * @param dev - A pointer to the WSA device structure.
- *
- * @return 0 on success or a negative value on error
- */
-int16_t wsa_abort_capture(struct wsa_device * const dev)
-{
-	int16_t result = 0;
-
-	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
-	doutf(DHIGH, "Error in wsa_abort_capture: %d - %s\n", result, wsa_get_error_msg(result));
-
-	return result;
-}
-
 
 /**
  * Reads one VRT packet containing raw IQ data. 
@@ -459,6 +508,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
+	if (data_buffer == NULL)
+	{
+		doutf(DHIGH, "In wsa_read_vrt_packet: failed to allocate memory\n");
+		return WSA_ERR_MALLOCFAILED;
+	}
 			
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer);
 	doutf(DMED, "wsa_read_vrt_packet_raw returned %hd\n", result);
@@ -669,54 +723,6 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	sprintf(temp_str, "SENSE:DEC %d \n", rate);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
-
-	return result;
-}
-
-
-/**
- * Flush the current data in the WSA's internal buffer.
- *
- * @param dev - A pointer to the WSA device structure
- *
- * @return 0 on success, or a negative number on error
- */
-int16_t wsa_flush_data(struct wsa_device *dev) 
-{
-	int16_t result = 0;
-	int32_t size = 0;
-	char status[40];
-
-	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, status);
-	if (result < 0)
-		return result;
-
-	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
-		return WSA_ERR_SWEEPALREADYRUNNING;
-
-	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
-	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
-	
-	return result;
-}
-
-
-/**
- * Abort the current data capturing process and put the WSA into the manual mode
- * (i.e. no sweep or triggering or streaming)
- *
- * @param dev - A pointer to the WSA device structure.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_system_abort_capture(struct wsa_device *dev)
-{
-	int16_t result = 0;
-	int32_t size = 0;
-
-	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
-	doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
@@ -1561,21 +1567,29 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 	if (result < 0)
 		return result;
 	start_time = clock();
-	end_time = 5000 + start_time;
+	end_time = 2000 + start_time;
+
+	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
+	if (packet == NULL)
+	{
+		doutf(DHIGH, "In wsa_stream_stop: failed to allocate memory\n");
+		return WSA_ERR_MALLOCFAILED;
+	}
 	
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
-		
+		printf("Clearing socket buffer... ");
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
 									timeout,	
 									&bytes_received);
 
-		free(packet);
 	}
+	printf("done.\n");
+
+	free(packet);
 	
 	return 0;
 }
@@ -2589,20 +2603,27 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
  
 	start_time = clock();
 	end_time = 2000 + start_time;
+
+	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
+	if (packet == NULL)
+	{
+		doutf(DHIGH, "In wsa_sweep_stop: failed to allocate memory\n");
+		return WSA_ERR_MALLOCFAILED;
+	}
 	
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
-		
+		printf("Clearing socket buffer... ");
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
 									timeout,	
 									&bytes_received);
-
-		free(packet);
 	}
+	printf("done.\n");
+
+	free(packet);
 	
 	return 0;
 }

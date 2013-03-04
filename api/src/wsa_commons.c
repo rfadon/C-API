@@ -223,6 +223,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 		fputs("Memory error", stderr); 	
 		return WSA_ERR_MALLOCFAILED;
 	}
+
 	fread(buffer, 1, fSize, fptr);	// copy the file into the buffer
 	doutf(DLOW, "\nFile content: \n%s\n", buffer);
 	

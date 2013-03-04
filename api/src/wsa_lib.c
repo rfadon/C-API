@@ -556,7 +556,14 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 
     // Allocate memory
     for (i = 0; i < MAX_FILE_LINES; i++)
+	{
         cmd_strs[i] = (char *) malloc(sizeof(char) * MAX_STR_LEN);
+		if (cmd_strs[i] == NULL)
+		{
+			doutf(DHIGH, "In wsa_send_command_file: failed to allocate memory\n");
+			return WSA_ERR_MALLOCFAILED;
+		}
+	}
 
     result = wsa_tokenize_file(cmd_fptr, cmd_strs);
    
@@ -851,9 +858,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	// allocate space for the header buffer
 	vrt_header_buffer = (uint8_t *) malloc(vrt_header_bytes * sizeof(uint8_t));
 	if (vrt_header_buffer == NULL)
-	{
 		return WSA_ERR_MALLOCFAILED;
-	}
 
 	// retrieve the first two words of the packet to determine if the packet contains IQ data or context data
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
