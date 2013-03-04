@@ -347,6 +347,23 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
 	return result;
 }
 
+/**
+ * Returns the WSA's current capture mode 
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An char containing the wsa's capture mode.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
+{
+	struct wsa_resp query;
+	wsa_send_query(dev, "SYSTem:CAPTure:MODE?\n", &query);
+	
+	strcpy(mode, query.output);
+	return 0;
+}
 
 /**
  * Aborts the current data capturing process (sweep mode/stream mode) and puts the WSA system into
@@ -1517,24 +1534,6 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 
 
 /**
- * Returns the WSA's current stream running status
- * \n
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param type - An char containing the trigger mode.
- *
- * @return 0 on success or a negative value on error
- */
-int16_t wsa_get_stream_status(struct wsa_device * const dev, char *type)
-{
-	struct wsa_resp query;
-	wsa_send_query(dev, "TRACE:STREAM:STATUS?\n", &query);
-	
-	strcpy(type, query.output);
-	return 0;
-}
-
-/**
  * stops stream mode in the WSA, and read remaining data in the socket.
  * \n
  * 
@@ -1554,12 +1553,15 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
     clock_t start_time;
     clock_t end_time;
 	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
+	if (result < 0)
+		return result;
 	doutf(DHIGH, "Error in wsa_stream_stop: %d - %s\n", result, wsa_get_error_msg(result));
 
+	result = wsa_flush_data(dev); 
 	if (result < 0)
 		return result;
 	start_time = clock();
-	end_time = 2000 + start_time;
+	end_time = 5000 + start_time;
 	
 	// read the left over packets from the socket
 	while(clock() <= end_time) 

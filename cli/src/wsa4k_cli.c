@@ -682,12 +682,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			// verify the extension packet order indicator
 			if (extension->pkt_count != expected_extension_pkt_count)
 			{
-				printf("Error: VRT extension context packet count is out of "
+				printf("Warning: VRT extension context packet count is out of "
 					"order, expecting: %d, received: %d\n", 
 					expected_extension_pkt_count, extension->pkt_count);
-				result = WSA_ERR_PACKETOUTOFORDER;
-
-				break;
+				expected_extension_pkt_count = extension->pkt_count;
 			}
 
 			// if pkt count reaches max value, reset to the beginning
@@ -716,11 +714,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				// verify the receiver packet order indicator
 				if (receiver->pkt_count != expected_receiver_pkt_count)
 				{
-					printf("Error: VRT receiver context packet count is out of"
+					printf("Warning: VRT receiver context packet count is out of"
 						" order, expecting: %d, received: %d\n", 
 					expected_receiver_pkt_count, receiver->pkt_count);
-					result = WSA_ERR_PACKETOUTOFORDER;
-					break;
+					expected_receiver_pkt_count = receiver->pkt_count;
+
 				}
 
 				// if pkt count reaches max value, reset to the beginning
@@ -740,11 +738,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				// verify the digitizer packet order indicator
 				if (digitizer->pkt_count != expected_digitizer_pkt_count)
 				{
-					printf("Error: VRT digitizer context packet count is out of"
+					printf("Warning: VRT digitizer context packet count is out of"
 						" order, expecting: %d, received: %d\n", 
 					expected_digitizer_pkt_count, digitizer->pkt_count);
-					result = WSA_ERR_PACKETOUTOFORDER;
-					break;
+					expected_digitizer_pkt_count = digitizer->pkt_count;
 				}				
 
 				// if pkt count reaches max value, reset to the beginning
@@ -768,11 +765,11 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 				if (header->pkt_count != expected_if_pkt_count)
 				{
-					printf("Error: VRT IF data packet count is out of"
+					printf("Warning: VRT IF data packet count is out of"
 						" order, expecting: %d, received: %d\n", 
 					expected_if_pkt_count, header->pkt_count);
-					result = WSA_ERR_PACKETOUTOFORDER;
-					break;
+					expected_if_pkt_count = header->pkt_count;
+
 				}
 			
 				if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
@@ -1118,6 +1115,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result >= 0)
 				printf("RFE's preselect BPF state: %s.\n", (temp_int) ? "On" : "Off");
 		} // end get BPF
+		
+		else if(strcmp(cmd_words[1], "CAPTURE") == 0) 
+		{
+			if (num_words > 3)
+				printf("Too many inputs for 'get capture' command \n");
+			else
+			{
+				if (strcmp(cmd_words[2], "MODE") == 0) 
+				{
+					result = wsa_get_capture_mode(dev,char_result);
+					if (result >= 0)
+						printf("Capture mode: %s\n", char_result);
+				}
+				else
+					printf("Invalid'get capture' command.  Try 'h'. \n");
+			}			
+		}// end get capture mode
 
 		else if (strcmp(cmd_words[1], "DEC") == 0) 
 		{
@@ -1954,18 +1968,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				printf("Too many arguments for 'stream stop'.\n");
 		} // end STREAM STOP
-
-		else if  (strcmp(cmd_words[1], "STATUS") == 0) 
-		{
-			if (num_words == 2)
-			{
-				result = wsa_get_stream_status(dev, char_result);
-				if (result >= 0) 
-					printf("Stream mode is %s.\n", char_result);
-			}
-			else
-				printf("Too many arguments for 'stream stop'.\n");
-		} // end STREAM STATUS
 		else
 			printf("Invalid 'stream' command. See 'h'.\n");
 	} // end STREAM

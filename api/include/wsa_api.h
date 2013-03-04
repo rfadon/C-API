@@ -34,6 +34,7 @@ int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain,
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_capture_block(struct wsa_device * const dev);
+int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode);
 
 int16_t wsa_read_vrt_packet (struct wsa_device * const dev, 
 		struct wsa_vrt_packet_header * const header, 
@@ -130,7 +131,6 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 
 
 int16_t wsa_stream_start(struct wsa_device * const dev);
-int16_t wsa_get_stream_status(struct wsa_device * const dev, char *type);
 int16_t wsa_stream_stop(struct wsa_device * const dev);
 
 // ////////////////////////////////////////////////////////////////////////////
