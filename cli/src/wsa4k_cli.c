@@ -2268,7 +2268,7 @@ int16_t start_cli(void)
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
 #ifdef CLI_VERSION
-	printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
+	printf("\t\t\t(Version: thinkrf_v2.6.0)\n\n");
 #else
 	printf("\t\t\t(Version: %s)\n\n", "custom_build");
 #endif

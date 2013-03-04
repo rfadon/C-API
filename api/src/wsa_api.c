@@ -1576,10 +1576,10 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
+	printf("Clearing socket buffer... ");
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		printf("Clearing socket buffer... ");
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
@@ -2611,10 +2611,10 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		return WSA_ERR_MALLOCFAILED;
 	}
 	
+	printf("Clearing socket buffer... ");
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		printf("Clearing socket buffer... ");
 		result = wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
