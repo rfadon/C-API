@@ -449,7 +449,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t j;
 
 	char file_name[MAX_STR_LEN];
-	char sweep_status[40];
+	char capture_mode[40];
 	FILE *iq_fptr;
 
 	// to calculate run time
@@ -505,12 +505,12 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
 
-	// Get sweep status
-	result = wsa_get_sweep_status(dev, sweep_status);
+	// Get capture status
+	result = wsa_get_capture_mode(dev, capture_mode);
 	if (result < 0)
 		return result;
-
-	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
+ 
+	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0) 
 	{	
 		// Get samples per packet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
@@ -529,7 +529,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	else
 	{
 		printf(" done.\n");
-		printf("Sweep mode is enabled, use 'ESC' key to stop saving data to file.\n");
+		printf("Stream/Sweep mode is enabled, use 'ESC' key to stop saving data to file.\n");
 	
 		// Set spp to default maximum to hold iq packets with variant sizes
 		samples_per_packet = dev->descr.max_sample_size;
@@ -620,7 +620,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// set capture block if not doing sweep
-	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
+	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0) 
 	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
@@ -782,8 +782,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				else
 					expected_if_pkt_count++;
 			
-				if (((strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0) ||
-					(strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0 && title_printed == FALSE))) 
+				if (((strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0) ||
+					(strcmp(capture_mode,WSA4000_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
 				{
 					title_printed = TRUE;
 					fprintf(iq_fptr, 
@@ -813,7 +813,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				iq_pkt_count++;
 
 				// if capture mode is enabled, save the number of specified packets
-				if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0)
+				if (strcmp(capture_mode,WSA4000_BLOCK_CAPTURE_MODE) == 0)
 				{
 					if (i >= packets_per_block) 
 					{		
@@ -822,7 +822,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					}
 				}		
 		 
-				// if sweep mode is enabled, capture data until the 'ESC' key is pressed
+				// if stream/sweep mode is enabled, capture data until the 'ESC' key is pressed
 				else if (kbhit() && (getch() == 0x1b)) // esc key	
 				{			 
 					printf("\n'Esc' key pressed, data capture stopped.\n\n");
@@ -878,7 +878,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 	int32_t i = 0;
 
 	char file_name[MAX_STR_LEN];
-	char sweep_status[40];
+	char capture_mode[40];
 	FILE *iq_fptr;
 
 	// to calculate run time
@@ -902,16 +902,18 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		return WSA_ERR_DATAACCESSDENIED;
 
 	// Get sweep status
-	result = wsa_get_sweep_status(dev, sweep_status);
+	result = wsa_get_capture_mode(dev, capture_mode);
 	if (result < 0)
 		return result;
-	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) != 0 && 
-		strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) != 0)
-		return WSA_ERR_SWEEPMODEUNDEF;	
+	
+	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0 && 
+		strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) != 0 &&
+		strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) != 0)
+			return WSA_ERR_SWEEPMODEUNDEF;	
 	
 
 	// set capture block if not doing sweep
-	if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0) 
+	if (strcmp(capture_mode,  WSA4000_BLOCK_CAPTURE_MODE) == 0) 
 	{
 		// get the ppb value
 		result = wsa_get_packets_per_block(dev, &packets_per_block);	
@@ -923,9 +925,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		if (result < 0)
 			return result;
 	}
-	else if (strcmp(sweep_status, WSA4000_SWEEP_STATE_RUNNING) == 0)
+	else if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0)
 	{
-		printf("Sweep mode is enabled, use 'ESC' key to stop saving data to file.\n");
+		printf("Stream/Sweep mode is enabled, use 'ESC' key to stop saving data to file.\n");
 	}
 	
 	// create file name in format "[prefix] YYYY-MM-DD_HHMMSSmmm.[ext]" in a 
@@ -978,7 +980,15 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		// reduce the i counter if the packet does not contain if data
 		if (stream_identifier_word != IF_DATA_STREAM_ID)
 			i--;
-		
+
+		else
+		{
+			iq_pkt_count++;
+			printf(".");
+			
+			if (!(iq_pkt_count % 10))
+				printf(" \n");
+		}
 		// save the first two words header data to the .bin file
 		fwrite(vrt_buffer, 1, vrt_bytes, iq_fptr);
 
@@ -1011,22 +1021,16 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		
 		// save packet data to the bin file
 		fwrite(vrt_buffer, 1, vrt_bytes, iq_fptr);
-
-		printf(".");
-		if (!(iq_pkt_count % 10))
-			printf(" \n");
-
-		iq_pkt_count++;
 		free(vrt_buffer);
 
 		// if capture mode is enabled, save the number of specified packets
-		if (strcmp(sweep_status, WSA4000_SWEEP_STATE_STOPPED) == 0)
+		if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0)
 		{
 			if (i >= packets_per_block)
 				exit_loop = 1;
 		}		
 		 
-		// if sweep mode is enabled, capture data until the 'ESC' key is pressed
+		// if stream/sweep mode is enabled, capture data until the 'ESC' key is pressed
 		else 
 		{
 			if ((kbhit() != 0) && (getch() == 0x1b))// esc key
@@ -2001,10 +2005,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		
 		else if (strcmp(cmd_words[1], "STOP") == 0)
 		{
-			result = wsa_get_sweep_status(dev, char_result);
-			if (strcmp(char_result, WSA4000_SWEEP_STATE_STOPPED) == 0)
-				printf("Sweep mode is already disabled.\n");
-			else
 				result = wsa_sweep_stop(dev);
 		} // end SWEEP STOP
 
@@ -2268,7 +2268,7 @@ int16_t start_cli(void)
 	printf("%s\n",	asctime(localtime(&dateStamp)));
 	printf("\t\t_____ThinkRF - WSA Command Line Interface Tool_____\n");
 #ifdef CLI_VERSION
-	printf("\t\t\t(Version: thinkrf_v2.6.0)\n\n");
+	printf("\t\t\t(Version: %s)\n\n", CLI_VERSION);
 #else
 	printf("\t\t\t(Version: %s)\n\n", "custom_build");
 #endif

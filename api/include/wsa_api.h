@@ -40,7 +40,9 @@ int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status);
 
 int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode);
 int16_t wsa_system_abort_capture(struct wsa_device *dev);
+
 int16_t wsa_flush_data(struct wsa_device *dev);
+int16_t wsa_clean_data_socket(struct wsa_device *dev);
 
 int16_t wsa_capture_block(struct wsa_device * const dev);
 

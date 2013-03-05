@@ -233,6 +233,8 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
 	return result;
 
 }
+
+
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
@@ -352,6 +354,47 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 
 
 /**
+ * Flush the data in the wsa and clean the remaining data in
+ * the data socket socket
+ *
+ * @param dev - A pointer to the WSA device structure.
+ *
+ */
+int16_t wsa_clean_data_socket(struct wsa_device *dev)
+{
+	int16_t result = 0;
+	int32_t bytes_received = 0;
+	uint8_t *packet;
+    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
+	uint32_t timeout = 360;
+    clock_t start_time;
+    clock_t end_time;
+	
+	start_time = clock();
+	end_time = 2000 + start_time;
+
+	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
+	if (packet == NULL)
+	{
+		doutf(DHIGH, "In wsa_clean_data_socket: failed to allocate memory\n");
+		return WSA_ERR_MALLOCFAILED;
+	}
+	// read the left over packets from the socket
+	while(clock() <= end_time) 
+	{
+		result = wsa_sock_recv_data(dev->sock.data, 
+									packet, 
+									packet_size, 
+									timeout,	
+									&bytes_received);
+	}
+
+	free(packet);
+
+	return 0;
+}
+
+/**
  * Abort the current data capturing process and put the WSA into the manual mode
  * (i.e. no sweep or triggering or streaming)
  *
@@ -385,7 +428,14 @@ int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
 	struct wsa_resp query;
 	wsa_send_query(dev, "SYST:CAPT:MODE?\n", &query);
 	
-	strcpy(mode, query.output);
+	if (strcmp(query.output, WSA4000_BLOCK_CAPTURE_MODE) == 0 || 
+		strcmp(query.output, WSA4000_STREAM_CAPTURE_MODE) == 0 ||
+		strcmp(query.output, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+		strcpy(mode, query.output);
+	
+	else
+		return WSA_ERR_RESPUNKNOWN;
+
 	return 0;
 }
 
@@ -1531,6 +1581,18 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 int16_t wsa_stream_start(struct wsa_device * const dev)
 {
 	int16_t result = 0;
+	char capture_mode[MAX_STR_LEN];
+	
+	// retrieve wsa capture mode
+	result = wsa_get_capture_mode(dev, capture_mode);
+	if (result < 0)
+		return result;
+	
+	if (strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) == 0)
+		return WSA_ERR_STREAMALREADYRUNNING;
+
+	else if (strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+		return WSA_ERR_STREAMWHILESWEEPING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:START\n");
 	doutf(DHIGH, "Error in wsa_stream_start: %d - %s\n", result, wsa_get_error_msg(result));
@@ -1550,47 +1612,37 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 int16_t wsa_stream_stop(struct wsa_device * const dev)
 {
     int16_t result = 0;
-    int32_t bytes_received = 0;
-    uint8_t *packet;
-    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
 
-    // Timeout parameters
-    uint32_t timeout = 360;
-    clock_t start_time;
-    clock_t end_time;
-	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
+	char status[MAX_STR_LEN];
+
+	result = wsa_get_capture_mode(dev, status);
 	if (result < 0)
 		return result;
-	doutf(DHIGH, "Error in wsa_stream_stop: %d - %s\n", result, wsa_get_error_msg(result));
 
+	// check if the wsa is already sweeping
+	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) != 0)
+		return WSA_ERR_STREAMNOTRUNNING;
+
+	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
+	if (result < 0)
+	{
+		doutf(DHIGH, "Error in wsa_stream_stop: %d - %s\n", result, wsa_get_error_msg(result));
+		return result;
+	}
+
+	printf("Clearing socket buffer... ");
+	
+	// flush remaining data in the wsa
 	result = wsa_flush_data(dev); 
 	if (result < 0)
 		return result;
-	start_time = clock();
-	end_time = 2000 + start_time;
-
-	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
-	if (packet == NULL)
-	{
-		doutf(DHIGH, "In wsa_stream_stop: failed to allocate memory\n");
-		return WSA_ERR_MALLOCFAILED;
-	}
 	
-	printf("Clearing socket buffer... ");
-	// read the left over packets from the socket
-	while(clock() <= end_time) 
-	{
-		result = wsa_sock_recv_data(dev->sock.data, 
-									packet, 
-									packet_size, 
-									timeout,	
-									&bytes_received);
+	// clean remaining data in the data socket socket
+	result = wsa_clean_data_socket(dev);
+	if (result < 0)
+		return result;
 
-	}
 	printf("done.\n");
-
-	free(packet);
-	
 	return 0;
 }
 
@@ -2511,16 +2563,22 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 int16_t wsa_sweep_start(struct wsa_device *dev)
 {	
 	int16_t result = 0;
-	char status[40];
+	char status[MAX_STR_LEN];
 	int32_t size = 0;
 
-	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, status);
+
+	result = wsa_get_capture_mode(dev, status);
 	if (result < 0)
 		return result;
-	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0)
-		return WSA_ERR_SWEEPALREADYRUNNING;
 
+	// check if the wsa is already sweeping
+	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+		return WSA_ERR_SWEEPALREADYRUNNING;
+	
+	// check if the wsa is streaming
+	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) == 0)
+		return WSA_ERR_SWEEPWHILESTREAMING;
+	
 	// check if the sweep list is empty
 	result = wsa_get_sweep_entry_size(dev, &size);
 	if (result < 0)
@@ -2547,16 +2605,21 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id) 
 {	
 	int16_t result = 0;
-	char status[40];
+	char status[MAX_STR_LEN];
 	int32_t size = 0;
 	char temp_str[MAX_STR_LEN];
 
-	// check if the wsa is already sweeping
-	result = wsa_get_sweep_status(dev, status);
+	result = wsa_get_capture_mode(dev, status);
 	if (result < 0)
 		return result;
-	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0)
+
+	// check if the wsa is already sweeping
+	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
+	
+	// check if the wsa is streaming
+	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) == 0)
+		return WSA_ERR_SWEEPWHILESTREAMING;
 
 	// check if the sweep list is empty
 	result = wsa_get_sweep_entry_size(dev, &size);
@@ -2587,43 +2650,34 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 {
 
     int16_t result = 0;
-    int32_t bytes_received = 0;
-    uint8_t *packet;
-    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
+	char status[MAX_STR_LEN];
 
-    // Timeout parameters
-    uint32_t timeout = 360;
-    clock_t start_time;
-    clock_t end_time;
+	result = wsa_get_capture_mode(dev, status);
+	if (result < 0)
+		return result;
 
+	// check if the wsa is already sweeping
+	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) != 0)
+		return WSA_ERR_SWEEPNOTRUNNING;
+	
 	result = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
 	doutf(DHIGH, "In wsa_sweep_stop: %d - %s.\n", result, wsa_get_error_msg(result));
 	if (result < 0)
 		return result;
- 
-	start_time = clock();
-	end_time = 2000 + start_time;
-
-	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
-	if (packet == NULL)
-	{
-		doutf(DHIGH, "In wsa_sweep_stop: failed to allocate memory\n");
-		return WSA_ERR_MALLOCFAILED;
-	}
 	
 	printf("Clearing socket buffer... ");
-	// read the left over packets from the socket
-	while(clock() <= end_time) 
-	{
-		result = wsa_sock_recv_data(dev->sock.data, 
-									packet, 
-									packet_size, 
-									timeout,	
-									&bytes_received);
-	}
-	printf("done.\n");
+	
+	// flush remaining data in the wsa
+	result = wsa_flush_data(dev); 
+	if (result < 0)
+		return result;
 
-	free(packet);
+	// clean remaining data in the data socket socket
+	result = wsa_clean_data_socket(dev);
+	if (result < 0)
+		return result;
+
+	printf("done.\n");
 	
 	return 0;
 }

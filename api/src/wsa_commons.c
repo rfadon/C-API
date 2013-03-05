@@ -155,7 +155,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_MALLOCFAILED, "Memory allocation failed"},
 		{WSA_ERR_UNKNOWN_ERROR, "Unknown error"},
 		{WSA_ERR_INVINPUT, "Invalid input"},
-
+		
 		//*****
 		// Sweep Errors   
 		//*****
@@ -170,11 +170,20 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPENTRYNEWFAIL, "Failed to create a new sweep entry"},
 		{WSA_ERR_SWEEPENTRYDELETEFAIL, "Failed to delete the sweep list entry"},
 
-		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep is already running"},
+		{WSA_ERR_SWEEPALREADYRUNNING, "Sweep mode is already enabled"},
 		{WSA_ERR_SWEEPLISTEMPTY, "Sweep list is empty"},
+		{WSA_ERR_SWEEPNOTRUNNING, "Sweep mode is already disabled"},
 		{WSA_ERR_SWEEPIDOOB, "Sweep entry ID is out of bounds"},
 		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"},
-		{WSA_ERR_INVSWEEPSTARTID, "Sweep Start ID is out of bounds"}
+		{WSA_ERR_INVSWEEPSTARTID, "Sweep Start ID is out of bounds"},
+		{WSA_ERR_SWEEPWHILESTREAMING, "Cannot initiate sweep mode while streaming"},
+		
+		//*****
+		// Stream Errors  
+		//*****
+		{WSA_ERR_STREAMALREADYRUNNING, "Stream mode is already enabled"},
+		{WSA_ERR_STREAMNOTRUNNING , "Stream mode is already disabled"},
+		{WSA_ERR_STREAMWHILESWEEPING, "Cannot initiate stream mode while sweeping"}
 
 	};
 
