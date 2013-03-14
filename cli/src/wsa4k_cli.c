@@ -205,7 +205,7 @@ void print_cli_menu(struct wsa_device *dev)
 
 	printf("\n"); 
 	printf("Commands for Stream Execution:\n");
-	printf("  stream start\n"
+	printf("  stream start [ID]\n"
 		"\t- Initialize the streaming of IQ data\n");
 	printf("  stream stop\n"
 		"\t- Stop the streaming process\n");
@@ -1583,7 +1583,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVSAMPLESIZE)
-					sprintf(msg, "\n   - Valid range: %hu to %hu.",
+					sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.",
 						WSA4000_MIN_SPP,
 						WSA4000_MAX_SPP);
 			}
@@ -1878,14 +1878,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = wsa_set_sweep_samples_per_packet(dev, 
 								(int32_t) temp_long);
 						if (result == WSA_ERR_INVSAMPLESIZE)
-							sprintf(msg, "\n   - Valid range: %hu to %hu.\n",
+							sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.\n",
 								WSA4000_MIN_SPP,
 								WSA4000_MAX_SPP);
 					}
 					else
-					{
 						printf("Invalid input. SPP value must be a positive integer.\n");
-					}
 				} // end set SPP
 
 				else if (strcmp(cmd_words[3], "TRIGGER") == 0) 
@@ -1938,25 +1936,18 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 									stop_freq, amplitude);
 					} 
 					else
-					{
 						printf("Invalid 'set sweep entry trigger'. See 'h'.\n");
-					} // end set SWEEP ENTRY TRIGGER LEVEL
+				// end set SWEEP ENTRY TRIGGER LEVEL
 				} // end set sweep entry trigger
 
 				else 
-				{
 					printf("Invalid 'set sweep entry'. See 'h'.\n");  
-				}
 			} // end set sweep ENTRY
 			else 
-			{
 				printf("Invalid 'set sweep'. See 'h'.\n");
-			}
 		}	// end set SWEEP
 		else 
-		{
 			printf("Invalid 'set'. See 'h'.\n");
-		}
 	} // end set
 
 	//*****
@@ -1966,15 +1957,13 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	{
 		if  (strcmp(cmd_words[1], "START") == 0) 
 		{
-			if ((num_words == 3) && (strcmp(cmd_words[2], "SAVE") == 0)) {
+			if ((num_words ==2))
 				result = wsa_stream_start(dev);
-				if (result >= 0) 
-					result = capture_non_stop(dev);
-			}
-			else if (num_words == 2)
-				result = wsa_stream_start(dev);
+				
+			else if ((num_words == 3) && !to_int(cmd_words[2], &temp_long))
+				result = wsa_stream_start_id(dev, temp_long);		
 			else
-				printf("Too many arguments for 'stream start'.\n");
+				printf("Invalid input. Stream ID must be a positive integer.\n");
 		} // end STREAM START
 
 		else if  (strcmp(cmd_words[1], "STOP") == 0) 
@@ -2843,231 +2832,3 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	
 	return 0;
 }
-
-/**
- *
- */
-int16_t capture_non_stop(struct wsa_device *dev)
-{
-	int16_t result = 0;
-	int32_t samples_per_packet;
-	int32_t packets_per_block = 0;
-	int32_t iq_pkt_count = 0;
-	int16_t acq_status;
-	int32_t exit_loop = 0;
-	int32_t i = 0;
-
-	// to calculate run time
-	TIME_HOLDER run_start_time;
-	TIME_HOLDER run_end_time;
-	double run_time_ms = 0;
-	double throughput = 0;
-
-	// to store different VRT packet types
-	struct wsa_vrt_packet_header *header;
-	struct wsa_vrt_packet_trailer *trailer;
-	struct wsa_receiver_packet *receiver;
-	struct wsa_digitizer_packet *digitizer;
-	struct wsa_extension_packet *extension;
-	
-	// Create buffers to store the decoded I & Q from the raw data
-	int16_t *i_buffer;
-	int16_t *q_buffer;
-	
-	// Initialize packet order indicators of all the packet types
-	uint8_t expected_if_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
-	uint8_t expected_digitizer_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
-	uint8_t expected_receiver_pkt_count =  UNASSIGNED_VRT_PKT_COUNT;
-	uint8_t expected_extension_pkt_count =  UNASSIGNED_VRT_PKT_COUNT;
-
-
-	// *****
-	// Get parameters to stored in the file
-	// TODO smarter way of saving header is to allow users to enable
-	// which header info to include...
-	// *****
-
-	printf("Gathering WSA settings... ");	
-
-	// determine if the another user is capturing data
-	result = wsa_system_acq_status(dev, &acq_status);
-	if (result < 0)
-	{
-		return result;
-	}
-	else if (acq_status == 0) 
-	{
-		printf("\nError: Data acquisition access denied, do 'get acq access' "
-				"command to request the access, then do 'save' command again.\n");
-		return result;
-	}
-
-	// Get samples per packet
-	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-	doutf(DMED, "In save_data_to_file: wsa_get_samples_per_packet returned %hd\n", result);
-	if (result < 0)
-		return result;
-		
-	printf("Data capture begins\n");
-	
-	// Allocate header buffer space
-	header = (struct wsa_vrt_packet_header *) malloc(sizeof(struct wsa_vrt_packet_header));
-	if (header == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for header\n");
-		
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// Allocate trailer buffer space
-	trailer = (struct wsa_vrt_packet_trailer *) malloc(sizeof(struct wsa_vrt_packet_trailer));
-	if (trailer == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for trailer\n");
-		free(header);
-		
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// allocate receiver packet buffer space
-	receiver = (struct wsa_receiver_packet *) malloc(sizeof(struct wsa_receiver_packet));
-	if (receiver == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for receiver\n");
-		free(header);
-		free(trailer);
-		
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// allocate digitizer packet buffer space
-	digitizer = (struct wsa_digitizer_packet *) malloc(sizeof(struct wsa_digitizer_packet));
-	if (digitizer == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for digitizer\n");
-		free(header);
-		free(trailer);
-		free(receiver);
-		
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// allocate extension packet buffer space
-	extension = (struct wsa_extension_packet *) malloc(sizeof(struct wsa_extension_packet));
-	if (extension == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for sweep info struct\n");
-		free(header);
-		free(trailer);
-		free(receiver);
-		free(digitizer);
-		
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// Allocate i buffer space
-	i_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
-	if (i_buffer == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for i_buffer\n");
-		free(header);
-		free(trailer);
-		free(receiver);
-		free(digitizer);
-		free(extension);
-
-		return WSA_ERR_MALLOCFAILED;
-	}
-	
-	// Allocate q buffer space
-	q_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
-	if (q_buffer == NULL)
-	{
-		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for q_buffer\n");
-		free(header);
-		free(trailer);
-		free(receiver);
-		free(digitizer);
-		free(extension);
-		free(i_buffer);
-
-		return WSA_ERR_MALLOCFAILED;
-	}
-
-	// Get the data saving start time
-	get_current_time(&run_start_time);
-
-	// loop to save data in file
-	while (exit_loop != 1)
-	{
-		i++;
-
-		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
-					extension, i_buffer, q_buffer, samples_per_packet);
-		if (result < 0)
-			break;
-
-		// handle if packet types
-		if (header->packet_type == IF_PACKET_TYPE)
-		{
-			if (header->stream_id == IF_DATA_STREAM_ID)
-			{
-				if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
-					expected_if_pkt_count = header->pkt_count;
-
-				if (header->pkt_count != expected_if_pkt_count)
-				{
-					printf("\nWarning: VRT IF data packet count is out of"
-						" order, expecting: %d, received: %d\n", 
-					expected_if_pkt_count, header->pkt_count);
-					result = WSA_ERR_PACKETOUTOFORDER;
-					expected_if_pkt_count = header->pkt_count;
-				}
-			
-				if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
-					expected_if_pkt_count = MIN_VRT_PKT_COUNT;
-				else
-					expected_if_pkt_count++;
-
-				iq_pkt_count++;
-
-				//for (j = 0; j < header->samples_per_packet; j++)
-				//	printf("%d,%d\n", i_buffer[j], q_buffer[j]);
-
-				if (iq_pkt_count % 100)
-					printf(".");
-
-				// capture data until the 'ESC' key is pressed
-				if (kbhit() && (getch() == 0x1b)) // esc key	
-				{
-					// get the total run end time
-					get_current_time(&run_end_time);
-
-					printf("\n'Esc' key pressed, data capture stopped.\n\n");
-					exit_loop = TRUE;
-				}
-			} // end if IF_DATA_STREAM_ID
-		} // end if IF_PACKET_TYPE
-	} // end save data while loop
-
-	if (result >= 0)
-	{
-		run_time_ms = get_time_difference(&run_start_time, &run_end_time);
-		throughput = (iq_pkt_count * samples_per_packet * 4 / run_time_ms);
-		printf("Total run time: %.3f sec)\n", run_time_ms);
-		printf("Throughput rate: (%d * %d * 4) / %.3f =  %.3f Bps (%.3f bps))\n", 
-				iq_pkt_count, samples_per_packet, run_time_ms,
-				throughput, throughput * 8);
-	}
-
-	free(header);
-	free(trailer);
-	free(receiver);
-	free(digitizer);
-	free(extension);
-	free(i_buffer);
-	free(q_buffer);
-
-	return result;
-}
-

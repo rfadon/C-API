@@ -1283,5 +1283,15 @@ void extract_extension_packet_data(uint8_t *temp_buffer,
 				(((uint32_t) temp_buffer[data_pos + 1]) << 16) +
 				(((uint32_t) temp_buffer[data_pos + 2]) << 8) + 
 			    (uint32_t) temp_buffer[data_pos + 3]);
+		data_pos = data_pos + 4;
+	}
+	
+	if ((extension->indicator_field & STREAM_START_ID_INDICATOR_MASK) == STREAM_START_ID_INDICATOR_MASK) 
+	{
+		extension->stream_start_id = 
+				((((uint32_t) temp_buffer[data_pos]) << 24) +
+				(((uint32_t) temp_buffer[data_pos + 1]) << 16) +
+				(((uint32_t) temp_buffer[data_pos + 2]) << 8) + 
+			    (uint32_t) temp_buffer[data_pos + 3]);
 	}
 }

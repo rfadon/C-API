@@ -183,7 +183,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		{WSA_ERR_STREAMALREADYRUNNING, "Stream mode is already enabled"},
 		{WSA_ERR_STREAMNOTRUNNING , "Stream mode is already disabled"},
-		{WSA_ERR_STREAMWHILESWEEPING, "Cannot initiate stream mode while sweeping"}
+		{WSA_ERR_STREAMWHILESWEEPING, "Cannot initiate stream mode while sweeping"},
+		{WSA_ERR_INVSTREAMSTARTID, "Stream Start ID is out of bounds"}
+		
 
 	};
 

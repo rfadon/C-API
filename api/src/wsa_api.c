@@ -371,7 +371,7 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
     clock_t end_time;
 	
 	start_time = clock();
-	end_time = 2000 + start_time;
+	end_time = 1000 + start_time;
 
 	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
 	if (packet == NULL)
@@ -602,9 +602,9 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	char temp_str[MAX_STR_LEN];
 
 	if ((samples_per_packet < WSA4000_MIN_SPP) || 
-		(samples_per_packet > WSA4000_MAX_SPP))
+		(samples_per_packet > WSA4000_MAX_SPP) || ((samples_per_packet % WSA4000_SPP_MULTIPLE) > 0))
 		return WSA_ERR_INVSAMPLESIZE;
-
+	
 	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1600,6 +1600,40 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 	return result;
 }
 
+/**
+ * Initiates the capture, storage and streaming of IQ data in the WSA
+ * \n
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t wsa_stream_start_id(struct wsa_device * const dev, int64_t stream_start_id)
+{
+	int16_t result = 0;
+	char capture_mode[MAX_STR_LEN];
+	char temp_str[MAX_STR_LEN];
+	// retrieve wsa capture mode
+	result = wsa_get_capture_mode(dev, capture_mode);
+	if (result < 0)
+		return result;
+	
+	if (strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) == 0)
+		return WSA_ERR_STREAMALREADYRUNNING;
+
+	else if (strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+		return WSA_ERR_STREAMWHILESWEEPING;
+	
+	if (stream_start_id < 0 || stream_start_id > UINT_MAX)
+		return WSA_ERR_INVSTREAMSTARTID;
+
+	sprintf(temp_str, "TRACE:STREAM:START %lld \n", stream_start_id);
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "Error in wsa_stream_start_id: %d - %s\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
 
 /**
  * stops stream mode in the WSA, and read remaining data in the socket.
@@ -1632,7 +1666,7 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 
 	printf("Clearing socket buffer... ");
 	
-	// flush remaining data in the wsa
+	//flush remaining data in the wsa
 	result = wsa_flush_data(dev); 
 	if (result < 0)
 		return result;
@@ -1898,7 +1932,8 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 	char temp_str[MAX_STR_LEN];
 
 	if ((samples_per_packet < WSA4000_MIN_SPP) || 
-		(samples_per_packet > WSA4000_MAX_SPP))
+		(samples_per_packet > WSA4000_MAX_SPP) || 
+		((samples_per_packet % WSA4000_SPP_MULTIPLE) > 0))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
@@ -2628,6 +2663,7 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 	if (size <= 0) 
 		return WSA_ERR_SWEEPLISTEMPTY;
 	
+	// make sure the stream id is valid
 	if (sweep_start_id < 0 || sweep_start_id > UINT_MAX)
 		return WSA_ERR_INVSWEEPSTARTID;
 

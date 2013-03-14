@@ -137,6 +137,7 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 ///////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_stream_start(struct wsa_device * const dev);
+int16_t wsa_stream_start_id(struct wsa_device * const dev, int64_t stream_start_id);
 int16_t wsa_stream_stop(struct wsa_device * const dev);
 
 

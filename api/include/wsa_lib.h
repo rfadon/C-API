@@ -45,7 +45,7 @@
 
 // extension packet data field indicator masks
 #define SWEEP_START_ID_INDICATOR_MASK 0x00000001
-
+#define STREAM_START_ID_INDICATOR_MASK 0x00000002
 
 // *****
 // SCPI related registers/bits
@@ -96,7 +96,8 @@
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA4000_MAX_SPP (65536 - 1 - VRT_HEADER_SIZE - VRT_TRAILER_SIZE)
+#define WSA4000_MAX_SPP 65520
+#define WSA4000_SPP_MULTIPLE 16
 #define WSA4000_MIN_SPP 128
 #define WSA4000_MIN_PPB 1
 #define WSA4000_MAX_PPB UINT_MAX
@@ -223,6 +224,7 @@ struct wsa_extension_packet {
 	int32_t indicator_field;
 	uint8_t pkt_count;
 	uint32_t sweep_start_id;
+	uint32_t stream_start_id;
 };
 
 // These values will be defined in a future release
