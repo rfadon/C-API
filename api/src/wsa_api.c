@@ -602,7 +602,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	char temp_str[MAX_STR_LEN];
 
 	if ((samples_per_packet < WSA4000_MIN_SPP) || 
-		(samples_per_packet > WSA4000_MAX_SPP) || ((samples_per_packet % WSA4000_SPP_MULTIPLE) > 0))
+		(samples_per_packet > WSA4000_MAX_SPP) || ((samples_per_packet % WSA4000_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 	
 	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
@@ -1326,72 +1326,10 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 
 
 /**
- * Sets the WSA's capture mode to triggered (trigger on)
- * or freerun (trigger off).
+ * Set the current trigger mode of the WSA
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param enable - Trigger mode of selection: 0 - Off, 1 - On.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_set_trigger_enable(struct wsa_device *dev, int32_t enable)
-{
-	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
-
-	if (enable < 0 || enable > 1)
-		return WSA_ERR_INVTRIGGERMODE;
-
-	sprintf(temp_str, ":TRIGGER:ENABLE %d\n", enable);
-	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_enable: %d - %s.\n", result, wsa_get_error_msg(result));
-
-	return result;
-}
-
-
-/**
- * Gets the current trigger mode of the WSA
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param enable - An integer pointer to store the current mode: 
- * 1 = triggered (trigger on), 0 = freerun (trigger off).
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable)
-{
-	struct wsa_resp query;		// store query results
-	long temp;
-
-	wsa_send_query(dev, ":TRIG:ENABLE?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
-	// Convert the number & make sure no error
-	if (to_int(query.output, &temp) < 0)
-	{
-		printf("Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-	
-	// Verify the validity of the return value
-	if (temp < 0 || temp > 1) 
-	{
-		printf("Error: WSA returned '%ld'.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-		
-	*enable = (int16_t) temp;
-
-	return 0;
-}
-
-/**
- * Gets the current trigger mode of the WSA
- * or freerun (trigger off).
- * @param dev - A pointer to the WSA device structure.
- * @param enable - Trigger mode of selection.
+ * @param trigger_type - Trigger mode of selection.
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
@@ -1399,7 +1337,10 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
+	if((strcmp(trigger_type, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+		
 		sprintf(temp_str, "TRIGGER:TYPE %s \n", trigger_type);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
@@ -1410,11 +1351,12 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
 	return result;
 }
 
+
 /**
- * Sets the WSA's capture mode to triggered (trigger on)
+ * Gets the WSA's capture mode to triggered (trigger on)
  *
  * @param dev - A pointer to the WSA device structure.
- * @param type - An char containing the trigger mode. 
+ * @param type - A char containing the trigger mode. 
  * 
  * @return 0 on success, or a negative number on error.
  */
@@ -1426,13 +1368,135 @@ int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	if(strcmp(query.output, "LEVEL") == 0 || strcmp(query.output, "NONE") == 0)
+	if((strcmp(query.output, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA4000_PULSE_TRIGGER_TYPE) == 0))
 		strcpy(type, query.output);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
 
 	return 0;
 }
+
+
+/**
+ * Set the WSA's the delay time between each satisfying trigger
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param delay - The trigger delay (in nanoseconds, must be multiple of 8) 
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_trigger_delay(struct wsa_device *dev, int32_t delay)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+	
+	if (delay > WSA4000_TRIGGER_DELAY_MIN && 
+		delay < WSA4000_TRIGGER_DELAY_MAX && 
+		delay % WSA4000_TRIGGER_DELAY_MULTIPLE == 0)
+		
+		sprintf(temp_str, "TRIGGER:DELAY %d \n", delay);
+	
+	else
+		return WSA_ERR_INVTRIGGERDELAY;
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_trigger_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Retrieve the WSA's the delay time between each satisfying trigger
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param delay - The trigger delay (in nanoseconds)
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_trigger_delay(struct wsa_device *dev, int32_t *delay)
+{
+	struct wsa_resp query;
+	long temp;
+	wsa_send_query(dev, "TRIGGER:DELAY?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	if (temp < WSA4000_TRIGGER_DELAY_MIN || 
+		temp > WSA4000_TRIGGER_DELAY_MAX || 
+		temp % WSA4000_TRIGGER_DELAY_MULTIPLE != 0)
+		return WSA_ERR_INVTRIGGERDELAY;
+	else
+		*delay = (int32_t) temp;
+		return 0;
+
+}
+
+
+/**
+ * Set the WSA's current synchronization state
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param sync_mode - The synchronization mode (master/slave) 
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_trigger_sync(struct wsa_device *dev, char *sync_mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+	
+	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) == 0) 
+		
+		sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_mode);
+	
+	else
+		return WSA_ERR_INVTRIGGERSYNC;
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_trigger_sync: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Retrieve the WSA's current synchronization state
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param sync_mode - The  trigger synchronization mode (master/slave)
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_trigger_sync(struct wsa_device *dev, char *sync_mode)
+{
+	struct wsa_resp query;
+	
+	wsa_send_query(dev, "TRIGGER:SYNC?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	strcpy(sync_mode, query.output);
+	
+	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) != 0 && 
+		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) != 0) 
+
+		return WSA_ERR_INVTRIGGERSYNC;
+	else
+		return 0;
+
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PLL REFERENCE CONTROL SECTION                                            //
@@ -1933,7 +1997,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 
 	if ((samples_per_packet < WSA4000_MIN_SPP) || 
 		(samples_per_packet > WSA4000_MAX_SPP) || 
-		((samples_per_packet % WSA4000_SPP_MULTIPLE) > 0))
+		((samples_per_packet % WSA4000_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
@@ -2399,12 +2463,12 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 
 
 /**
- * Set the sweep trigger type to LEVEL or NONE.  Setting NONE is equivalent to
+ * Set the sweep trigger type to NONE, LEVEL or PULSE.  Setting NONE is equivalent to
  * disabling the trigger. Default NONE.
  *
  * @param dev - A pointer to the WSA device structure
  * @param trigger_type - A char pointer to the trigger type to be set. 
- *        Currently support: LEVEL and NONE
+ *        Currently support: NONE, LEVEL or PULSE
  *
  * @return 0 on success, or a negative number on error.
  */
@@ -2413,7 +2477,9 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(trigger_type, "LEVEL") == 0 || strcmp(trigger_type, "NONE") == 0)
+	if((strcmp(trigger_type, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA4000_PULSE_TRIGGER_TYPE) == 0))
 		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE %s \n", trigger_type);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
@@ -2433,7 +2499,7 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
  *
  * @return 0 on success, or a negative number on error
  */
-int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *type)
+int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
 {
 	struct wsa_resp query;
 	
@@ -2441,12 +2507,128 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *type)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	if(strcmp(query.output,"LEVEL") == 0 || strcmp(query.output,"NONE") == 0)
-	strcpy(type,query.output);
+	if((strcmp(query.output, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+		strcpy(trigger_type,query.output);
 	
 	else
 		return WSA_ERR_INVTRIGGERMODE;
 	return 0;
+}
+
+/**
+ * Set the sweep entry's the delay time between each satisfying trigger
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param delay - The trigger delay (in nanoseconds, must be multiple of 8) 
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_sweep_trigger_delay(struct wsa_device *dev, int32_t delay)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+	
+	if (delay > WSA4000_TRIGGER_DELAY_MIN && 
+		delay < WSA4000_TRIGGER_DELAY_MAX && 
+		delay % WSA4000_TRIGGER_DELAY_MULTIPLE == 0)
+		
+		sprintf(temp_str, "SWEEP:LIST:TRIGGER:DELAY %d \n", delay);
+	
+	else
+		return WSA_ERR_INVTRIGGERDELAY;
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_sweep_trigger_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+/**
+ * Retrieve sweep entry's delay time between each satisfying trigger
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param delay - The trigger delay (in nanoseconds)
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_sweep_trigger_delay(struct wsa_device *dev, int32_t *delay)
+{
+	struct wsa_resp query;
+	long temp;
+	wsa_send_query(dev, "SWEEP:LIST:TRIGGER:DELAY?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_int(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	if (temp < WSA4000_TRIGGER_DELAY_MIN || 
+		temp > WSA4000_TRIGGER_DELAY_MAX || 
+		temp % WSA4000_TRIGGER_DELAY_MULTIPLE != 0)
+		return WSA_ERR_INVTRIGGERDELAY;
+	else
+		*delay = (int32_t) temp;
+		return 0;
+
+}
+
+/**
+ * Set the WSA's current synchronization state in the sweep entry
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param sync_mode - The synchronization mode (master/slave) 
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_sweep_trigger_sync(struct wsa_device *dev, char *sync_mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+	
+	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) == 0) 
+		
+		sprintf(temp_str, "SWEEP:LIST:TRIGGER:SYNC %s \n", sync_mode);
+	
+	else
+		return WSA_ERR_INVTRIGGERSYNC;
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_trigger_sync: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+/**
+ * Retrieve the WSA's current synchronization state in the sweep entry
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param sync_mode - The  trigger synchronization mode (master/slave)
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_sweep_trigger_sync(struct wsa_device *dev, char *sync_mode)
+{
+	struct wsa_resp query;
+	
+	wsa_send_query(dev, "SWEEP:LIST:TRIGGER:SYNC?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	strcpy(sync_mode, query.output);
+	
+	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) != 0 || 
+		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) != 0) 
+
+		return WSA_ERR_INVTRIGGERSYNC;
+	else
+		return 0;
+
 }
 
 
