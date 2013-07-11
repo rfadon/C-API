@@ -19,12 +19,9 @@
  * @section limitation Limitations in Release v1.1
  * The following features are not yet supported with the CLI:
  *  - VRT trailer extraction. Bit fields are yet to be defined.
- *  - Data streaming. Currently only supports block mode.
  *  - DC correction.  
  *  - IQ correction.  
  *  - Automatic finding of a WSA box(s) on a network.
- *  - Triggers.
- *  - Gain calibrarion. TBD with triggers.
  *  - USB interface method.
  *
  * @section usage How to use the library
@@ -51,8 +48,6 @@
 
 
 #define MAX_RETRIES_READ_FRAME 5
-
-
 
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
@@ -274,6 +269,7 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
+
 /**
  * Request read data access from the WSA
  *
@@ -298,6 +294,7 @@ int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t* status)
 
 	return 0;
 }
+
 
 /**
  * Determine the current status of the WSA acquistion lock
@@ -439,9 +436,10 @@ int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
 	return 0;
 }
 
+
 /**
- * Aborts the current data capturing process (sweep mode/stream mode) and puts the WSA system into
- * capture block mode
+ * Aborts the current data capturing process (sweep mode/stream mode) and 
+ * places the WSA system into capture block mode
  * \n
  * 
  * @param dev - A pointer to the WSA device structure.
@@ -713,7 +711,7 @@ int16_t wsa_get_packets_per_block(struct wsa_device *dev, int32_t *packets_per_b
 
 
 /**
- * Gets the decimation rate currently set in the WSA. If rate is 0, it means
+ * Gets the decimation rate currently set in the WSA. If rate is 1, it means
  * decimation is off (or no decimation).
  * 
  * @param dev - A pointer to the WSA device structure.
@@ -753,7 +751,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 
 /**
  * Set the decimation rate. 
- * Rate supported: 0, 4 - 1023. Rate of 0 is equivalent to no decimation.
+ * Rate supported: 1, 4 - 1023. Rate of 1 is equivalent to no decimation.
  * 
  * @param dev - A pointer to the WSA device structure.
  * @param rate - An integer number storing the decimation rate to be set
@@ -916,9 +914,10 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 }
 
 
-// ////////////////////////////////////////////////////////////////////////////
-// GAIN SECTION                                                              //
-// ////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+// GAIN SECTION                                                             //
+//////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * Gets the current IF gain value of the RFE in dB.
@@ -1018,6 +1017,7 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 
 	return 0;
 }
+
 
 /**
  * Sets the quantized \b gain (sensitivity) level for the RFE of the WSA. \n
@@ -1193,6 +1193,7 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 // DEVICE SETTINGS					                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
+
 int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver)
 {
 	struct wsa_resp query;		// store query results
@@ -1215,7 +1216,6 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver)
 
 	return 0;
 }
-
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -1329,7 +1329,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
  * Set the current trigger mode of the WSA
  * 
  * @param dev - A pointer to the WSA device structure.
- * @param trigger_type - Trigger mode of selection.
+ * @param trigger_type - Trigger mode of selection (NONE,LEVEL, OR PULSE).
  * @return 0 on success, or a negative number on error.
  */
 int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
@@ -1353,7 +1353,7 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
 
 
 /**
- * Gets the WSA's capture mode to triggered (trigger on)
+ * Gets the WSA's capture mode to triggered 
  *
  * @param dev - A pointer to the WSA device structure.
  * @param type - A char containing the trigger mode. 
@@ -1380,21 +1380,22 @@ int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type)
 
 
 /**
- * Set the WSA's the delay time between each satisfying trigger
+ * Set the WSA's the delay time between each satisfying 
+ * trigger (only valid in PULSE trigger mode)
  *
  * @param dev - A pointer to the WSA device structure.
- * @param delay - The trigger delay (in nanoseconds, must be multiple of 8) 
+ * @param delay - The trigger sync delay (in nanoseconds, must be multiple of 8) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_delay(struct wsa_device *dev, int32_t delay)
+int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (delay > WSA4000_TRIGGER_DELAY_MIN && 
-		delay < WSA4000_TRIGGER_DELAY_MAX && 
-		delay % WSA4000_TRIGGER_DELAY_MULTIPLE == 0)
+	if (delay > WSA4000_trigger_SYNC_DELAY_MIN && 
+		delay < WSA4000_trigger_SYNC_DELAY_MAX && 
+		delay % WSA4000_trigger_SYNC_DELAY_MULTIPLE == 0)
 		
 		sprintf(temp_str, "TRIGGER:DELAY %d \n", delay);
 	
@@ -1402,7 +1403,7 @@ int16_t wsa_set_trigger_delay(struct wsa_device *dev, int32_t delay)
 		return WSA_ERR_INVTRIGGERDELAY;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
@@ -1412,11 +1413,11 @@ int16_t wsa_set_trigger_delay(struct wsa_device *dev, int32_t delay)
  * Retrieve the WSA's the delay time between each satisfying trigger
  *
  * @param dev - A pointer to the WSA device structure.
- * @param delay - The trigger delay (in nanoseconds)
+ * @param delay - The trigger sync delay (in nanoseconds)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_trigger_delay(struct wsa_device *dev, int32_t *delay)
+int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 {
 	struct wsa_resp query;
 	long temp;
@@ -1431,9 +1432,9 @@ int16_t wsa_get_trigger_delay(struct wsa_device *dev, int32_t *delay)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if (temp < WSA4000_TRIGGER_DELAY_MIN || 
-		temp > WSA4000_TRIGGER_DELAY_MAX || 
-		temp % WSA4000_TRIGGER_DELAY_MULTIPLE != 0)
+	if (temp < WSA4000_trigger_SYNC_DELAY_MIN || 
+		temp > WSA4000_trigger_SYNC_DELAY_MAX || 
+		temp % WSA4000_trigger_SYNC_DELAY_MULTIPLE != 0)
 		return WSA_ERR_INVTRIGGERDELAY;
 	else
 		*delay = (int32_t) temp;
@@ -1446,25 +1447,25 @@ int16_t wsa_get_trigger_delay(struct wsa_device *dev, int32_t *delay)
  * Set the WSA's current synchronization state
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_mode - The synchronization mode (master/slave) 
+ * @param sync_state - The synchronization state (MASTER or SLAVE) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_sync(struct wsa_device *dev, char *sync_mode)
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) == 0) 
+	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) == 0) 
 		
-		sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_mode);
+		sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
 	
 	else
 		return WSA_ERR_INVTRIGGERSYNC;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_sync: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
@@ -1474,11 +1475,11 @@ int16_t wsa_set_trigger_sync(struct wsa_device *dev, char *sync_mode)
  * Retrieve the WSA's current synchronization state
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_mode - The  trigger synchronization mode (master/slave)
+ * @param sync_state - The  trigger synchronization state (MASTER or SLAVE) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_trigger_sync(struct wsa_device *dev, char *sync_mode)
+int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 {
 	struct wsa_resp query;
 	
@@ -1486,10 +1487,10 @@ int16_t wsa_get_trigger_sync(struct wsa_device *dev, char *sync_mode)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	strcpy(sync_mode, query.output);
+	strcpy(sync_state, query.output);
 	
-	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) != 0 && 
-		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) != 0) 
+	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) != 0 && 
+		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) != 0) 
 
 		return WSA_ERR_INVTRIGGERSYNC;
 	else
@@ -1600,6 +1601,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
 	return 0;
 }
 
+
 /**
  * Get the RFE's PLL lock status
  *
@@ -1634,6 +1636,7 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 // STREAM CONTROL SECTION                                                    //
 ///////////////////////////////////////////////////////////////////////////////
 
+
 /**
  * Initiates the capture, storage and streaming of IQ data in the WSA
  * \n
@@ -1663,6 +1666,7 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 
 	return result;
 }
+
 
 /**
  * Initiates the capture, storage and streaming of IQ data in the WSA
@@ -1911,6 +1915,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 	return 0;
 }
 
+
 /**
  * Set the RF gain to the sweep entry template
  *
@@ -1944,6 +1949,7 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 
 	return result;
 }
+
 
 /**
  * Gets the number of samples per packet currently set in the sweep entry template
@@ -1982,6 +1988,7 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 	return 0;
 }
 
+
 /**
  * Set the number of samples per packet to the sweep entry template
  *
@@ -2006,6 +2013,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 
 	return result;
 }
+
 
 /**
  * Get the packets per block currently set in the sweep entry template
@@ -2035,6 +2043,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets
 
 	return 0;
 }
+
 
 /**
  * Set the number of packets per block to the sweep entry template
@@ -2095,6 +2104,7 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate)
 	return 0;
 }
 
+
 /**
  * Set the decimation rate from the user's sweep list. 
  * Rate supported: 0, 4 - 1024. Rate of 0 is equivalent to no decimation.
@@ -2120,6 +2130,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate)
 
 	return result;
 }
+
 
 /**
  * Retrieve the sweep frequency range currently set in the sweep entry template
@@ -2161,6 +2172,8 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 
 	return 0;
 }
+
+
 /**
  * Set the center frequency to the sweep entry template
  *
@@ -2204,6 +2217,7 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t s
 	return result;
 }
 
+
 /**
  * Retrieve the frequency shift value currently set in the sweep entry template
  *
@@ -2232,6 +2246,8 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift)
 
 	return 0;
 }
+
+
 /**
  * Sets the frequency shift value currently set in the sweep entry template
  *
@@ -2257,6 +2273,7 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift)
 	return result;
 }
 
+
 /**
  * Set the sweep frequency step size to the sweep entry template
  *
@@ -2280,6 +2297,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step)
 
 	return result;
 }
+
 
 /**
  * Retrieve the sweep frequency step currently set in the sweep entry template
@@ -2310,6 +2328,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
 	return 0;
 }
 
+
 /**
  * Set the dwell time to the sweep entry template
  *
@@ -2333,6 +2352,7 @@ int16_t wsa_set_sweep_dwell(struct wsa_device *dev, int32_t seconds, int32_t mic
 
 	return result;
 }
+
 
 /**
  * Retrieve the dwell time in the sweep entry template
@@ -2517,22 +2537,23 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
 	return 0;
 }
 
+
 /**
- * Set the sweep entry's the delay time between each satisfying trigger
+ * Set the sweep entry's delay time between each satisfying trigger
  *
  * @param dev - A pointer to the WSA device structure.
- * @param delay - The trigger delay (in nanoseconds, must be multiple of 8) 
+ * @param delay - The trigger sync delay (in nanoseconds, must be multiple of 8) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_delay(struct wsa_device *dev, int32_t delay)
+int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (delay > WSA4000_TRIGGER_DELAY_MIN && 
-		delay < WSA4000_TRIGGER_DELAY_MAX && 
-		delay % WSA4000_TRIGGER_DELAY_MULTIPLE == 0)
+	if (delay > WSA4000_trigger_SYNC_DELAY_MIN && 
+		delay < WSA4000_trigger_SYNC_DELAY_MAX && 
+		delay % WSA4000_trigger_SYNC_DELAY_MULTIPLE == 0)
 		
 		sprintf(temp_str, "SWEEP:LIST:TRIGGER:DELAY %d \n", delay);
 	
@@ -2540,20 +2561,21 @@ int16_t wsa_set_sweep_trigger_delay(struct wsa_device *dev, int32_t delay)
 		return WSA_ERR_INVTRIGGERDELAY;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_trigger_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_sweep_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
+
 
 /**
  * Retrieve sweep entry's delay time between each satisfying trigger
  *
  * @param dev - A pointer to the WSA device structure.
- * @param delay - The trigger delay (in nanoseconds)
+ * @param delay - The trigger sync delay (in nanoseconds)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_sweep_trigger_delay(struct wsa_device *dev, int32_t *delay)
+int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 {
 	struct wsa_resp query;
 	long temp;
@@ -2568,51 +2590,53 @@ int16_t wsa_get_sweep_trigger_delay(struct wsa_device *dev, int32_t *delay)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if (temp < WSA4000_TRIGGER_DELAY_MIN || 
-		temp > WSA4000_TRIGGER_DELAY_MAX || 
-		temp % WSA4000_TRIGGER_DELAY_MULTIPLE != 0)
+	if (temp < WSA4000_trigger_SYNC_DELAY_MIN || 
+		temp > WSA4000_trigger_SYNC_DELAY_MAX || 
+		temp % WSA4000_trigger_SYNC_DELAY_MULTIPLE != 0)
 		return WSA_ERR_INVTRIGGERDELAY;
 	else
 		*delay = (int32_t) temp;
 		return 0;
-
 }
+
 
 /**
  * Set the WSA's current synchronization state in the sweep entry
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_mode - The synchronization mode (master/slave) 
+ * @param sync_state - The synchronization state (MASTER/SLAVE) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_sync(struct wsa_device *dev, char *sync_mode)
+int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) == 0) 
+	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) == 0) 
 		
-		sprintf(temp_str, "SWEEP:LIST:TRIGGER:SYNC %s \n", sync_mode);
+		sprintf(temp_str, "SWEEP:LIST:TRIGGER:SYNC %s \n", sync_state);
 	
 	else
 		return WSA_ERR_INVTRIGGERSYNC;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_sync: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_sweep_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
+
+
 /**
  * Retrieve the WSA's current synchronization state in the sweep entry
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_mode - The  trigger synchronization mode (master/slave)
+ * @param sync_state - The  trigger synchronization mode (MASTER/SLAVE) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_sweep_trigger_sync(struct wsa_device *dev, char *sync_mode)
+int16_t wsa_get_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 {
 	struct wsa_resp query;
 	
@@ -2620,15 +2644,14 @@ int16_t wsa_get_sweep_trigger_sync(struct wsa_device *dev, char *sync_mode)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	strcpy(sync_mode, query.output);
+	strcpy(sync_state, query.output);
 	
-	if (strcmp(sync_mode, WSA4000_MASTER_TRIGGER) != 0 || 
-		strcmp(sync_mode,  WSA4000_SLAVE_TRIGGER) != 0) 
+	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) != 0 || 
+		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) != 0) 
 
 		return WSA_ERR_INVTRIGGERSYNC;
 	else
 		return 0;
-
 }
 
 
@@ -2689,6 +2712,7 @@ int16_t wsa_get_sweep_entry_size(struct wsa_device *dev, int32_t *size)
 	return 0;
 }
 
+
 /**
  * Delete an entry in the sweep list
  *
@@ -2717,6 +2741,7 @@ int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id)
 	return result;
 }
 
+
 /**
  * Delete all entries in the sweep list
  *
@@ -2735,6 +2760,7 @@ int16_t wsa_sweep_entry_delete_all(struct wsa_device *dev)
 
 	return result;
 }
+
 
 /**
  * Copy the settings of a sweep entry with the specified ID in the sweep list 
@@ -2769,6 +2795,7 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 
 	return result;
 }
+
 
 /**
  * start sweep mode
@@ -2857,6 +2884,7 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 	return result;
 }
 
+
 /**
  * stop sweep mode, and read remaining data in the 
  * socket
@@ -2900,6 +2928,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	return 0;
 }
 
+
 /**
  * Resume sweeping through the current sweep list starting
  * from the entry ID where the sweep engine stopped at
@@ -2931,6 +2960,7 @@ int16_t wsa_sweep_resume(struct wsa_device *dev)
 
 	return result;
 }
+
 
 /**
  * This command is equivalent to reset the current settings in the entry template 

@@ -111,7 +111,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		//*****
 		{WSA_ERR_INVTRIGGERMODE, "Invalid trigger mode"},
 		{WSA_WARNING_TRIGGER_CONFLICT, "Trigger setting conflict"},
-		{WSA_ERR_INVTRIGGERDELAY, "Invalid trigger delay, must be a multiple of 8, (0 - 4294967295)"},
+		{WSA_ERR_INVTRIGGERDELAY, "Invalid trigger synchronization delay, (must be a multiple of 8)"},
 		{WSA_ERR_INVTRIGGERSYNC, "Invalid trigger synchronization state"},
 
 		

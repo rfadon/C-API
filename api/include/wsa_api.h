@@ -119,11 +119,11 @@ int16_t wsa_set_trigger_enable(struct wsa_device *dev, int32_t enable);
 int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type);
 int16_t wsa_set_trigger_type(struct wsa_device *dev, char *type);
 
-int16_t wsa_get_trigger_delay(struct wsa_device *dev, int32_t *delay);
-int16_t wsa_set_trigger_delay(struct wsa_device *dev, int32_t delay);
+int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
+int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
 
-int16_t wsa_set_trigger_sync(struct wsa_device *dev, char *sync_mode);
-int16_t wsa_get_trigger_sync(struct wsa_device *dev, char *sync_mode);
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state);
+int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 
 // ////////////////////////////////////////////////////////////////////////////
 // PLL SECTION                                                              //
@@ -189,8 +189,11 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *type);
 int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
 int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude);
 
-int16_t wsa_get_sweep_trigger_delay(struct wsa_device *dev, int32_t *delay);
-int16_t wsa_set_sweep_trigger_delay(struct wsa_device *dev, int32_t delay);
+int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
+int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
+
+int16_t wsa_get_sweep_trigger_sync_state(struct wsa_device *dev, char *delay);
+int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char *delay);
 
 int16_t wsa_get_sweep_status(struct wsa_device *dev, char *status);
 int16_t wsa_get_sweep_entry_size(struct wsa_device *dev, int32_t *size);
