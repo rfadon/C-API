@@ -103,6 +103,7 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
 // DEVICE VERSION SECTION                                                    //
 // ////////////////////////////////////////////////////////////////////////////
 
+int16_t wsa_get_dev_model(struct wsa_device *dev, char *model);
 int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver);
 
 

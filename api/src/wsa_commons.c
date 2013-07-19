@@ -30,7 +30,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_UNKNOWNFWRVSN, "Unknown WSA firmware version detected"},
 		{WSA_ERR_PRODOBSOLETE, "Product is obsolete and not supported"},
 		{WSA_ERR_DATAACCESSDENIED, "Read access denied"},
-		
+		{WSA_ERR_INV5000COMMAND, "Invalid Command for WSA5000"},
+		{WSA_ERR_INV4000COMMAND, "Invalid Command for WSA4000"},
+
 		//*****
 		// WSA Setup Related
 		//*****

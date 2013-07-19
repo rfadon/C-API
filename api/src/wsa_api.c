@@ -97,7 +97,6 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
 	result = wsa_connect(dev, SCPI, intf_method);
-
 	return result;
 }
 
@@ -340,7 +339,7 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 	if (result < 0)
 		return result;
 
-	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
+	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
@@ -362,7 +361,7 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
 	int16_t result = 0;
 	int32_t bytes_received = 0;
 	uint8_t *packet;
-    int32_t packet_size = WSA4000_MAX_CAPTURE_BLOCK;
+    int32_t packet_size = WSA_MAX_CAPTURE_BLOCK;
 	uint32_t timeout = 360;
     clock_t start_time;
     clock_t end_time;
@@ -425,9 +424,9 @@ int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
 	struct wsa_resp query;
 	wsa_send_query(dev, "SYST:CAPT:MODE?\n", &query);
 	
-	if (strcmp(query.output, WSA4000_BLOCK_CAPTURE_MODE) == 0 || 
-		strcmp(query.output, WSA4000_STREAM_CAPTURE_MODE) == 0 ||
-		strcmp(query.output, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+	if (strcmp(query.output, WSA_BLOCK_CAPTURE_MODE) == 0 || 
+		strcmp(query.output, WSA_STREAM_CAPTURE_MODE) == 0 ||
+		strcmp(query.output, WSA_SWEEP_CAPTURE_MODE) == 0)
 		strcpy(mode, query.output);
 	
 	else
@@ -599,8 +598,8 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if ((samples_per_packet < WSA4000_MIN_SPP) || 
-		(samples_per_packet > WSA4000_MAX_SPP) || ((samples_per_packet % WSA4000_SPP_MULTIPLE) != 0))
+	if ((samples_per_packet < WSA_MIN_SPP) || 
+		(samples_per_packet > WSA_MAX_SPP) || ((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 	
 	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
@@ -636,8 +635,8 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 	}
 
 	// Verify the validity of the return value
-	if ((temp < WSA4000_MIN_SPP) || 
-		(temp > WSA4000_MAX_SPP))
+	if ((temp < WSA_MIN_SPP) || 
+		(temp > WSA_MAX_SPP))
 	{
 		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
@@ -666,9 +665,9 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 	
-	if (packets_per_block < WSA4000_MIN_PPB)
+	if (packets_per_block < WSA_MIN_PPB)
 		return WSA_ERR_INVNUMBER;
-	else if (packets_per_block > WSA4000_MAX_PPB) 
+	else if (packets_per_block > WSA_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
 
 	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
@@ -816,7 +815,6 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	return 0;
 }
 
-
 /**
  * Sets the WSA to the desired center frequency, \b cfreq.
  * @remarks \b wsa_set_freq() will return error if trigger mode is already
@@ -932,8 +930,8 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 	struct wsa_resp query;		// store query results
 	long int temp;
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "INPUT:GAIN:IF?\n", &query);
 	if (query.status <= 0)
@@ -977,9 +975,12 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
+	
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
@@ -1003,6 +1004,9 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
 {
 	struct wsa_resp query;		// store query results
+
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "INPUT:GAIN:RF?\n", &query);
 	if (query.status <= 0)
@@ -1032,6 +1036,9 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	if (strcmp(gain, WSA_GAIN_VLOW_STRING) != 0 &&
 		strcmp(gain, WSA_GAIN_LOW_STRING) != 0 &&
@@ -1065,9 +1072,8 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "INPUT:ANTENNA?\n", &query);
 	if (query.status <= 0)
@@ -1081,7 +1087,7 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
 	}
 
 	// Verify the validity of the return value
-	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) 
+	if (temp < 1 || temp > WSA_4000_MAX_ANT_PORT) 
 	{
 		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
@@ -1106,11 +1112,10 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-
-	if (port_num < 1 || port_num > WSA_RFE0560_MAX_ANT_PORT) // TODO replace the max
+	
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
+	if (port_num < 1 || port_num > WSA_4000_MAX_ANT_PORT) // TODO replace the max
 		return WSA_ERR_INVANTENNAPORT;
 
 	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);
@@ -1134,9 +1139,6 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;		// store query results
 	long temp;
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
 
 	wsa_send_query(dev, "INP:FILT:PRES?\n", &query);
 	if (query.status <= 0)
@@ -1175,9 +1177,6 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-
 	if (mode < 0 || mode > 1)
 		return WSA_ERR_INVFILTERMODE;
 
@@ -1193,16 +1192,44 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 // DEVICE SETTINGS					                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Retrieve the model of the device.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param model - A char pointer to hold the device model.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_dev_model(struct wsa_device *dev, char *model)
+{
+	struct wsa_resp query;		// store query results
+	char *strtok_result;
+		
+	wsa_send_query(dev, "*IDN?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
 
+	strtok_result = strtok(query.output, ",");
+	strtok_result = strtok(NULL, ",");
+	strcpy(model,strtok_result);
+
+	return 0;
+}
+
+
+/**
+ * Retrieve the firmware version of the device.
+ * 
+ * @param dev - A pointer to the WSA device structure.
+ * @param fw_ver - A char pointer to hold the device firmware version.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
 int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver)
 {
 	struct wsa_resp query;		// store query results
 	char *strtok_result;
-	int16_t i = 0;
-	
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-	
+
 	wsa_send_query(dev, "*IDN?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -1210,8 +1237,7 @@ int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver)
 	strtok_result = strtok(query.output, ",");
 	strtok_result = strtok(NULL, ",");
 	strtok_result = strtok(NULL, ",");
-    strtok_result = strtok(NULL, ",");
-
+	strtok_result = strtok(NULL, ",");
 	strcpy(fw_ver,strtok_result);
 
 	return 0;
@@ -1337,9 +1363,9 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if((strcmp(trigger_type, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
-		(strcmp(trigger_type, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
-		(strcmp(trigger_type, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+	if((strcmp(trigger_type, WSA_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA_PULSE_TRIGGER_TYPE) == 0))
 		
 		sprintf(temp_str, "TRIGGER:TYPE %s \n", trigger_type);
 	else
@@ -1368,9 +1394,9 @@ int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	if((strcmp(query.output, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
-		(strcmp(query.output, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
-		(strcmp(query.output, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+	if((strcmp(query.output, WSA_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA_PULSE_TRIGGER_TYPE) == 0))
 		strcpy(type, query.output);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
@@ -1393,9 +1419,9 @@ int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (delay > WSA4000_trigger_SYNC_DELAY_MIN && 
-		delay < WSA4000_trigger_SYNC_DELAY_MAX && 
-		delay % WSA4000_trigger_SYNC_DELAY_MULTIPLE == 0)
+	if (delay > WSA_trigger_SYNC_DELAY_MIN && 
+		delay < WSA_trigger_SYNC_DELAY_MAX && 
+		delay % WSA_trigger_SYNC_DELAY_MULTIPLE == 0)
 		
 		sprintf(temp_str, "TRIGGER:DELAY %d \n", delay);
 	
@@ -1432,9 +1458,9 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if (temp < WSA4000_trigger_SYNC_DELAY_MIN || 
-		temp > WSA4000_trigger_SYNC_DELAY_MAX || 
-		temp % WSA4000_trigger_SYNC_DELAY_MULTIPLE != 0)
+	if (temp < WSA_trigger_SYNC_DELAY_MIN || 
+		temp > WSA_trigger_SYNC_DELAY_MAX || 
+		temp % WSA_trigger_SYNC_DELAY_MULTIPLE != 0)
 		return WSA_ERR_INVTRIGGERDELAY;
 	else
 		*delay = (int32_t) temp;
@@ -1456,8 +1482,8 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) == 0) 
+	if (strcmp(sync_state, WSA_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_state,  WSA_SLAVE_TRIGGER) == 0) 
 		
 		sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
 	
@@ -1489,8 +1515,8 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 	
 	strcpy(sync_state, query.output);
 	
-	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) != 0 && 
-		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) != 0) 
+	if (strcmp(sync_state, WSA_MASTER_TRIGGER) != 0 && 
+		strcmp(sync_state,  WSA_SLAVE_TRIGGER) != 0) 
 
 		return WSA_ERR_INVTRIGGERSYNC;
 	else
@@ -1514,9 +1540,6 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state)
 int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref)
 {
 	struct wsa_resp query;
-
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0560) != 0)
-	    return WSA_ERR_INVRFESETTING;
 
 	wsa_send_query(dev, "SOURCE:REFERENCE:PLL?\n", &query);	
 	if (query.status <= 0)
@@ -1655,10 +1678,10 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 	if (result < 0)
 		return result;
 	
-	if (strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) == 0)
+	if (strcmp(capture_mode, WSA_STREAM_CAPTURE_MODE) == 0)
 		return WSA_ERR_STREAMALREADYRUNNING;
 
-	else if (strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+	else if (strcmp(capture_mode, WSA_SWEEP_CAPTURE_MODE) == 0)
 		return WSA_ERR_STREAMWHILESWEEPING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:START\n");
@@ -1686,10 +1709,10 @@ int16_t wsa_stream_start_id(struct wsa_device * const dev, int64_t stream_start_
 	if (result < 0)
 		return result;
 	
-	if (strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) == 0)
+	if (strcmp(capture_mode, WSA_STREAM_CAPTURE_MODE) == 0)
 		return WSA_ERR_STREAMALREADYRUNNING;
 
-	else if (strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+	else if (strcmp(capture_mode, WSA_SWEEP_CAPTURE_MODE) == 0)
 		return WSA_ERR_STREAMWHILESWEEPING;
 	
 	if (stream_start_id < 0 || stream_start_id > UINT_MAX)
@@ -1722,7 +1745,7 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 		return result;
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) != 0)
+	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) != 0)
 		return WSA_ERR_STREAMNOTRUNNING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
@@ -1767,8 +1790,8 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 	struct wsa_resp query;		// store query results
 	long temp;
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:ANTENNA?\n", &query);
 	if (query.status <= 0)
@@ -1782,7 +1805,7 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 	}
 
 	// Verify the validity of the return value
-	if (temp < 1 || temp > WSA_RFE0560_MAX_ANT_PORT) 
+	if (temp < 1 || temp > WSA_4000_MAX_ANT_PORT) 
 	{
 		printf("Error: WSA returned '%ld'.\n", temp); 
 		return WSA_ERR_RESPUNKNOWN;
@@ -1807,10 +1830,10 @@ int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
-
-	if (port_num < 1 || port_num > WSA_RFE0560_MAX_ANT_PORT) // TODO replace the max
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
+	
+	if (port_num < 1 || port_num > WSA_4000_MAX_ANT_PORT)
 		return WSA_ERR_INVANTENNAPORT;
 
 	sprintf(temp_str, "SWEEP:ENTRY:ANTENNA %d\n", port_num);
@@ -1834,8 +1857,8 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 	struct wsa_resp query;		// store query results
 	long int temp;
 
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:GAIN:IF?\n", &query);
 	if (query.status <= 0)
@@ -1874,8 +1897,8 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0)
-		return WSA_ERR_INVRFESETTING;
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
@@ -1899,6 +1922,9 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 {	
 	struct wsa_resp query;		// store query results
+
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:GAIN:RF?\n", &query);
 	if (query.status <= 0)
@@ -1933,6 +1959,9 @@ int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+		return WSA_ERR_INV5000COMMAND;
 
 	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
 		strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
@@ -1976,8 +2005,8 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 	}
 
 	// Verify the validity of the return value
-	if ((temp < WSA4000_MIN_SPP) || 
-		(temp > WSA4000_MAX_SPP))
+	if ((temp < WSA_MIN_SPP) || 
+		(temp > WSA_MAX_SPP))
 	{
 		printf("Error: WSA returned '%ld'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
@@ -2002,9 +2031,9 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if ((samples_per_packet < WSA4000_MIN_SPP) || 
-		(samples_per_packet > WSA4000_MAX_SPP) || 
-		((samples_per_packet % WSA4000_SPP_MULTIPLE) != 0))
+	if ((samples_per_packet < WSA_MIN_SPP) || 
+		(samples_per_packet > WSA_MAX_SPP) || 
+		((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
@@ -2058,9 +2087,9 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if (packets_per_block < WSA4000_MIN_PPB)
+	if (packets_per_block < WSA_MIN_PPB)
 		return WSA_ERR_INVNUMBER;
-	else if (packets_per_block > WSA4000_MAX_PPB) 
+	else if (packets_per_block > WSA_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %d\n", packets_per_block);
@@ -2497,9 +2526,9 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if((strcmp(trigger_type, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
-		(strcmp(trigger_type, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
-		(strcmp(trigger_type, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+	if((strcmp(trigger_type, WSA_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(trigger_type, WSA_PULSE_TRIGGER_TYPE) == 0))
 		sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:TYPE %s \n", trigger_type);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
@@ -2527,9 +2556,9 @@ int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	if((strcmp(query.output, WSA4000_NONE_TRIGGER_TYPE) == 0) || 
-		(strcmp(query.output, WSA4000_LEVEL_TRIGGER_TYPE) == 0) || 
-		(strcmp(query.output, WSA4000_PULSE_TRIGGER_TYPE) == 0))
+	if((strcmp(query.output, WSA_NONE_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA_LEVEL_TRIGGER_TYPE) == 0) || 
+		(strcmp(query.output, WSA_PULSE_TRIGGER_TYPE) == 0))
 		strcpy(trigger_type,query.output);
 	
 	else
@@ -2551,9 +2580,9 @@ int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (delay > WSA4000_trigger_SYNC_DELAY_MIN && 
-		delay < WSA4000_trigger_SYNC_DELAY_MAX && 
-		delay % WSA4000_trigger_SYNC_DELAY_MULTIPLE == 0)
+	if (delay > WSA_trigger_SYNC_DELAY_MIN && 
+		delay < WSA_trigger_SYNC_DELAY_MAX && 
+		delay % WSA_trigger_SYNC_DELAY_MULTIPLE == 0)
 		
 		sprintf(temp_str, "SWEEP:LIST:TRIGGER:DELAY %d \n", delay);
 	
@@ -2590,9 +2619,9 @@ int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if (temp < WSA4000_trigger_SYNC_DELAY_MIN || 
-		temp > WSA4000_trigger_SYNC_DELAY_MAX || 
-		temp % WSA4000_trigger_SYNC_DELAY_MULTIPLE != 0)
+	if (temp < WSA_trigger_SYNC_DELAY_MIN || 
+		temp > WSA_trigger_SYNC_DELAY_MAX || 
+		temp % WSA_trigger_SYNC_DELAY_MULTIPLE != 0)
 		return WSA_ERR_INVTRIGGERDELAY;
 	else
 		*delay = (int32_t) temp;
@@ -2613,8 +2642,8 @@ int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_stat
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) == 0) 
+	if (strcmp(sync_state, WSA_MASTER_TRIGGER) == 0 || 
+		strcmp(sync_state,  WSA_SLAVE_TRIGGER) == 0) 
 		
 		sprintf(temp_str, "SWEEP:LIST:TRIGGER:SYNC %s \n", sync_state);
 	
@@ -2646,8 +2675,8 @@ int16_t wsa_get_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_stat
 	
 	strcpy(sync_state, query.output);
 	
-	if (strcmp(sync_state, WSA4000_MASTER_TRIGGER) != 0 || 
-		strcmp(sync_state,  WSA4000_SLAVE_TRIGGER) != 0) 
+	if (strcmp(sync_state, WSA_MASTER_TRIGGER) != 0 || 
+		strcmp(sync_state,  WSA_SLAVE_TRIGGER) != 0) 
 
 		return WSA_ERR_INVTRIGGERSYNC;
 	else
@@ -2673,8 +2702,8 @@ int16_t wsa_get_sweep_status(struct wsa_device *dev, char *status)
 		return (int16_t) query.status;
 
 	// check if the wsa returns an invalid sweep status
-	if ((strcmp(query.output, WSA4000_SWEEP_STATE_STOPPED) != 0) &&
-		(strcmp(query.output, WSA4000_SWEEP_STATE_RUNNING) != 0))
+	if ((strcmp(query.output, WSA_SWEEP_STATE_STOPPED) != 0) &&
+		(strcmp(query.output, WSA_SWEEP_STATE_RUNNING) != 0))
 		return WSA_ERR_SWEEPMODEUNDEF;
 
 	strcpy(status, query.output);
@@ -2816,11 +2845,11 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 		return result;
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
 	
 	// check if the wsa is streaming
-	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) == 0)
 		return WSA_ERR_SWEEPWHILESTREAMING;
 	
 	// check if the sweep list is empty
@@ -2858,11 +2887,11 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 		return result;
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) == 0)
 		return WSA_ERR_SWEEPALREADYRUNNING;
 	
 	// check if the wsa is streaming
-	if (strcmp(status, WSA4000_STREAM_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) == 0)
 		return WSA_ERR_SWEEPWHILESTREAMING;
 
 	// check if the sweep list is empty
@@ -2903,7 +2932,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		return result;
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA4000_SWEEP_CAPTURE_MODE) != 0)
+	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) != 0)
 		return WSA_ERR_SWEEPNOTRUNNING;
 	
 	result = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
@@ -2946,7 +2975,7 @@ int16_t wsa_sweep_resume(struct wsa_device *dev)
 	result = wsa_get_sweep_status(dev, status);
 	if (result < 0)
 		return result;
-	if (strcmp(status, WSA4000_SWEEP_STATE_RUNNING) == 0) 
+	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) 
 		return WSA_ERR_SWEEPALREADYRUNNING;
 
 	result = wsa_get_sweep_entry_size(dev, &size);
