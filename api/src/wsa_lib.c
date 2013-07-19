@@ -28,8 +28,9 @@ void extract_extension_packet_data(uint8_t *temp_buffer, struct wsa_extension_pa
 // Return 0 on success or a 16-bit negative number on error.
 int16_t _wsa_dev_init(struct wsa_device *dev)
 {
-	int i;
-
+	struct wsa_resp query;
+	char *strtok_result;
+	int16_t i = 0;
 	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
 	dev->descr.max_sample_size = 0;
@@ -40,57 +41,50 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.min_if_gain = -1000;	// some impossible #
 	dev->descr.max_decimation = 0;
 	dev->descr.min_decimation = 0;
+	
 	for (i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
 	
-	strcpy(dev->descr.prod_name, "");
-	strcpy(dev->descr.prod_serial, ""); 
-	strcpy(dev->descr.prod_version, "");
-	strcpy(dev->descr.rfe_name, "");
-	strcpy(dev->descr.rfe_version, "");
-	strcpy(dev->descr.fw_version, "");
+
+
+	wsa_send_query(dev, "*IDN?\n", &query);
 	
+	strtok_result = strtok(query.output, ",");
+	strtok_result = strtok(NULL, ",");
+	if(strstr(strtok_result, WSA4000) != NULL) 
+		sprintf(dev->descr.prod_model, "%s", WSA4000);
+	else if(strstr(strtok_result, WSA5000) != NULL) 
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
+	strtok_result = strtok(NULL, ",");
+	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
+	
+	strtok_result = strtok(NULL, ",");
+	strcpy(dev->descr.fw_version, strtok_result);
 	// TODO get & update the versions & wsa model
 	// TODO will need to replace with reading from reg or eeprom?
-	sprintf(dev->descr.prod_name, "%s", WSA4000);
-	strcpy(dev->descr.prod_serial, "TO BE DETERMINED"); // temp for now
-	sprintf(dev->descr.prod_version, "v0"); // temp value
-	sprintf(dev->descr.rfe_name, "%s", WSA_RFE0560); // TODO read from wsa
-	sprintf(dev->descr.rfe_version, "v0"); // temp
-	strcpy(dev->descr.fw_version, "v0");
+
+
+
 	
 	// 3rd, set some values base on the model
 	// TODO: read from regs/eeprom instead once available
-	if (strcmp(dev->descr.prod_name, WSA4000) == 0) {
-		dev->descr.max_sample_size = WSA4000_MAX_CAPTURE_BLOCK;
-		dev->descr.inst_bw = (uint64_t) WSA4000_IBW;
-		
-		// if it's RFE0440
-		if (strcmp(dev->descr.rfe_name, WSA_RFE0440) == 0) {
-			dev->descr.max_tune_freq = (uint64_t) WSA_RFE0440_MAX_FREQ;
-			dev->descr.min_tune_freq = (uint64_t) WSA_RFE0440_MIN_FREQ;
-			dev->descr.freq_resolution = WSA_RFE0440_FREQRES;
-			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_RFE0440_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_RFE0440_ABS_AMP_MED;
-			dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_RFE0440_ABS_AMP_LOW;
-			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_RFE0440_ABS_AMP_VLOW;
-		}
-
-		// if it's RFE0560
-		else if (strcmp(dev->descr.rfe_name, WSA_RFE0560) == 0) {
-			dev->descr.max_tune_freq = (uint64_t) (WSA_RFE0560_MAX_FREQ * MHZ);
-			dev->descr.min_tune_freq = WSA_RFE0560_MIN_FREQ;
-			dev->descr.freq_resolution = WSA_RFE0560_FREQRES;
-			dev->descr.max_if_gain = WSA_RFE0560_MAX_IF_GAIN;
-			dev->descr.min_if_gain = WSA_RFE0560_MIN_IF_GAIN;
-			dev->descr.max_decimation = WSA_RFE0560_MAX_DECIMATION;
-			dev->descr.min_decimation = WSA_RFE0560_MIN_DECIMATION;
-			dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_RFE0560_ABS_AMP_HIGH;
-			dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_RFE0560_ABS_AMP_MED;
-			dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_RFE0560_ABS_AMP_LOW;
-			dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_RFE0560_ABS_AMP_VLOW;
-		}
+	if (strcmp(dev->descr.prod_model, WSA4000) == 0) 
+	{
+		dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
+		dev->descr.inst_bw = (uint64_t) WSA_IBW;
+		dev->descr.max_tune_freq = (uint64_t) (WSA_4000_MAX_FREQ * MHZ);
+		dev->descr.min_tune_freq = WSA_4000_MIN_FREQ;
+		dev->descr.freq_resolution = WSA_4000_FREQRES;
+		dev->descr.max_if_gain = WSA_4000_MAX_IF_GAIN;
+		dev->descr.min_if_gain = WSA_4000_MIN_IF_GAIN;
+		dev->descr.max_decimation = WSA_4000_MAX_DECIMATION;
+		dev->descr.min_decimation = WSA_4000_MIN_DECIMATION;
+		dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_4000_ABS_AMP_HIGH;
+		dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_4000_ABS_AMP_MED;
+		dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_4000_ABS_AMP_LOW;
+		dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_4000_ABS_AMP_VLOW;
 	}
+
 
 	return 0;
 }

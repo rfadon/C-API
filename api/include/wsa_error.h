@@ -22,6 +22,8 @@
 #define WSA_ERR_UNKNOWNRFEVSN	(LNEG_NUM - 5)
 #define WSA_ERR_PRODOBSOLETE	(LNEG_NUM - 6)
 #define WSA_ERR_DATAACCESSDENIED (LNEG_NUM - 7)
+#define WSA_ERR_INV5000COMMAND (LNEG_NUM - 8)
+#define WSA_ERR_INV4000COMMAND (LNEG_NUM - 9)
 
 // ///////////////////////////////
 // WSA SETUP ERRORS				//
@@ -175,10 +177,15 @@
 #define WSA_ERR_STREAMWHILESWEEPING (LNEG_NUM - 4002)
 #define WSA_ERR_INVSTREAMSTARTID	(LNEG_NUM - 4003)
 
+
+
+
 // ///////////////////////////////
 // WARNINGS						//
 // ///////////////////////////////
 #define WSA_WARNING_TRIGGER_CONFLICT	(WARNING_NUM - 0)
+
+
 
 const char *_wsa_get_err_msg(int16_t err_id);
 

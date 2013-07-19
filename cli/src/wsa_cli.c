@@ -7,8 +7,8 @@
  * The following diagram illustrates the different layers and libraries 
  * involved in interfacing with a WSA on the PC side.  
  *
- * @image html wsa4000_cli_2.PNG
- * @image latex wsa4000_cli_2.PNG "Interface Layers to WSA on PC Side" width=11cm
+ * @image html wsa_cli_2.PNG
+ * @image latex wsa_cli_2.PNG "Interface Layers to WSA on PC Side" width=11cm
  *
  * The CLI interfaces to a WSA through the \b wsa_api library, which provides
  * functions to set/get particular settings or data from the WSA.  The \b 
@@ -28,7 +28,7 @@
  * The CLI, hence, is a direct example of how the \b wsa_api library could be 
  * used.  VRT data packet will be decoded before saving into a file.
  *  
- * The WSA4000 CLI is designed using mixed C/C++ languages.
+ * The WSA CLI is designed using mixed C/C++ languages.
  * The CLI when executed will run in a Windows command prompt console. List 
  * of commands available with the CLI is listed in the print_cli_menu() 
  * function. \n \n
@@ -61,7 +61,7 @@
 #include <time.h>
 
 #include "wsa4k_cli_os_specific.h"
-#include "wsa4k_cli.h"
+#include "wsa_cli.h"
 #include "wsa_api.h"
 #include "wsa_lib.h"
 #include "wsa_client.h"
@@ -128,7 +128,7 @@ void print_cli_menu(struct wsa_device *dev)
 
 	printf("\n");
 	printf("  get acq access\n"
-		"\t- Obtain WSA4000 acquisition access to save data.\n");
+		"\t- Obtain WSA acquisition access to save data.\n");
 	printf("  get ant\n"
 		"\t- Get the current antenna port in use.\n");
 	printf("  get bpf\n"
@@ -156,7 +156,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("\n");
 
 	printf("  set ant <1 | 2>\n"
-		"\t- Select the antenna port, available 1 to %d.\n", WSA_RFE0560_MAX_ANT_PORT);
+		"\t- Select the antenna port, available 1 to %d.\n", WSA_4000_MAX_ANT_PORT);
 	printf("  set bpf <on | off>\n"
 		"\t- Turn the RFE's preselect BPF stage on or off.\n");
 	printf("  set dec <rate>\n"
@@ -188,7 +188,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Set the number of samples per packet to be captured\n"
 		"\t  Range: %hu - %hu, inclusive (must be multiple of 16).\n"
 		"\t  ex: set spp 2048\n",
-		WSA4000_MIN_SPP, WSA4000_MAX_SPP);
+		WSA_MIN_SPP, WSA_MAX_SPP);
 	printf("  set trigger mode <level | none | pulse>\n"
 		"\t- Set trigger mode. When set to none, WSA will be in freerun.\n"
 		"\t  ex: set trigger mode level\n");
@@ -207,7 +207,7 @@ void print_cli_menu(struct wsa_device *dev)
 	"\t  ex: set trigger sync state slave\n");
 	printf("\n");
 	printf("  system flush\n"
-		"\t- Clear the WSA4000 internal buffer of remaining sweep data\n");
+		"\t- Clear the WSA internal buffer of remaining sweep data\n");
 	printf("\n");
 
 	printf("//////////////////////////////////////////////////////////////\n");
@@ -522,7 +522,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	if (result < 0)
 		return result;
  
-	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0) 
+	if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) == 0) 
 	{	
 		// Get samples per packet
 		result = wsa_get_samples_per_packet(dev, &samples_per_packet);
@@ -632,7 +632,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// set capture block if not doing sweep
-	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0) 
+	if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) == 0) 
 	{
 		result = wsa_capture_block(dev);
 		if (result < 0)
@@ -794,8 +794,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				else
 					expected_if_pkt_count++;
 			
-				if (((strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0) ||
-					(strcmp(capture_mode,WSA4000_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
+				if (((strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0) ||
+					(strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
 				{
 					title_printed = TRUE;
 					fprintf(iq_fptr, 
@@ -825,7 +825,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				iq_pkt_count++;
 
 				// if capture mode is enabled, save the number of specified packets
-				if (strcmp(capture_mode,WSA4000_BLOCK_CAPTURE_MODE) == 0)
+				if (strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0)
 				{
 					if (i >= packets_per_block) 
 					{		
@@ -918,14 +918,14 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 	if (result < 0)
 		return result;
 	
-	if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0 && 
-		strcmp(capture_mode, WSA4000_STREAM_CAPTURE_MODE) != 0 &&
-		strcmp(capture_mode, WSA4000_SWEEP_CAPTURE_MODE) != 0)
+	if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0 && 
+		strcmp(capture_mode, WSA_STREAM_CAPTURE_MODE) != 0 &&
+		strcmp(capture_mode, WSA_SWEEP_CAPTURE_MODE) != 0)
 			return WSA_ERR_SWEEPMODEUNDEF;	
 	
 
 	// set capture block if not doing sweep
-	if (strcmp(capture_mode,  WSA4000_BLOCK_CAPTURE_MODE) == 0) 
+	if (strcmp(capture_mode,  WSA_BLOCK_CAPTURE_MODE) == 0) 
 	{
 		// get the ppb value
 		result = wsa_get_packets_per_block(dev, &packets_per_block);	
@@ -937,7 +937,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		if (result < 0)
 			return result;
 	}
-	else if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) != 0)
+	else if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0)
 	{
 		printf("Stream/Sweep mode is enabled, use 'ESC' key to stop saving data to file.\n");
 	}
@@ -1036,7 +1036,7 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		free(vrt_buffer);
 
 		// if capture mode is enabled, save the number of specified packets
-		if (strcmp(capture_mode, WSA4000_BLOCK_CAPTURE_MODE) == 0)
+		if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) == 0)
 		{
 			if (i >= packets_per_block)
 				exit_loop = 1;
@@ -1283,10 +1283,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (strcmp(cmd_words[2], "MAX") == 0)
 					printf("Maximum samples per packet: %hu\n", 
-						WSA4000_MAX_SPP);
+						WSA_MAX_SPP);
 				else if (strcmp(cmd_words[2], "MIN") == 0)
 					printf("Minimum samples per packet: %hu\n", 
-						WSA4000_MIN_SPP);
+						WSA_MIN_SPP);
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
@@ -1463,7 +1463,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				result = wsa_set_antenna(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVANTENNAPORT)
 					sprintf(msg, "\n   - Valid ports: 1 to %d.", 
-						WSA_RFE0560_MAX_ANT_PORT);
+						WSA_4000_MAX_ANT_PORT);
 			}
 			else
 				printf("Invalid input. Antenna port must be a positive "
@@ -1592,8 +1592,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVSAMPLESIZE)
 					sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.",
-						WSA4000_MIN_SPP,
-						WSA4000_MAX_SPP);
+						WSA_MIN_SPP,
+						WSA_MAX_SPP);
 			}
 			else
 				printf("Invalid input. SPP value must a positive integer.\n");
@@ -1730,7 +1730,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = wsa_set_sweep_antenna(dev, (int32_t) temp_long);				
 						if (result == WSA_ERR_INVANTENNAPORT)
 							sprintf(msg, "\n   - Valid ports: 1 to %d.",
-							WSA_RFE0560_MAX_ANT_PORT);
+							WSA_4000_MAX_ANT_PORT);
 					}					
 					else
 						printf("Invalid input.  Antenna port value must be a "
@@ -1900,8 +1900,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								(int32_t) temp_long);
 						if (result == WSA_ERR_INVSAMPLESIZE)
 							sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.\n",
-								WSA4000_MIN_SPP,
-								WSA4000_MAX_SPP);
+								WSA_MIN_SPP,
+								WSA_MAX_SPP);
 					}
 					else
 						printf("Invalid input. SPP value must be a positive integer.\n");
@@ -2316,7 +2316,7 @@ int16_t start_cli(void)
 		//*****
 		// Ask user to enter an IP address
 		//*****
-		printf("\n> Enter the WSA4000's IP (or type 'h'): ");
+		printf("\n> Enter the WSA's IP (or type 'h'): ");
 		in_buf = get_input_cmd(FALSE);
 		strcpy(in_str, in_buf);
 
@@ -2645,7 +2645,6 @@ void print_wsa_stat(struct wsa_device *dev)
 	int64_t stop_freq = 0;
 	int32_t amplitude = 0;
 	int32_t enable = 0;
-	char fw_ver[MAX_STRING_LEN];
 	char capture_mode[MAX_STRING_LEN];
 	char trigger_mode[MAX_STRING_LEN];
 	char gain[10];
@@ -2654,11 +2653,8 @@ void print_wsa_stat(struct wsa_device *dev)
 	printf("\t- Current settings: \n");
 
 	// TODO handle the errors
-	result = wsa_get_fw_ver(dev, fw_ver);
-	if (result < 0)
-		printf("\t\t- Error: Failed getting the firmware version.\n");
-	else
-		printf("\t\t- Firmware Version: %s \n", fw_ver);
+	printf("\t\t- Device Model: %s \n", dev->descr.prod_model);
+	printf("\t\t- Firmware Version: %s \n", dev->descr.fw_version);
 	
 	result = wsa_get_capture_mode(dev, capture_mode);
 	if (result < 0)
@@ -2824,7 +2820,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		return result;
 	printf("      Trigger mode running: %s\n", trigger_type);
 
-	if(strcmp(trigger_type, WSA4000_LEVEL_TRIGGER_TYPE) == 0)
+	if(strcmp(trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0)
 	{
 		// print trigger level sweep value
 		result = wsa_get_sweep_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
@@ -2834,7 +2830,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		printf("      Amplitude: %ld dBm\n", amplitude);
 	}
 
-	else if(strcmp(trigger_type, WSA4000_PULSE_TRIGGER_TYPE) == 0)
+	else if(strcmp(trigger_type, WSA_PULSE_TRIGGER_TYPE) == 0)
 	{
 		// print trigger sync sweep value
 		result = wsa_get_sweep_trigger_sync_state(dev, trigger_sync_state);

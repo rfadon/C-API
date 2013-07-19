@@ -5,7 +5,7 @@
 #include <direct.h>
 
 #include "wsa4k_cli_os_specific.h"
-#include "wsa4k_cli.h"
+#include "wsa_cli.h"
 
 
 void get_current_time(TIME_HOLDER* current_time)

@@ -87,75 +87,71 @@
 
 
 //*****
-// WSA4000 specific values
+// WSA specific values
 //*****
-#define WSA4000 "WSA4000"
-#define WSA4000_IBW 125000000ULL
-#define WSA4000_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
+#define WSA_IBW 125000000ULL
+#define WSA_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
 
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA4000_MAX_SPP 65520
-#define WSA4000_SPP_MULTIPLE 16
-#define WSA4000_MIN_SPP 128
-#define WSA4000_MIN_PPB 1
-#define WSA4000_MAX_PPB UINT_MAX
+#define WSA_MAX_SPP 65520
+#define WSA_SPP_MULTIPLE 16
+#define WSA_MIN_SPP 128
+#define WSA_MIN_PPB 1
+#define WSA_MAX_PPB UINT_MAX
 
 // sweep states
-#define WSA4000_SWEEP_STATE_RUNNING "RUNNING"
-#define WSA4000_SWEEP_STATE_STOPPED "STOPPED"
+#define WSA_SWEEP_STATE_RUNNING "RUNNING"
+#define WSA_SWEEP_STATE_STOPPED "STOPPED"
 
 // capture modes
-#define WSA4000_BLOCK_CAPTURE_MODE "BLOCK"
-#define WSA4000_STREAM_CAPTURE_MODE "STREAMING"
-#define WSA4000_SWEEP_CAPTURE_MODE "SWEEPING"
+#define WSA_BLOCK_CAPTURE_MODE "BLOCK"
+#define WSA_STREAM_CAPTURE_MODE "STREAMING"
+#define WSA_SWEEP_CAPTURE_MODE "SWEEPING"
 
 // trigger types
-#define WSA4000_NONE_TRIGGER_TYPE "NONE"
-#define WSA4000_LEVEL_TRIGGER_TYPE "LEVEL"
-#define WSA4000_PULSE_TRIGGER_TYPE "PULSE"
+#define WSA_NONE_TRIGGER_TYPE "NONE"
+#define WSA_LEVEL_TRIGGER_TYPE "LEVEL"
+#define WSA_PULSE_TRIGGER_TYPE "PULSE"
 
 // trigger synchronization options
-#define WSA4000_MASTER_TRIGGER "MASTER"
-#define WSA4000_SLAVE_TRIGGER "SLAVE"
+#define WSA_MASTER_TRIGGER "MASTER"
+#define WSA_SLAVE_TRIGGER "SLAVE"
 
 // delay limitations
-#define WSA4000_trigger_SYNC_DELAY_MAX 4294967295
-#define WSA4000_trigger_SYNC_DELAY_MIN 0
-#define WSA4000_trigger_SYNC_DELAY_MULTIPLE 8
+#define WSA_trigger_SYNC_DELAY_MAX 4294967295
+#define WSA_trigger_SYNC_DELAY_MIN 0
+#define WSA_trigger_SYNC_DELAY_MULTIPLE 8
 
 // *****
-// RFE0440 SPECIFIC
+// WSA4000 SPECIFIC
 // *****
-#define WSA_RFE0440 "RFE0440"
-#define WSA_RFE0440_MAX_FREQ 4000000000ULL
-#define WSA_RFE0440_MIN_FREQ 200000000ULL
-#define WSA_RFE0440_FREQRES	10000ULL
-#define WSA_RFE0440_ABS_AMP_HIGH -15
-#define WSA_RFE0440_ABS_AMP_MED 0
-#define WSA_RFE0440_ABS_AMP_LOW 13
-#define WSA_RFE0440_ABS_AMP_VLOW 20
-
-
-// *****
-// RFE0560 SPECIFIC
-// *****
-#define WSA_RFE0560 "RFE0560"
-#define WSA_RFE0560_MAX_FREQ 10000ULL // MHz here b/c of large # issue
-#define WSA_RFE0560_MIN_FREQ 0ULL  // Hz
-#define WSA_RFE0560_MAX_IF_GAIN 34
-#define WSA_RFE0560_MIN_IF_GAIN -10
-#define WSA_RFE0560_MAX_DECIMATION 1023
-#define WSA_RFE0560_MIN_DECIMATION 4
-#define WSA_RFE0560_FREQRES	100000ULL // to read in the register
-#define WSA_RFE0560_MAX_ANT_PORT 2
+#define WSA4000 "WSA4000"
+#define WSA_4000_MAX_FREQ 10000ULL // MHz here b/c of large # issue
+#define WSA_4000_MIN_FREQ 0ULL  // Hz
+#define WSA_4000_MAX_IF_GAIN 34
+#define WSA_4000_MIN_IF_GAIN -10
+#define WSA_4000_MAX_DECIMATION 1023
+#define WSA_4000_MIN_DECIMATION 4
+#define WSA_4000_FREQRES 100000ULL // to read in the register
+#define WSA_4000_MAX_ANT_PORT 2
 
 // TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S -> Read from eeprom
-#define WSA_RFE0560_ABS_AMP_HIGH 0
-#define WSA_RFE0560_ABS_AMP_MED 15
-#define WSA_RFE0560_ABS_AMP_LOW 15
-#define WSA_RFE0560_ABS_AMP_VLOW 15
+#define WSA_4000_ABS_AMP_HIGH 0
+#define WSA_4000_ABS_AMP_MED 15
+#define WSA_4000_ABS_AMP_LOW 15
+#define WSA_4000_ABS_AMP_VLOW 15
+
+// *****
+// WSA5000 SPECIFIC
+// *****
+#define WSA5000 "WSA5000"
+#define WSA_5000_MAX_FREQ 20000ULL // MHz here b/c of large # issue
+#define WSA_5000_MIN_FREQ 0ULL  // Hz
+#define WSA_5000_MAX_DECIMATION 1023
+#define WSA_5000_MIN_DECIMATION 4
+#define WSA_5000_FREQRES 100000ULL // to read in the register
 
 
 // *****
@@ -179,13 +175,10 @@ enum wsa_gain {
 // ////////////////////////////////////////////////////////////////////////////
 
 struct wsa_descriptor {
-	char prod_name[50];
-	char prod_serial[20];
-	char prod_version[20];
-	char rfe_name[50];
-	char rfe_version[20];
-	char fw_version[20];
-	char intf_type[20];
+	char prod_model[MAX_STR_LEN];
+	char mac_addr[MAX_STR_LEN];
+	char fw_version[MAX_STR_LEN];
+	char intf_type[MAX_STR_LEN];
 	uint64_t inst_bw;
 	int32_t max_sample_size;
 	int64_t max_tune_freq;
@@ -261,11 +254,11 @@ struct wsa_sweep_list {
 	int32_t dwell_microseconds;
 	int32_t samples_per_packet;
 	int32_t packets_per_block;
-	char trigger_type[40];
+	char trigger_type[MAX_STR_LEN];
 	int64_t trigger_start_freq;
 	int64_t trigger_stop_freq;
 	int32_t trigger_amplitude;
-	char gain_rf[40];
+	char gain_rf[MAX_STR_LEN];
 };
  
 struct wsa_socket {
