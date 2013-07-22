@@ -49,36 +49,47 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	
 	strtok_result = strtok(query.output, ",");
 	strtok_result = strtok(NULL, ",");
+	
+	// grab product model
 	if(strstr(strtok_result, WSA4000) != NULL) 
 		sprintf(dev->descr.prod_model, "%s", WSA4000);
+	
 	else if(strstr(strtok_result, WSA5000) != NULL) 
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
+	
+	// grab product mac address
 	strtok_result = strtok(NULL, ",");
 	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
 	
+	// grab product firmware version
 	strtok_result = strtok(NULL, ",");
 	strcpy(dev->descr.fw_version, strtok_result);
 	
+	dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
+	dev->descr.inst_bw = (uint64_t) WSA_IBW;
+	dev->descr.max_decimation = WSA_MAX_DECIMATION;
+	dev->descr.min_decimation = WSA_MIN_DECIMATION;
 	// 3rd, set some values base on the model
 	// TODO: read from regs/eeprom instead once available
+	
 	if (strcmp(dev->descr.prod_model, WSA4000) == 0) 
 	{
-		dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
-		dev->descr.inst_bw = (uint64_t) WSA_IBW;
+
 		dev->descr.max_tune_freq = (uint64_t) (WSA_4000_MAX_FREQ * MHZ);
 		dev->descr.min_tune_freq = WSA_4000_MIN_FREQ;
 		dev->descr.freq_resolution = WSA_4000_FREQRES;
 		dev->descr.max_if_gain = WSA_4000_MAX_IF_GAIN;
 		dev->descr.min_if_gain = WSA_4000_MIN_IF_GAIN;
-		dev->descr.max_decimation = WSA_4000_MAX_DECIMATION;
-		dev->descr.min_decimation = WSA_4000_MIN_DECIMATION;
 		dev->descr.abs_max_amp[WSA_GAIN_HIGH] = WSA_4000_ABS_AMP_HIGH;
 		dev->descr.abs_max_amp[WSA_GAIN_MED] = WSA_4000_ABS_AMP_MED;
 		dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_4000_ABS_AMP_LOW;
 		dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_4000_ABS_AMP_VLOW;
 	}
-
-
+	else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
+	{
+		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
+		dev->descr.freq_resolution = WSA_5000_FREQRES;
+	}
 	return 0;
 }
 
