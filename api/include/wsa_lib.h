@@ -124,6 +124,10 @@
 #define WSA_trigger_SYNC_DELAY_MIN 0
 #define WSA_trigger_SYNC_DELAY_MULTIPLE 8
 
+// Decimation Range
+#define WSA_MAX_DECIMATION 1023
+#define WSA_MIN_DECIMATION 4
+
 // *****
 // WSA4000 SPECIFIC
 // *****
@@ -132,8 +136,7 @@
 #define WSA_4000_MIN_FREQ 0ULL  // Hz
 #define WSA_4000_MAX_IF_GAIN 34
 #define WSA_4000_MIN_IF_GAIN -10
-#define WSA_4000_MAX_DECIMATION 1023
-#define WSA_4000_MIN_DECIMATION 4
+
 #define WSA_4000_FREQRES 100000ULL // to read in the register
 #define WSA_4000_MAX_ANT_PORT 2
 
