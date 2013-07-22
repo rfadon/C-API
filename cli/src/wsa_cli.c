@@ -513,10 +513,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		return result;
 	}
 
-	result = wsa_get_fw_ver(dev, fw_ver);
-	if (result < 0)
-		return result;
-
 	// Get capture status
 	result = wsa_get_capture_mode(dev, capture_mode);
 	if (result < 0)
