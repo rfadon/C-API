@@ -45,8 +45,6 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	for (i = 0; i < NUM_RF_GAINS; i++)
 		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
 	
-
-
 	wsa_send_query(dev, "*IDN?\n", &query);
 	
 	strtok_result = strtok(query.output, ",");
@@ -60,11 +58,6 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	
 	strtok_result = strtok(NULL, ",");
 	strcpy(dev->descr.fw_version, strtok_result);
-	// TODO get & update the versions & wsa model
-	// TODO will need to replace with reading from reg or eeprom?
-
-
-
 	
 	// 3rd, set some values base on the model
 	// TODO: read from regs/eeprom instead once available

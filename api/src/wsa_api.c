@@ -1189,62 +1189,6 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// DEVICE SETTINGS					                                         //
-// ////////////////////////////////////////////////////////////////////////////
-
-/**
- * Retrieve the model of the device.
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param model - A char pointer to hold the device model.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_dev_model(struct wsa_device *dev, char *model)
-{
-	struct wsa_resp query;		// store query results
-	char *strtok_result;
-		
-	wsa_send_query(dev, "*IDN?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
-	strtok_result = strtok(query.output, ",");
-	strtok_result = strtok(NULL, ",");
-	strcpy(model,strtok_result);
-
-	return 0;
-}
-
-
-/**
- * Retrieve the firmware version of the device.
- * 
- * @param dev - A pointer to the WSA device structure.
- * @param fw_ver - A char pointer to hold the device firmware version.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_fw_ver(struct wsa_device *dev, char *fw_ver)
-{
-	struct wsa_resp query;		// store query results
-	char *strtok_result;
-
-	wsa_send_query(dev, "*IDN?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
-	strtok_result = strtok(query.output, ",");
-	strtok_result = strtok(NULL, ",");
-	strtok_result = strtok(NULL, ",");
-	strtok_result = strtok(NULL, ",");
-	strcpy(fw_ver,strtok_result);
-
-	return 0;
-}
-
-
-// ////////////////////////////////////////////////////////////////////////////
 // TRIGGER CONTROL SECTION                                                   //
 // ////////////////////////////////////////////////////////////////////////////
 
