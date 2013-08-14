@@ -3081,7 +3081,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	sweep_list->dwell_microseconds = (int32_t) temp;
 
 	strtok_result = strtok(NULL, ",");	
-	if (strstr(strtok_result, "LEVEL") != NULL)
+	if (strstr(strtok_result, WSA_LEVEL_TRIGGER_TYPE) != NULL)
 	{
 		strcpy(sweep_list->trigger_type,strtok_result);
 
@@ -3100,10 +3100,9 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 			return WSA_ERR_RESPUNKNOWN;	
 		sweep_list->trigger_amplitude = (int32_t) temp;
 	}
-	else if (strstr(strtok_result, "NONE") != NULL)
-	{
+	else
 		strcpy(sweep_list->trigger_type,strtok_result);
-	}
+
 
 	return 0;
 }

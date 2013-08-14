@@ -2879,15 +2879,17 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 	printf("  Gain IF: %u \n", list_values->gain_if);
 	printf("  Gain RF: %s\n", list_values->gain_rf);
 	printf("  Trigger settings:\n");
-    if (strcmp(list_values->trigger_type, "NONE") == 0) 
-		printf("    Trigger mode running: %s\n",list_values->trigger_type);
-	else
+
+	if (strcmp(list_values->trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0) 
 	{
 		printf("    Trigger mode: %s\n",list_values->trigger_type);
 		printf("       Range (MHz): %0.3f %0.3f\n", (float) (list_values->trigger_start_freq / MHZ),
 													(float)  (list_values->trigger_stop_freq / MHZ));
 		printf("       Amplitude: %ld dBm\n", list_values->trigger_amplitude);
 	}
+    else 
+		printf("    Trigger mode running: %s\n",list_values->trigger_type);
+
 	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
 
 	free(list_values);

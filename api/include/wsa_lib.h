@@ -261,6 +261,8 @@ struct wsa_sweep_list {
 	int64_t trigger_start_freq;
 	int64_t trigger_stop_freq;
 	int32_t trigger_amplitude;
+	char trigger_sync_state[MAX_STR_LEN];
+	int32_t trigger_sync_delay;
 	char gain_rf[MAX_STR_LEN];
 };
  
