@@ -979,9 +979,6 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
 		return WSA_ERR_INV5000COMMAND;
 
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
 	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
 		return WSA_ERR_INVIFGAIN;
 

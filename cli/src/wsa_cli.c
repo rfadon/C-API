@@ -2664,34 +2664,35 @@ void print_wsa_stat(struct wsa_device *dev)
 	else
 		printf("\t\t- Error: Failed getting the frequency value.\n");
 
-	result = wsa_get_gain_if(dev, &value);
-	if (result >= 0)
-		printf("\t\t- Gain IF: %d dB\n", value);
-	else
-		printf("\t\t- Error: Failed getting the gain IF value.\n");
+	// print WSA4000 specific attributes
+	if (strcmp(dev->descr.prod_model,WSA5000) != 0)
+	{
+		result = wsa_get_gain_if(dev, &value);
+		if (result >= 0)
+			printf("\t\t- Gain IF: %d dB\n", value);
+		else
+			printf("\t\t- Error: Failed getting the gain IF value.\n");
 
-	result = wsa_get_gain_rf(dev, gain);
-	
-	if (result >= 0)
-		printf("\t\t- Gain RF: %s\n",  gain);
-	else
-		printf("\t\t- Error: Failed getting the gain RF value.\n");
+		result = wsa_get_gain_rf(dev, gain);
+		if (result >= 0)
+			printf("\t\t- Gain RF: %s\n",  gain);
+		else
+			printf("\t\t- Error: Failed getting the gain RF value.\n");
+	}
 	
 	result = wsa_get_samples_per_packet(dev, &samples_per_packet);
-	if (result >= 0) {
+	if (result >= 0)
 		printf("\t\t- Samples per packet: %d\n", samples_per_packet);
-	}
-	else {
+	else
 		printf("\t\t- Error: Failed reading the samples per packet value.\n");
-	}
-	
+
 	result = wsa_get_packets_per_block(dev, &packets_per_block);
-	if (result >= 0) {
+	if (result >= 0)
 		printf("\t\t- Packets per block: %d\n", packets_per_block);
-	}
-	else {
+	
+	else
 		printf("\t\t- Error: Failed reading the packets per bock value.\n");
-	}
+
 	
 	printf("\t\t- Trigger Settings: \n");
 	result = wsa_get_trigger_type(dev, trigger_mode);
@@ -2700,7 +2701,6 @@ void print_wsa_stat(struct wsa_device *dev)
 	else 
 		printf("\t\t- Error: Failed reading the trigger mode.\n");
 
-	
 	result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 	if (result >= 0) {
 		printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);

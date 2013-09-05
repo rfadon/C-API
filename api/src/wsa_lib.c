@@ -52,7 +52,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	
 	// grab product model
 	if(strstr(strtok_result, WSA4000) != NULL) 
-		sprintf(dev->descr.prod_model, "%s", WSA4000);
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
 	
 	else if(strstr(strtok_result, WSA5000) != NULL) 
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
@@ -88,6 +88,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
 	{
 		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
+		dev->descr.max_tune_freq = (uint64_t) (WSA_5000_MAX_FREQ * MHZ);
 		dev->descr.freq_resolution = WSA_5000_FREQRES;
 	}
 	return 0;
