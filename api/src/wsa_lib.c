@@ -52,7 +52,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	
 	// grab product model
 	if(strstr(strtok_result, WSA4000) != NULL) 
-		sprintf(dev->descr.prod_model, "%s", WSA5000);
+		sprintf(dev->descr.prod_model, "%s", WSA4000);
 	
 	else if(strstr(strtok_result, WSA5000) != NULL) 
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
