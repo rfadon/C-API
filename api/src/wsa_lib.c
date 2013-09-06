@@ -88,6 +88,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
 	{
 		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
+		dev->descr.max_tune_freq = (uint64_t) (WSA_5000_MAX_FREQ * MHZ);
 		dev->descr.freq_resolution = WSA_5000_FREQRES;
 	}
 	return 0;

@@ -150,7 +150,7 @@
 // WSA5000 SPECIFIC
 // *****
 #define WSA5000 "WSA5000"
-#define WSA_5000_MAX_FREQ 20000ULL // MHz here b/c of large # issue
+#define WSA_5000_MAX_FREQ 8000ULL // MHz here b/c of large # issue
 #define WSA_5000_MIN_FREQ 0ULL  // Hz
 #define WSA_5000_MAX_DECIMATION 1023
 #define WSA_5000_MIN_DECIMATION 4
