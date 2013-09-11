@@ -131,6 +131,8 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Obtain WSA acquisition access to save data.\n");
 	printf("  get ant\n"
 		"\t- Get the current antenna port in use.\n");
+	printf("  get atten\n"
+		"\t- Get the attenuator's current mode of operation.\n");
 	printf("  get bpf\n"
 		"\t- Get the current RFE's preselect BPF state.\n");
 	printf("  get dec [max | min]\n"
@@ -157,6 +159,9 @@ void print_cli_menu(struct wsa_device *dev)
 
 	printf("  set ant <1 | 2>\n"
 		"\t- Select the antenna port, available 1 to %d.\n", WSA_4000_MAX_ANT_PORT);
+	printf("  set atten <0 | 1>\n"
+		"\t- Set the attenuator's current mode of operation (0 - Off, 1 - On).\n");
+
 	printf("  set bpf <on | off>\n"
 		"\t- Turn the RFE's preselect BPF stage on or off.\n");
 	printf("  set dec <rate>\n"
@@ -677,7 +682,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
 					extension, i_buffer, q_buffer, samples_per_packet);
-			
 		if (result < 0)
 			break;
 		
@@ -1125,6 +1129,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			}
 		} // end get ANT 
 
+		else if (strcmp(cmd_words[1], "ATTEN") == 0)
+		{
+			if(num_words > 2)
+				printf("Extra parameters ignored\n");
+			
+			result = wsa_get_attenuation(dev, &temp_short);
+			if (result >= 0)
+				printf("Attenuator's mode of operation: %d", temp_short);
+
+		} // end get ATTEN
+
 		else if (strcmp(cmd_words[1], "BPF") == 0) 
 		{			
 			if(num_words > 2)
@@ -1465,7 +1480,14 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Invalid input. Antenna port must be a positive "
 						"integer number. See 'h'.\n");
 		} // end set ANT
-
+		
+		else if (strcmp(cmd_words[1], "ATTEN") == 0)
+		{
+			if (num_words < 3) 
+				printf("Missing the attenuation mode of operation. See 'h'.\n");
+			else if (!to_int(cmd_words[2], &temp_long)) 
+				result = wsa_set_attenuation(dev, (int32_t) temp_long);
+		}
 		else if (strcmp(cmd_words[1], "BPF") == 0) 
 		{
 			if (strcmp(cmd_words[2], "ON") == 0)
@@ -2693,22 +2715,24 @@ void print_wsa_stat(struct wsa_device *dev)
 	else
 		printf("\t\t- Error: Failed reading the packets per bock value.\n");
 
-	
-	printf("\t\t- Trigger Settings: \n");
-	result = wsa_get_trigger_type(dev, trigger_mode);
-	if (result >= 0)
-			printf("\t\t\t- Trigger mode running: %s\n", trigger_mode);	
-	else 
-		printf("\t\t- Error: Failed reading the trigger mode.\n");
+	if (strcmp(dev->descr.prod_model,WSA5000) != 0)
+	{
+		printf("\t\t- Trigger Settings: \n");
+		result = wsa_get_trigger_type(dev, trigger_mode);
+		if (result >= 0)
+				printf("\t\t\t- Trigger mode running: %s\n", trigger_mode);	
+		else 
+			printf("\t\t- Error: Failed reading the trigger mode.\n");
 
-	result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
-	if (result >= 0) {
-		printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
-		printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
-		printf("\t\t\t- Amplitude: %ld dBm\n", amplitude);
-	}
-	else {
-		printf("\t\t- Error: Failed reading trigger levels.\n");
+		result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
+		if (result >= 0) {
+			printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
+			printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
+			printf("\t\t\t- Amplitude: %ld dBm\n", amplitude);
+		}
+		else {
+			printf("\t\t- Error: Failed reading trigger levels.\n");
+		}
 	}
 } 
 

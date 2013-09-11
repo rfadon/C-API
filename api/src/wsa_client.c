@@ -149,8 +149,6 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
 	
-	printf("setting up %s socket at port %s ... ", sock_name, sock_port);
-
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -195,7 +193,6 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	
 	_inet_ntop(ai_ptr->ai_family, get_in_addr(
 		(struct sockaddr *) ai_ptr->ai_addr), str, sizeof(str));
-	printf("connected to %s\n", str);
 
 	freeaddrinfo(ai_list); // all done with this list
 
