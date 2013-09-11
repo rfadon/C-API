@@ -146,20 +146,6 @@
 #define WSA_4000_ABS_AMP_LOW 15
 #define WSA_4000_ABS_AMP_VLOW 15
 
-// *****
-// WSA5000 SPECIFIC
-// *****
-#define WSA5000 "WSA5000"
-#define WSA_5000_MAX_FREQ 8000ULL // MHz here b/c of large # issue
-#define WSA_5000_MIN_FREQ 0ULL  // Hz
-#define WSA_5000_MAX_DECIMATION 1023
-#define WSA_5000_MIN_DECIMATION 4
-#define WSA_5000_FREQRES 100000ULL // to read in the register
-
-
-// *****
-// Commons for different products
-// *****
 // RF gain modes
 #define WSA_GAIN_VLOW_STRING "VLOW"
 #define WSA_GAIN_LOW_STRING "LOW"
@@ -172,6 +158,19 @@ enum wsa_gain {
 	WSA_GAIN_LOW,
 	WSA_GAIN_VLOW
 };
+
+// *****
+// WSA5000 SPECIFIC
+// *****
+#define WSA5000 "WSA5000"
+#define WSA_5000_MAX_FREQ 8000ULL // MHz here b/c of large # issue
+#define WSA_5000_MIN_FREQ 0ULL  // Hz
+#define WSA_5000_MAX_DECIMATION 1023
+#define WSA_5000_MIN_DECIMATION 4
+#define WSA_5000_FREQRES 100000ULL // to read in the register
+
+#define WSA_ATTEN_ENABLED 1
+#define WSA_ATTEN_DISABLED 0
 
 // ////////////////////////////////////////////////////////////////////////////
 // STRUCTS DEFINES                                                           //

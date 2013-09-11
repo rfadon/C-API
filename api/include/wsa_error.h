@@ -89,11 +89,10 @@
 
 
 // ///////////////////////////////
-// GAIN ERRORS					//
+// GAIN ERRORS	            	//
 // ///////////////////////////////
 #define WSA_ERR_INVRFGAIN	(LNEG_NUM - 801)
 #define WSA_ERR_INVIFGAIN	(LNEG_NUM - 802)
-
 
 // ///////////////////////////////
 // RUNMODE ERRORS				//
@@ -130,7 +129,7 @@
 #define WSA_ERR_INVCALIBRATEMODE (LNEG_NUM - 1603)
 #define WSA_ERR_INVRFESETTING (LNEG_NUM - 1604)
 #define WSA_ERR_INVPLLREFSOURCE (LNEG_NUM - 1605)
-
+#define WSA_ERR_INVATTEN	(LNEG_NUM - 1606)
 
 // ///////////////////////////////
 // FILE RELATED ERRORS			//
@@ -177,8 +176,6 @@
 #define WSA_ERR_STREAMNOTRUNNING     (LNEG_NUM - 4001)
 #define WSA_ERR_STREAMWHILESWEEPING (LNEG_NUM - 4002)
 #define WSA_ERR_INVSTREAMSTARTID	(LNEG_NUM - 4003)
-
-
 
 
 // ///////////////////////////////

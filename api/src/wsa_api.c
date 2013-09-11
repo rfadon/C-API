@@ -919,8 +919,70 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 
 
 //////////////////////////////////////////////////////////////////////////////
-// GAIN SECTION                                                             //
+// GAIN/ATTNEUATION SECTION                                                 //
 //////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Gets the attenuator's mode of operation
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer to store the attenuator's mode
+ * of operation
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
+{
+	struct wsa_resp query;
+	long int temp;
+	
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	if (to_int(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED)
+		return WSA_ERR_INVATTEN;
+	*mode = (int32_t) temp;
+	
+	return 0;
+}
+
+/**
+ * Sets the attenuator's mode of operation (0 = Off/1 = On)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer containing the attenuation's mode of operation
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+	
+	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
+		return WSA_ERR_INVATTEN;
+
+	sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
 
 
 /**
@@ -1261,7 +1323,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq)
 	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+		printf("Error1: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1278,7 +1340,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
 	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+		printf("Error2: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1288,6 +1350,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Convert the number & make sure no error
 	if (to_double(strtok_result, &temp) < 0)
 	{
+		
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
