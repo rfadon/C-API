@@ -2842,6 +2842,57 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 }
 
 
+
+/**
+ * retrieve the number iterations of the sweep list
+ *
+ * @param dev - A pointer to the WSA device structure
+ * @param iteration - An int containing pointer to the WSA device structure
+ *
+ * @return 0 on success, or a negative number on error
+ */
+int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iterations)
+{	
+	struct wsa_resp query;		// store query results
+	double temp;
+
+	wsa_send_query(dev, "SWEEP:LIST:ITER?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	
+	*iterations = (int32_t) temp;
+		
+	return 0;
+}
+
+/**
+ * set the number iterations of the sweep list
+ *
+ * @param dev - A pointer to the WSA device structure
+ * @param iteration - An int containing pointer to the WSA device structure
+ *
+ * @return 0 on success, or a negative number on error
+ */
+int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration)
+{	
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+	
+	sprintf(temp_str, "SWEEP:LIST:ITER %d \n", iteration);
+	
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In  wsa_set_sweep_iteration: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
 /**
  * start sweep mode
  *
