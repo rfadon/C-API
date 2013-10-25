@@ -821,7 +821,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const extension,
-		uint8_t * const data_buffer)
+		uint64_t * const data_buffer)
 {	
 	uint8_t *vrt_header_buffer;
 	int32_t vrt_header_bytes;
