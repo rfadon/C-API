@@ -1279,10 +1279,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Current IF gain: %d dB\n", temp_int);
 				}
 			} // end get GAIN IF
-
 			else
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
+		
+		else if (strcmp(cmd_words[1], "INPUT") == 0) 
+		{
+			if (strcmp(cmd_words[2], "MODE") == 0) 
+			{
+				result = wsa_get_rfe_input_mode(dev, char_result);
+					if (result >= 0) 
+						printf("Current RFE input mode: %s\n", char_result);
+			}
+			else
+				printf("Incorrect get INPUT command. see 'h'.\n");
+		}  // end get INPUT MODE
 
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
