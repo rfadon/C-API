@@ -1607,6 +1607,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		} // end set GAIN
 
+		else if (strcmp(cmd_words[1], "INPUT") == 0) 
+		{
+			if (strcmp(cmd_words[2], "MODE") == 0) 
+			{
+				if (num_words < 4)
+				{
+					printf("Missing the rfe input mode.  See 'h'.\n");
+					return 0;
+				}
+				result = wsa_set_rfe_input_mode(dev, cmd_words[3]);
+			}
+			else
+				printf("Incorrect set INPUT command. see 'h'.\n");
+		}// end set INPUT MODE
+
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
 			if (num_words < 3) 
