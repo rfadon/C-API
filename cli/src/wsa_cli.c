@@ -467,7 +467,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t iq_pkt_count = 1;
 	char fw_ver[MAX_STRING_LEN];
 	int16_t acq_status;
-	int32_t title_printed = FALSE;
+	int32_t title_printed = FALSE;   
+
 	int32_t exit_loop = 0;
 	int32_t i = 0;
 	int32_t j;
@@ -494,8 +495,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_extension_packet *extension;
 	
 	// Create buffers to store the decoded I & Q from the raw data
-	int16_t *i_buffer;
-	int16_t *q_buffer;
+	int32_t *i_buffer;
+	int32_t *q_buffer;
 	
 	// Initialize packet order indicators of all the packet types
 	uint8_t expected_if_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
@@ -610,7 +611,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate i buffer space
-	i_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	i_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for i_buffer\n");
@@ -624,7 +625,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	// Allocate q buffer space
-	q_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	q_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
 	if (q_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for q_buffer\n");
