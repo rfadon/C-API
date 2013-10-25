@@ -169,6 +169,10 @@ enum wsa_gain {
 #define WSA_5000_MIN_DECIMATION 4
 #define WSA_5000_FREQRES 100000ULL // to read in the register
 
+// RF gain modes
+#define WSA_RFE_ZIF_STRING "ZIF"
+#define WSA_RFE_HDR_STRING "HDR"
+
 #define WSA_ATTEN_ENABLED 1
 #define WSA_ATTEN_DISABLED 0
 

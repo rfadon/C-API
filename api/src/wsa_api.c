@@ -1126,6 +1126,63 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain)
 
 
 /**
+ * Query the WSA5000's RFE mode of operation
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - A char pointer to store the current RFE mode of operation.
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
+{
+	struct wsa_resp query;		// store query results
+
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, "INPUT:MODE?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(mode,query.output);
+
+	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_HDR_STRING) != 0)
+		return WSA_ERR_INVRFEINPUTMODE;
+
+	return 0;
+}
+
+
+/**
+ * Sets the RFE's input mode of the WSA5000
+ * Valid RFE modes are: ZIF, HDR
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - A char pointer containing the RFE input mode\n
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_HDR_STRING) != 0)
+		return WSA_ERR_INVRFEINPUTMODE;
+
+	sprintf(temp_str, "INPUT:MODE %s\n", mode);
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+/**
  * Gets which antenna port is currently in used with the RFE board.
  * 
  * @param dev - A pointer to the WSA device structure.
@@ -2840,7 +2897,6 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 
 	return result;
 }
-
 
 
 /**

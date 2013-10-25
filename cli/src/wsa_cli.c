@@ -143,6 +143,8 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Get the frequency shift value (in MHz).\n");  
 	printf("  get gain <rf | if> [max | min]\n"
 		"\t- Get the current RF or IF gain level.\n");
+	printf("  get input mode\n"
+		"\t- Get the current RFE input mode.\n");
 	printf("  get ppb\n"
 		"\t- Get the current packets per block.\n");
 	printf("  get spp [max | min]\n"
@@ -185,6 +187,9 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  IF range: %d to %d dBm, inclusive.\n"
 		"\t  ex: set gain rf high;\n"
 		"\t      set gain if -5.\n", MIN_IF_GAIN, MAX_IF_GAIN);
+	printf("  set input mode <mode>\n"
+		"\t- Set the RFE input mode\n"
+		"\t  mode options:  ZIF, HDR\n");
 	printf("  set ppb <packets>\n"
 		"\t- Set the number of packets per block to be captured\n"
 		"\t  The maximum value will depend on the \"samples per packet\" setting\n"
@@ -269,6 +274,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("These sweep set commands are to edit the settings of the entry template.\n");
 	printf("See the manual mode above for the value ranges and definition.\n");
 	printf("  set sweep entry ant <1 | 2>\n");
+	printf("  set sweep entry input mode <'ZIF' | 'HDR'>\n");
 	printf("  set sweep entry dec <rate>\n");
 	printf("  set sweep entry dwell <seconds,microseconds>\n");
 	printf("  set sweep entry gain <rf | if>\n");

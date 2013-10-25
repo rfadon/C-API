@@ -106,6 +106,7 @@
 #define WSA_ERR_INVTRIGGERMODE	(LNEG_NUM - 1201)
 #define WSA_ERR_INVTRIGGERDELAY (LNEG_NUM - 1202)
 #define WSA_ERR_INVTRIGGERSYNC  (LNEG_NUM - 1203)
+
 // ///////////////////////////////
 // TIME RELATED ERRORS			//
 // ///////////////////////////////
@@ -130,6 +131,7 @@
 #define WSA_ERR_INVRFESETTING (LNEG_NUM - 1604)
 #define WSA_ERR_INVPLLREFSOURCE (LNEG_NUM - 1605)
 #define WSA_ERR_INVATTEN	(LNEG_NUM - 1606)
+#define WSA_ERR_INVRFEINPUTMODE (LNEG_NUM - 1607)
 
 // ///////////////////////////////
 // FILE RELATED ERRORS			//

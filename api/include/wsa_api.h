@@ -81,6 +81,9 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift);
 // GAIN SECTION                                                              //
 // ////////////////////////////////////////////////////////////////////////////
 
+int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode);
+int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode);
+
 int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain);
 int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain);
 
@@ -91,11 +94,11 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain);
 // RFE CONTROL SECTION                                                       //
 // ////////////////////////////////////////////////////////////////////////////
 
+int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode);
+
 int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
-
-int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode);
-int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode);
 
 int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode);
 int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode);
