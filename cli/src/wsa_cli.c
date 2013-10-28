@@ -143,6 +143,8 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t- Get the frequency shift value (in MHz).\n");  
 	printf("  get gain <rf | if> [max | min]\n"
 		"\t- Get the current RF or IF gain level.\n");
+	printf("  get input mode\n"
+		"\t- Get the current RFE input mode.\n");
 	printf("  get ppb\n"
 		"\t- Get the current packets per block.\n");
 	printf("  get spp [max | min]\n"
@@ -185,6 +187,9 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  IF range: %d to %d dBm, inclusive.\n"
 		"\t  ex: set gain rf high;\n"
 		"\t      set gain if -5.\n", MIN_IF_GAIN, MAX_IF_GAIN);
+	printf("  set input mode <mode>\n"
+		"\t- Set the RFE input mode\n"
+		"\t  mode options:  ZIF, HDR\n");
 	printf("  set ppb <packets>\n"
 		"\t- Set the number of packets per block to be captured\n"
 		"\t  The maximum value will depend on the \"samples per packet\" setting\n"
@@ -269,6 +274,7 @@ void print_cli_menu(struct wsa_device *dev)
 	printf("These sweep set commands are to edit the settings of the entry template.\n");
 	printf("See the manual mode above for the value ranges and definition.\n");
 	printf("  set sweep entry ant <1 | 2>\n");
+	printf("  set sweep entry input mode <'ZIF' | 'HDR'>\n");
 	printf("  set sweep entry dec <rate>\n");
 	printf("  set sweep entry dwell <seconds,microseconds>\n");
 	printf("  set sweep entry gain <rf | if>\n");
@@ -461,7 +467,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	int32_t iq_pkt_count = 1;
 	char fw_ver[MAX_STRING_LEN];
 	int16_t acq_status;
-	int32_t title_printed = FALSE;
+	int32_t title_printed = FALSE;   
+
 	int32_t exit_loop = 0;
 	int32_t i = 0;
 	int32_t j;
@@ -488,8 +495,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_extension_packet *extension;
 	
 	// Create buffers to store the decoded I & Q from the raw data
-	int16_t *i_buffer;
-	int16_t *q_buffer;
+	int32_t *i_buffer;
+	int32_t *q_buffer;
 	
 	// Initialize packet order indicators of all the packet types
 	uint8_t expected_if_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
@@ -604,7 +611,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate i buffer space
-	i_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	i_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
 	if (i_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for i_buffer\n");
@@ -618,7 +625,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	// Allocate q buffer space
-	q_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet * BYTES_PER_VRT_WORD);
+	q_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
 	if (q_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for q_buffer\n");
@@ -682,6 +689,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
 					extension, i_buffer, q_buffer, samples_per_packet);
+
 		if (result < 0)
 			break;
 		
@@ -776,48 +784,55 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// handle if packet types
 		else if (header->packet_type == IF_PACKET_TYPE)
 		{
-			if (header->stream_id == IF_DATA_STREAM_ID)
+
+			if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
+				expected_if_pkt_count = header->pkt_count;
+
+			if (header->pkt_count != expected_if_pkt_count)
 			{
-				if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
-					expected_if_pkt_count = header->pkt_count;
-
-				if (header->pkt_count != expected_if_pkt_count)
-				{
-					printf("\nWarning: VRT IF data packet count is out of"
-						" order, expecting: %d, received: %d\n", 
-					expected_if_pkt_count, header->pkt_count);
-					expected_if_pkt_count = header->pkt_count;
-				}
+				printf("\nWarning: VRT IF data packet count is out of"
+					" order, expecting: %d, received: %d\n", 
+				expected_if_pkt_count, header->pkt_count);
+				expected_if_pkt_count = header->pkt_count;
+			}
 			
-				if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
-					expected_if_pkt_count = MIN_VRT_PKT_COUNT;
-				else
-					expected_if_pkt_count++;
+			if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
+				expected_if_pkt_count = MIN_VRT_PKT_COUNT;
+			else
+				expected_if_pkt_count++;
 			
-				if (((strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0) ||
-					(strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
-				{
-					title_printed = TRUE;
-					fprintf(iq_fptr, 
-							"FwVersion,SampleSize,Seconds,Picoseconds,"
-							"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
-					fprintf(iq_fptr, 
-							"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
-							fw_ver,
-							header->samples_per_packet, 
-							header->time_stamp.sec,
-							header->time_stamp.psec,
-							(int64_t) receiver->freq,
-							(float) digitizer->bandwidth,
-							(float) digitizer->rf_freq_offset,
-							(float) receiver->gain_if,
-							(float) receiver->gain_rf,
-							(float) digitizer->reference_level);
+			if (((strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0) ||
+				(strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
+			{
+				title_printed = TRUE;
+				fprintf(iq_fptr, 
+						"FwVersion,SampleSize,Seconds,Picoseconds,"
+						"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
+				fprintf(iq_fptr, 
+						"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
+						fw_ver,
+						header->samples_per_packet, 
+						header->time_stamp.sec,
+						header->time_stamp.psec,
+						(int64_t) receiver->freq,
+						(float) digitizer->bandwidth,
+						(float) digitizer->rf_freq_offset,
+						(float) receiver->gain_if,
+						(float) receiver->gain_rf,
+						(float) digitizer->reference_level);
 				}	
+				if (header->stream_id == IF_DATA_STREAM_ID)
+				{
+					for (j = 0; j < header->samples_per_packet; j++)
+						fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+				}
+				
+				else if (header->stream_id == HDR_DATA_STREAM_ID)
+				{
+					for (j = 0; j < header->samples_per_packet; j++)
+						fprintf(iq_fptr, "%d\n", i_buffer[j]);
+				}
 
-				for (j = 0; j < header->samples_per_packet; j++)
-					fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
-		
 				printf(".");
 				if (!(iq_pkt_count % 10))
 					printf("\n");
@@ -840,7 +855,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					printf("\n'Esc' key pressed, data capture stopped.\n\n");
 					exit_loop = TRUE;
 				}
-			} // end if IF_DATA_STREAM_ID
 		} // end if IF_PACKET_TYPE
 	} // end save data while loop
 
@@ -1273,10 +1287,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Current IF gain: %d dB\n", temp_int);
 				}
 			} // end get GAIN IF
-
 			else
 				printf("Incorrect get GAIN. Specify RF or IF or see 'h'.\n");
 		} // end get GAIN
+		
+		else if (strcmp(cmd_words[1], "INPUT") == 0) 
+		{
+			if (strcmp(cmd_words[2], "MODE") == 0) 
+			{
+				result = wsa_get_rfe_input_mode(dev, char_result);
+					if (result >= 0) 
+						printf("Current RFE input mode: %s\n", char_result);
+			}
+			else
+				printf("Incorrect get INPUT command. see 'h'.\n");
+		}  // end get INPUT MODE
 
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
@@ -1589,6 +1614,21 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Incorrect 'set gain'.  Use 'set gain <rf | if> <value>'.\n");
 
 		} // end set GAIN
+
+		else if (strcmp(cmd_words[1], "INPUT") == 0) 
+		{
+			if (strcmp(cmd_words[2], "MODE") == 0) 
+			{
+				if (num_words < 4)
+				{
+					printf("Missing the rfe input mode.  See 'h'.\n");
+					return 0;
+				}
+				result = wsa_set_rfe_input_mode(dev, cmd_words[3]);
+			}
+			else
+				printf("Incorrect set INPUT command. see 'h'.\n");
+		}// end set INPUT MODE
 
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{

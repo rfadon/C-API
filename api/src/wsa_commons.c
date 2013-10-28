@@ -143,6 +143,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 			"This setting is not valid with the current RFE product"},
 		{WSA_ERR_INVPLLREFSOURCE, "Invalid PLL reference source"},
 		{WSA_ERR_INVATTEN, "Invalid attenuator mode of operation"},
+		{WSA_ERR_INVRFEINPUTMODE, "Invalid RFE mode of operation"},
 		//*****
 		// File related
 		//*****

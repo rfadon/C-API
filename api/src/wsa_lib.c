@@ -909,7 +909,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	if ((stream_identifier_word != RECEIVER_STREAM_ID) && 
 		(stream_identifier_word != DIGITIZER_STREAM_ID) && 
 		(stream_identifier_word != IF_DATA_STREAM_ID) &&
-		(stream_identifier_word != EXTENSION_STREAM_ID))
+		(stream_identifier_word != EXTENSION_STREAM_ID) &&
+		(stream_identifier_word != HDR_DATA_STREAM_ID))
 	{
 		free(vrt_header_buffer);
 		return WSA_ERR_NOTIQFRAME;
@@ -996,7 +997,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		digitizer->pkt_count = header->pkt_count;
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
-	else if (stream_identifier_word == IF_DATA_STREAM_ID)
+	else if (stream_identifier_word == IF_DATA_STREAM_ID || stream_identifier_word == HDR_DATA_STREAM_ID)
 	{
 		iq_packet_size = header->samples_per_packet;
 		
@@ -1047,9 +1048,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
- * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
+ * @param i_buf - A 32-bit signed integer pointer for the unscaled, 
  * I data buffer with size specified by the \b sample_size.
- * @param q_buf - A 16-bit signed integer pointer for the unscaled, 
+ * @param q_buf - A 32-bit signed integer pointer for the unscaled, 
  * Q data buffer with size specified by the \b sample_size.
  * @param sample_size - A 32-bit unsigned integer number of {I, Q} 
  * sample pairs to be decoded from \b data_buf. \n
@@ -1059,7 +1060,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
+int32_t wsa_decode_zif_frame(uint8_t *data_buf, int32_t *i_buf, int32_t *q_buf, 
 						 int32_t sample_size)
 {
 	int32_t i;
@@ -1068,14 +1069,49 @@ int32_t wsa_decode_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
 	// Split up the IQ data bytes
 	for (i = 0; i < sample_size * 4; i += 4) 
 	{
-		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
-		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
+		i_buf[j] = (((int32_t) data_buf[i]) << 8) + ((int32_t) data_buf[i + 1]);
+		q_buf[j] = (((int32_t) data_buf[i + 2]) << 8) + ((int32_t) data_buf[i + 3]);
 		j++;
 	}
 
 	return (i / 4);
 }
 
+/**
+ * Decodes the raw \b data_buf buffer I data bytes 
+ * and returned the I buffer of data with the size determined by the 
+ * \b sample_size parameter.  
+ * 
+ * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
+ *
+ * @param data_buf - A char pointer buffer containing the raw I and Q data in
+ * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
+ * be the number of 32-bit sample_size words multiply by 4 (i.e. 
+ * sizeof(data_buf) = sample_size * 4 bytes per sample).
+ * @param i_buf - A 32-bit signed integer pointer for the unscaled, 
+ * I data buffer with size specified by the \b sample_size.
+ * @param sample_size - A 32-bit nsigned integer containing the size 
+ *  of \b data_buf. \n
+ * The frame size is limited to a maximum number, \b max_sample_size, listed 
+ * in the \b wsa_descriptor structure.
+ *
+ * @return The number of samples decoded, or a 16-bit negative 
+ * number on error.
+ */
+int32_t wsa_decode_hdr_frame(uint8_t *data_buf, int32_t *i_buf, int32_t sample_size)
+{
+	int32_t i;
+	int32_t j = 0;
+
+	// Split up the I data bytes
+	for (i = 0; i < sample_size * 4; i += 4) 
+	{
+		i_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
+		j++;
+	}
+
+	return i/4;
+}
 
 /**
  * Decodes the raw receiver context packet and store it in the receiver 
