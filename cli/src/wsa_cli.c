@@ -689,6 +689,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
 					extension, i_buffer, q_buffer, samples_per_packet);
+
 		if (result < 0)
 			break;
 		
@@ -783,48 +784,55 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		// handle if packet types
 		else if (header->packet_type == IF_PACKET_TYPE)
 		{
-			if (header->stream_id == IF_DATA_STREAM_ID)
+
+			if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
+				expected_if_pkt_count = header->pkt_count;
+
+			if (header->pkt_count != expected_if_pkt_count)
 			{
-				if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
-					expected_if_pkt_count = header->pkt_count;
-
-				if (header->pkt_count != expected_if_pkt_count)
-				{
-					printf("\nWarning: VRT IF data packet count is out of"
-						" order, expecting: %d, received: %d\n", 
-					expected_if_pkt_count, header->pkt_count);
-					expected_if_pkt_count = header->pkt_count;
-				}
+				printf("\nWarning: VRT IF data packet count is out of"
+					" order, expecting: %d, received: %d\n", 
+				expected_if_pkt_count, header->pkt_count);
+				expected_if_pkt_count = header->pkt_count;
+			}
 			
-				if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
-					expected_if_pkt_count = MIN_VRT_PKT_COUNT;
-				else
-					expected_if_pkt_count++;
+			if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
+				expected_if_pkt_count = MIN_VRT_PKT_COUNT;
+			else
+				expected_if_pkt_count++;
 			
-				if (((strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0) ||
-					(strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
-				{
-					title_printed = TRUE;
-					fprintf(iq_fptr, 
-							"FwVersion,SampleSize,Seconds,Picoseconds,"
-							"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
-					fprintf(iq_fptr, 
-							"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
-							fw_ver,
-							header->samples_per_packet, 
-							header->time_stamp.sec,
-							header->time_stamp.psec,
-							(int64_t) receiver->freq,
-							(float) digitizer->bandwidth,
-							(float) digitizer->rf_freq_offset,
-							(float) receiver->gain_if,
-							(float) receiver->gain_rf,
-							(float) digitizer->reference_level);
+			if (((strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) != 0) ||
+				(strcmp(capture_mode,WSA_BLOCK_CAPTURE_MODE) == 0 && title_printed == FALSE))) 
+			{
+				title_printed = TRUE;
+				fprintf(iq_fptr, 
+						"FwVersion,SampleSize,Seconds,Picoseconds,"
+						"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
+				fprintf(iq_fptr, 
+						"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
+						fw_ver,
+						header->samples_per_packet, 
+						header->time_stamp.sec,
+						header->time_stamp.psec,
+						(int64_t) receiver->freq,
+						(float) digitizer->bandwidth,
+						(float) digitizer->rf_freq_offset,
+						(float) receiver->gain_if,
+						(float) receiver->gain_rf,
+						(float) digitizer->reference_level);
 				}	
+				if (header->stream_id == IF_DATA_STREAM_ID)
+				{
+					for (j = 0; j < header->samples_per_packet; j++)
+						fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+				}
+				
+				else if (header->stream_id == HDR_DATA_STREAM_ID)
+				{
+					for (j = 0; j < header->samples_per_packet; j++)
+						fprintf(iq_fptr, "%d\n", i_buffer[j]);
+				}
 
-				for (j = 0; j < header->samples_per_packet; j++)
-					fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
-		
 				printf(".");
 				if (!(iq_pkt_count % 10))
 					printf("\n");
@@ -847,7 +855,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					printf("\n'Esc' key pressed, data capture stopped.\n\n");
 					exit_loop = TRUE;
 				}
-			} // end if IF_DATA_STREAM_ID
 		} // end if IF_PACKET_TYPE
 	} // end save data while loop
 

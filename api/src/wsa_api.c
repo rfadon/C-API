@@ -545,8 +545,8 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const sweep_info,
-		int16_t * const i_buffer, 
-		int16_t * const q_buffer,
+		int32_t * const i_buffer, 
+		int32_t * const q_buffer,
 		int32_t samples_per_packet)		
 {
 	uint8_t *data_buffer;
@@ -574,10 +574,10 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	} 
 	
 	if (header->stream_id == IF_DATA_STREAM_ID) 
-	{
-		// Note: don't rely on the value of result
-		result = (int16_t) wsa_decode_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
-	}
+		result = (int16_t) wsa_decode_zif_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+	
+	else if (header->stream_id == HDR_DATA_STREAM_ID)
+		result = (int16_t) wsa_decode_hdr_frame(data_buffer, i_buffer, samples_per_packet);
 	
 	free(data_buffer);
 
@@ -859,9 +859,6 @@ int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
 	double temp;
 	double range = (double) dev->descr.inst_bw;
 
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
 	wsa_send_query(dev, "FREQ:SHIFT?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -903,9 +900,6 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 	char temp_str[MAX_STR_LEN];
 	int64_t range = dev->descr.inst_bw;
 
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-	
 	// verify the value bwn -125 to 125MHz, "inclusive"
 	if (fshift < (-range) || fshift > range)
 		return WSA_ERR_FREQOUTOFBOUND;
@@ -2327,8 +2321,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift)
 	struct wsa_resp query;		// store query results
 	double temp;
 
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
+
 
 	wsa_send_query(dev, "SWEEP:ENTRY:FREQ:SHIFT?\n", &query);
 	if (query.status <= 0)
@@ -2360,9 +2353,6 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	int64_t range = dev->descr.inst_bw;
-
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
 
 	// verify the value bwn -125 to 125MHz, "inclusive"
 	if (fshift < (-range) || fshift > range)
