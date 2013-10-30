@@ -307,7 +307,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_extension_packet * const extension,
 		uint8_t * const data_buffer);
 		
-int32_t wsa_decode_zif_frame(uint8_t *data_buf, int32_t *i_buf, int32_t *q_buf, 
+int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size);
 
 int32_t wsa_decode_hdr_frame(uint8_t *data_buf, int32_t *i_buf, int32_t sample_size);

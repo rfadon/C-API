@@ -482,37 +482,11 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
 }
 
 /**
- * Reads one VRT packet containing raw IQ data. 
+ * Reads one VRT packet containing raw IF data. 
  * Each packet consists of a header, a data payload, and a trailer.
  * The number of samples expected in the packet is indicated by
  * the \b samples_per_packet parameter.
  *
- * Note that to read a complete capture block, you must call this
- * method as many times as you set using the method \b wsa_set_packets_per_block
- *
- * Each I and Q sample is a 16-bit (2-byte) signed 2-complement integer.
- * The \b i_buffer and \b q_buffer pointers will be populated with
- * the decoded IQ payload data.
- *
- * For example, if the VRT packet contains the payload
- * @code 
- *		I1 Q1 I2 Q2 I3 Q3 I4 Q4 ... = <2 bytes I><2 bytes Q><...>
- * @endcode
- *
- * then \b i_buffer and \b q_buffer will contain:
- * @code 
- *		i_buffer[0] = I1
- *		i_buffer[1] = I2
- *		i_buffer[2] = I3
- *		i_buffer[3] = I4
- *		...
- *
- *		q_buffer[0] = Q1
- *		q_buffer[1] = Q2
- *		q_buffer[2] = Q3
- *		q_buffer[3] = Q4
- *		...
- * @endcode
  *
  * @remarks This function does not set the \b samples_per_packet on the WSA.
  * It is the caller's responsibility to configure the WSA with the correct 
@@ -530,10 +504,12 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
  *      VRT digitizer context information
  * @param extension - a pointer to \b wsa_extension_packet strucuture to store
  *		the custom Context data
- * @param i_buffer - A 16-bit signed integer pointer for the unscaled, 
+ * @param i16_buffer - A 16-bit signed integer pointer for the unscaled, 
  *		I data buffer with size specified by samples_per_packet.
- * @param q_buffer - A 16-bit signed integer pointer for the unscaled 
+ * @param q16_buffer - A 16-bit signed integer pointer for the unscaled 
  *		Q data buffer with size specified by samples_per_packet.
+  * @param i32_buffer - A 32-bit signed integer pointer for the unscaled 
+ *		I data buffer with size specified by samples_per_packet.
  * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
  *		{I, Q} sample pairs) per VRT packet to be captured.
  *
@@ -545,8 +521,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const sweep_info,
-		int32_t * const i_buffer, 
-		int32_t * const q_buffer,
+		int16_t * const i16_buffer, 
+		int16_t * const q16_buffer,
+		int32_t * const i32_buffer,
 		int32_t samples_per_packet)		
 {
 	uint8_t *data_buffer;
@@ -573,11 +550,13 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		return result;
 	} 
 	
+	// decode ZIF data packets
 	if (header->stream_id == IF_DATA_STREAM_ID) 
-		result = (int16_t) wsa_decode_zif_frame(data_buffer, i_buffer, q_buffer, samples_per_packet);
+		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, samples_per_packet);
 	
+	// decode HDR data packets
 	else if (header->stream_id == HDR_DATA_STREAM_ID)
-		result = (int16_t) wsa_decode_hdr_frame(data_buffer, i_buffer, samples_per_packet);
+		result = (int16_t) wsa_decode_hdr_frame(data_buffer, i32_buffer, samples_per_packet);
 	
 	free(data_buffer);
 

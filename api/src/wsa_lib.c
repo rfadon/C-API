@@ -1048,9 +1048,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
- * @param i_buf - A 32-bit signed integer pointer for the unscaled, 
+ * @param i_buf - A 16-bit signed integer pointer for the unscaled, 
  * I data buffer with size specified by the \b sample_size.
- * @param q_buf - A 32-bit signed integer pointer for the unscaled, 
+ * @param q_buf - A 16-bit signed integer pointer for the unscaled, 
  * Q data buffer with size specified by the \b sample_size.
  * @param sample_size - A 32-bit unsigned integer number of {I, Q} 
  * sample pairs to be decoded from \b data_buf. \n
@@ -1060,17 +1060,17 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_zif_frame(uint8_t *data_buf, int32_t *i_buf, int32_t *q_buf, 
+int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size)
 {
 	int32_t i;
 	int32_t j = 0;
-
 	// Split up the IQ data bytes
 	for (i = 0; i < sample_size * 4; i += 4) 
 	{
-		i_buf[j] = (((int32_t) data_buf[i]) << 8) + ((int32_t) data_buf[i + 1]);
-		q_buf[j] = (((int32_t) data_buf[i + 2]) << 8) + ((int32_t) data_buf[i + 3]);
+
+		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
+		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		j++;
 	}
 
@@ -1102,7 +1102,6 @@ int32_t wsa_decode_hdr_frame(uint8_t *data_buf, int32_t *i_buf, int32_t sample_s
 {
 	int32_t i;
 	int32_t j = 0;
-
 	// Split up the I data bytes
 	for (i = 0; i < sample_size * 4; i += 4) 
 	{

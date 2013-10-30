@@ -52,8 +52,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const sweep,
-		int32_t * const i_buffer,
-		int32_t * const q_buffer,
+		int16_t * const i16_buffer,
+		int16_t * const q16_buffer,
+		int32_t * const i32_buffer,
 		int32_t samples_per_packet);
 
 int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_packet);
