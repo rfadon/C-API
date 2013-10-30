@@ -495,9 +495,10 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	struct wsa_extension_packet *extension;
 	
 	// Create buffers to store the decoded I & Q from the raw data
-	int32_t *i_buffer;
-	int32_t *q_buffer;
-	
+	int16_t *i16_buffer;
+	int16_t *q16_buffer;
+	int32_t *i32_buffer;
+
 	// Initialize packet order indicators of all the packet types
 	uint8_t expected_if_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
 	uint8_t expected_digitizer_pkt_count = UNASSIGNED_VRT_PKT_COUNT;
@@ -611,8 +612,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 
 	// Allocate i buffer space
-	i_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
-	if (i_buffer == NULL)
+	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet);
+	if (i16_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for i_buffer\n");
 		free(header);
@@ -625,8 +626,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	}
 	
 	// Allocate q buffer space
-	q_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
-	if (q_buffer == NULL)
+	q16_buffer = (int16_t *) malloc(sizeof(int16_t) * samples_per_packet);
+	if (q16_buffer == NULL)
 	{
 		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for q_buffer\n");
 		free(header);
@@ -634,11 +635,25 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(receiver);
 		free(digitizer);
 		free(extension);
-		free(i_buffer);
+		free(i16_buffer);
 
 		return WSA_ERR_MALLOCFAILED;
 	}
 
+	// Allocate 32-bit i buffer space
+	i32_buffer = (int32_t *) malloc(sizeof(int32_t) * samples_per_packet);
+	if (i32_buffer == NULL)
+	{
+		doutf(DHIGH, "In save_data_to_file: failed to allocate memory for q_buffer\n");
+		free(header);
+		free(trailer);
+		free(receiver);
+		free(digitizer);
+		free(extension);
+		free(i16_buffer);
+		free(q16_buffer);
+		return WSA_ERR_MALLOCFAILED;
+	}
 	// set capture block if not doing sweep
 	if (strcmp(capture_mode, WSA_BLOCK_CAPTURE_MODE) == 0) 
 	{
@@ -651,9 +666,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			free(receiver);
 			free(digitizer);
 			free(extension);
-			free(i_buffer);
-			free(q_buffer);
-
+			free(i16_buffer);
+			free(q16_buffer);
+			free(i32_buffer);
 			return result;
 		}
 	}
@@ -670,9 +685,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		free(receiver);
 		free(digitizer);
 		free(extension);
-		free(i_buffer);
-		free(q_buffer);
-
+		free(i16_buffer);
+		free(q16_buffer);
+		free(i32_buffer);
 		return WSA_ERR_FILECREATEFAILED;
 	}
 
@@ -688,7 +703,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		get_current_time(&capture_start_time);
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
-					extension, i_buffer, q_buffer, samples_per_packet);
+					extension, i16_buffer, q16_buffer, i32_buffer, samples_per_packet);
 
 		if (result < 0)
 			break;
@@ -824,13 +839,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 				if (header->stream_id == IF_DATA_STREAM_ID)
 				{
 					for (j = 0; j < header->samples_per_packet; j++)
-						fprintf(iq_fptr, "%d,%d\n", i_buffer[j], q_buffer[j]);
+						fprintf(iq_fptr, "%d,%d\n", i16_buffer[j], q16_buffer[j]);
 				}
 				
 				else if (header->stream_id == HDR_DATA_STREAM_ID)
 				{
 					for (j = 0; j < header->samples_per_packet; j++)
-						fprintf(iq_fptr, "%d\n", i_buffer[j]);
+						fprintf(iq_fptr, "%d\n", i32_buffer[j]);
 				}
 
 				printf(".");
@@ -875,9 +890,9 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	free(receiver);
 	free(digitizer);
 	free(extension);
-	free(i_buffer);
-	free(q_buffer);
-
+	free(i16_buffer);
+	free(q16_buffer);
+	free(i32_buffer);
 	return result;
 }
 
