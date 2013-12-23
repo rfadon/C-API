@@ -98,6 +98,9 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain);
 int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode);
 int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode);
 
+int16_t wsa_get_iq_output_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char *mode);
+
 int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
 

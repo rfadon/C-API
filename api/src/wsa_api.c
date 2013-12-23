@@ -953,7 +953,7 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
-
+	
 	return result;
 }
 
@@ -1154,6 +1154,65 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
 
 	return result;
 }
+
+
+/**
+ * Query the WSA5000's IQ output mode
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - A char pointer to store the current IQ  output mode.
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_iq_output_mode(struct wsa_device *dev, char *mode)
+{
+	struct wsa_resp query;		// store query results
+
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev,":OUT:IQ:MODE?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(mode,query.output);
+
+	if (strcmp(mode, WSA_IQ_DIGITIZER_STRING) != 0 &&
+		strcmp(mode, WSA_IQ_CONNECTOR_STRING) != 0)
+		return WSA_ERR_INVRFEINPUTMODE;
+
+	return 0;
+}
+
+
+/**
+ * Sets the IQ output mode of the WSA5000
+ * Valid output modes are: DIGITIZER, CONNECTOR
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - A char pointer containing the IQ output mode\n
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char *mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	if (strcmp(mode, WSA_IQ_DIGITIZER_STRING) != 0 &&
+		strcmp(mode, WSA_IQ_CONNECTOR_STRING) != 0)
+		return WSA_ERR_INVRFEINPUTMODE;
+
+	sprintf(temp_str, ":OUT:IQ:MODE %s\n", mode);
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_iq_output_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
 
 /**
  * Gets which antenna port is currently in used with the RFE board.
@@ -1976,8 +2035,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
 		strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
 		strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
 	return WSA_ERR_INVRFGAIN;
-
-
+	
 	return 0;
 }
 

@@ -164,7 +164,12 @@ enum wsa_gain {
 // WSA5000 SPECIFIC
 // *****
 #define WSA5000 "WSA5000"
-#define WSA_5000_MAX_FREQ 8000ULL // MHz here b/c of large # issue
+#define WSA5000108 "108"
+#define WSA5000208 "208"
+#define WSA5000220 "220"
+#define WSA_5000108_MAX_FREQ 8000ULL 
+#define WSA_5000208_MAX_FREQ 8000ULL 
+#define WSA_5000220_MAX_FREQ 20000ULL 
 #define WSA_5000_MIN_FREQ 0ULL  // Hz
 #define WSA_5000_MAX_DECIMATION 1023
 #define WSA_5000_MIN_DECIMATION 4
@@ -173,6 +178,10 @@ enum wsa_gain {
 // RF gain modes
 #define WSA_RFE_ZIF_STRING "ZIF"
 #define WSA_RFE_HDR_STRING "HDR"
+
+// IQ Output mode
+#define WSA_IQ_DIGITIZER_STRING "DIGITIZER"
+#define WSA_IQ_CONNECTOR_STRING "CONNECTOR"
 
 #define WSA_ATTEN_ENABLED 1
 #define WSA_ATTEN_DISABLED 0
@@ -183,6 +192,7 @@ enum wsa_gain {
 
 struct wsa_descriptor {
 	char prod_model[MAX_STR_LEN];
+	char dev_model[MAX_STR_LEN];
 	char mac_addr[MAX_STR_LEN];
 	char fw_version[MAX_STR_LEN];
 	char intf_type[MAX_STR_LEN];

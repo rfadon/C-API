@@ -54,9 +54,32 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	if(strstr(strtok_result, WSA4000) != NULL) 
 		sprintf(dev->descr.prod_model, "%s", WSA4000);
 	
-	else if(strstr(strtok_result, WSA5000) != NULL) 
+	else if(strstr(strtok_result, WSA5000) != NULL)
+	{
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
-	
+		if (strstr(strtok_result, WSA5000108) != NULL)
+		{
+			sprintf(dev->descr.dev_model, "%s", WSA5000108);
+			dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
+		} 
+		
+		else if (strstr(strtok_result, WSA5000208) != NULL)
+		{
+			sprintf(dev->descr.dev_model, "%s", WSA5000208);
+			dev->descr.max_tune_freq = (uint64_t) (WSA_5000208_MAX_FREQ * MHZ);
+
+		}
+		
+		else if (strstr(strtok_result, WSA5000220) != NULL)
+		{
+			sprintf(dev->descr.dev_model, "%s", WSA5000220);
+			dev->descr.max_tune_freq = (uint64_t) (WSA_5000220_MAX_FREQ * MHZ);
+
+		}
+
+	}
+
+
 	// grab product mac address
 	strtok_result = strtok(NULL, ",");
 	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
@@ -85,10 +108,10 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.abs_max_amp[WSA_GAIN_LOW] = WSA_4000_ABS_AMP_LOW;
 		dev->descr.abs_max_amp[WSA_GAIN_VLOW] = WSA_4000_ABS_AMP_VLOW;
 	}
+
 	else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
 	{
 		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
-		dev->descr.max_tune_freq = (uint64_t) (WSA_5000_MAX_FREQ * MHZ);
 		dev->descr.freq_resolution = WSA_5000_FREQRES;
 	}
 	return 0;
