@@ -528,7 +528,6 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 {
 	uint8_t *data_buffer;
 	int16_t result = 0;
-	int64_t frequency = 0;
 
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
@@ -549,14 +548,13 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		free(data_buffer);
 		return result;
 	} 
-	
 	// decode ZIF data packets
 	if (header->stream_id == IF_DATA_STREAM_ID) 
 		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, samples_per_packet);
 	
-	// decode HDR data packets
-	else if (header->stream_id == HDR_DATA_STREAM_ID)
-		result = (int16_t) wsa_decode_hdr_frame(data_buffer, i32_buffer, samples_per_packet);
+	// decode HDR/SH data packets
+	else if (header->stream_id == HDR_DATA_STREAM_ID || header->stream_id == SH_DATA_STREAM_ID)
+		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer, samples_per_packet);
 	
 	free(data_buffer);
 
@@ -1119,7 +1117,8 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 	strcpy(mode,query.output);
 
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0)
+		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SH_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
 	return 0;
@@ -1128,7 +1127,7 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 
 /**
  * Sets the RFE's input mode of the WSA5000
- * Valid RFE modes are: ZIF, HDR
+ * Valid RFE modes are: ZIF, HDR, SH
  *
  * @param dev - A pointer to the WSA device structure.
  * @param mode - A char pointer containing the RFE input mode\n
@@ -1144,7 +1143,8 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
 		return WSA_ERR_INV4000COMMAND;
 
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0)
+		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SH_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
 	sprintf(temp_str, "INPUT:MODE %s\n", mode);
