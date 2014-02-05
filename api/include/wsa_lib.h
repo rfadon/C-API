@@ -26,6 +26,7 @@
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
 #define IF_DATA_STREAM_ID 0x90000003
+#define SH_DATA_STREAM_ID 0x90000005
 #define HDR_DATA_STREAM_ID 0x90000006
 #define EXTENSION_STREAM_ID 0x90000004
 
@@ -178,6 +179,7 @@ enum wsa_gain {
 // RF gain modes
 #define WSA_RFE_ZIF_STRING "ZIF"
 #define WSA_RFE_HDR_STRING "HDR"
+#define WSA_RFE_SH_STRING "SH"
 
 // IQ Output mode
 #define WSA_IQ_DIGITIZER_STRING "DIGITIZER"
@@ -254,6 +256,7 @@ struct wsa_extension_packet {
 struct wsa_vrt_packet_trailer {
 	uint8_t valid_data_indicator;
 	uint8_t ref_lock_indicator;
+	uint8_t spectral_inversion_indicator;
 	uint8_t over_range_indicator;
 	uint8_t sample_loss_indicator;
 };
@@ -320,7 +323,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size);
 
-int32_t wsa_decode_hdr_frame(uint8_t *data_buf, int32_t *i_buf, int32_t sample_size);
+int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *i16_buf, int32_t *i32_buf, int32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 

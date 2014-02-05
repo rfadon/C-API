@@ -931,8 +931,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 			+ (uint32_t) vrt_header_buffer[7];
 	if ((stream_identifier_word != RECEIVER_STREAM_ID) && 
 		(stream_identifier_word != DIGITIZER_STREAM_ID) && 
-		(stream_identifier_word != IF_DATA_STREAM_ID) &&
 		(stream_identifier_word != EXTENSION_STREAM_ID) &&
+		(stream_identifier_word != IF_DATA_STREAM_ID) &&
+		(stream_identifier_word != SH_DATA_STREAM_ID) &&
 		(stream_identifier_word != HDR_DATA_STREAM_ID))
 	{
 		free(vrt_header_buffer);
@@ -1020,7 +1021,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		digitizer->pkt_count = header->pkt_count;
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
-	else if (stream_identifier_word == IF_DATA_STREAM_ID || stream_identifier_word == HDR_DATA_STREAM_ID)
+	else if (stream_identifier_word == IF_DATA_STREAM_ID || 
+			 stream_identifier_word == SH_DATA_STREAM_ID || 
+			 stream_identifier_word == HDR_DATA_STREAM_ID)
 	{
 		iq_packet_size = header->samples_per_packet;
 		
@@ -1036,26 +1039,34 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 				vrt_packet_buffer + (((VRT_HEADER_SIZE - 2) + iq_packet_size) * BYTES_PER_VRT_WORD),
 				1 * BYTES_PER_VRT_WORD);
 			doutf(DLOW, "trailer_word: %08x\n", trailer_word);
+			trailer_word =	((trailer_word & 0x0000ff00) << 8) +
+							((trailer_word & 0xff) << 24) +
+							((trailer_word & 0xff0000) >> 8) +
+						     ((trailer_word & 0xff000000) >> 24);
+
 			
 			trailer->valid_data_indicator = 
 				((trailer_word >> 30) & 0x1) ? ((trailer_word >> 18) & 0x1) : 0;
 			trailer->ref_lock_indicator =
 				((trailer_word >> 29) & 0x1) ? ((trailer_word >> 17) & 0x1) : 0;
+			trailer->spectral_inversion_indicator =
+				((trailer_word >> 26) & 0x1) ? ((trailer_word >> 14) & 0x1) : 0;
 			trailer->over_range_indicator =
 				((trailer_word >> 25) & 0x1) ? ((trailer_word >> 13) & 0x1) : 0;
 			trailer->sample_loss_indicator =
 				((trailer_word >> 24) & 0x1) ? ((trailer_word >> 12) & 0x1) : 0;
-			
+
 			doutf(DLOW, "Valid_data: %d\n", trailer->valid_data_indicator);
 			doutf(DLOW, "Ref-lock: %d\n", trailer->ref_lock_indicator);
 			doutf(DLOW, "Over-range: %d\n", trailer->over_range_indicator);
 			doutf(DLOW, "Sample loss: %d\n", trailer->sample_loss_indicator);
 		}
 	}
-		
+	if (stream_identifier_word == SH_DATA_STREAM_ID)
+		header->samples_per_packet = header->samples_per_packet * 2;
 	free(vrt_packet_buffer);
 	free(vrt_header_buffer);
-	
+
 	return 0;	
 }
 
@@ -1107,12 +1118,16 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
  * 
  * Note: the \b data_buf size is assumed as \b sample_size * 4 bytes per sample
  *
+ * @param stream_id - An unsigned 32 bit id identifying whether SH data (16 bit) or 
+ * HDR data (32 bit) is stored in the \b data_buf
  * @param data_buf - A char pointer buffer containing the raw I and Q data in
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
- * @param i_buf - A 32-bit signed integer pointer for the unscaled, 
- * I data buffer with size specified by the \b sample_size.
+  * @param i16_buf - A 16-bit signed integer pointer for the unscaled, 
+ * 16 bit I data buffer with size specified by the \b sample_size.
+ * @param i32_buf - A 32-bit signed integer pointer for the unscaled, 
+ * 32 bit I data buffer with size specified by the \b sample_size.
  * @param sample_size - A 32-bit nsigned integer containing the size 
  *  of \b data_buf. \n
  * The frame size is limited to a maximum number, \b max_sample_size, listed 
@@ -1121,16 +1136,26 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_hdr_frame(uint8_t *data_buf, int32_t *i_buf, int32_t sample_size)
+int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *i16_buf,int32_t *i32_buf,  int32_t sample_size)
 {
-	int32_t i;
+	int32_t i = 0;
 	int32_t j = 0;
-	// Split up the I data bytes
-	for (i = 0; i < sample_size * 4; i += 4) 
+
+	//  store HDR data in 32 bit buffer
+	if (stream_id == HDR_DATA_STREAM_ID )
 	{
-		i_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
-		j++;
-	}
+		for (i = 0; i < sample_size * 4; i += 4) 
+		{
+			i32_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
+			j++;
+		}
+	//  store SH data in 16 bit buffer
+	} else if (stream_id == SH_DATA_STREAM_ID)
+		for (i = 0; i < sample_size * 2; i += 2) 
+		{
+			i16_buf[j] =  ((int16_t) data_buf[i] << 8) + ((int16_t) data_buf[i + 1]);
+			j++;
+		}
 
 	return i/4;
 }
