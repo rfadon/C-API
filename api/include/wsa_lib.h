@@ -180,6 +180,7 @@ enum wsa_gain {
 #define WSA_RFE_ZIF_STRING "ZIF"
 #define WSA_RFE_HDR_STRING "HDR"
 #define WSA_RFE_SH_STRING "SH"
+#define WSA_RFE_IQIN_STRING "IQIN"
 
 // IQ Output mode
 #define WSA_IQ_DIGITIZER_STRING "DIGITIZER"
