@@ -1097,12 +1097,11 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size)
 {
-	int32_t i;
+	int32_t i = 0;
 	int32_t j = 0;
 	// Split up the IQ data bytes
-	for (i = 0; i < sample_size * 4; i += 4) 
+	for (i; i < sample_size * 4; i += 4) 
 	{
-
 		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
 		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		j++;
@@ -1272,7 +1271,7 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 	double ref_level_dec_part = 0;
 
 	int32_t data_pos = 16;
-
+	
 	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
