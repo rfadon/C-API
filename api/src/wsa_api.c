@@ -1123,6 +1123,7 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -1150,6 +1151,7 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -2170,6 +2172,7 @@ int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -2197,6 +2200,7 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
+		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
