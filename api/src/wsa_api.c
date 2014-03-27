@@ -1950,6 +1950,69 @@ int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num)
 
 
 /**
+ * Gets the sweep entry's attenuator's mode of operation
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer to store the attenuator's mode
+ * of operation
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
+{
+	struct wsa_resp query;
+	long int temp;
+	
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	
+	if (to_int(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED)
+		return WSA_ERR_INVATTEN;
+	*mode = (int32_t) temp;
+	
+	return 0;
+}
+
+
+/**
+ * Sets the sweep entry's attenuator's mode of operation (0 = Off/1 = On)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param mode - An integer pointer containing the attenuation's mode of operation
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
+{
+	int16_t result = 0;
+	char temp_str[MAX_STR_LEN];
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+	
+	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
+		return WSA_ERR_INVATTEN;
+
+	sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
+
+	result = wsa_send_command(dev, temp_str);
+	doutf(DHIGH, "In wsa_set_sweep_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+	
+	return result;
+}
+
+
+/**
  * Get the IF gain currently set in the sweep entry template
  *
  * @param dev - A pointer to the WSA device structure
@@ -2137,7 +2200,7 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
-	sprintf(temp_str, "SWEEP:ENTRY::MODE %s\n", mode);
+	sprintf(temp_str, "SWEEP:ENTRY:MODE %s\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
