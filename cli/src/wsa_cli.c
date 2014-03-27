@@ -704,7 +704,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
 					extension, i16_buffer, q16_buffer, i32_buffer, samples_per_packet);
-
 		if (result < 0)
 			break;
 		
@@ -754,14 +753,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					expected_receiver_pkt_count = receiver->pkt_count;
 				
 				// verify the receiver packet order indicator
-				if (receiver->pkt_count != expected_receiver_pkt_count)
-				{
-					printf("\nWarning: VRT receiver context packet count is out"
-						" of order, expecting: %d, received: %d\n",
-					expected_receiver_pkt_count, receiver->pkt_count);
-					expected_receiver_pkt_count = receiver->pkt_count;
-				}
-
+				
 				// if pkt count reaches max value, reset to the beginning
 				if (expected_receiver_pkt_count >= MAX_VRT_PKT_COUNT)
 					expected_receiver_pkt_count = MIN_VRT_PKT_COUNT;
@@ -772,18 +764,8 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			// handle digitizer context packet
 			else if (header->stream_id == DIGITIZER_STREAM_ID)
 			{
-				// initialize digitizer packet order indicator
-				if (expected_digitizer_pkt_count == UNASSIGNED_VRT_PKT_COUNT)
-					expected_digitizer_pkt_count = digitizer->pkt_count;			
-				
-				// verify the digitizer packet order indicator
-				if (digitizer->pkt_count != expected_digitizer_pkt_count)
-				{
-					printf("\nWarning: VRT digitizer context packet count is"
-						" out of order, expecting: %d, received: %d\n", 
-					expected_digitizer_pkt_count, digitizer->pkt_count);
-					expected_digitizer_pkt_count = digitizer->pkt_count;
-				}				
+					
+	
 
 				// if pkt count reaches max value, reset to the beginning
 				if (expected_digitizer_pkt_count >= MAX_VRT_PKT_COUNT)
@@ -803,13 +785,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
 				expected_if_pkt_count = header->pkt_count;
 
-			if (header->pkt_count != expected_if_pkt_count)
-			{
-				printf("\nWarning: VRT IF data packet count is out of"
-					" order, expecting: %d, received: %d\n", 
-				expected_if_pkt_count, header->pkt_count);
-				expected_if_pkt_count = header->pkt_count;
-			}
+			
 			
 			if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
 				expected_if_pkt_count = MIN_VRT_PKT_COUNT;
@@ -1950,7 +1926,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Incorrect 'set sweep entry gain <rf | if> <value>'.\n");
 
 				} // end set SWEEP ENTRY GAIN
+				else if (strcmp(cmd_words[3], "MODE") == 0) 
+				{
 				
+					if (num_words < 5)
+					{
+						printf("Missing rfe mode. See 'h'.\n");
+						return 0;
+					}
+					result = wsa_set_sweep_rfe_input_mode(						dev, cmd_words[4]);
+					} // end set SWEEP ENTRY MODE
+
 				else if (strcmp(cmd_words[3], "PPB") == 0) 
 				{
 					if (num_words < 5)

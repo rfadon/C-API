@@ -643,37 +643,33 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 }
 
 
-
 /**
- * Send query command to the WSA device specified by \b dev. The commands 
- * format must be written according to the specified command syntax 
- * in wsa_connect() (ex. SCPI).
- *
- * @param dev - A pointer to the WSA device structure.
- * @param command - A char pointer to the query command string written in 
- * the format specified by the command syntax in wsa_connect().
- * @param resp - A pointer to \b wsa_resp struct to store the responses.
- *
- * @return 0 upon successful or a negative value
- */
-int16_t wsa_send_query(struct wsa_device *dev, char *command, 
-						struct wsa_resp *resp)
-{
-	struct wsa_resp temp_resp;
+* Send query command to the WSA device specified by \b dev. The commands 
+* format must be written according to the specified command syntax 
+* in wsa_connect() (ex. SCPI).
+*
+* @param dev - A pointer to the WSA device structure.
+* @param command - A char pointer to the query command string written in 
+* the format specified by the command syntax in wsa_connect().
+* @param resp - A pointer to \b wsa_resp struct to store the responses.
+*
+* @return 0 upon successful or a negative value
+*/
+int16_t wsa_send_query(struct wsa_device *dev, char *command, struct wsa_resp * resp)
+	{
 	int16_t bytes_got = 0;
 	int16_t recv_result = 0;
 	int32_t bytes_received = 0;
 	uint8_t resend_cnt = 0;
-	int32_t len = strlen(command);
+	int32_t len = (int32_t)strlen(command);
 	int32_t loop_count = 0;
-
 	// set defaults
-	strcpy(temp_resp.output, "");
-	temp_resp.status = 0;
+	strcpy(resp->output, "");
+	resp->status = 0;
 
-	if (strcmp(dev->descr.intf_type, "USB") == 0) {	
-		temp_resp.status = WSA_ERR_USBNOTAVBL;
-		strcpy(temp_resp.output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
+	if (strcmp(dev->descr.intf_type, "USB") == 0) { 
+		resp->status = WSA_ERR_USBNOTAVBL;
+		strcpy(resp->output, _wsa_get_err_msg(WSA_ERR_USBNOTAVBL));
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) {
 		while (1) {
@@ -683,18 +679,16 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			// TODO: revisit this and move bytes_txed into the parameter list
 			bytes_got = (int16_t) wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_got < 0) {
-				temp_resp.status = bytes_got;
-				strcpy(temp_resp.output, 
-					_wsa_get_err_msg(bytes_got));
+				resp->status = bytes_got;
+				strcpy(resp->output, _wsa_get_err_msg(bytes_got));
 				return bytes_got;
 			}
 			else if (bytes_got < len) 
 			{
 				if (resend_cnt > 3) 
 				{
-					temp_resp.status = WSA_ERR_CMDSENDFAILED;
-					strcpy(temp_resp.output, 
-						_wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
+					resp->status = WSA_ERR_CMDSENDFAILED;
+					strcpy(resp->output, _wsa_get_err_msg(WSA_ERR_CMDSENDFAILED));
 					return WSA_ERR_CMDSENDFAILED;
 				}
 
@@ -704,12 +698,11 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 			// Read back the output
 			else 
 			{
-
 				recv_result = -1;
 				while (recv_result != 0 && loop_count < 5) 
 				{
 					recv_result = wsa_sock_recv(dev->sock.cmd, 
-							(uint8_t *) temp_resp.output, 
+							(uint8_t *) resp->output, 
 							MAX_STR_LEN, TIMEOUT, 
 							&bytes_received);
 
@@ -717,9 +710,9 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 				}
 
 				if (recv_result == 0 && bytes_received < MAX_STR_LEN)
-					temp_resp.output[bytes_received] = '\0'; // add EOL to the string
+					resp->output[bytes_received] = '\0'; // add EOL to the string
 				else
-					temp_resp.output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
+					resp->output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
 
 				break;
 			}
@@ -728,16 +721,12 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command,
 		// TODO define what result should be
 		if (recv_result != 0) 
 		{
-			temp_resp.status = WSA_ERR_QUERYNORESP;
+			resp->status = WSA_ERR_QUERYNORESP;
 			return WSA_ERR_QUERYNORESP;
 		}
 		else 
-		{
-			temp_resp.status = bytes_received;
-		}
+			resp->status = bytes_received;
 	}
-
-	*resp = temp_resp;
 
 	return 0;
 }
@@ -1097,12 +1086,11 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size)
 {
-	int32_t i;
+	int32_t i = 0;
 	int32_t j = 0;
 	// Split up the IQ data bytes
-	for (i = 0; i < sample_size * 4; i += 4) 
+	for (i; i < sample_size * 4; i += 4) 
 	{
-
 		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
 		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
 		j++;
@@ -1272,7 +1260,7 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 	double ref_level_dec_part = 0;
 
 	int32_t data_pos = 16;
-
+	
 	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +

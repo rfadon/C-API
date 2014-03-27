@@ -155,8 +155,8 @@ int16_t wsa_stream_stop(struct wsa_device * const dev);
 int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num);
 
-int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, char *mode);
-int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, char *mode);
+int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode);
+int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode);
 
 int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate);
 int16_t	wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
@@ -178,6 +178,9 @@ int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain);
+
+int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
