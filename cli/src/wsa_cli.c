@@ -812,13 +812,13 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 						(float) receiver->gain_rf,
 						(float) digitizer->reference_level);
 				}	
-				if (header->stream_id == IF_DATA_STREAM_ID)
+				if (header->stream_id == I16Q16_DATA_STREAM_ID)
 				{
 					for (j = 0; j < header->samples_per_packet; j++)
 						fprintf(iq_fptr, "%d,%d\n", i16_buffer[j], q16_buffer[j]);
 				}
 				
-				else if (header->stream_id == HDR_DATA_STREAM_ID)
+				else if (header->stream_id == I16_DATA_STREAM_ID || header->stream_id == I32_DATA_STREAM_ID)
 				{
 					for (j = 0; j < header->samples_per_packet; j++)
 						fprintf(iq_fptr, "%d\n", i32_buffer[j]);

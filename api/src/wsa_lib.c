@@ -921,9 +921,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	if ((stream_identifier_word != RECEIVER_STREAM_ID) && 
 		(stream_identifier_word != DIGITIZER_STREAM_ID) && 
 		(stream_identifier_word != EXTENSION_STREAM_ID) &&
-		(stream_identifier_word != IF_DATA_STREAM_ID) &&
-		(stream_identifier_word != SH_DATA_STREAM_ID) &&
-		(stream_identifier_word != HDR_DATA_STREAM_ID))
+		(stream_identifier_word != I16Q16_DATA_STREAM_ID) &&
+		(stream_identifier_word != I16_DATA_STREAM_ID) &&
+		(stream_identifier_word != I32_DATA_STREAM_ID))
 	{
 		free(vrt_header_buffer);
 		return WSA_ERR_NOTIQFRAME;

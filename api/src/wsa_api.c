@@ -548,11 +548,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		return result;
 	} 
 	// decode ZIF data packets
-	if (header->stream_id == IF_DATA_STREAM_ID) 
+	if (header->stream_id == I16Q16_DATA_STREAM_ID) 
 		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, header->samples_per_packet);
 	
 	// decode HDR/SH data packets
-	else if (header->stream_id == HDR_DATA_STREAM_ID || header->stream_id == SH_DATA_STREAM_ID)
+	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16_DATA_STREAM_ID)
 		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
 	
 	free(data_buffer);
