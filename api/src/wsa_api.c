@@ -331,7 +331,6 @@ int16_t wsa_system_acq_status(struct wsa_device *dev, int16_t *status)
 int16_t wsa_flush_data(struct wsa_device *dev) 
 {
 	int16_t result = 0;
-	int32_t size = 0;
 	char status[40];
 
 	// check if the wsa is already sweeping
@@ -357,7 +356,6 @@ int16_t wsa_flush_data(struct wsa_device *dev)
  */
 int16_t wsa_clean_data_socket(struct wsa_device *dev)
 {
-	int16_t result = 0;
 	int32_t bytes_received = 0;
 	uint8_t *packet;
     int32_t packet_size = WSA_MAX_CAPTURE_BLOCK;
@@ -377,7 +375,7 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
 	// read the left over packets from the socket
 	while(clock() <= end_time) 
 	{
-		result = wsa_sock_recv_data(dev->sock.data, 
+		wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
 									timeout,	
@@ -400,7 +398,6 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
 int16_t wsa_system_abort_capture(struct wsa_device *dev)
 {
 	int16_t result = 0;
-	int32_t size = 0;
 
 	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
 	doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -552,7 +549,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, header->samples_per_packet);
 	
 	// decode HDR/SH data packets
-	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16_DATA_STREAM_ID)
+	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16Q16_DATA_STREAM_ID)
 		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
 	
 	free(data_buffer);
@@ -1072,7 +1069,7 @@ int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain)
+int16_t wsa_set_gain_rf(struct wsa_device *dev, char const * gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1123,7 +1120,6 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -1140,7 +1136,7 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
+int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1151,7 +1147,6 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -1201,7 +1196,7 @@ int16_t wsa_get_iq_output_mode(struct wsa_device *dev, char *mode)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char *mode)
+int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1713,7 +1708,6 @@ int16_t wsa_reset_reference_pll(struct wsa_device *dev)
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
 {
 	struct wsa_resp query;
-	int16_t result = 0;
 	double temp;
 
 	wsa_send_query(dev, "LOCK:REFerence?\n", &query);
@@ -1722,7 +1716,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
 
 	if (to_double(query.output, &temp) < 0)
 	{
-		printf("Error: WSA returned '%ld'.\n", temp);
+		printf("Error: WSA returned '%f'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1743,7 +1737,6 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
 int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 {
     struct wsa_resp query;
-    int16_t result = 0;
     double temp;
 
     wsa_send_query(dev, "LOCK:RF?\n", &query);
@@ -1752,7 +1745,7 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 
     if (to_double(query.output, &temp) < 0)
     {
-        printf("Error: WSA returned '%ld'.\n", temp);
+        printf("Error: WSA returned '%s'.\n", query.output);
         return WSA_ERR_RESPUNKNOWN;
     }
 
@@ -2172,7 +2165,6 @@ int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -2189,7 +2181,7 @@ int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
+int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2200,7 +2192,6 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SHN_STRING) != 0 &&
 		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
 		return WSA_ERR_INVRFEINPUTMODE;
 
@@ -2756,7 +2747,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *trigger_type)
+int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char const *trigger_type)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2872,7 +2863,7 @@ int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_state)
+int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char const *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -3315,15 +3306,19 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t id)
 	if (result < 0)
 		return result;
 
-	if (id < 0 || id > size)
-		return WSA_ERR_SWEEPIDOOB;
-
-	sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", id);
+    if(id) {
+	  if((id < 0) || (id > size+1)) {
+        return WSA_ERR_SWEEPIDOOB;
+      }    
+  	  sprintf(temp_str, "SWEEP:ENTRY:SAVE %u\n", id);
+    } else {
+	  sprintf(temp_str, "SWEEP:ENTRY:SAVE\n");
+    }
+  
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_sweep_entry_save: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
-	
 }
 
 
