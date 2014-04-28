@@ -995,7 +995,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		+ (uint32_t) vrt_buffer[7];
 		
 		// reduce the i counter if the packet does not contain if data
-		if (stream_identifier_word != IF_DATA_STREAM_ID)
+		if (stream_identifier_word != I16Q16_DATA_STREAM_ID ||
+			stream_identifier_word != I16_DATA_STREAM_ID ||
+			stream_identifier_word != I32_DATA_STREAM_ID)
 			i--;
 
 		else
@@ -1139,7 +1141,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if(num_words > 2)
 				printf("Extra parameters ignored\n");
 			
-			result = wsa_get_attenuation(dev, &temp_short);
+			result = wsa_get_attenuation(dev, &temp_int);
 			if (result >= 0)
 				printf("Attenuator's mode of operation: %d", temp_short);
 

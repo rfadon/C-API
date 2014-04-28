@@ -1010,9 +1010,9 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		digitizer->pkt_count = header->pkt_count;
 	}
 	// if the packet is an IQ packet proceed with the method from previous release
-	else if (stream_identifier_word == IF_DATA_STREAM_ID || 
-			 stream_identifier_word == SH_DATA_STREAM_ID || 
-			 stream_identifier_word == HDR_DATA_STREAM_ID)
+	else if (stream_identifier_word == I16Q16_DATA_STREAM_ID || 
+			 stream_identifier_word == I16_DATA_STREAM_ID || 
+			 stream_identifier_word == I32_DATA_STREAM_ID)
 	{
 		iq_packet_size = header->samples_per_packet;
 		
@@ -1051,7 +1051,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 			doutf(DLOW, "Sample loss: %d\n", trailer->sample_loss_indicator);
 		}
 	}
-	if (stream_identifier_word == SH_DATA_STREAM_ID)
+	if (stream_identifier_word == I16_DATA_STREAM_ID)
 		header->samples_per_packet = header->samples_per_packet * 2;
 	free(vrt_packet_buffer);
 	free(vrt_header_buffer);
@@ -1112,7 +1112,7 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
-  * @param i16_buf - A 16-bit signed integer pointer for the unscaled, 
+ * @param i16_buf - A 16-bit signed integer pointer for the unscaled, 
  * 16 bit I data buffer with size specified by the \b sample_size.
  * @param i32_buf - A 32-bit signed integer pointer for the unscaled, 
  * 32 bit I data buffer with size specified by the \b sample_size.
@@ -1129,16 +1129,16 @@ int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *
 	int32_t i = 0;
 	int32_t j = 0;
 
-	//  store HDR data in 32 bit buffer
-	if (stream_id == HDR_DATA_STREAM_ID )
+	//  decode 32-bit data
+	if (stream_id == I32_DATA_STREAM_ID )
 	{
 		for (i = 0; i < sample_size * 4; i += 4) 
 		{
 			i32_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
 			j++;
 		}
-	//  store SH data in 16 bit buffer
-	} else if (stream_id == SH_DATA_STREAM_ID)
+	//  decode 16-bit data
+	} else if (stream_id == I16_DATA_STREAM_ID)
 		for (i = 0; i < sample_size * 2; i += 2) 
 		{
 			i16_buf[j] =  ((int16_t) data_buf[i] << 8) + ((int16_t) data_buf[i + 1]);
