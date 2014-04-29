@@ -89,17 +89,17 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain);
 int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain);
 
 int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain);
-int16_t wsa_set_gain_rf(struct wsa_device *dev, char *gain);
+int16_t wsa_set_gain_rf(struct wsa_device *dev, char const *gain);
 
 // ////////////////////////////////////////////////////////////////////////////
 // RFE CONTROL SECTION                                                       //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode);
-int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode);
 
 int16_t wsa_get_iq_output_mode(struct wsa_device *dev, char *mode);
-int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode);
 
 int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num);
 int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num);
@@ -180,7 +180,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain);
 int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain);
 
 int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
-int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
+int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode);
 
 int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iteration);
 int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration);
@@ -192,7 +192,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets
 int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_per_block);
 
 int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *type);
-int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char *type);
+int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char const *type);
 
 int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
 int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude);
@@ -201,7 +201,7 @@ int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
 
 int16_t wsa_get_sweep_trigger_sync_state(struct wsa_device *dev, char *delay);
-int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char *delay);
+int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char const *delay);
 
 int16_t wsa_get_sweep_status(struct wsa_device *dev, char *status);
 int16_t wsa_get_sweep_entry_size(struct wsa_device *dev, int32_t *size);
