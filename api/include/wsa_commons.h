@@ -13,5 +13,5 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_str[]);
 int16_t to_int(char *num_str, long int *val);
 int16_t to_double(char *num_str, double *val);
 int16_t string_to_integer(const char *from_string, int32_t *to_integer);
-int16_t find_char_in_string(char *string, char *symbol);
+int16_t find_char_in_string(char const *string, char *symbol);
 #endif

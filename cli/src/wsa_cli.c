@@ -817,11 +817,17 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 					for (j = 0; j < header->samples_per_packet; j++)
 						fprintf(iq_fptr, "%d,%d\n", i16_buffer[j], q16_buffer[j]);
 				}
-				
-				else if (header->stream_id == I16_DATA_STREAM_ID || header->stream_id == I32_DATA_STREAM_ID)
+
+				else if (header->stream_id == I32_DATA_STREAM_ID)
 				{
 					for (j = 0; j < header->samples_per_packet; j++)
 						fprintf(iq_fptr, "%d\n", i32_buffer[j]);
+				}
+
+				else if (header->stream_id == I16_DATA_STREAM_ID)
+				{
+					for (j = 0; j < header->samples_per_packet; j++)
+						fprintf(iq_fptr, "%d\n", i16_buffer[j]);
 				}
 
 				printf(".");

@@ -78,7 +78,11 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		}
 
 	}
-
+	else
+    {
+		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
+	}
 
 	// grab product mac address
 	strtok_result = strtok(NULL, ",");
@@ -487,7 +491,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
 {
 	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
-	int32_t len = strlen(command);
+	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
 	// TODO: check WSA version/model # 
@@ -656,13 +660,14 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 * @return 0 upon successful or a negative value
 */
 int16_t wsa_send_query(struct wsa_device *dev, char *command, struct wsa_resp * resp)
-	{
+{
 	int16_t bytes_got = 0;
 	int16_t recv_result = 0;
 	int32_t bytes_received = 0;
 	uint8_t resend_cnt = 0;
 	int32_t len = (int32_t)strlen(command);
 	int32_t loop_count = 0;
+
 	// set defaults
 	strcpy(resp->output, "");
 	resp->status = 0;
@@ -725,7 +730,9 @@ int16_t wsa_send_query(struct wsa_device *dev, char *command, struct wsa_resp * 
 			return WSA_ERR_QUERYNORESP;
 		}
 		else 
+		{
 			resp->status = bytes_received;
+		}
 	}
 
 	return 0;
@@ -1086,15 +1093,26 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size)
 {
-	int32_t i = 0;
+	int32_t i;
 	int32_t j = 0;
-	// Split up the IQ data bytes
-	for (i; i < sample_size * 4; i += 4) 
-	{
-		i_buf[j] = (((int16_t) data_buf[i]) << 8) + ((int16_t) data_buf[i + 1]);
-		q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
-		j++;
-	}
+
+    if(q_buf) {
+	  // Split up the IQ data bytes
+	  for (i = 0; i < sample_size * 4; i += 4) 
+	  {
+		  i_buf[j] = (((int16_t) data_buf[i    ]) << 8) + ((int16_t) data_buf[i + 1]);
+		  q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
+		  j++;
+	  }
+    }  else {
+	  // Leave IQ interleaved
+	  for (i = 0; i < sample_size * 4; i += 4) 
+	  {
+		  i_buf[j*2  ] = (((int16_t) data_buf[i    ]) << 8) + ((int16_t) data_buf[i + 1]);
+		  i_buf[j*2+1] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
+		  j++;
+	  }
+    }
 
 	return (i / 4);
 }
@@ -1112,7 +1130,7 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
  * in bytes to be decoded into separate I and Q buffers. Its size is assumed to
  * be the number of 32-bit sample_size words multiply by 4 (i.e. 
  * sizeof(data_buf) = sample_size * 4 bytes per sample).
- * @param i16_buf - A 16-bit signed integer pointer for the unscaled, 
+  * @param i16_buf - A 16-bit signed integer pointer for the unscaled, 
  * 16 bit I data buffer with size specified by the \b sample_size.
  * @param i32_buf - A 32-bit signed integer pointer for the unscaled, 
  * 32 bit I data buffer with size specified by the \b sample_size.
@@ -1129,7 +1147,7 @@ int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *
 	int32_t i = 0;
 	int32_t j = 0;
 
-	//  decode 32-bit data
+	//  store HDR data in 32 bit buffer
 	if (stream_id == I32_DATA_STREAM_ID )
 	{
 		for (i = 0; i < sample_size * 4; i += 4) 
@@ -1137,7 +1155,7 @@ int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *
 			i32_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
 			j++;
 		}
-	//  decode 16-bit data
+	//  store SH data in 16 bit buffer
 	} else if (stream_id == I16_DATA_STREAM_ID)
 		for (i = 0; i < sample_size * 2; i += 2) 
 		{
@@ -1164,8 +1182,6 @@ int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *
 void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_packet * const receiver)
 {	
 	int32_t reference_point = 0;
-	double gain_if = 0;
-	double gain_rf = 0;
 	int64_t freq_word1 = 0; 
 	int64_t freq_word2 = 0;
 	long double freq_int_part = 0;
@@ -1256,11 +1272,9 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 	long double rf_freq_dec_part = 0;
 
 	int16_t ref_level_word = 0;
-	double ref_level_int_part = 0;
-	double ref_level_dec_part = 0;
 
 	int32_t data_pos = 16;
-	
+
 	////store the indicator field, which contains the content of the packet
 	digitizer->indicator_field = ((((int32_t) temp_buffer[12]) << 24) +
 								(((int32_t) temp_buffer[13]) << 16) +
