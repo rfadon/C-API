@@ -1105,8 +1105,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t temp_int;
 	long temp_long;
 	double temp_double;
-
+	
+	float rfe_temp;
+	float mixer_temp;
+	float digitizer_temp;
 	float fshift = 0;
+	
 	int64_t freq_value;
 	int64_t start_freq;
 	int64_t stop_freq;
@@ -1419,6 +1423,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Invalid 'get trigger' command. See 'h'.'\n");
 
 		} // end get TRIGGER
+		
+		else if (strcmp(cmd_words[1], "TEMP") == 0 || strcmp(cmd_words[1], "TEMPERATURE") == 0) 
+		{
+			result = wsa_get_temperature(dev, &rfe_temp, &mixer_temp, &digitizer_temp);
+			if (result >= 0)
+			{
+				printf("/t WSA RFE temperature: %f \n", rfe_temp);
+				printf("/t WSA mixer temperature: %f \n", mixer_temp);
+				printf("/t WSA digital section temperature: %f \n", digitizer_temp);
+			}
+		} // end get TEMP
 
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
 		{
