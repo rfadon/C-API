@@ -127,7 +127,7 @@
 #define WSA_trigger_SYNC_DELAY_MULTIPLE 8
 
 // Decimation Range
-#define WSA_MAX_DECIMATION 1023
+#define WSA_MAX_DECIMATION 1024
 #define WSA_MIN_DECIMATION 4
 
 // *****
