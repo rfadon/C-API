@@ -1419,7 +1419,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				printf("Invalid 'get trigger' command. See 'h'.'\n");
 
 		} // end get TRIGGER
-		
+
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
 		{
 			if (strcmp(cmd_words[2], "ENTRY") == 0) 
