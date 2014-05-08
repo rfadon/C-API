@@ -785,8 +785,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
 				expected_if_pkt_count = header->pkt_count;
 
-			
-			
 			if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
 				expected_if_pkt_count = MIN_VRT_PKT_COUNT;
 			else
