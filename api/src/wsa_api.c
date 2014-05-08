@@ -1776,7 +1776,7 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 	double temp;
 	char *strtok_result;
 
-	wsa_send_query(dev, "STAT:TEMP\n", &query);
+	wsa_send_query(dev, "STAT:TEMP?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
