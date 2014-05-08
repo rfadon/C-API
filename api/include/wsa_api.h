@@ -128,7 +128,7 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 
 // ////////////////////////////////////////////////////////////////////////////
-// PLL SECTION                                                              //
+// PLL SECTION                                                               //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref);
@@ -138,6 +138,12 @@ int16_t wsa_reset_reference_pll(struct wsa_device *dev);
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref);
 int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 
+
+// ////////////////////////////////////////////////////////////////////////////
+// TEMPERATURE SECTION                                                       //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixer_temp, float* digital_temp);
 
 ///////////////////////////////////////////////////////////////////////////////
 // STREAM CONTROL SECTION                                                    //

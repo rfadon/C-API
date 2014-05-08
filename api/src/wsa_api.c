@@ -1756,6 +1756,66 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// TEMPERATURE CONTROL SECTION                                               //
+///////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Get the WSA's current temperature
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param rfe_temp - A float pointer to store the RFE temperature
+ * @param mixer_temp - A float pointer to store the mixer's temperature
+ * @param digital_temp - A float pointer to store the digital section'stemperature
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixer_temp, float* digital_temp)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char *strtok_result;
+
+	wsa_send_query(dev, "STAT:TEMP?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the 1st temperature value 
+	strtok_result = strtok(query.output, ",");
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*rfe_temp = (float) temp;
+
+	// Convert the 2nd temperature value
+	strtok_result = strtok(NULL, ",");
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*mixer_temp = (float) temp;
+
+	strtok_result = strtok(NULL, ",");
+
+	// Convert the temperature value
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*digital_temp = (float) temp;
+
+	return 0;
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // STREAM CONTROL SECTION                                                    //
 ///////////////////////////////////////////////////////////////////////////////
 
