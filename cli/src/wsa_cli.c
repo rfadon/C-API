@@ -1429,9 +1429,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			result = wsa_get_temperature(dev, &rfe_temp, &mixer_temp, &digitizer_temp);
 			if (result >= 0)
 			{
-				printf("/t WSA RFE temperature: %f \n", rfe_temp);
-				printf("/t WSA mixer temperature: %f \n", mixer_temp);
-				printf("/t WSA digital section temperature: %f \n", digitizer_temp);
+				printf("\t WSA RFE temperature: %0.2f \n", rfe_temp);
+				printf("\t WSA mixer temperature: %0.2f \n", mixer_temp);
+				printf("\t WSA digital section temperature: %0.2f \n", digitizer_temp);
 			}
 		} // end get TEMP
 
