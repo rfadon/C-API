@@ -575,7 +575,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 		(samples_per_packet > WSA_MAX_SPP) || ((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 	
-	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
+	sprintf(temp_str, "TRACE:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
 		
@@ -1376,7 +1376,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_
 	else if (result < 0)
 		return result;
 
-	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
 
@@ -1460,7 +1460,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
  * @param trigger_type - Trigger mode of selection (NONE,LEVEL, OR PULSE).
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
+int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *trigger_type)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1579,7 +1579,7 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state)
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1660,7 +1660,7 @@ int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_reference_pll(struct wsa_device *dev, char *pll_ref)
+int16_t wsa_set_reference_pll(struct wsa_device *dev, char const *pll_ref)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2177,7 +2177,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char const *gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2320,7 +2320,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 		((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 
-	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
+	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
 
@@ -2738,7 +2738,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
 	if (stop_freq <= start_freq)
 		return WSA_ERR_INVSTOPFREQ;
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
 	doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));

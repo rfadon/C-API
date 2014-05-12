@@ -119,12 +119,12 @@ int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable);
 int16_t wsa_set_trigger_enable(struct wsa_device *dev, int32_t enable);
 
 int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type);
-int16_t wsa_set_trigger_type(struct wsa_device *dev, char *type);
+int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *type);
 
 int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
 int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
 
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state);
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state);
 int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref);
-int16_t wsa_set_reference_pll(struct wsa_device *dev, char *pll_ref);
+int16_t wsa_set_reference_pll(struct wsa_device *dev, char const *pll_ref);
 int16_t wsa_reset_reference_pll(struct wsa_device *dev);
 
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref);
@@ -183,7 +183,7 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain);
 int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain);
-int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain);
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char const *gain);
 
 int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
 int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode);
