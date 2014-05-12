@@ -196,7 +196,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  ex: set ppb 100\n");
 	printf("  set spp <samples>\n"
 		"\t- Set the number of samples per packet to be captured\n"
-		"\t  Range: %hu - %hu, inclusive (must be multiple of 16).\n"
+		"\t  Range: %u - %u, inclusive (must be multiple of 16).\n"
 		"\t  ex: set spp 2048\n",
 		WSA_MIN_SPP, WSA_MAX_SPP);
 	printf("  set trigger mode <level | none | pulse>\n"
@@ -798,7 +798,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 						"FwVersion,SampleSize,Seconds,Picoseconds,"
 						"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
 				fprintf(iq_fptr, 
-						"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
+						"%s,%d,%u,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
 						fw_ver,
 						header->samples_per_packet, 
 						header->time_stamp.sec,
@@ -1094,7 +1094,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
-	int16_t input_veri_result = 0; // result returned from varifying input cmd param
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
 	int i;
@@ -1151,7 +1150,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			
 			result = wsa_get_attenuation(dev, &temp_int);
 			if (result >= 0)
-				printf("Attenuator's mode of operation: %d", temp_short);
+				printf("Attenuator's mode of operation: %d", temp_int);
 
 		} // end get ATTEN
 
@@ -1319,11 +1318,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words > 2) 
 			{
 				if (strcmp(cmd_words[2], "MAX") == 0)
-					printf("Maximum samples per packet: %hu\n", 
-						WSA_MAX_SPP);
+					printf("Maximum samples per packet: %u\n", WSA_MAX_SPP);
 				else if (strcmp(cmd_words[2], "MIN") == 0)
-					printf("Minimum samples per packet: %hu\n", 
-						WSA_MIN_SPP);
+					printf("Minimum samples per packet: %u\n", WSA_MIN_SPP);
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
@@ -1396,7 +1393,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Trigger configuration:\n");
 					printf("   Start frequency: %f MHz\n", (float) (start_freq / MHZ));
 					printf("   Stop frequency: %f MHz\n", (float) (stop_freq / MHZ));
-					printf("   Amplitude: %ld dBm\n", amplitude);
+					printf("   Amplitude: %d dBm\n", amplitude);
 				}
 			} // end get TRIGGER LEVEL				
 			
@@ -1661,9 +1658,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVSAMPLESIZE)
-					sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.",
-						WSA_MIN_SPP,
-						WSA_MAX_SPP);
+					sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.", WSA_MIN_SPP, WSA_MAX_SPP);
 			}
 			else
 				printf("Invalid input. SPP value must a positive integer.\n");
@@ -1979,9 +1974,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = wsa_set_sweep_samples_per_packet(dev, 
 								(int32_t) temp_long);
 						if (result == WSA_ERR_INVSAMPLESIZE)
-							sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.\n",
-								WSA_MIN_SPP,
-								WSA_MAX_SPP);
+							sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.\n", WSA_MIN_SPP, WSA_MAX_SPP);
 					}
 					else
 						printf("Invalid input. SPP value must be a positive integer.\n");
@@ -2097,7 +2090,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	{
 		if  (strcmp(cmd_words[1], "START") == 0) 
 		{
-			if ((num_words ==2))
+			if(num_words == 2) 
 				result = wsa_stream_start(dev);
 				
 			else if ((num_words == 3) && !to_int(cmd_words[2], &temp_long))
@@ -2334,7 +2327,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s", wsa_addr);
-	//sprintf(intf_str, "TCPIP::%s::%d,%d", wsa_addr, CTRL_PORT, DATA_PORT);
+	//sprintf(intf_str, "TCPIP::%s::%s,%s", wsa_addr, CTRL_PORT, DATA_PORT);
 
 	// Start the WSA connection
 	dev = &wsa_dev;
@@ -2549,8 +2542,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				strcpy(temp_str, strtok(temp_str, "="));
 
 				// Create the TCPIP interface method string
-				sprintf(intf_str, "TCPIP::%s::%d,%d", temp_str, CTRL_PORT, 
-					DATA_PORT);
+				sprintf(intf_str, "TCPIP::%s::%s,%s", temp_str, CTRL_PORT, DATA_PORT);
 
 				w++;
 			}
@@ -2724,7 +2716,6 @@ void print_wsa_stat(struct wsa_device *dev)
     int64_t start_freq = 0;
 	int64_t stop_freq = 0;
 	int32_t amplitude = 0;
-	int32_t enable = 0;
 	char capture_mode[MAX_STRING_LEN];
 	char trigger_mode[MAX_STRING_LEN];
 	char gain[10];
@@ -2788,9 +2779,9 @@ void print_wsa_stat(struct wsa_device *dev)
 
 		result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 		if (result >= 0) {
-			printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
-			printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
-			printf("\t\t\t- Amplitude: %ld dBm\n", amplitude);
+			printf("\t\t\t- Start Frequency: %llu\n", start_freq/MHZ);
+			printf("\t\t\t- Stop Frequency: %llu\n", stop_freq/MHZ);
+			printf("\t\t\t- Amplitude: %d dBm\n", amplitude);
 		}
 		else {
 			printf("\t\t- Error: Failed reading trigger levels.\n");
@@ -2909,7 +2900,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		if (result < 0)
 			return result;
 		printf("      Range (MHz): %0.3f - %0.3f\n", (float) start_freq/MHZ, (float) stop_freq/MHZ);
-		printf("      Amplitude: %ld dBm\n", amplitude);
+		printf("      Amplitude: %d dBm\n", amplitude);
 	}
 
 	else if(strcmp(trigger_type, WSA_PULSE_TRIGGER_TYPE) == 0)
@@ -2920,13 +2911,13 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		
 		// print trigger sync delay sweep value
 		result = wsa_get_sweep_trigger_sync_delay(dev, &trigger_sync_delay);
-		printf("      Delay time: %ld ns\n", trigger_sync_delay);
+		printf("      Delay time: %d ns\n", trigger_sync_delay);
 	}
 	// print dwell sweep value
 	result = wsa_get_sweep_dwell(dev, &dwell_seconds, &dwell_microseconds);
 	if (result < 0)
 		return result;
-	printf("   Dwell time: %u.%lu seconds\n", dwell_seconds, dwell_microseconds);
+	printf("   Dwell time: %u.%u seconds\n", dwell_seconds, dwell_microseconds);
 
 	return 0;
 }
@@ -2971,12 +2962,12 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 		printf("    Trigger mode: %s\n",list_values->trigger_type);
 		printf("       Range (MHz): %0.3f %0.3f\n", (float) (list_values->trigger_start_freq / MHZ),
 													(float)  (list_values->trigger_stop_freq / MHZ));
-		printf("       Amplitude: %ld dBm\n", list_values->trigger_amplitude);
+		printf("       Amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
     else 
 		printf("    Trigger mode running: %s\n",list_values->trigger_type);
 
-	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
+	printf("  Dwell time: %u.%u seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
 
 	free(list_values);
 	

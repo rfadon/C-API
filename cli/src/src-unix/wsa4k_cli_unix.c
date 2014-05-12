@@ -8,12 +8,24 @@
 #include <fcntl.h>
 
 #include "wsa4k_cli_os_specific.h"
-#include "wsa4k_cli.h"
+#include "wsa_cli.h"
 
+#ifdef __APPLE__
+# include <sys/time.h>
+#endif
 
 void get_current_time(TIME_HOLDER* current_time)
 {
+#ifdef __APPLE__
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+  
+    current_time->tv_sec  = now.tv_sec;
+    current_time->tv_nsec = now.tv_usec * 1000;
+#else
 	clock_gettime(CLOCK_REALTIME, current_time);
+#endif
 }
 
 double get_time_difference(TIME_HOLDER* start_time, TIME_HOLDER* end_time)
