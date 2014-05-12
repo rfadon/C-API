@@ -197,17 +197,24 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
  * @param response - A char pointer to hold the response from the wsa
  *
  */
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response)
 {
 	struct wsa_resp query;		
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	sprintf(command,"%s\n",command);
-	
-	wsa_send_query(dev, command, &query);
-	strcpy(response, query.output);
+	    wsa_send_query(dev, tmpbuffer, &query);
+	    strcpy(response, query.output);
 
-	return (int16_t) query.status;
+        free(tmpbuffer);
+
+	    return (int16_t) query.status;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
 }
 
 /**
@@ -217,15 +224,23 @@ int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
  * @param command - A pointer to the scpi command
  *
  */
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
 {
 	int16_t result;
-	sprintf(command,"%s\n",command);
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
-	result = wsa_send_command(dev, command);
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	return result;
+	    result = wsa_send_command(dev, tmpbuffer);
 
+        free(tmpbuffer);
+
+        return result;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
 }
 
 

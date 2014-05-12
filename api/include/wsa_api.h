@@ -19,8 +19,8 @@ const char *wsa_get_err_msg(int16_t err_code);
 
 int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name);
 
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response);
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command);
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response);
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command);
 
 
 // ////////////////////////////////////////////////////////////////////////////
