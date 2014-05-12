@@ -572,11 +572,10 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
     strcpy(resp.output, "");
     resp.status = 0;
 
-    if((cmd_fptr = fopen(file_name, "r")) == NULL)
-    {
+	cmd_fptr = fopen(file_name, "r");
+    if(cmd_fptr == NULL) {
         result = WSA_ERR_FILEREADFAILED;
-        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result),
-            file_name);
+        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), file_name);
         return result;
     }
 
@@ -587,6 +586,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 		if (cmd_strs[i] == NULL)
 		{
 			doutf(DHIGH, "In wsa_send_command_file: failed to allocate memory\n");
+            fclose(cmd_fptr);
 			return WSA_ERR_MALLOCFAILED;
 		}
 	}
