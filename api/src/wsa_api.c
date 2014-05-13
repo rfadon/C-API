@@ -889,6 +889,42 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 }
 
 
+/**
+ * Retrieve whether spectral inversion has occured in a specified frequency (assumes current rfe mode set)
+ * Note: Check the spec_inv param in the trailer to determine spectral inversion has been compensated
+ * in the digitizer
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param freq - The center frequency band to check (Hz)
+ * @param inv - A pointer to store whether spectral inversion 
+ * has occured
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_freq_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char scpi_cmd[MAX_STR_LEN];
+
+	sprintf(scpi_cmd, "SENSE:FREQ:INV? %lld\n", freq);
+
+	wsa_send_query(dev,(scpi_cmd, &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*inv = (int16_t) temp;
+
+	return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // GAIN/ATTNEUATION SECTION                                                 //
 //////////////////////////////////////////////////////////////////////////////
