@@ -901,7 +901,7 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_freq_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
+int16_t wsa_get_spec_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
