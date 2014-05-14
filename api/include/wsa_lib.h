@@ -308,10 +308,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 
-int16_t wsa_send_command(struct wsa_device *dev, char *command);
-int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
-int16_t wsa_send_query(struct wsa_device *dev, char *command, 
-						struct wsa_resp *resp);
+int16_t wsa_send_command(struct wsa_device *dev, char const *command);
+int16_t wsa_send_command_file(struct wsa_device *dev, char const *file_name);
+int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_resp *resp);
 
 int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device, 
 		struct wsa_vrt_packet_header * const header, 

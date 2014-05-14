@@ -4,7 +4,7 @@
 /**
  * Exact-width integer types 
  */
-#ifdef WIN32
+#ifdef _WIN32
 typedef signed char			int8_t;
 typedef unsigned char		uint8_t;
 typedef short				int16_t;
@@ -16,6 +16,10 @@ typedef unsigned long long	uint64_t;
 #else
 #include <stdint.h>
 #include <sys/types.h>
+typedef long long           wsa_int64_t;
+typedef unsigned long long	wsa_uint64_t;
+#define int64_t		        wsa_int64_t
+#define uint64_t            wsa_uint64_t
 #endif
 
 #endif

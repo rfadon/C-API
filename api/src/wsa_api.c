@@ -59,8 +59,9 @@ int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq)
 {
 	
 	// verify the frequency value
-	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)
+	if ((freq < dev->descr.min_tune_freq) || (freq > dev->descr.max_tune_freq)) {
 		return WSA_ERR_FREQOUTOFBOUND;
+    }
 
 	return 0;
 }
@@ -124,19 +125,21 @@ void wsa_close(struct wsa_device *dev)
  * 
  * @return 0 if the IP is valid, or a negative number on error.
  */
-int16_t wsa_check_addr(char *ip_addr) 
+int16_t wsa_check_addr(char const *ip_addr) 
 {
 	int16_t result = 0;
 
 	// Check with command port
 	result = wsa_verify_addr(ip_addr, "37001");  //TODO make this dynamic
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	// check with data port
 	result = wsa_verify_addr(ip_addr, "37000");
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	return 0;
 }
@@ -151,7 +154,7 @@ int16_t wsa_check_addr(char *ip_addr)
  * 
  * @return 0 if the IP is valid, or a negative number on error.
  */
-int16_t wsa_check_addrandport(char *ip_addr, char *port) 
+int16_t wsa_check_addrandport(char const *ip_addr, char const *port) 
 {
 	return wsa_verify_addr(ip_addr, port);
 }
@@ -184,7 +187,7 @@ const char *wsa_get_err_msg(int16_t err_code)
  *
  * @return Number of command lines at success, or a negative error number.
  */
-int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
+int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char const *file_name)
 {
 	return wsa_send_command_file(dev, file_name);
 }
@@ -197,17 +200,24 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
  * @param response - A char pointer to hold the response from the wsa
  *
  */
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response)
 {
 	struct wsa_resp query;		
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	sprintf(command,"%s\n",command);
-	
-	wsa_send_query(dev, command, &query);
-	strcpy(response, query.output);
+	    wsa_send_query(dev, tmpbuffer, &query);
+	    strcpy(response, query.output);
 
-	return (int16_t) query.status;
+        free(tmpbuffer);
+
+	    return (int16_t) query.status;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
 }
 
 /**
@@ -217,15 +227,23 @@ int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
  * @param command - A pointer to the scpi command
  *
  */
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
 {
 	int16_t result;
-	sprintf(command,"%s\n",command);
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
-	result = wsa_send_command(dev, command);
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	return result;
+	    result = wsa_send_command(dev, tmpbuffer);
 
+        free(tmpbuffer);
+
+        return result;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
 }
 
 
@@ -335,11 +353,13 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 
 	// check if the wsa is already sweeping
 	result = wsa_get_sweep_status(dev, status);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
-	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) 
+	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) {
 		return WSA_ERR_SWEEPALREADYRUNNING;
+    }
 
 	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
 	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));

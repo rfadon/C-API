@@ -12,15 +12,15 @@
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 
-int16_t wsa_check_addr(char *ip_addr);
-int16_t wsa_check_addrandport(char *ip_addr, char *port);
+int16_t wsa_check_addr(char const *ip_addr);
+int16_t wsa_check_addrandport(char const *ip_addr, char const *port);
 int16_t wsa_is_connected(struct wsa_device *dev);
 const char *wsa_get_err_msg(int16_t err_code);
 
-int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name);
+int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char const *file_name);
 
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response);
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command);
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response);
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command);
 
 
 // ////////////////////////////////////////////////////////////////////////////
