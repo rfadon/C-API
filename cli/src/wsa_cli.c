@@ -999,11 +999,12 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		+ (uint32_t) vrt_buffer[7];
 		
 		// reduce the i counter if the packet does not contain if data
-		if (stream_identifier_word != I16Q16_DATA_STREAM_ID ||
-			stream_identifier_word != I16_DATA_STREAM_ID ||
-			stream_identifier_word != I32_DATA_STREAM_ID)
-			i--;
-
+		if((stream_identifier_word != I16Q16_DATA_STREAM_ID) && 
+		   (stream_identifier_word != I16_DATA_STREAM_ID) && 
+		   (stream_identifier_word != I32_DATA_STREAM_ID)) 
+        {
+		    i--;
+        }
 		else
 		{
 			iq_pkt_count++;
