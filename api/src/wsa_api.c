@@ -890,8 +890,9 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 
 
 /**
- * Retrieve whether spectral inversion has occured in a specified frequency (assumes current rfe mode set)
- * Note: Check the spec_inv param in the trailer to determine spectral inversion has been compensated
+ * get spectral inversion status at  a specific frequency (assumes current rfe mode set)
+ * Note: Check the spec_inv param in the trailer to determine  if
+ * spectral inversion has been compensated
  * in the digitizer
  *
  * @param dev - A pointer to the WSA device structure.	
@@ -907,9 +908,9 @@ int16_t wsa_get_spec_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
 	double temp;
 	char scpi_cmd[MAX_STR_LEN];
 
-	sprintf(scpi_cmd, "SENSE:FREQ:INV? %lld\n", freq);
+	sprintf(scpi_cmd, "SENSE:FREQ:INV? %lld Hz\n", freq);
 
-	wsa_send_query(dev,(scpi_cmd, &query);
+	wsa_send_query(dev,scpi_cmd, &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 

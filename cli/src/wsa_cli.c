@@ -1312,17 +1312,23 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result >= 0)
 				printf("Current packets per block: %d\n", temp_int);
 		} // end get PPB
+		
 		else if (strcmp(cmd_words[1], "SPEC") == 0)
 		{
 			if (strcmp(cmd_words[2], "INV") == 0)
 			{
+				if (num_words < 4) 
+					printf("Missing the frequency value.\n");
 				if (!to_double(cmd_words[3], &temp_double))
 				{
-					result = wsa_get_spec_inv(dev, temp_double, &temp_short);
+					result = wsa_get_spec_inv(dev, temp_double *  MHZ, &temp_short);
 					if (result >= 0)
-						printf("Spectral Inversion: %d\n", WSA_MIN_SPP);
-				}
-			}
+						printf("Spectral inversion state: %d\n", temp_short);
+				} else
+					printf("Invalid input. Frequency value must be a number. See 'h'.\n");
+			} else
+				printf("Did you mean 'get spec inv'?\n");
+
 		} // end get SPEC
 		else if (strcmp(cmd_words[1], "SPP") == 0) 
 		{
@@ -1574,7 +1580,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						(double) dev->descr.max_tune_freq / MHZ);
 			}
 			else
-				printf("Invalid input. Frequency value must be a number. See 'h'.\n");;
+				printf("Invalid input. Frequency value must be a number. See 'h'.\n");
 
 		} // end set FREQ
 
