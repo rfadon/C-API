@@ -1166,19 +1166,25 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
 	wsa_send_query(dev, "INPUT:MODE?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
+
 	strcpy(mode,query.output);
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	return 0;
 }
@@ -1198,14 +1204,18 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	sprintf(temp_str, "INPUT:MODE %s\n", mode);
 
