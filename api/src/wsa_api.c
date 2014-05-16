@@ -246,9 +246,11 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
     return WSA_ERR_MALLOCFAILED;
 }
 
+
 // ////////////////////////////////////////////////////////////////////////////
 // LAN CONFIGURATION SECTION                                                 //
 // ////////////////////////////////////////////////////////////////////////////
+
 
 // TODO: ADD BETTER ERROR HANDLING
 /**
@@ -257,7 +259,7 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
  * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
- * For the option set to WSA_OPTION_LAN_CONFIG
+ * For the current set option, set to ""
  * @param config - Char pointer containing the requested lan configuration
  *
  * @return 0 on successful, or a negative number on error.
@@ -280,6 +282,7 @@ int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan
 	
 	return 0;
 }
+
 
 // TODO: ADD BETTER ERROR HANDLING
 /**
@@ -306,6 +309,7 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
 	return result;
 }
 
+
 // TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan ip (either current or option set)
@@ -313,7 +317,7 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
  * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
- * For the option set to WSA_OPTION_LAN_CONFIG
+ * For the current set option set to ""
  * @param ip - Char pointer containing the requested ip configuration
  *
  * @return 0 on successful, or a negative number on error.
@@ -369,8 +373,8 @@ int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
- * For the WSA's current lan configuraiton, set to "CURRENT".
- * For the option set to ""
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
  * @param netmask - Char pointer containing the requested netmask configuration
  *
  * @return 0 on successful, or a negative number on error.
@@ -426,8 +430,8 @@ int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
- * For the WSA's current lan configuraiton, set to "CURRENT".
- * For the option set to ""
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
  * @param gateway - Char pointer containing the requested gateway configuration
  *
  * @return 0 on successful, or a negative number on error.
@@ -471,7 +475,7 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_gateway_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_lan_gateway: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
@@ -483,8 +487,8 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
- * For the WSA's current lan configuraiton, set to "CURRENT".
- * For the option set to ""
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
  * @param dns - Char pointer containing the requested dns configuration
  * Note: dns may contain a comma seperated alternate dns value
  *
@@ -521,23 +525,21 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alternate_dns)
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
-	if (strcmp(alternate_dns, ""))
-		sprintf(command, "SYST:COMM:LAN:DNS %s \n", dns);
-	else
-		sprintf(command, "SYST:COMM:LAN:DNS %s, %s \n", dns, alternate_dns);
+	sprintf(command, "SYST:COMM:LAN:DNS %s \n", dns);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_gateway_dns: %d - %s.\n", result, wsa_get_error_msg(result));
+	doutf(DHIGH, "In wsa_set_lan_dns: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;
 }
+
 
 // TODO: ADD BETTER ERROR HANDLING
 /**
@@ -556,6 +558,8 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev)
 
 	return result;
 }
+
+
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////

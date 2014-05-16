@@ -1314,9 +1314,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
 					printf("%s Lan configuration %s \n", cmd_words[3], char_result);
 				}
-					}
+			}// end get LAN CONFIG
 				
-			} // end get LAN CONFIG
 			else if (strcmp(cmd_words[2], "IP") == 0)
 			{
 				result =  wsa_get_lan_ip(dev, cmd_words[3], char_result);
@@ -1381,7 +1380,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Missing the frequency value.\n");
 				if (!to_double(cmd_words[3], &temp_double))
 				{
-					result = wsa_get_spec_inv(dev, temp_double *  MHZ, &temp_short);
+					result = wsa_get_spec_inv(dev, (int64_t) temp_double *  MHZ, &temp_short);
 					if (result >= 0)
 						printf("Spectral inversion state: %d\n", temp_short);
 				} else
