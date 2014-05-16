@@ -250,7 +250,7 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
 // LAN CONFIGURATION SECTION                                                 //
 // ////////////////////////////////////////////////////////////////////////////
 
-
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan configuration (either current or option set)
  *
@@ -259,6 +259,7 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
  * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
  * For the option set to WSA_OPTION_LAN_CONFIG
  * @param config - Char pointer containing the requested lan configuration
+ *
  * @return 0 on successful, or a negative number on error.
  */
 int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan_config)
@@ -266,7 +267,7 @@ int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan
 	struct wsa_resp query;		// store query results
 	
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:CONF? %s", config);
+	sprintf(command, "SYST:COMM:LAN:CONF? %s \n", config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -280,7 +281,7 @@ int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan
 	return 0;
 }
 
-
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Sets the option lan configuration
  *
@@ -294,7 +295,7 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:CONF %s", lan_config);
+	sprintf(command, "SYST:COMM:LAN:CONF %s \n", lan_config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -305,7 +306,7 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
 	return result;
 }
 
-
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan ip (either current or option set)
  *
@@ -322,7 +323,7 @@ int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
 	struct wsa_resp query;		// store query results
 	
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:IP? %s", config);
+	sprintf(command, "SYST:COMM:LAN:IP? %s \n", config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -337,6 +338,7 @@ int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Sets the user's ip configuration
  *
@@ -345,11 +347,11 @@ int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *config, char const *ip)
+int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:IP %s", ip);
+	sprintf(command, "SYST:COMM:LAN:IP %s \n", ip);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -361,6 +363,7 @@ int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *config, char const *i
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan netmask (either current or option set)
  *
@@ -377,7 +380,7 @@ int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *ne
 	struct wsa_resp query;		// store query results
 	
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:NETMASK? %s", config);
+	sprintf(command, "SYST:COMM:LAN:NETMASK? %s \n", config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -392,6 +395,7 @@ int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *ne
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Sets the user's netmask configuration
  *
@@ -404,7 +408,7 @@ int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:NETMASK %s", netmask);
+	sprintf(command, "SYST:COMM:LAN:NETMASK %s \n", netmask);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -416,6 +420,7 @@ int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan gateway (either current or option set)
  *
@@ -432,7 +437,7 @@ int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *ga
 	struct wsa_resp query;		// store query results
 	
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:GATEWAY? %s", config);
+	sprintf(command, "SYST:COMM:LAN:GATEWAY? %s \n", config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -447,6 +452,7 @@ int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *ga
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Sets the user's gateway configuration
  *
@@ -459,7 +465,7 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
-	sprintf(command, "SYST:COMM:LAN:GATEWAY %s", gateway);
+	sprintf(command, "SYST:COMM:LAN:GATEWAY %s \n", gateway);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -471,6 +477,7 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Gets the lan dbs (either current or option set)
  *
@@ -486,10 +493,9 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
 {
 	struct wsa_resp query;		// store query results
-	char temp_char[MAX_STR_LEN];
 	char command[MAX_STR_LEN];
 
-	sprintf(command, "SYST:COMM:LAN:DNS? %s", config);
+	sprintf(command, "SYST:COMM:LAN:DNS? %s \n", config);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -503,6 +509,7 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
 }
 
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Sets the user's dns configuration
  *
@@ -514,14 +521,14 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *config, char const *dns, char const *alternate_dns)
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alternate_dns)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
 	if (strcmp(alternate_dns, ""))
-		sprintf(command, "SYST:COMM:LAN:DNS %s", dns);
+		sprintf(command, "SYST:COMM:LAN:DNS %s \n", dns);
 	else
-		sprintf(command, "SYST:COMM:LAN:DNS %s, %s", dns, alternate_dns);
+		sprintf(command, "SYST:COMM:LAN:DNS %s, %s \n", dns, alternate_dns);
 
 	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
 		return WSA_ERR_INV4000COMMAND;
@@ -532,6 +539,7 @@ int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *config, char const *
 	return result;
 }
 
+// TODO: ADD BETTER ERROR HANDLING
 /**
  * Apply the user's current lan configuration
  *
@@ -543,7 +551,7 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev)
 {
 	int16_t result;
 
-	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
+	result = wsa_send_command(dev, ":SYST:COMM:LAN:APPLY\n");
 	doutf(DHIGH, "In wsa_apply_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
 
 	return result;

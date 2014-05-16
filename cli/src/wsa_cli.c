@@ -1283,7 +1283,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else
 				{
-					result = wsa_get_gain_if (dev, &temp_int);
+					result = wsa_get_gain_if(dev, &temp_int);
 					if (result >= 0)
 						printf("Current IF gain: %d dB\n", temp_int);
 				}
@@ -1303,7 +1303,66 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				printf("Incorrect get INPUT command. see 'h'.\n");
 		}  // end get INPUT MODE
+		else if (strcmp(cmd_words[1], "LAN") == 0)
+		{
+			if (strcmp(cmd_words[2], "CONFIG") == 0)
+			{
+				result =  wsa_get_lan_config(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan configuration %s \n", cmd_words[3], char_result);
+				}
+					}
+				
+			} // end get LAN CONFIG
+			else if (strcmp(cmd_words[2], "IP") == 0)
+			{
+				result =  wsa_get_lan_ip(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan ip %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN IP
+			
+			else if (strcmp(cmd_words[2], "NETMASK") == 0)
+			{
+				result =  wsa_get_lan_netmask(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan netmask %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN NETMASK
 
+			else if (strcmp(cmd_words[2], "GATEWAY") == 0)
+			{
+				result =  wsa_get_lan_gateway(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan gateway %s \n", cmd_words[3], char_result);
+				}
+
+			} // end get LAN GATEWAY
+
+			else if (strcmp(cmd_words[2], "DNS") == 0)
+			{
+				result =  wsa_get_lan_dns(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan dns %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN DNS
+		
+		} // end get LAN
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
 			if (num_words > 2)
@@ -1656,7 +1715,35 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				printf("Incorrect set INPUT command. see 'h'.\n");
 		}// end set INPUT MODE
+		else if (strcmp(cmd_words[1], "LAN") == 0) 
+		{
+			if (strcmp(cmd_words[2], "CONFIG") == 0)
+			{
+				result = wsa_set_lan_config(dev, cmd_words[3]);
+			}
 
+			if (strcmp(cmd_words[2], "IP") == 0)
+			{
+				result = wsa_set_lan_ip(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "NETMASK") == 0)
+			{
+				result = wsa_set_lan_netmask(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "GATEWAY") == 0)
+			{
+				result = wsa_set_lan_gateway(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "DNS") == 0)
+			{
+				result = wsa_set_lan_dns(dev, cmd_words[3], cmd_words[3]);
+			}
+		
+		}// end set LAN
+				
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
 			if (num_words < 3) 

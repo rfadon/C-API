@@ -31,16 +31,16 @@ int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan
 int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config);
 
 int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip);
-int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *lan_config, char const *ip);
+int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip);
 
 int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *netmask);
-int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *lan_config, char const *netmask);
+int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask);
 
 int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *gateway);
-int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *lan_config, char const *gateway);
+int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway);
 
-int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns, char *alternate_dns);
-int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *lan_config, char const *dns, char const *alternate_dns);
+int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns);
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alternate_dns);
 
 int16_t wsa_apply_lan_config(struct wsa_device *dev);
 
