@@ -246,7 +246,308 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
     return WSA_ERR_MALLOCFAILED;
 }
 
+// ////////////////////////////////////////////////////////////////////////////
+// LAN CONFIGURATION SECTION                                                 //
+// ////////////////////////////////////////////////////////////////////////////
 
+
+/**
+ * Gets the lan configuration (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the option set to WSA_OPTION_LAN_CONFIG
+ * @param config - Char pointer containing the requested lan configuration
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan_config)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:CONF? %s", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(lan_config, query.output);
+	
+	return 0;
+}
+
+
+/**
+ * Sets the option lan configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param lan_config - A char pointer containing the lan configuration\n
+ * valid lan configrations:  DHCP | STATIC
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:CONF %s", lan_config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Gets the lan ip (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the option set to WSA_OPTION_LAN_CONFIG
+ * @param ip - Char pointer containing the requested ip configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:IP? %s", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(ip, query.output);
+	
+	return 0;
+}
+
+
+/**
+ * Sets the user's ip configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param ip - A char pointer containing the ip
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *config, char const *ip)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:IP %s", ip);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_ip: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Gets the lan netmask (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to "CURRENT".
+ * For the option set to ""
+ * @param netmask - Char pointer containing the requested netmask configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *netmask)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:NETMASK? %s", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(netmask, query.output);
+	
+	return 0;
+}
+
+
+/**
+ * Sets the user's netmask configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param netmask - A char pointer containing the netmask
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:NETMASK %s", netmask);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Gets the lan gateway (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to "CURRENT".
+ * For the option set to ""
+ * @param gateway - Char pointer containing the requested gateway configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *gateway)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:GATEWAY? %s", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(gateway, query.output);
+	
+	return 0;
+}
+
+
+/**
+ * Sets the user's gateway configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gateway - A char pointer containing the gateway\n
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:GATEWAY %s", gateway);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_gateway_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+/**
+ * Gets the lan dbs (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to "CURRENT".
+ * For the option set to ""
+ * @param dns - Char pointer containing the requested dns configuration
+ * Note: dns may contain a comma seperated alternate dns value
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
+{
+	struct wsa_resp query;		// store query results
+	char temp_char[MAX_STR_LEN];
+	char command[MAX_STR_LEN];
+
+	sprintf(command, "SYST:COMM:LAN:DNS? %s", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	return 0;
+}
+
+
+/**
+ * Sets the user's dns configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param dns - A char pointer containing the dns ip \n
+ * @param alternate_dns - A char pointer containing the alternate dns ip
+ * Note: The alternate DNS is optional, if you don't want to set an alternate DNS \n
+ * set alternate_dns to ""
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *config, char const *dns, char const *alternate_dns)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	if (strcmp(alternate_dns, ""))
+		sprintf(command, "SYST:COMM:LAN:DNS %s", dns);
+	else
+		sprintf(command, "SYST:COMM:LAN:DNS %s, %s", dns, alternate_dns);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_gateway_dns: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+/**
+ * Apply the user's current lan configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_apply_lan_config(struct wsa_device *dev)
+{
+	int16_t result;
+
+	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
+	doutf(DHIGH, "In wsa_apply_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
 // ////////////////////////////////////////////////////////////////////////////
 // AMPLITUDE SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
