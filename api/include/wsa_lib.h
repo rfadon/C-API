@@ -127,7 +127,7 @@
 #define WSA_trigger_SYNC_DELAY_MULTIPLE 8
 
 // Decimation Range
-#define WSA_MAX_DECIMATION 1023
+#define WSA_MAX_DECIMATION 1024
 #define WSA_MIN_DECIMATION 4
 
 // *****
@@ -176,11 +176,16 @@ enum wsa_gain {
 #define WSA_5000_MIN_DECIMATION 4
 #define WSA_5000_FREQRES 100000ULL // to read in the register
 
-// RF gain modes
-#define WSA_RFE_ZIF_STRING "ZIF"
-#define WSA_RFE_HDR_STRING "HDR"
-#define WSA_RFE_SH_STRING "SH"
+// RFE modes
+#define WSA_RFE_DD_STRING   "DD"
 #define WSA_RFE_IQIN_STRING "IQIN"
+#define WSA_RFE_HDR_STRING  "HDR"
+#define WSA_RFE_SH_STRING   "SH"
+#define WSA_RFE_SHN_STRING  "SHN"
+#define WSA_RFE_ZIF_STRING  "ZIF"
+
+#define  WSA_CURRENT_LAN_CONFIG "CURRENT"
+#define  WSA_OPTION_LAN_CONFIG "OPTION"
 
 // IQ Output mode
 #define WSA_IQ_DIGITIZER_STRING "DIGITIZER"
@@ -308,10 +313,9 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax,
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 
-int16_t wsa_send_command(struct wsa_device *dev, char *command);
-int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name);
-int16_t wsa_send_query(struct wsa_device *dev, char *command, 
-						struct wsa_resp *resp);
+int16_t wsa_send_command(struct wsa_device *dev, char const *command);
+int16_t wsa_send_command_file(struct wsa_device *dev, char const *file_name);
+int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_resp *resp);
 
 int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device, 
 		struct wsa_vrt_packet_header * const header, 

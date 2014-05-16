@@ -310,8 +310,7 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
-					char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 {
 	int16_t result = 0;			// result returned from a function
 	char *temp_str;		// temporary store a string
@@ -487,7 +486,7 @@ int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port)
  *
  * @return Number of bytes sent on success, or a negative number on error.
  */
-int16_t wsa_send_command(struct wsa_device *dev, char *command)
+int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 {
 	int16_t bytes_txed = 0;
 	uint8_t resend_cnt = 0;
@@ -558,7 +557,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char *command)
  *
  * @return Number of command lines at success, or a negative error number.
  */
-int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
+int16_t wsa_send_command_file(struct wsa_device *dev, char const *file_name)
 {
 	struct wsa_resp resp;
     int16_t result = 0;
@@ -572,11 +571,10 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
     strcpy(resp.output, "");
     resp.status = 0;
 
-    if((cmd_fptr = fopen(file_name, "r")) == NULL)
-    {
+	cmd_fptr = fopen(file_name, "r");
+    if(cmd_fptr == NULL) {
         result = WSA_ERR_FILEREADFAILED;
-        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result),
-            file_name);
+        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), file_name);
         return result;
     }
 
@@ -587,6 +585,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 		if (cmd_strs[i] == NULL)
 		{
 			doutf(DHIGH, "In wsa_send_command_file: failed to allocate memory\n");
+            fclose(cmd_fptr);
 			return WSA_ERR_MALLOCFAILED;
 		}
 	}
@@ -659,7 +658,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char *file_name)
 *
 * @return 0 upon successful or a negative value
 */
-int16_t wsa_send_query(struct wsa_device *dev, char *command, struct wsa_resp * resp)
+int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_resp * resp)
 {
 	int16_t bytes_got = 0;
 	int16_t recv_result = 0;

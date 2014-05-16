@@ -12,15 +12,37 @@
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 
-int16_t wsa_check_addr(char *ip_addr);
-int16_t wsa_check_addrandport(char *ip_addr, char *port);
+int16_t wsa_check_addr(char const *ip_addr);
+int16_t wsa_check_addrandport(char const *ip_addr, char const *port);
 int16_t wsa_is_connected(struct wsa_device *dev);
 const char *wsa_get_err_msg(int16_t err_code);
 
-int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name);
+int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char const *file_name);
 
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response);
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command);
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response);
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command);
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// LAN CONFIGURATION SECTION                                                 //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan_config);
+int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config);
+
+int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip);
+int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip);
+
+int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *netmask);
+int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask);
+
+int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *gateway);
+int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway);
+
+int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns);
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alternate_dns);
+
+int16_t wsa_apply_lan_config(struct wsa_device *dev);
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -77,6 +99,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq);
 int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift);
 int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift);
 
+int16_t wsa_get_spec_inv(struct wsa_device *dev, int64_t freq, int16_t *inv);
 
 // ////////////////////////////////////////////////////////////////////////////
 // GAIN SECTION                                                              //
@@ -119,25 +142,31 @@ int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable);
 int16_t wsa_set_trigger_enable(struct wsa_device *dev, int32_t enable);
 
 int16_t wsa_get_trigger_type(struct wsa_device *dev, char *type);
-int16_t wsa_set_trigger_type(struct wsa_device *dev, char *type);
+int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *type);
 
 int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
 int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
 
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state);
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state);
 int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
 
 // ////////////////////////////////////////////////////////////////////////////
-// PLL SECTION                                                              //
+// PLL SECTION                                                               //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref);
-int16_t wsa_set_reference_pll(struct wsa_device *dev, char *pll_ref);
+int16_t wsa_set_reference_pll(struct wsa_device *dev, char const *pll_ref);
 int16_t wsa_reset_reference_pll(struct wsa_device *dev);
 
 int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref);
 int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf);
 
+
+// ////////////////////////////////////////////////////////////////////////////
+// TEMPERATURE SECTION                                                       //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixer_temp, float* digital_temp);
 
 ///////////////////////////////////////////////////////////////////////////////
 // STREAM CONTROL SECTION                                                    //
@@ -177,7 +206,7 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain);
 int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
 
 int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain);
-int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain);
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char const *gain);
 
 int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode);
 int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode);

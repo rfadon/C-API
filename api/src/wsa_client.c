@@ -211,7 +211,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
  * 
  * @returns Number of bytes sent on success, or negative otherwise.
  */
-int32_t wsa_sock_send(int32_t sock_fd, char *out_str, int32_t len)
+int32_t wsa_sock_send(int32_t sock_fd, char const *out_str, int32_t len)
 {
 	int32_t total_txed = 0;
 	int32_t bytes_txed;

@@ -59,8 +59,9 @@ int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq)
 {
 	
 	// verify the frequency value
-	if (freq < dev->descr.min_tune_freq || freq > dev->descr.max_tune_freq)
+	if ((freq < dev->descr.min_tune_freq) || (freq > dev->descr.max_tune_freq)) {
 		return WSA_ERR_FREQOUTOFBOUND;
+    }
 
 	return 0;
 }
@@ -124,19 +125,21 @@ void wsa_close(struct wsa_device *dev)
  * 
  * @return 0 if the IP is valid, or a negative number on error.
  */
-int16_t wsa_check_addr(char *ip_addr) 
+int16_t wsa_check_addr(char const *ip_addr) 
 {
 	int16_t result = 0;
 
 	// Check with command port
 	result = wsa_verify_addr(ip_addr, "37001");  //TODO make this dynamic
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	// check with data port
 	result = wsa_verify_addr(ip_addr, "37000");
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	return 0;
 }
@@ -151,7 +154,7 @@ int16_t wsa_check_addr(char *ip_addr)
  * 
  * @return 0 if the IP is valid, or a negative number on error.
  */
-int16_t wsa_check_addrandport(char *ip_addr, char *port) 
+int16_t wsa_check_addrandport(char const *ip_addr, char const *port) 
 {
 	return wsa_verify_addr(ip_addr, port);
 }
@@ -184,7 +187,7 @@ const char *wsa_get_err_msg(int16_t err_code)
  *
  * @return Number of command lines at success, or a negative error number.
  */
-int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
+int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char const *file_name)
 {
 	return wsa_send_command_file(dev, file_name);
 }
@@ -197,17 +200,24 @@ int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char *file_name)
  * @param response - A char pointer to hold the response from the wsa
  *
  */
-int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
+int16_t wsa_query_scpi(struct wsa_device *dev, char const *command, char *response)
 {
 	struct wsa_resp query;		
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	sprintf(command,"%s\n",command);
-	
-	wsa_send_query(dev, command, &query);
-	strcpy(response, query.output);
+	    wsa_send_query(dev, tmpbuffer, &query);
+	    strcpy(response, query.output);
 
-	return (int16_t) query.status;
+        free(tmpbuffer);
+
+	    return (int16_t) query.status;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
 }
 
 /**
@@ -217,15 +227,336 @@ int16_t wsa_query_scpi(struct wsa_device *dev, char *command, char *response)
  * @param command - A pointer to the scpi command
  *
  */
-int16_t wsa_send_scpi(struct wsa_device *dev, char *command)
+int16_t wsa_send_scpi(struct wsa_device *dev, char const *command)
 {
 	int16_t result;
-	sprintf(command,"%s\n",command);
+    size_t len = strlen(command);
+    char * tmpbuffer = malloc(len + 2);
 	
-	result = wsa_send_command(dev, command);
+    if(tmpbuffer) {
+	    sprintf(tmpbuffer, "%s\n", command);
 	
-	return result;
+	    result = wsa_send_command(dev, tmpbuffer);
 
+        free(tmpbuffer);
+
+        return result;
+    }
+
+    return WSA_ERR_MALLOCFAILED;
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// LAN CONFIGURATION SECTION                                                 //
+// ////////////////////////////////////////////////////////////////////////////
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Gets the lan configuration (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option, set to ""
+ * @param config - Char pointer containing the requested lan configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan_config)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:CONF? %s \n", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(lan_config, query.output);
+	
+	return 0;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Sets the option lan configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param lan_config - A char pointer containing the lan configuration\n
+ * valid lan configrations:  DHCP | STATIC
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:CONF %s \n", lan_config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Gets the lan ip (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
+ * @param ip - Char pointer containing the requested ip configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:IP? %s \n", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(ip, query.output);
+	
+	return 0;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Sets the user's ip configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param ip - A char pointer containing the ip
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:IP %s \n", ip);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_ip: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Gets the lan netmask (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
+ * @param netmask - Char pointer containing the requested netmask configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *netmask)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:NETMASK? %s \n", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(netmask, query.output);
+	
+	return 0;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Sets the user's netmask configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param netmask - A char pointer containing the netmask
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:NETMASK %s \n", netmask);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Gets the lan gateway (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
+ * @param gateway - Char pointer containing the requested gateway configuration
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *gateway)
+{
+	struct wsa_resp query;		// store query results
+	
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:GATEWAY? %s \n", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+	strcpy(gateway, query.output);
+	
+	return 0;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Sets the user's gateway configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gateway - A char pointer containing the gateway\n
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:GATEWAY %s \n", gateway);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_gateway: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Gets the lan dbs (either current or option set)
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param config - A char pointer that indicates which lan configuration to return
+ * For the WSA's current lan configuraiton, set to WSA_CURRENT_LAN_CONFIG.
+ * For the current set option set to ""
+ * @param dns - Char pointer containing the requested dns configuration
+ * Note: dns may contain a comma seperated alternate dns value
+ *
+ * @return 0 on successful, or a negative number on error.
+ */
+int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
+{
+	struct wsa_resp query;		// store query results
+	char command[MAX_STR_LEN];
+
+	sprintf(command, "SYST:COMM:LAN:DNS? %s \n", config);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	wsa_send_query(dev, command, &query);
+	
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	return 0;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Sets the user's dns configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param dns - A char pointer containing the dns ip \n
+ * @param alternate_dns - A char pointer containing the alternate dns ip
+ * Note: The alternate DNS is optional, if you don't want to set an alternate DNS \n
+ * set alternate_dns to ""
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns)
+{
+	int16_t result = 0;
+	char command[MAX_STR_LEN];
+	sprintf(command, "SYST:COMM:LAN:DNS %s \n", dns);
+
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+		return WSA_ERR_INV4000COMMAND;
+
+	result = wsa_send_command(dev, command);
+	doutf(DHIGH, "In wsa_set_lan_dns: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
+}
+
+
+// TODO: ADD BETTER ERROR HANDLING
+/**
+ * Apply the user's current lan configuration
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * 
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_apply_lan_config(struct wsa_device *dev)
+{
+	int16_t result;
+
+	result = wsa_send_command(dev, ":SYST:COMM:LAN:APPLY\n");
+	doutf(DHIGH, "In wsa_apply_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+
+	return result;
 }
 
 
@@ -335,11 +666,13 @@ int16_t wsa_flush_data(struct wsa_device *dev)
 
 	// check if the wsa is already sweeping
 	result = wsa_get_sweep_status(dev, status);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
-	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) 
+	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) {
 		return WSA_ERR_SWEEPALREADYRUNNING;
+    }
 
 	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
 	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -575,7 +908,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 		(samples_per_packet > WSA_MAX_SPP) || ((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 	
-	sprintf(temp_str, "TRACE:SPPACKET %hu\n", samples_per_packet);
+	sprintf(temp_str, "TRACE:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
 		
@@ -889,6 +1222,43 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 }
 
 
+/**
+ * get spectral inversion status at  a specific frequency (assumes current rfe mode set)
+ * Note: Check the spec_inv param in the trailer to determine  if
+ * spectral inversion has been compensated
+ * in the digitizer
+ *
+ * @param dev - A pointer to the WSA device structure.	
+ * @param freq - The center frequency band to check (Hz)
+ * @param inv - A pointer to store whether spectral inversion 
+ * has occured
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_spec_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char scpi_cmd[MAX_STR_LEN];
+
+	sprintf(scpi_cmd, "SENSE:FREQ:INV? %lld Hz\n", freq);
+
+	wsa_send_query(dev,scpi_cmd, &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the number & make sure no error
+	if (to_double(query.output, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*inv = (int16_t) temp;
+
+	return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // GAIN/ATTNEUATION SECTION                                                 //
 //////////////////////////////////////////////////////////////////////////////
@@ -1109,19 +1479,25 @@ int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
 	wsa_send_query(dev, "INPUT:MODE?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
+
 	strcpy(mode,query.output);
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	return 0;
 }
@@ -1141,14 +1517,18 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	sprintf(temp_str, "INPUT:MODE %s\n", mode);
 
@@ -1376,7 +1756,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_
 	else if (result < 0)
 		return result;
 
-	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
 
@@ -1460,7 +1840,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
  * @param trigger_type - Trigger mode of selection (NONE,LEVEL, OR PULSE).
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_type(struct wsa_device *dev, char *trigger_type)
+int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *trigger_type)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1579,7 +1959,7 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char *sync_state)
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1660,7 +2040,7 @@ int16_t wsa_get_reference_pll(struct wsa_device *dev, char *pll_ref)
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_reference_pll(struct wsa_device *dev, char *pll_ref)
+int16_t wsa_set_reference_pll(struct wsa_device *dev, char const *pll_ref)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1754,6 +2134,66 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
     return 0;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+// TEMPERATURE CONTROL SECTION                                               //
+///////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Get the WSA's current temperature
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param rfe_temp - A float pointer to store the RFE temperature
+ * @param mixer_temp - A float pointer to store the mixer's temperature
+ * @param digital_temp - A float pointer to store the digital section'stemperature
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixer_temp, float* digital_temp)
+{
+	struct wsa_resp query;		// store query results
+	double temp;
+	char *strtok_result;
+
+	wsa_send_query(dev, "STAT:TEMP?\n", &query);
+	if (query.status <= 0)
+		return (int16_t) query.status;
+
+	// Convert the 1st temperature value 
+	strtok_result = strtok(query.output, ",");
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*rfe_temp = (float) temp;
+
+	// Convert the 2nd temperature value
+	strtok_result = strtok(NULL, ",");
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*mixer_temp = (float) temp;
+
+	strtok_result = strtok(NULL, ",");
+
+	// Convert the temperature value
+	if (to_double(strtok_result, &temp) < 0)
+	{
+		printf("Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+
+	*digital_temp = (float) temp;
+
+	return 0;
+
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // STREAM CONTROL SECTION                                                    //
@@ -2117,7 +2557,7 @@ int16_t wsa_get_sweep_gain_rf(struct wsa_device *dev, char *gain)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char *gain)
+int16_t wsa_set_sweep_gain_rf(struct wsa_device *dev, char const *gain)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2260,7 +2700,7 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 		((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
 		return WSA_ERR_INVSAMPLESIZE;
 
-	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %hu\n", samples_per_packet);
+	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
 	doutf(DHIGH, "In wsa_set_sweep_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
 
@@ -2678,7 +3118,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
 	if (stop_freq <= start_freq)
 		return WSA_ERR_INVSTOPFREQ;
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%ld\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
 	doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));

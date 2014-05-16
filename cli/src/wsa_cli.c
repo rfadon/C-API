@@ -196,7 +196,7 @@ void print_cli_menu(struct wsa_device *dev)
 		"\t  ex: set ppb 100\n");
 	printf("  set spp <samples>\n"
 		"\t- Set the number of samples per packet to be captured\n"
-		"\t  Range: %hu - %hu, inclusive (must be multiple of 16).\n"
+		"\t  Range: %u - %u, inclusive (must be multiple of 16).\n"
 		"\t  ex: set spp 2048\n",
 		WSA_MIN_SPP, WSA_MAX_SPP);
 	printf("  set trigger mode <level | none | pulse>\n"
@@ -785,8 +785,6 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 			if (expected_if_pkt_count == UNASSIGNED_VRT_PKT_COUNT)		
 				expected_if_pkt_count = header->pkt_count;
 
-			
-			
 			if (expected_if_pkt_count >= MAX_VRT_PKT_COUNT)
 				expected_if_pkt_count = MIN_VRT_PKT_COUNT;
 			else
@@ -800,7 +798,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 						"FwVersion,SampleSize,Seconds,Picoseconds,"
 						"CentreFreq,Bandwidth,OffsetFreq,GainIF,GainRF,RefLevel\n");	
 				fprintf(iq_fptr, 
-						"%s,%d,%lu,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
+						"%s,%d,%u,%llu,%lld,%0.2f,%0.2lf,%0.2lf,%0.2lf,%0.2lf\n",
 						fw_ver,
 						header->samples_per_packet, 
 						header->time_stamp.sec,
@@ -1001,11 +999,12 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 		+ (uint32_t) vrt_buffer[7];
 		
 		// reduce the i counter if the packet does not contain if data
-		if (stream_identifier_word != I16Q16_DATA_STREAM_ID ||
-			stream_identifier_word != I16_DATA_STREAM_ID ||
-			stream_identifier_word != I32_DATA_STREAM_ID)
-			i--;
-
+		if((stream_identifier_word != I16Q16_DATA_STREAM_ID) && 
+		   (stream_identifier_word != I16_DATA_STREAM_ID) && 
+		   (stream_identifier_word != I32_DATA_STREAM_ID)) 
+        {
+		    i--;
+        }
 		else
 		{
 			iq_pkt_count++;
@@ -1096,7 +1095,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						int16_t num_words)
 {
 	int16_t result = 0;			// result returned from a function
-	int16_t input_veri_result = 0; // result returned from varifying input cmd param
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
 	int i;
@@ -1107,8 +1105,12 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t temp_int;
 	long temp_long;
 	double temp_double;
-
+	
+	float rfe_temp;
+	float mixer_temp;
+	float digitizer_temp;
 	float fshift = 0;
+	
 	int64_t freq_value;
 	int64_t start_freq;
 	int64_t stop_freq;
@@ -1149,7 +1151,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			
 			result = wsa_get_attenuation(dev, &temp_int);
 			if (result >= 0)
-				printf("Attenuator's mode of operation: %d", temp_short);
+				printf("Attenuator's mode of operation: %d", temp_int);
 
 		} // end get ATTEN
 
@@ -1281,7 +1283,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				}
 				else
 				{
-					result = wsa_get_gain_if (dev, &temp_int);
+					result = wsa_get_gain_if(dev, &temp_int);
 					if (result >= 0)
 						printf("Current IF gain: %d dB\n", temp_int);
 				}
@@ -1301,7 +1303,65 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				printf("Incorrect get INPUT command. see 'h'.\n");
 		}  // end get INPUT MODE
+		else if (strcmp(cmd_words[1], "LAN") == 0)
+		{
+			if (strcmp(cmd_words[2], "CONFIG") == 0)
+			{
+				result =  wsa_get_lan_config(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan configuration %s \n", cmd_words[3], char_result);
+				}
+			}// end get LAN CONFIG
+				
+			else if (strcmp(cmd_words[2], "IP") == 0)
+			{
+				result =  wsa_get_lan_ip(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan ip %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN IP
+			
+			else if (strcmp(cmd_words[2], "NETMASK") == 0)
+			{
+				result =  wsa_get_lan_netmask(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan netmask %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN NETMASK
 
+			else if (strcmp(cmd_words[2], "GATEWAY") == 0)
+			{
+				result =  wsa_get_lan_gateway(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan gateway %s \n", cmd_words[3], char_result);
+				}
+
+			} // end get LAN GATEWAY
+
+			else if (strcmp(cmd_words[2], "DNS") == 0)
+			{
+				result =  wsa_get_lan_dns(dev, cmd_words[3], char_result);
+				if (result >= 0)
+				{
+					if (strcmp(cmd_words[3], "") == 0)
+						sprintf(cmd_words[3], WSA_OPTION_LAN_CONFIG);
+					printf("%s Lan dns %s \n", cmd_words[3], char_result);
+				}
+			} // end get LAN DNS
+		
+		} // end get LAN
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
 			if (num_words > 2)
@@ -1311,17 +1371,32 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result >= 0)
 				printf("Current packets per block: %d\n", temp_int);
 		} // end get PPB
+		
+		else if (strcmp(cmd_words[1], "SPEC") == 0)
+		{
+			if (strcmp(cmd_words[2], "INV") == 0)
+			{
+				if (num_words < 4) 
+					printf("Missing the frequency value.\n");
+				if (!to_double(cmd_words[3], &temp_double))
+				{
+					result = wsa_get_spec_inv(dev, (int64_t) temp_double *  MHZ, &temp_short);
+					if (result >= 0)
+						printf("Spectral inversion state: %d\n", temp_short);
+				} else
+					printf("Invalid input. Frequency value must be a number. See 'h'.\n");
+			} else
+				printf("Did you mean 'get spec inv'?\n");
 
+		} // end get SPEC
 		else if (strcmp(cmd_words[1], "SPP") == 0) 
 		{
 			if (num_words > 2) 
 			{
 				if (strcmp(cmd_words[2], "MAX") == 0)
-					printf("Maximum samples per packet: %hu\n", 
-						WSA_MAX_SPP);
+					printf("Maximum samples per packet: %u\n", WSA_MAX_SPP);
 				else if (strcmp(cmd_words[2], "MIN") == 0)
-					printf("Minimum samples per packet: %hu\n", 
-						WSA_MIN_SPP);
+					printf("Minimum samples per packet: %u\n", WSA_MIN_SPP);
 				else
 					printf("Did you mean \"min\" or \"max\"?\n");
 			}
@@ -1394,7 +1469,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Trigger configuration:\n");
 					printf("   Start frequency: %f MHz\n", (float) (start_freq / MHZ));
 					printf("   Stop frequency: %f MHz\n", (float) (stop_freq / MHZ));
-					printf("   Amplitude: %ld dBm\n", amplitude);
+					printf("   Amplitude: %d dBm\n", amplitude);
 				}
 			} // end get TRIGGER LEVEL				
 			
@@ -1422,6 +1497,17 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 		} // end get TRIGGER
 		
+		else if (strcmp(cmd_words[1], "TEMP") == 0 || strcmp(cmd_words[1], "TEMPERATURE") == 0) 
+		{
+			result = wsa_get_temperature(dev, &rfe_temp, &mixer_temp, &digitizer_temp);
+			if (result >= 0)
+			{
+				printf("\t WSA RFE temperature: %0.2f \n", rfe_temp);
+				printf("\t WSA mixer temperature: %0.2f \n", mixer_temp);
+				printf("\t WSA digital section temperature: %0.2f \n", digitizer_temp);
+			}
+		} // end get TEMP
+
 		else if (strcmp(cmd_words[1], "SWEEP") == 0) 
 		{
 			if (strcmp(cmd_words[2], "ENTRY") == 0) 
@@ -1553,7 +1639,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						(double) dev->descr.max_tune_freq / MHZ);
 			}
 			else
-				printf("Invalid input. Frequency value must be a number. See 'h'.\n");;
+				printf("Invalid input. Frequency value must be a number. See 'h'.\n");
 
 		} // end set FREQ
 
@@ -1628,7 +1714,35 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			else
 				printf("Incorrect set INPUT command. see 'h'.\n");
 		}// end set INPUT MODE
+		else if (strcmp(cmd_words[1], "LAN") == 0) 
+		{
+			if (strcmp(cmd_words[2], "CONFIG") == 0)
+			{
+				result = wsa_set_lan_config(dev, cmd_words[3]);
+			}
 
+			if (strcmp(cmd_words[2], "IP") == 0)
+			{
+				result = wsa_set_lan_ip(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "NETMASK") == 0)
+			{
+				result = wsa_set_lan_netmask(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "GATEWAY") == 0)
+			{
+				result = wsa_set_lan_gateway(dev, cmd_words[3]);
+			}
+			
+			if (strcmp(cmd_words[2], "DNS") == 0)
+			{
+				result = wsa_set_lan_dns(dev, cmd_words[3], cmd_words[3]);
+			}
+		
+		}// end set LAN
+				
 		else if (strcmp(cmd_words[1], "PPB") == 0) 
 		{
 			if (num_words < 3) 
@@ -1648,9 +1762,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
 				if (result == WSA_ERR_INVSAMPLESIZE)
-					sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.",
-						WSA_MIN_SPP,
-						WSA_MAX_SPP);
+					sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.", WSA_MIN_SPP, WSA_MAX_SPP);
 			}
 			else
 				printf("Invalid input. SPP value must a positive integer.\n");
@@ -1966,9 +2078,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						result = wsa_set_sweep_samples_per_packet(dev, 
 								(int32_t) temp_long);
 						if (result == WSA_ERR_INVSAMPLESIZE)
-							sprintf(msg, "\n   - Must be multiple of 16, valid range: %hu to %hu.\n",
-								WSA_MIN_SPP,
-								WSA_MAX_SPP);
+							sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.\n", WSA_MIN_SPP, WSA_MAX_SPP);
 					}
 					else
 						printf("Invalid input. SPP value must be a positive integer.\n");
@@ -2084,7 +2194,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	{
 		if  (strcmp(cmd_words[1], "START") == 0) 
 		{
-			if ((num_words ==2))
+			if(num_words == 2) 
 				result = wsa_stream_start(dev);
 				
 			else if ((num_words == 3) && !to_int(cmd_words[2], &temp_long))
@@ -2321,7 +2431,7 @@ int16_t do_wsa(const char *wsa_addr)
 
 	// Create the TCPIP interface method string
 	sprintf(intf_str, "TCPIP::%s", wsa_addr);
-	//sprintf(intf_str, "TCPIP::%s::%d,%d", wsa_addr, CTRL_PORT, DATA_PORT);
+	//sprintf(intf_str, "TCPIP::%s::%s,%s", wsa_addr, CTRL_PORT, DATA_PORT);
 
 	// Start the WSA connection
 	dev = &wsa_dev;
@@ -2536,8 +2646,7 @@ int16_t process_call_mode(int32_t argc, char **argv)
 				strcpy(temp_str, strtok(temp_str, "="));
 
 				// Create the TCPIP interface method string
-				sprintf(intf_str, "TCPIP::%s::%d,%d", temp_str, CTRL_PORT, 
-					DATA_PORT);
+				sprintf(intf_str, "TCPIP::%s::%s,%s", temp_str, CTRL_PORT, DATA_PORT);
 
 				w++;
 			}
@@ -2711,7 +2820,6 @@ void print_wsa_stat(struct wsa_device *dev)
     int64_t start_freq = 0;
 	int64_t stop_freq = 0;
 	int32_t amplitude = 0;
-	int32_t enable = 0;
 	char capture_mode[MAX_STRING_LEN];
 	char trigger_mode[MAX_STRING_LEN];
 	char gain[10];
@@ -2775,9 +2883,9 @@ void print_wsa_stat(struct wsa_device *dev)
 
 		result = wsa_get_trigger_level(dev, &start_freq, &stop_freq, &amplitude);
 		if (result >= 0) {
-			printf("\t\t\t- Start Frequency: %u\n", start_freq/MHZ);
-			printf("\t\t\t- Stop Frequency: %u\n", stop_freq/MHZ);
-			printf("\t\t\t- Amplitude: %ld dBm\n", amplitude);
+			printf("\t\t\t- Start Frequency: %llu\n", start_freq/MHZ);
+			printf("\t\t\t- Stop Frequency: %llu\n", stop_freq/MHZ);
+			printf("\t\t\t- Amplitude: %d dBm\n", amplitude);
 		}
 		else {
 			printf("\t\t- Error: Failed reading trigger levels.\n");
@@ -2896,7 +3004,7 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		if (result < 0)
 			return result;
 		printf("      Range (MHz): %0.3f - %0.3f\n", (float) start_freq/MHZ, (float) stop_freq/MHZ);
-		printf("      Amplitude: %ld dBm\n", amplitude);
+		printf("      Amplitude: %d dBm\n", amplitude);
 	}
 
 	else if(strcmp(trigger_type, WSA_PULSE_TRIGGER_TYPE) == 0)
@@ -2907,13 +3015,13 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		
 		// print trigger sync delay sweep value
 		result = wsa_get_sweep_trigger_sync_delay(dev, &trigger_sync_delay);
-		printf("      Delay time: %ld ns\n", trigger_sync_delay);
+		printf("      Delay time: %d ns\n", trigger_sync_delay);
 	}
 	// print dwell sweep value
 	result = wsa_get_sweep_dwell(dev, &dwell_seconds, &dwell_microseconds);
 	if (result < 0)
 		return result;
-	printf("   Dwell time: %u.%lu seconds\n", dwell_seconds, dwell_microseconds);
+	printf("   Dwell time: %u.%u seconds\n", dwell_seconds, dwell_microseconds);
 
 	return 0;
 }
@@ -2958,12 +3066,12 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 		printf("    Trigger mode: %s\n",list_values->trigger_type);
 		printf("       Range (MHz): %0.3f %0.3f\n", (float) (list_values->trigger_start_freq / MHZ),
 													(float)  (list_values->trigger_stop_freq / MHZ));
-		printf("       Amplitude: %ld dBm\n", list_values->trigger_amplitude);
+		printf("       Amplitude: %d dBm\n", list_values->trigger_amplitude);
 	}
     else 
 		printf("    Trigger mode running: %s\n",list_values->trigger_type);
 
-	printf("  Dwell time: %u.%lu seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
+	printf("  Dwell time: %u.%u seconds\n", list_values->dwell_seconds, list_values->dwell_microseconds);
 
 	free(list_values);
 	
