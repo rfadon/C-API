@@ -7,6 +7,11 @@
 #include "wsa_lib.h"
 
 
+#ifdef _WIN32
+# define strtok_r strtok_s
+#endif
+
+
 //*****
 // LOCAL DEFINES
 //*****
@@ -29,7 +34,8 @@ void extract_extension_packet_data(uint8_t *temp_buffer, struct wsa_extension_pa
 int16_t _wsa_dev_init(struct wsa_device *dev)
 {
 	struct wsa_resp query;
-	char *strtok_result;
+	char * strtok_result;
+    char * strtok_context = NULL;
 	int16_t i = 0;
 	// Initialized with "null" constants
 	dev->descr.inst_bw = 0;
@@ -47,15 +53,13 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	
 	wsa_send_query(dev, "*IDN?\n", &query);
 	
-	strtok_result = strtok(query.output, ",");
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	
 	// grab product model
-	if(strstr(strtok_result, WSA4000) != NULL) 
+	if(strstr(strtok_result, WSA4000) != NULL) {
 		sprintf(dev->descr.prod_model, "%s", WSA4000);
-	
-	else if(strstr(strtok_result, WSA5000) != NULL)
-	{
+	} else if(strstr(strtok_result, WSA5000) != NULL) {
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		if (strstr(strtok_result, WSA5000108) != NULL)
 		{
@@ -85,11 +89,11 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	}
 
 	// grab product mac address
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
 	
 	// grab product firmware version
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	strcpy(dev->descr.fw_version, strtok_result);
 	
 	dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
@@ -133,8 +137,9 @@ int16_t _wsa_open(struct wsa_device *dev)
 
 	// go to read STB & handle the response
 	result = _wsa_query_stb(dev, output);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	// Initialize wsa_device structure with the proper values
 	result = _wsa_dev_init(dev);
@@ -162,11 +167,13 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 	
 	// read "*STB?" for any status bits
 	wsa_send_query(dev, "*STB?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
-	if (to_int(query.output, &temp_val) < 0)
+	if (to_int(query.output, &temp_val) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	
 	stb_reg = (uint8_t) temp_val;
 	
@@ -310,10 +317,11 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method)
 {
 	int16_t result = 0;			// result returned from a function
 	char *temp_str;		// temporary store a string
+    char * strtok_context = 0;
 	char intf_type[10];
 	char ports_str[20];
 	char wsa_addr[200];		// store the WSA IP address
@@ -329,12 +337,12 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 	strcpy(ports_str, "");
 
 	// Gets the interface strings
-	temp_str = strtok(intf_method, ":");
+	temp_str = strtok_r(intf_method, ":", &strtok_context);
 	while (temp_str != NULL) {
 		if (colons == 0)	 strcpy(intf_type, temp_str);
 		else if (colons == 1)	 strcpy(wsa_addr, temp_str);
 		else if (colons == 2)	 strcpy(ports_str, temp_str);
-		temp_str = strtok(NULL, ":");
+		temp_str = strtok_r(NULL, ":", &strtok_context);
 		colons++;
 	}
 
@@ -389,30 +397,29 @@ int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, char *intf_method)
 		// extract the ports if they exist
 		if (strlen(ports_str) > 0)	{
 			// get control port
-			temp_str = strtok(ports_str, ",");
+			temp_str = strtok_r(ports_str, ",", &strtok_context);
 			strcpy(ctrl_port, temp_str);
 			
 			// get data port
-			temp_str = strtok(NULL, ",");
+			temp_str = strtok_r(NULL, ",", &strtok_context);
 			strcpy(data_port, temp_str);
-		}
-		else {
+		} else {
 			strcpy(ctrl_port, CTRL_PORT);
 			strcpy(data_port, DATA_PORT);
 		}
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd, 
-			ctrl_port);
-		if (result < 0)
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port);
+		if (result < 0) {
 			return result;
+        }
 
 		// setup data socket & connect
-		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, 
-			data_port);
-		if (result < 0)
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port);
+		if (result < 0) {
 			return result;
+        }
 
 		strcpy(dev->descr.intf_type, "TCPIP");
 	}

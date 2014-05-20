@@ -308,8 +308,7 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_connect(struct wsa_device *dev, char *cmd_syntax, 
-					char *intf_method);
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 

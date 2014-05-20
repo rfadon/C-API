@@ -7,6 +7,11 @@
 #include "wsa_commons.h"
 #include "wsa_error.h"
 
+
+#ifdef _WIN32
+# define strtok_r strtok_s
+#endif
+
 /**
  * Returns the error message based on the error ID given
  *
@@ -227,6 +232,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	long fSize;
 	char *buffer;
 	char *fToken;
+    char * strtok_context = 0;
 	int16_t next = 0;
 	int i;
 
@@ -247,7 +253,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	for (i = 0; i < MAX_FILE_LINES; i++) 
 		strcpy(cmd_strs[i], "");
 
-	fToken = strtok(buffer, SEP_CHARS);
+	fToken = strtok_r(buffer, SEP_CHARS, &strtok_context);
 	while (fToken != NULL)	{
 		doutf(DLOW, "%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
 		// Avoid taking any empty line
@@ -255,7 +261,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 			strcpy(cmd_strs[next], fToken);
 			next++;
 		}
-		fToken = strtok(NULL, SEP_CHARS);
+		fToken = strtok_r(NULL, SEP_CHARS, &strtok_context);
 	}
 
 	free(buffer);

@@ -46,6 +46,10 @@
 #include "wsa_api.h"
 #include "wsa_client.h"
 
+#ifdef _WIN32
+# define strtok_r strtok_s
+#endif
+
 
 #define MAX_RETRIES_READ_FRAME 5
 
@@ -525,7 +529,7 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns)
+int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alternate_dns)
 {
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
@@ -1778,23 +1782,23 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 {
 	struct wsa_resp query;		// store query results
 	double temp;
-	char *strtok_result;
+	char * strtok_result;
+    char * strtok_context = 0;
 
 	wsa_send_query(dev, ":TRIG:LEVEL?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 	
 	// Convert the 1st number & make sure no error
-	strtok_result = strtok(query.output, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq)
-	{
+	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
 		printf("Error1: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -1802,27 +1806,23 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	*start_freq = (int64_t) temp;
 	
 	// Convert the 2nd number & make sure no error
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
-	{
+	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
 		printf("Error2: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	*stop_freq = (int64_t) temp;
 	
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
-	if (to_double(strtok_result, &temp) < 0)
-	{
-		
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -2154,16 +2154,16 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 {
 	struct wsa_resp query;		// store query results
 	double temp;
-	char *strtok_result;
+	char * strtok_result;
+	char * strtok_context = 0;
 
 	wsa_send_query(dev, "STAT:TEMP?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
 
 	// Convert the 1st temperature value 
-	strtok_result = strtok(query.output, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -2171,20 +2171,18 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 	*rfe_temp = (float) temp;
 
 	// Convert the 2nd temperature value
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	*mixer_temp = (float) temp;
 
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 
 	// Convert the temperature value
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -2838,25 +2836,25 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 {
 	struct wsa_resp query;	// store query results
 	double temp;
-	char *strtok_result;
+	char * strtok_result;
+	char * strtok_context = 0;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:FREQ:CENTER?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
-	strtok_result = strtok(query.output, ",");
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	// Convert the number & make sure no error
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	*start_freq = (int64_t) temp;
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -3038,8 +3036,9 @@ int16_t wsa_set_sweep_dwell(struct wsa_device *dev, int32_t seconds, int32_t mic
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if ((seconds < 0) || (microseconds < 0))
-	return WSA_ERR_INVDWELL;
+	if ((seconds < 0) || (microseconds < 0)) {
+  	  return WSA_ERR_INVDWELL;
+    }
 
 	sprintf(temp_str, "SWEEP:ENTRY:DWELL %u,%u\n", seconds, microseconds);
 	result = wsa_send_command(dev, temp_str);
@@ -3062,25 +3061,25 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
 {
 	struct wsa_resp query;		// store query results
 	double temp = 5;
-	char *strtok_result;
+	char * strtok_result;
+	char * strtok_context = 0;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:DWELL?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the 1st number & make sure no error
-	strtok_result = strtok(query.output, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*seconds = (int32_t) temp;
 	
 	// Convert the 2nd number & make sure no error
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
-	{
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
@@ -3140,14 +3139,16 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 {
 	struct wsa_resp query;		// store query results
 	double temp;
-	char *strtok_result;
+	char * strtok_result;
+	char * strtok_context = 0;
 	
 	wsa_send_query(dev, "SWEEP:ENTRY:TRIGGER:LEVEL?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the 1st number & make sure no error
-	strtok_result = strtok(query.output, ",");
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		printf("Error: WSA returned '%s'.\n", query.output);
@@ -3156,7 +3157,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	*start_freq = (int64_t) temp;
 
 	// Convert the 2nd number & make sure no error
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		printf("Error: WSA returned '%s'.\n", query.output);
@@ -3165,7 +3166,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	*stop_freq = (int64_t) temp;
 
 	// Convert the 3rd number & make sure no error
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (to_double(strtok_result, &temp) < 0)
 	{
 		printf("Error: WSA returned '%s'.\n", query.output);
@@ -3778,107 +3779,123 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	double temp;
 	int32_t size = 0;
 	int16_t result;
-	char *strtok_result;
+	char * strtok_result;
+	char * strtok_context = 0;
 	
 	// check if id is out of bounds
 	result = wsa_get_sweep_entry_size(dev, &size);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
-	if (id < 0 || id > size)
+	if ((id < 0) || (id > size)) {
 		return WSA_ERR_SWEEPIDOOB;
+    }
 
 	sprintf(temp_str, "SWEEP:ENTRY:READ? %d\n", id);
 	wsa_send_query(dev, temp_str, &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 	
 	// *****
 	// Convert the numbers & make sure no error
 	// ****
 
-	strtok_result = strtok(query.output, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->start_freq = (int64_t) temp;
 	
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->stop_freq = (int64_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
+    }
 	sweep_list->fstep= (int64_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->fshift = (float) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
+    }
 	sweep_list->decimation_rate = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
+    }
 	sweep_list->ant_port = (int32_t) temp;
 	
 	// Convert to wsa_gain type
-	strtok_result = strtok(NULL, ",");
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	strcpy(sweep_list->gain_rf,strtok_result);
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->gain_if = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->samples_per_packet = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->packets_per_block = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->dwell_seconds = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");
-	if (to_double(strtok_result, &temp) < 0)
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
+    }
 	sweep_list->dwell_microseconds = (int32_t) temp;
 
-	strtok_result = strtok(NULL, ",");	
-	if (strstr(strtok_result, WSA_LEVEL_TRIGGER_TYPE) != NULL)
-	{
+	strtok_result = strtok_r(NULL, ",", &strtok_context);	
+	if (strstr(strtok_result, WSA_LEVEL_TRIGGER_TYPE) != NULL) {
 		strcpy(sweep_list->trigger_type,strtok_result);
 
-		strtok_result = strtok(NULL, ",");
-		if (to_double(strtok_result, &temp) < 0)
+		strtok_result = strtok_r(NULL, ",", &strtok_context);
+		if (to_double(strtok_result, &temp) < 0) {
 			return WSA_ERR_RESPUNKNOWN;
+        }
 		sweep_list->trigger_start_freq = (int64_t) temp;
 		
-		strtok_result = strtok(NULL, ",");
-		if (to_double(strtok_result, &temp) < 0)
+		strtok_result = strtok_r(NULL, ",", &strtok_context);
+		if (to_double(strtok_result, &temp) < 0) {
 			return WSA_ERR_RESPUNKNOWN;
+        }
 		sweep_list->trigger_stop_freq = (int64_t) temp;
 
-		strtok_result = strtok(NULL, ",");
-		if (to_double(strtok_result, &temp) < 0)
+		strtok_result = strtok_r(NULL, ",", &strtok_context);
+		if (to_double(strtok_result, &temp) < 0) {
 			return WSA_ERR_RESPUNKNOWN;	
+        }
 		sweep_list->trigger_amplitude = (int32_t) temp;
-	}
-	else
+	} else {
 		strcpy(sweep_list->trigger_type,strtok_result);
-
+    }
 
 	return 0;
 }
