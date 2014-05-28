@@ -71,6 +71,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SOCKETDROPPED,
 			"Socket connection unexpectedly dropped. Close this application and "
 			"check the Ethernet connection (repower WSA if necessary)"},
+		{WSA_ERR_INVLANCONFIG,
+			"Invalid LAN configuration option"},
+
 						
 		//*****
 		// Amplitude related
