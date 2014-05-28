@@ -185,7 +185,7 @@ enum wsa_gain {
 #define WSA_RFE_ZIF_STRING  "ZIF"
 
 #define  WSA_CURRENT_LAN_CONFIG "CURRENT"
-#define  WSA_OPTION_LAN_CONFIG "OPTION"
+#define  WSA_OPTION_LAN_CONFIG ""
 
 // IQ Output mode
 #define WSA_IQ_DIGITIZER_STRING "DIGITIZER"
