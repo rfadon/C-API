@@ -98,7 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 	struct wsa_extension_packet* extension;
 	
 	bool receivedData = false;
-	int16_t resultStatus;
+	int16_t resultStatus = 0;
 
     digitizer = (struct wsa_digitizer_packet*) malloc(sizeof(struct wsa_digitizer_packet));
     receiver = (struct wsa_receiver_packet*) malloc(sizeof(struct wsa_receiver_packet));
@@ -146,6 +146,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 	free(extension);
 	free(trailer);
 	free(header);
+
 	plhs[0] = mxCreateDoubleScalar(resultStatus);
 	
 	if (resultStatus < 0)
