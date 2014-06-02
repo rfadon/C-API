@@ -157,7 +157,7 @@ int16_t _wsa_open(struct wsa_device *dev)
 int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
-	long temp_val;
+	int temp_val;
 	uint8_t stb_reg = 0;
 	struct wsa_resp query;		// store query results
 	char query_msg[256];
@@ -171,7 +171,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 		return (int16_t) query.status;
     }
 
-	if (to_int(query.output, &temp_val) < 0) {
+	if (wsa_to_int(query.output, &temp_val) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
     }
 	
@@ -214,7 +214,7 @@ int16_t _wsa_query_stb(struct wsa_device *dev, char *output)
 int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 {
 	int16_t result = 0;
-	long temp_val;
+	int temp_val;
 	uint8_t esr_reg = 0;
 	struct wsa_resp query;		// store query results
 
@@ -223,12 +223,15 @@ int16_t _wsa_query_esr(struct wsa_device *dev, char *output)
 	
 	// read "*STB?" for any status bits
 	wsa_send_query(dev, "*ESR?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the output
-	if (to_int(query.output, &temp_val) < 0)
+	if (wsa_to_int(query.output, &temp_val) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
+    }
+
 	esr_reg = (uint8_t) temp_val;
 
 	if (!(esr_reg & SCPI_ESR_OPC)) {

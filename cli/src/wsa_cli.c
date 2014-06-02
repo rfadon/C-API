@@ -1103,7 +1103,6 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	char *file_name;
 	int16_t temp_short;
 	int32_t temp_int;
-	long temp_long;
 	double temp_double;
 	
 	float rfe_temp;
@@ -1579,9 +1578,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words < 3) 
 				printf("Missing the antenna port value. See 'h'.\n");
 
-			else if (!to_int(cmd_words[2], &temp_long))
+			else if (!wsa_to_int(cmd_words[2], &temp_int))
 			{
-				result = wsa_set_antenna(dev, (int32_t) temp_long);
+				result = wsa_set_antenna(dev, (int32_t) temp_int);
 				if (result == WSA_ERR_INVANTENNAPORT)
 					sprintf(msg, "\n   - Valid ports: 1 to %d.", 
 						WSA_4000_MAX_ANT_PORT);
@@ -1595,8 +1594,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (num_words < 3) 
 				printf("Missing the attenuation mode of operation. See 'h'.\n");
-			else if (!to_int(cmd_words[2], &temp_long)) 
-				result = wsa_set_attenuation(dev, (int32_t) temp_long);
+			else if (!wsa_to_int(cmd_words[2], &temp_int)) 
+				result = wsa_set_attenuation(dev, (int32_t) temp_int);
 		}
 		else if (strcmp(cmd_words[1], "BPF") == 0) 
 		{
@@ -1613,9 +1612,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words < 3) 
 				printf("Missing the decimation rate. See 'h'.\n");
 
-			else if (!to_int(cmd_words[2], &temp_long))
+			else if (!wsa_to_int(cmd_words[2], &temp_int))
 			{
-				result = wsa_set_decimation(dev, (int32_t) temp_long);
+				result = wsa_set_decimation(dev, (int32_t) temp_int);
 				if (result == WSA_ERR_INVDECIMATIONRATE)
 					sprintf(msg, "\n   - Valid range: (1 off), %d to %d.", // TODO #s
 					dev->descr.min_decimation, dev->descr.max_decimation);
@@ -1683,9 +1682,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				{
 					printf("Missing the IF gain value in dB.  See 'h'.\n");
 				}				
-				else if (!to_int(cmd_words[3], &temp_long)) 
+				else if (!wsa_to_int(cmd_words[3], &temp_int)) 
 				{
-					result = wsa_set_gain_if(dev, (int32_t) temp_long);
+					result = wsa_set_gain_if(dev, (int32_t) temp_int);
 					if (result == WSA_ERR_INVIFGAIN)
 						sprintf(msg, "\n   - Valid range: %d to %d dB.", 
 							dev->descr.min_if_gain, dev->descr.max_if_gain);
@@ -1747,8 +1746,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (num_words < 3) 
 				printf("Missing the packets per block value. See 'h'.\n");
-			else if (!to_int(cmd_words[2], &temp_long))
-				result = wsa_set_packets_per_block(dev,	(int32_t) temp_long);
+			else if (!wsa_to_int(cmd_words[2], &temp_int))
+				result = wsa_set_packets_per_block(dev,	(int32_t) temp_int);
 			else
 				printf("Invalid input. PPB value must be an positive integer.\n");
 		} // end set PPB
@@ -1758,9 +1757,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words < 3) 
 				printf("Missing the samples per packet value. See 'h'.\n");
 
-			else if (!to_int(cmd_words[2], &temp_long)) 
+			else if (!wsa_to_int(cmd_words[2], &temp_int)) 
 			{
-				result = wsa_set_samples_per_packet(dev, (int32_t) temp_long);
+				result = wsa_set_samples_per_packet(dev, (int32_t) temp_int);
 				if (result == WSA_ERR_INVSAMPLESIZE)
 					sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.", WSA_MIN_SPP, WSA_MAX_SPP);
 			}
@@ -1857,8 +1856,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						printf("Missing trigger sync delay value. See 'h'.\n");
 						return 0;
 					}
-					else if (!to_int(cmd_words[4], &temp_long))
-						result = wsa_set_trigger_sync_delay(dev, (int32_t) temp_long);
+					else if (!wsa_to_int(cmd_words[4], &temp_int))
+						result = wsa_set_trigger_sync_delay(dev, (int32_t) temp_int);
 					else
 						printf("Invalid trigger sync delay value. See 'h'.\n");
 
@@ -1894,9 +1893,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (num_words < 5)
 						printf("Missing the antenna port value. See 'h'.\n");
 
-					else if (!to_int(cmd_words[4], &temp_long))
+					else if (!wsa_to_int(cmd_words[4], &temp_int))
 					{
-						result = wsa_set_sweep_antenna(dev, (int32_t) temp_long);				
+						result = wsa_set_sweep_antenna(dev, (int32_t) temp_int);				
 						if (result == WSA_ERR_INVANTENNAPORT)
 							sprintf(msg, "\n   - Valid ports: 1 to %d.",
 							WSA_4000_MAX_ANT_PORT);
@@ -1911,9 +1910,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (num_words < 5)
 						printf("Missing the decimation rate. See 'h'.\n");
 			
-					else if (!to_int(cmd_words[4], &temp_long)) 
+					else if (!wsa_to_int(cmd_words[4], &temp_int)) 
 					{
-						result = wsa_set_sweep_decimation(dev, (int32_t) temp_long);
+						result = wsa_set_sweep_decimation(dev, (int32_t) temp_int);
 						if (result == WSA_ERR_INVDECIMATIONRATE)
 							sprintf(msg, "\n   - Valid range: %d to %d.", // TODO #s
 								dev->descr.min_decimation, dev->descr.max_decimation);
@@ -2031,9 +2030,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 						{
 							printf("Missing the IF gain value in dB.  See 'h'.\n");
 						}
-						else if (!to_int(cmd_words[5], &temp_long)) 
+						else if (!wsa_to_int(cmd_words[5], &temp_int)) 
 						{
-							result = wsa_set_sweep_gain_if(dev, (int32_t) temp_long);
+							result = wsa_set_sweep_gain_if(dev, (int32_t) temp_int);
 							if (result == WSA_ERR_INVIFGAIN) 
 								sprintf(msg, "\n   - Valid range: %d to %d dB.", 
 									dev->descr.min_if_gain, dev->descr.max_if_gain);
@@ -2061,9 +2060,9 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				{
 					if (num_words < 5)
 						printf("Missing the packets per block value. See 'h'.\n");
-					else if (!to_int(cmd_words[4], &temp_long)) 
+					else if (!wsa_to_int(cmd_words[4], &temp_int)) 
 						result = wsa_set_sweep_packets_per_block(dev,	
-										(int32_t) temp_long);
+										(int32_t) temp_int);
 					else
 						printf("Invalid input. PPB value must be a positive integer.\n");
 				} // end set SWEEP ENTRY PPB
@@ -2073,10 +2072,10 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					if (num_words < 5)
 						printf("Missing the samples per packet value. See 'h'.\n");
 
-					else if (!to_int(cmd_words[4], &temp_long)) 
+					else if (!wsa_to_int(cmd_words[4], &temp_int)) 
 					{
 						result = wsa_set_sweep_samples_per_packet(dev, 
-								(int32_t) temp_long);
+								(int32_t) temp_int);
 						if (result == WSA_ERR_INVSAMPLESIZE)
 							sprintf(msg, "\n   - Must be multiple of 16, valid range: %u to %u.\n", WSA_MIN_SPP, WSA_MAX_SPP);
 					}
@@ -2152,8 +2151,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 								printf("Missing trigger sync delay value. See 'h'.\n");
 								return 0;
 							}
-							else if (!to_int(cmd_words[6], &temp_long))
-								result = wsa_set_sweep_trigger_sync_delay(dev, (int32_t) temp_long);
+							else if (!wsa_to_int(cmd_words[6], &temp_int))
+								result = wsa_set_sweep_trigger_sync_delay(dev, (int32_t) temp_int);
 							else
 								printf("Invalid trigger sync delay value. See 'h'.\n");
 
@@ -2197,8 +2196,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if(num_words == 2) 
 				result = wsa_stream_start(dev);
 				
-			else if ((num_words == 3) && !to_int(cmd_words[2], &temp_long))
-				result = wsa_stream_start_id(dev, temp_long);		
+			else if ((num_words == 3) && !wsa_to_int(cmd_words[2], &temp_int))
+				result = wsa_stream_start_id(dev, temp_int);		
 			else
 				printf("Invalid input. Stream ID must be a positive integer.\n");
 		} // end STREAM START
@@ -2223,8 +2222,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 		{
 			if (num_words == 2)
 				result = wsa_sweep_start(dev);
-			else if ((num_words == 3) && !to_int(cmd_words[2], &temp_long))
-				result = wsa_sweep_start_id(dev, (int64_t) temp_long);
+			else if ((num_words == 3) && !wsa_to_int(cmd_words[2], &temp_int))
+				result = wsa_sweep_start_id(dev, (int64_t) temp_int);
 			else
 				printf("Invalid input. Sweep ID must be a positive integer.\n");
 		} // end SWEEP START
@@ -2250,8 +2249,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (num_words < 4)
 					printf("Missing the sweep entry ID.\n");
-				else if (!to_int(cmd_words[3], &temp_long))
-					result = wsa_sweep_entry_copy(dev, (uint32_t) temp_long);
+				else if (!wsa_to_int(cmd_words[3], &temp_int))
+					result = wsa_sweep_entry_copy(dev, (uint32_t) temp_int);
 				else
 					printf("Invalid input. ID value must be a positive integer.\n");
 			} // end SWEEP ENTRY COPY
@@ -2262,8 +2261,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					printf("Missing the sweep entry ID or 'ALL'.\n");
 				else if (strcmp(cmd_words[3], "ALL") == 0)
 					result = wsa_sweep_entry_delete_all(dev);
-				else if (!to_int(cmd_words[3], &temp_long))
-					result = wsa_sweep_entry_delete(dev, (uint32_t) temp_long);
+				else if (!wsa_to_int(cmd_words[3], &temp_int))
+					result = wsa_sweep_entry_delete(dev, (uint32_t) temp_int);
 				else
 					printf("Invalid input. ID value must be a positive integer.\n");
 			} // end SWEEP ENTRY DELETE
@@ -2276,8 +2275,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (num_words < 4)
 					result = print_sweep_entry_template(dev);
-				else if (!to_int(cmd_words[3], &temp_long))
-					result = print_sweep_entry_information(dev, (int32_t) temp_long);
+				else if (!wsa_to_int(cmd_words[3], &temp_int))
+					result = print_sweep_entry_information(dev, (int32_t) temp_int);
 				else
 					printf("Invalid input. ID value must be a positive integer.\n");
 			}
@@ -2286,8 +2285,8 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (num_words < 4)
 					result = wsa_sweep_entry_save(dev, 0);
-				else if (!to_int(cmd_words[3], &temp_long))
-					result = wsa_sweep_entry_save(dev, (uint32_t) temp_long);
+				else if (!wsa_to_int(cmd_words[3], &temp_int))
+					result = wsa_sweep_entry_save(dev, (uint32_t) temp_int);
 				else
 					printf("Invalid input. ID value must be a positive integer.\n");
 			}
