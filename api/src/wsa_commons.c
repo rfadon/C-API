@@ -211,9 +211,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 	{
 		if (wsa_err_list[id].err_id == err_id) 
 		{
-			return wsa_err_list[id].err_msg;
+          return wsa_err_list[id].err_msg;
 			break;
-		}
+        }
 		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
 	
@@ -305,7 +305,7 @@ int32_t is_decimal(char *in_str)
  *
  * @return 1 if the string is valid else 0
  */
-int32_t is_integer(char *in_str)
+int32_t wsa_is_integer(char const * in_str)
 {   
     int i;
 
@@ -332,26 +332,34 @@ int32_t is_integer(char *in_str)
  * 
  * @return 0 if no error else a negative value
  */
-int16_t to_int(char *num_str, long int *val)
+int16_t wsa_to_int(char const * num_str, int * val)
 {
 	char *temp;
 	long int temp_val;
 	
-	if (num_str == NULL)
+	if (num_str == NULL) {
 		return WSA_ERR_INVNUMBER;
+    }
 
-	if (!is_integer(num_str))
+	if (!wsa_is_integer(num_str)) {
 		return WSA_ERR_INVNUMBER;
+    }
 
+    /*
+    // windows long is 32 bit.
+    // linux long is 32 or 64 bit
+    */
 	errno = 0;
 	temp_val = strtol(num_str, &temp, 0);
-	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN)) ||
-		(errno != 0 && temp_val == 0))
+	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN)) || (errno != 0 && temp_val == 0)) {
 		return WSA_ERR_INVNUMBER;
-	else if (temp == num_str)
+	} else if (temp == num_str) {
 		return WSA_ERR_INVNUMBER;
+    } else if ((temp_val >= INT_MAX) || (temp_val <= INT_MIN)) {
+		return WSA_ERR_INVNUMBER;
+    }
 
-	*val = temp_val;
+	*val = (int)temp_val;
 
 	return 0;
 }
@@ -370,16 +378,19 @@ int16_t to_double(char *num_str, double *val)
 	char *temp;
 	double temp_val;
 	
-	if (num_str == NULL)
+	if (num_str == NULL) {
 		return WSA_ERR_INVNUMBER;
+    }
 	
-	if (!is_decimal(num_str))
+	if (!is_decimal(num_str)) {
 		return WSA_ERR_INVNUMBER;
+    }
 
 	errno = 0;
 	temp_val = strtod(num_str, &temp);
-	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str)
+	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str) {
 		return WSA_ERR_INVNUMBER;
+    }
 
 	*val = temp_val;
 
