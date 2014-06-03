@@ -54,7 +54,7 @@
 #define WSA_ERR_SOCKETSETFUPFAILED	(LNEG_NUM - 211)
 #define WSA_ERR_SOCKETERROR	(LNEG_NUM - 212)
 #define WSA_ERR_SOCKETDROPPED (LNEG_NUM - 213)
-
+#define WSA_ERR_INVLANCONFIG (LNEG_NUM - 214)
 
 // ///////////////////////////////
 // AMPLITUDE ERRORS				//

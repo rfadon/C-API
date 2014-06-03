@@ -52,7 +52,6 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev);
 int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
 						  float *value);
 
-
 // ////////////////////////////////////////////////////////////////////////////
 // DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
