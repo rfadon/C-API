@@ -7,6 +7,11 @@
 #include "wsa_commons.h"
 #include "wsa_error.h"
 
+
+#ifdef _WIN32
+# define strtok_r strtok_s
+#endif
+
 /**
  * Returns the error message based on the error ID given
  *
@@ -66,6 +71,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SOCKETDROPPED,
 			"Socket connection unexpectedly dropped. Close this application and "
 			"check the Ethernet connection (repower WSA if necessary)"},
+		{WSA_ERR_INVLANCONFIG,
+			"Invalid LAN configuration option"},
+
 						
 		//*****
 		// Amplitude related
@@ -203,9 +211,9 @@ const char *_wsa_get_err_msg(int16_t err_id)
 	{
 		if (wsa_err_list[id].err_id == err_id) 
 		{
-			return wsa_err_list[id].err_msg;
+          return wsa_err_list[id].err_msg;
 			break;
-		}
+        }
 		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
 	
@@ -227,6 +235,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	long fSize;
 	char *buffer;
 	char *fToken;
+    char * strtok_context = 0;
 	int16_t next = 0;
 	int i;
 
@@ -247,7 +256,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 	for (i = 0; i < MAX_FILE_LINES; i++) 
 		strcpy(cmd_strs[i], "");
 
-	fToken = strtok(buffer, SEP_CHARS);
+	fToken = strtok_r(buffer, SEP_CHARS, &strtok_context);
 	while (fToken != NULL)	{
 		doutf(DLOW, "%d fToken (%d) = %s\n", next, strlen(fToken), fToken);
 		// Avoid taking any empty line
@@ -255,7 +264,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
 			strcpy(cmd_strs[next], fToken);
 			next++;
 		}
-		fToken = strtok(NULL, SEP_CHARS);
+		fToken = strtok_r(NULL, SEP_CHARS, &strtok_context);
 	}
 
 	free(buffer);
@@ -296,7 +305,7 @@ int32_t is_decimal(char *in_str)
  *
  * @return 1 if the string is valid else 0
  */
-int32_t is_integer(char *in_str)
+int32_t wsa_is_integer(char const * in_str)
 {   
     int i;
 
@@ -323,26 +332,34 @@ int32_t is_integer(char *in_str)
  * 
  * @return 0 if no error else a negative value
  */
-int16_t to_int(char *num_str, long int *val)
+int16_t wsa_to_int(char const * num_str, int * val)
 {
 	char *temp;
 	long int temp_val;
 	
-	if (num_str == NULL)
+	if (num_str == NULL) {
 		return WSA_ERR_INVNUMBER;
+    }
 
-	if (!is_integer(num_str))
+	if (!wsa_is_integer(num_str)) {
 		return WSA_ERR_INVNUMBER;
+    }
 
+    /*
+    // windows long is 32 bit.
+    // linux long is 32 or 64 bit
+    */
 	errno = 0;
 	temp_val = strtol(num_str, &temp, 0);
-	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN)) ||
-		(errno != 0 && temp_val == 0))
+	if ((errno == ERANGE && (temp_val == LONG_MAX || temp_val == LONG_MIN)) || (errno != 0 && temp_val == 0)) {
 		return WSA_ERR_INVNUMBER;
-	else if (temp == num_str)
+	} else if (temp == num_str) {
 		return WSA_ERR_INVNUMBER;
+    } else if ((temp_val >= INT_MAX) || (temp_val <= INT_MIN)) {
+		return WSA_ERR_INVNUMBER;
+    }
 
-	*val = temp_val;
+	*val = (int)temp_val;
 
 	return 0;
 }
@@ -361,16 +378,19 @@ int16_t to_double(char *num_str, double *val)
 	char *temp;
 	double temp_val;
 	
-	if (num_str == NULL)
+	if (num_str == NULL) {
 		return WSA_ERR_INVNUMBER;
+    }
 	
-	if (!is_decimal(num_str))
+	if (!is_decimal(num_str)) {
 		return WSA_ERR_INVNUMBER;
+    }
 
 	errno = 0;
 	temp_val = strtod(num_str, &temp);
-	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str)
+	if (errno == ERANGE || (errno != 0 && temp_val == 0) || temp == num_str) {
 		return WSA_ERR_INVNUMBER;
+    }
 
 	*val = temp_val;
 
