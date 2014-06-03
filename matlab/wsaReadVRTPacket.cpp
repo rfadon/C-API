@@ -130,11 +130,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
         *digitizerReferenceLevel = (int16_t) digitizer->reference_level;
         *digitizerRfFrequencyOffset = (int64_t) digitizer->rf_freq_offset;
         *digitizerIndicatorField = (int32_t) digitizer->indicator_field;
+        *extensionIndicatorField = (int32_t) extension->indicator_field;
         *extensionStreamId = (uint32_t) extension->stream_start_id;
         *extensionSweepId = (uint32_t) extension->sweep_start_id;
         
     } else if (*headerPacketType == 1) 
-    {   *headerSamplesPerPacket = (uint16_t) header->samples_per_packet; 
+    {   
+        *headerSamplesPerPacket = (uint16_t) header->samples_per_packet; 
         *trailerValidDataIndicator = (uint8_t) trailer->valid_data_indicator;
         *trailerRefLockIndicator = (uint8_t) trailer->ref_lock_indicator;
         *trailerSpectralInversionIndicator = (uint8_t) trailer->spectral_inversion_indicator;
