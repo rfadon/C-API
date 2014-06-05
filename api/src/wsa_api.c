@@ -2607,19 +2607,25 @@ int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
 	wsa_send_query(dev, "SWEEP:ENTRY:MODE?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
+
 	strcpy(mode,query.output);
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	return 0;
 }
@@ -2639,14 +2645,18 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
-	if (strcmp(mode, WSA_RFE_ZIF_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_HDR_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_SH_STRING) != 0 &&
-		strcmp(mode, WSA_RFE_IQIN_STRING) != 0)
+	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_SH_STRING)   != 0) &&
+		(strcmp(mode, WSA_RFE_SHN_STRING)  != 0) &&
+		(strcmp(mode, WSA_RFE_IQIN_STRING) != 0)) {
 		return WSA_ERR_INVRFEINPUTMODE;
+    }
 
 	sprintf(temp_str, "SWEEP:ENTRY:MODE %s\n", mode);
 
@@ -2671,8 +2681,9 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 	int temp;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:SPPACKET?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
@@ -2732,8 +2743,9 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets
 	int temp;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:PPBLOCK?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
@@ -2787,8 +2799,9 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate)
 	int temp;
 
 	wsa_send_query(dev, ":SWEEP:ENTRY:DECIMATION?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// convert & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
@@ -3016,8 +3029,9 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
 	double temp;
 
 	wsa_send_query(dev, "SWEEP:ENTRY:FREQ:STEP?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
