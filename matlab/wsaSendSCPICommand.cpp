@@ -9,14 +9,10 @@ void mexFunction(int nlhs, mxArray *plhs[],
 		mexErrMsgTxt("Need 2 parameter: WSA device pointer, and SCPI command");
 
 	wsa_device* wsaDevice = convertMatlabToPointer(prhs[0]);
-	
 	char *command;
-  
-    
+
 	command = mxArrayToString(prhs[1]);
 
-    sprintf(command, "%s \n",command);
-    
     int16_t resultStatus =  wsa_send_scpi(wsaDevice, command);
     
     plhs[0] = mxCreateDoubleScalar(resultStatus);
