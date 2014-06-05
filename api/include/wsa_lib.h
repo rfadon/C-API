@@ -269,12 +269,15 @@ struct wsa_vrt_packet_trailer {
 
 // Structure to hold sweep list data
 struct wsa_sweep_list {
+	char rfe_mode[MAX_STR_LEN];
 	int64_t start_freq;
 	int64_t stop_freq;
 	float fshift;
 	int64_t fstep;
 	int32_t decimation_rate;
 	int32_t ant_port;
+	int32_t attenuator;
+	int32_t gain_hdr;
 	int32_t gain_if;
 	int32_t dwell_seconds;
 	int32_t dwell_microseconds;

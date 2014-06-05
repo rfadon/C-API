@@ -3952,11 +3952,14 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	// ****
 
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	strcpy(sweep_list->rfe_mode,strtok_result);
+
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
     }
 	sweep_list->start_freq = (int64_t) temp;
-	
+
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
@@ -3967,7 +3970,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
     }
-	sweep_list->fstep= (int64_t) temp;
+	sweep_list->fstep = (int64_t) temp;
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
@@ -3983,19 +3986,26 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		return WSA_ERR_RESPUNKNOWN;	
+		return WSA_ERR_RESPUNKNOWN;
     }
-	sweep_list->ant_port = (int32_t) temp;
-	
-	// Convert to wsa_gain type
-	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(sweep_list->gain_rf,strtok_result);
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
     }
+	sweep_list->attenuator = (int32_t) temp;
+	
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (wsa_to_double(strtok_result, &temp) < 0) {
+		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->gain_if = (int32_t) temp;
+
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (wsa_to_double(strtok_result, &temp) < 0) {
+		return WSA_ERR_RESPUNKNOWN;
+    }
+	sweep_list->gain_hdr = (int32_t) temp;
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
