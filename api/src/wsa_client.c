@@ -71,7 +71,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 	
@@ -95,7 +95,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	// Check the address at the given port
 	result = _addr_check(sock_addr, sock_port, ai_list);
 	if (result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -166,7 +166,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -192,7 +192,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 
 	// If no address succeeded
 	if (ai_ptr == NULL)  {
-		fprintf(stderr, "client: failed to connect\n");
+		doutf(DHIGH, "client: failed to connect\n");
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	
