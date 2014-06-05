@@ -311,7 +311,9 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -372,7 +374,9 @@ int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_lan_ip: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_lan_ip: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -433,7 +437,9 @@ int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_lan_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_lan_netmask: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -493,7 +499,9 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_lan_gateway: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_lan_gateway: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -556,7 +564,9 @@ int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alt
 		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
-	doutf(DHIGH, "In wsa_set_lan_dns: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_lan_dns: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -575,7 +585,9 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev)
 	int16_t result;
 
 	result = wsa_send_command(dev, ":SYST:COMM:LAN:APPLY\n");
-	doutf(DHIGH, "In wsa_apply_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_apply_lan_config: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -696,7 +708,9 @@ int16_t wsa_flush_data(struct wsa_device *dev)
     }
 
 	result = wsa_send_command(dev, "SYSTEM:FLUSH\n");
-	doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_flush_data: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 }
@@ -754,7 +768,9 @@ int16_t wsa_system_abort_capture(struct wsa_device *dev)
 	int16_t result = 0;
 
 	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
-	doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_system_abort_capture: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -800,7 +816,9 @@ int16_t wsa_abort_capture(struct wsa_device * const dev)
 	int16_t result = 0;
 
 	result = wsa_send_command(dev, "SYSTEM:ABORT\n");
-	doutf(DHIGH, "Error in wsa_abort_capture: %d - %s\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "Error in wsa_abort_capture: %d - %s\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -826,7 +844,9 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
 	int16_t result = 0;
 
 	result = wsa_send_command(dev, "TRACE:BLOCK:DATA?\n");
-	doutf(DHIGH, "Error in wsa_capture_block: %d - %s\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "Error in wsa_capture_block: %d - %s\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -931,7 +951,9 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	
 	sprintf(temp_str, "TRACE:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 		
 	return result;
 }
@@ -951,20 +973,19 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 	struct wsa_resp query;		// store query results
 	int temp;
 	wsa_send_query(dev, "TRACE:SPPACKET?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
-	if ((temp < WSA_MIN_SPP) || 
-		(temp > WSA_MAX_SPP))
-	{
-		printf("Error: WSA returned '%d'.\n", temp);
+	if ((temp < WSA_MIN_SPP) || (temp > WSA_MAX_SPP)) {
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -992,14 +1013,17 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 	
-	if (packets_per_block < WSA_MIN_PPB)
+	if (packets_per_block < WSA_MIN_PPB) {
 		return WSA_ERR_INVNUMBER;
-	else if (packets_per_block > WSA_MAX_PPB) 
+	} else if (packets_per_block > WSA_MAX_PPB) {
 		return WSA_ERR_INVCAPTURESIZE;
+    }
 
 	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_packets_per_block: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_packets_per_block: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1026,7 +1050,7 @@ int16_t wsa_get_packets_per_block(struct wsa_device *dev, int32_t *packets_per_b
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1051,12 +1075,13 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	int temp;
 
 	wsa_send_query(dev, ":SENSE:DEC?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// convert & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1064,7 +1089,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 	if (((temp != 1) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation)) 
 	{
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1095,7 +1120,9 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 
 	sprintf(temp_str, "SENSE:DEC %d \n", rate);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+	    doutf(DHIGH, "In wsa_set_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1120,8 +1147,9 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	double temp;
 
 	wsa_send_query(dev, "FREQ:CENT?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
@@ -1130,9 +1158,8 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	}
 
 	// Verify the validity of the return value
-	if (temp < dev->descr.min_tune_freq || temp > dev->descr.max_tune_freq) 
-	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1162,12 +1189,15 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	result = wsa_verify_freq(dev, cfreq);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_freq: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_freq: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1193,15 +1223,14 @@ int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift)
     }
 
 	// Convert the number & make sure no error
-	if (wsa_to_double(query.output, &temp) < 0)	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+	if (wsa_to_double(query.output, &temp) < 0) {
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 
-	if (temp < -range || temp > range) 
-	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+	if ((temp < -range) || (temp > range)) {
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1229,12 +1258,15 @@ int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift)
 	int64_t range = dev->descr.inst_bw;
 
 	// verify the value bwn -125 to 125MHz, "inclusive"
-	if (fshift < (-range) || fshift > range)
+	if ((fshift < (-range)) || (fshift > range)) {
 		return WSA_ERR_FREQOUTOFBOUND;
+    }
 
 	sprintf(temp_str, "FREQ:SHIFt %f Hz\n", fshift);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_freq_shift: %d - %s.\n", result, wsa_get_error_msg(result));
+    if(result < 0) {
+	    doutf(DHIGH, "In wsa_set_freq_shift: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1268,7 +1300,7 @@ int16_t wsa_get_spec_inv(struct wsa_device *dev, int64_t freq, int16_t *inv)
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1306,7 +1338,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
     }
 	
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1340,7 +1372,9 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 	sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+    if(result < 0) {
+	  doutf(DHIGH, "In wsa_set_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 }
@@ -1370,7 +1404,7 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1378,7 +1412,7 @@ int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
 	if (((int32_t) temp < dev->descr.min_if_gain) || 
 		((int32_t) temp > dev->descr.max_if_gain))
 	{
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1406,15 +1440,19 @@ int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0) {
 		return WSA_ERR_INV5000COMMAND;
+    }
 
-	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
+	if ((gain < dev->descr.min_if_gain) || (gain > dev->descr.max_if_gain)) {
 		return WSA_ERR_INVIFGAIN;
+    }
 
 	sprintf(temp_str, "INPUT:GAIN:IF %d dB\n", gain);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_gain_if: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_gain_if: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1476,7 +1514,9 @@ int16_t wsa_set_gain_rf(struct wsa_device *dev, char const * gain)
 	sprintf(temp_str, "INPUT:GAIN:RF %s\n", gain);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1553,7 +1593,9 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	sprintf(temp_str, "INPUT:MODE %s\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1611,7 +1653,9 @@ int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode)
 	sprintf(temp_str, ":OUT:IQ:MODE %s\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_iq_output_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_iq_output_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1635,18 +1679,19 @@ int16_t wsa_get_antenna(struct wsa_device *dev, int32_t *port_num)
     }
 
 	wsa_send_query(dev, "INPUT:ANTENNA?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if ((temp < 1) || (temp > WSA_4000_MAX_ANT_PORT)) {
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1670,14 +1715,19 @@ int16_t wsa_set_antenna(struct wsa_device *dev, int32_t port_num)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
+	if (strcmp(dev->descr.prod_model,WSA5000) == 0) {
 		return WSA_ERR_INV5000COMMAND;
-	if (port_num < 1 || port_num > WSA_4000_MAX_ANT_PORT) // TODO replace the max
+    }
+
+	if ((port_num < 1) || (port_num > WSA_4000_MAX_ANT_PORT)) { // TODO replace the max
 		return WSA_ERR_INVANTENNAPORT;
+    }
 
 	sprintf(temp_str, "INPUT:ANTENNA %d\n", port_num);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_antenna: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_antenna: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1703,14 +1753,13 @@ int16_t wsa_get_bpf_mode(struct wsa_device *dev, int32_t *mode)
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
-	if (temp < 0 || temp > 1) 
-	{
-		printf("Error: WSA returned '%d'.\n", temp);
+	if ((temp < 0) || (temp > 1)) {
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 		
@@ -1733,12 +1782,15 @@ int16_t wsa_set_bpf_mode(struct wsa_device *dev, int32_t mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (mode < 0 || mode > 1)
+	if ((mode < 0) || (mode > 1)) {
 		return WSA_ERR_INVFILTERMODE;
+    }
 
 	sprintf(temp_str, "INPUT:FILT:PRES %d\n", mode);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_bpf_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_bpf_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1764,20 +1816,24 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_
 	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, start_freq);
-	if (result == WSA_ERR_FREQOUTOFBOUND)
+	if (result == WSA_ERR_FREQOUTOFBOUND) {
 		return WSA_ERR_STARTOOB;
-	else if (result < 0)
+    } else if (result < 0) {
 		return result;
+    }
 
 	result = wsa_verify_freq(dev, stop_freq);
-	if (result == WSA_ERR_FREQOUTOFBOUND)
+	if (result == WSA_ERR_FREQOUTOFBOUND) {
 		return WSA_ERR_STOPOOB;
-	else if (result < 0)
+	} else if (result < 0) {
 		return result;
+    }
 
 	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1808,13 +1864,13 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Convert the 1st number & make sure no error
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
-		printf("Error1: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error1: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1823,13 +1879,13 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	// Convert the 2nd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
-		printf("Error2: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error2: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1838,7 +1894,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1867,9 +1923,11 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *trigger_type)
 		sprintf(temp_str, "TRIGGER:TYPE %s \n", trigger_type);
 	else
 		return WSA_ERR_INVTRIGGERMODE;
-
+    
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+      	doutf(DHIGH, "In wsa_set_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -1925,10 +1983,12 @@ int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 	else
 		return WSA_ERR_INVTRIGGERDELAY;
 
-	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+    result = wsa_send_command(dev, temp_str);
+    if (result < 0) {
+        doutf(DHIGH, "In wsa_set_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
-	return result;
+    return result;
 }
 
 
@@ -1944,15 +2004,13 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 {
 	struct wsa_resp query;
 	int temp;
-
 	wsa_send_query(dev, "TRIGGER:DELAY?\n", &query);
-	if (query.status <= 0) {
+	if (query.status <= 0)
 		return (int16_t) query.status;
-    }
 	
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -1989,7 +2047,9 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_stat
 		return WSA_ERR_INVTRIGGERSYNC;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+        doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2067,7 +2127,9 @@ int16_t wsa_set_reference_pll(struct wsa_device *dev, char const *pll_ref)
 		return WSA_ERR_INVPLLREFSOURCE;
 	
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_reference_pll: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_reference_pll: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2087,7 +2149,9 @@ int16_t wsa_reset_reference_pll(struct wsa_device *dev)
 	
 	sprintf(temp_str, "SOURCE:REFERENCE:PLL:RESET\n");
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_reset_reference_pll: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_reset_reference_pll: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2112,7 +2176,7 @@ int16_t wsa_get_lock_ref_pll(struct wsa_device *dev, int32_t *lock_ref)
     }
 
 	if (wsa_to_double(query.output, &temp) < 0)	{
-		printf("Error: WSA returned '%f'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%f'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2141,7 +2205,7 @@ int16_t wsa_get_lock_rf(struct wsa_device *dev, int32_t *lock_rf)
     }
 
     if (wsa_to_double(query.output, &temp) < 0) {
-        printf("Error: WSA returned '%s'.\n", query.output);
+        doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
         return WSA_ERR_RESPUNKNOWN;
     }
 
@@ -2174,14 +2238,13 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 	char * strtok_context = 0;
 
 	wsa_send_query(dev, "STAT:TEMP?\n", &query);
-	if (query.status <= 0) {
+	if (query.status <= 0)
 		return (int16_t) query.status;
-    }
 
 	// Convert the 1st temperature value 
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2190,7 +2253,7 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 	// Convert the 2nd temperature value
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2200,7 +2263,7 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 
 	// Convert the temperature value
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2240,7 +2303,9 @@ int16_t wsa_stream_start(struct wsa_device * const dev)
 		return WSA_ERR_STREAMWHILESWEEPING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:START\n");
-	doutf(DHIGH, "Error in wsa_stream_start: %d - %s\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "Error in wsa_stream_start: %d - %s\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2275,7 +2340,9 @@ int16_t wsa_stream_start_id(struct wsa_device * const dev, int64_t stream_start_
 
 	sprintf(temp_str, "TRACE:STREAM:START %lld \n", stream_start_id);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "Error in wsa_stream_start_id: %d - %s\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "Error in wsa_stream_start_id: %d - %s\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2304,25 +2371,26 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 		return WSA_ERR_STREAMNOTRUNNING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
-	if (result < 0)
-	{
+	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_stream_stop: %d - %s\n", result, wsa_get_error_msg(result));
 		return result;
 	}
 
-	printf("Clearing socket buffer... ");
+	doutf(DHIGH, "Clearing socket buffer... ");
 	
 	//flush remaining data in the wsa
 	result = wsa_flush_data(dev); 
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 	
 	// clean remaining data in the data socket socket
 	result = wsa_clean_data_socket(dev);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
-	printf("done.\n");
+	doutf(DHIGH, "done.\n");
 	return 0;
 }
 
@@ -2356,13 +2424,13 @@ int16_t wsa_get_sweep_antenna(struct wsa_device *dev, int32_t *port_num)
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if ((temp < 1) || (temp > WSA_4000_MAX_ANT_PORT)) {
-		printf("Error: WSA returned '%d'.\n", temp); 
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp); 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2393,7 +2461,9 @@ int16_t wsa_set_sweep_antenna(struct wsa_device *dev, int32_t port_num)
 
 	sprintf(temp_str, "SWEEP:ENTRY:ANTENNA %d\n", port_num);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_antenna: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_antenna: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 		
 	return result;
 }
@@ -2413,20 +2483,24 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 	struct wsa_resp query;
 	int temp;
 	
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
+	if (strcmp(dev->descr.prod_model,WSA4000) == 0) {
 		return WSA_ERR_INV4000COMMAND;
+    }
 
 	wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
-	if (query.status <= 0)
+	if (query.status <= 0) {
 		return (int16_t) query.status;
+    }
 	
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED)
+	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED) {
 		return WSA_ERR_INVATTEN;
+    }
+
 	*mode = (int32_t) temp;
 	
 	return 0;
@@ -2455,7 +2529,9 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 	sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 }
@@ -2483,14 +2559,14 @@ int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
 	// Verify the validity of the return value
 	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) 
 	{
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -2661,7 +2737,9 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	sprintf(temp_str, "SWEEP:ENTRY:MODE %s\n", mode);
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_rfe_input_mode: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2687,13 +2765,13 @@ int16_t wsa_get_sweep_samples_per_packet(struct wsa_device *dev, int32_t *sample
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
 	// Verify the validity of the return value
 	if ((temp < WSA_MIN_SPP) || (temp > WSA_MAX_SPP)) {
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2723,7 +2801,9 @@ int16_t wsa_set_sweep_samples_per_packet(struct wsa_device *dev, int32_t samples
 
 	sprintf(temp_str, "SWEEP:ENTRY:SPPACKET %u\n", samples_per_packet);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_samples_per_packet: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2749,7 +2829,7 @@ int16_t wsa_get_sweep_packets_per_block(struct wsa_device *dev, int32_t *packets
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2779,7 +2859,9 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_
 
 	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %d\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_packets_per_block: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_packets_per_block: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2805,14 +2887,14 @@ int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate)
 
 	// convert & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-        return WSA_ERR_RESPUNKNOWN;
+		return WSA_ERR_RESPUNKNOWN;
     }
 
 	// make sure the returned value is valid
 	if (((temp != 1) && (temp < dev->descr.min_decimation)) || 
 		(temp > dev->descr.max_decimation))
 	{
-		printf("Error: WSA returned '%d'.\n", temp);
+		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*rate = (int32_t) temp;
@@ -2842,7 +2924,9 @@ int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate)
 
 	sprintf(temp_str, ":SWEEP:ENTRY:DECIMATION %d\n", rate);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -2872,7 +2956,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	// Convert the number & make sure no error
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2880,7 +2964,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2928,7 +3012,9 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t s
 		
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n", start_freq, stop_freq);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_freq: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_freq: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 		
 	return result;
 }
@@ -2954,7 +3040,7 @@ int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift)
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2984,7 +3070,9 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift)
 
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:SHIFt %f Hz\n", fshift);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_freq_shift: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_freq_shift: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3009,7 +3097,9 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step)
 
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_freq_step: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_freq_step: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3035,7 +3125,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -3065,7 +3155,9 @@ int16_t wsa_set_sweep_dwell(struct wsa_device *dev, int32_t seconds, int32_t mic
 
 	sprintf(temp_str, "SWEEP:ENTRY:DWELL %u,%u\n", seconds, microseconds);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_dwell: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_dwell: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3095,7 +3187,7 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
 	// Convert the 1st number & make sure no error
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*seconds = (int32_t) temp;
@@ -3103,7 +3195,7 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
 	// Convert the 2nd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*microseconds = (int32_t) temp;
@@ -3129,21 +3221,27 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
 	char temp_str[MAX_STR_LEN];
 
 	result = wsa_verify_freq(dev, start_freq);
-	if (result == WSA_ERR_FREQOUTOFBOUND)
+	if (result == WSA_ERR_FREQOUTOFBOUND) {
 		return WSA_ERR_STARTOOB;
+    }
 
 	result = wsa_verify_freq(dev, stop_freq);
 
-	if (result == WSA_ERR_FREQOUTOFBOUND)
+	if (result == WSA_ERR_FREQOUTOFBOUND) {
 		return WSA_ERR_STOPOOB;
+    }
 
-	if (stop_freq <= start_freq)
+	if (stop_freq <= start_freq) {
 		return WSA_ERR_INVSTOPFREQ;
+    }
 
 	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
-	doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
+
 	return result;
 }
 
@@ -3173,7 +3271,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	// Convert the 1st number & make sure no error
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*start_freq = (int64_t) temp;
@@ -3181,7 +3279,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	// Convert the 2nd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*stop_freq = (int64_t) temp;
@@ -3189,7 +3287,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 	// Convert the 3rd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}	
 	*amplitude = (int32_t) temp;
@@ -3221,7 +3319,9 @@ int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char const *trigger_t
 		return WSA_ERR_INVTRIGGERMODE;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_trigger_type: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3277,7 +3377,9 @@ int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay)
 		return WSA_ERR_INVTRIGGERDELAY;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_trigger_sync_delay: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3303,7 +3405,7 @@ int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 
 	// Convert the number & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -3339,7 +3441,9 @@ int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char const *syn
 		return WSA_ERR_INVTRIGGERSYNC;
 
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
+	if (result < 0) {
+        doutf(DHIGH, "In wsa_set_sweep_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3453,7 +3557,9 @@ int16_t wsa_sweep_entry_delete(struct wsa_device *dev, int32_t id)
 
 	sprintf(temp_str, "SWEEP:ENTRY:DELETE %u\n", id);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_sweep_entry_delete: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+    	doutf(DHIGH, "In wsa_sweep_entry_delete: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3473,7 +3579,9 @@ int16_t wsa_sweep_entry_delete_all(struct wsa_device *dev)
 	
 	sprintf(temp_str, "SWEEP:ENTRY:DELETE ALL\n");
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_sweep_entry_delete: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+    	doutf(DHIGH, "In wsa_sweep_entry_delete: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3497,18 +3605,24 @@ int16_t wsa_sweep_entry_copy(struct wsa_device *dev, int32_t id)
 	result = wsa_get_sweep_entry_size(dev, &size);
 
 	// check if the id is out of bounds
-	if (id < 0 || id > size)
+	if (id < 0 || id > size) {
 		return WSA_ERR_SWEEPIDOOB;
+    }
 
 	result = wsa_get_sweep_entry_size(dev, &size);
-	if (result < 0)
+	if (result < 0) {
 		return result;
-	if (size == 0)
+    }
+
+	if (size == 0) {
 		return  WSA_ERR_SWEEPLISTEMPTY;
+    }
 
 	sprintf(temp_str, "SWEEP:ENTRY:COPY %u\n", id);
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_sweep_entry_copy: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+        doutf(DHIGH, "In wsa_sweep_entry_copy: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3528,13 +3642,12 @@ int16_t wsa_get_sweep_iteration(struct wsa_device *dev, int32_t *iterations)
 	double temp;
 
 	wsa_send_query(dev, "SWEEP:LIST:ITER?\n", &query);
-	if (query.status <= 0) {
+	if (query.status <= 0)
 		return (int16_t) query.status;
-    }
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
-		printf("Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -3559,7 +3672,9 @@ int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration)
 	sprintf(temp_str, "SWEEP:LIST:ITER %d \n", iteration);
 	
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In  wsa_set_sweep_iteration: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+    	doutf(DHIGH, "In  wsa_set_sweep_iteration: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
@@ -3598,7 +3713,9 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 		return WSA_ERR_SWEEPLISTEMPTY;
 	
 	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
-	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+    	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 }
@@ -3644,9 +3761,11 @@ int16_t wsa_sweep_start_id(struct wsa_device *dev, int64_t sweep_start_id)
 		return WSA_ERR_INVSWEEPSTARTID;
 
 	sprintf(temp_str, "SWEEP:LIST:START %lld \n", sweep_start_id);
-	result = wsa_send_command(dev, temp_str);
 
-	doutf(DHIGH, "In wsa_sweep_start_id: %d - %s.\n", result, wsa_get_error_msg(result));
+    result = wsa_send_command(dev, temp_str);
+    if (result < 0) {
+	    doutf(DHIGH, "In wsa_sweep_start_id: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 }
@@ -3674,23 +3793,26 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		return WSA_ERR_SWEEPNOTRUNNING;
 	
 	result = wsa_send_command(dev, "SWEEP:LIST:STOP\n");
-	doutf(DHIGH, "In wsa_sweep_stop: %d - %s.\n", result, wsa_get_error_msg(result));
-	if (result < 0)
+	if (result < 0) {
+      	doutf(DHIGH, "In wsa_sweep_stop: %d - %s.\n", result, wsa_get_error_msg(result));
 		return result;
+    }
 	
-	printf("Clearing socket buffer... ");
+	doutf(DHIGH, "Clearing socket buffer... ");
 	
 	// flush remaining data in the wsa
 	result = wsa_flush_data(dev); 
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	// clean remaining data in the data socket socket
 	result = wsa_clean_data_socket(dev);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
-	printf("done.\n");
+	doutf(DHIGH, "done.\n");
 	
 	return 0;
 }
@@ -3723,9 +3845,11 @@ int16_t wsa_sweep_resume(struct wsa_device *dev)
 		return WSA_ERR_SWEEPLISTEMPTY;
 
 	result = wsa_send_command(dev, "SWEEP:LIST:RESUME\n");
-	doutf(DHIGH, "In wsa_sweep_resume: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+        doutf(DHIGH, "In wsa_sweep_resume: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
-	return result;
+    return result;
 }
 
 
@@ -3742,7 +3866,9 @@ int16_t wsa_sweep_entry_new(struct wsa_device *dev)
 	int16_t result = 0;
 	
 	result = wsa_send_command(dev, "SWEEP:ENTRY:NEW\n");
-	doutf(DHIGH, "In wsa_sweep_entry_new: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+      	doutf(DHIGH, "In wsa_sweep_entry_new: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 	
 	return result;
 } 
@@ -3778,7 +3904,9 @@ int16_t wsa_sweep_entry_save(struct wsa_device *dev, int32_t id)
     }
   
 	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_sweep_entry_save: %d - %s.\n", result, wsa_get_error_msg(result));
+    if (result < 0) {
+    	doutf(DHIGH, "In wsa_sweep_entry_save: %d - %s.\n", result, wsa_get_error_msg(result));
+    }
 
 	return result;
 }
