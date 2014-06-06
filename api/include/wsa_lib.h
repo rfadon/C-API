@@ -91,6 +91,10 @@
 //*****
 // WSA specific values
 //*****
+
+#define WSA_CONNECT_TIMEOUT 5000
+#define WSA_PING_TIMEOUT 1
+
 #define WSA_IBW 125000000ULL
 #define WSA_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
 
@@ -311,7 +315,7 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method);
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method, int16_t timeout);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 

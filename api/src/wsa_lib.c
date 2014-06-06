@@ -320,7 +320,7 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method, int16_t timeout)
 {
 	int16_t result = 0;			// result returned from a function
 	char *temp_str;		// temporary store a string
@@ -413,13 +413,13 @@ int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_m
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port);
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
 		if (result < 0) {
 			return result;
         }
 
 		// setup data socket & connect
-		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port);
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port, timeout);
 		if (result < 0) {
 			return result;
         }

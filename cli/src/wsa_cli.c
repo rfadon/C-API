@@ -1094,6 +1094,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 						int16_t num_words)
 {
+	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_device *dev1;
+	
 	int16_t result = 0;			// result returned from a function
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
@@ -1117,12 +1120,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t dwell_seconds;
 	
 	strcpy(msg,"");
-
+	dev1 = &wsa_dev;
 	//*****
 	// Handle GET commands
 	//*****
 
-	if (strcmp(cmd_words[0], "GET") == 0) 
+	if (strcmp(cmd_words[0], "PING") == 0)
+	{
+		result = wsa_ping(dev1, cmd_words[1]);
+	}
+	else if (strcmp(cmd_words[0], "GET") == 0) 
 	{
 		if (strcmp(cmd_words[1], "ANT") == 0) 
 		{

@@ -101,7 +101,30 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
-	result = wsa_connect(dev, SCPI, intf_method);
+	result = wsa_connect(dev, SCPI, intf_method, WSA_CONNECT_TIMEOUT);
+	return result;
+}
+
+/**
+ * Ping a WSA by attempting to establish a socket connection with a user specified timeout
+ (
+ * @param dev - A pointer to the WSA device structure to be opened.
+ * @param intf_method - A char pointer to store the interface method to the 
+ * WSA. \n Possible methods: \n
+ * - With LAN, use: "TCPIP::<Ip address of the WSA>::37001" \n
+ * - With USB, use: "USB" (check if supported with the WSA version used). \n
+ *
+ * @return 0 on success, or a negative number on error.
+ * -
+ */
+int16_t wsa_ping(struct wsa_device *dev, char *intf_method)
+{
+	int16_t result = 0;
+	
+	// Start the WSA connection
+	result = wsa_connect(dev, SCPI, intf_method, WSA_PING_TIMEOUT);
+	wsa_disconnect(dev);
+	
 	return result;
 }
 

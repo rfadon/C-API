@@ -146,14 +146,16 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
 int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
-					   int32_t *sock_fd, const char *sock_port)
+					   int32_t *sock_fd, const char *sock_port, int16_t timeout)
 {
 	struct addrinfo *ai_list, *ai_ptr;
 	struct addrinfo hint_ai;
 	int32_t getaddrinfo_result;
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
-	
+	int16_t opt_val;
+	int16_t opt_len = sizeof(int);
+	int16_t result;
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -179,16 +181,25 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 			perror("client: socket() error");
 			continue;
 		}
+	#ifdef _WIN32
+        result = setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout));
+	#else
+        struct timeval tv;
+        tv.tv_sec  = timeout / 1000;
+        tv.tv_usec = timeout * 1000;
 
-		// establish the client connection
-		if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
-			wsa_close_sock(temp_fd);
-			perror("client: connect() error");
-			continue;
-		}
+        /* Ignore result */ setsockopt(sendsocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+	#endif
 
-		break; // successfully connected if got to here
-	}
+        // establish the client connection
+        if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
+            wsa_close_sock(temp_fd);
+            perror("client: connect() error");
+            continue;
+        }
+
+        break; // successfully connected if got to here
+    }
 
 	// If no address succeeded
 	if (ai_ptr == NULL)  {
