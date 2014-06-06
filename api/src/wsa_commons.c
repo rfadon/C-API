@@ -280,7 +280,7 @@ int16_t wsa_tokenize_file(FILE *fptr, char *cmd_strs[])
  *
  * @return 1 if the string is valid else 0
  */
-int32_t is_decimal(char *in_str)
+int32_t wsa_is_decimal(char const * in_str)
 {   
     int i;
 
@@ -373,7 +373,7 @@ int16_t wsa_to_int(char const * num_str, int * val)
  * 
  * @return 0 if no error else a negative value
  */
-int16_t to_double(char *num_str, double *val)
+int16_t wsa_to_double(char const * num_str, double * val)
 {
 	char *temp;
 	double temp_val;
@@ -382,7 +382,7 @@ int16_t to_double(char *num_str, double *val)
 		return WSA_ERR_INVNUMBER;
     }
 	
-	if (!is_decimal(num_str)) {
+	if (!wsa_is_decimal(num_str)) {
 		return WSA_ERR_INVNUMBER;
     }
 
@@ -406,7 +406,7 @@ int16_t to_double(char *num_str, double *val)
  * 
  * @return 0 if the symbol is inside the string, else a negative value
  */
-int16_t find_char_in_string(const char *command, char *symbol)
+int16_t wsa_find_char_in_string(const char *command, char *symbol)
 {
 	int32_t length;
 	int32_t i;

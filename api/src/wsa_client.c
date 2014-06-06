@@ -8,6 +8,11 @@
 #include "wsa_error.h"
 #include "wsa_debug.h"
 
+#if defined(_WIN32) && defined(UNICODE)
+# undef gai_strerror
+# define gai_strerror gai_strerrorA
+#endif
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
@@ -66,7 +71,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 	
@@ -90,7 +95,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	// Check the address at the given port
 	result = _addr_check(sock_addr, sock_port, ai_list);
 	if (result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -161,7 +166,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -176,7 +181,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 		}
 
 		// establish the client connection
-		if (connect(temp_fd, ai_ptr->ai_addr, ai_ptr->ai_addrlen) == -1) {
+		if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
 			wsa_close_sock(temp_fd);
 			perror("client: connect() error");
 			continue;
@@ -187,7 +192,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 
 	// If no address succeeded
 	if (ai_ptr == NULL)  {
-		fprintf(stderr, "client: failed to connect\n");
+		doutf(DHIGH, "client: failed to connect\n");
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	
@@ -297,7 +302,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 	}
 	else {
 		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
-		doutf(DMED, "In wsa_sock_recv: select returned %ld\n", ret_val);
+		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
 
 		return WSA_ERR_QUERYNORESP;
 	}
@@ -364,11 +369,11 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 				bytes_expected -= bytes_received;
 			}
 			else {
-				doutf(DLOW, "total bytes received: %ld - ", *total_bytes);
+				doutf(DLOW, "total bytes received: %d - ", *total_bytes);
 				break;
 			}
 
-			doutf(DLOW, "bytes received: %ld - ", bytes_received);
+			doutf(DLOW, "bytes received: %d - ", bytes_received);
 		}
 		else {
 			// if got error, try again to make sure?
