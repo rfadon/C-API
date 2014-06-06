@@ -1094,6 +1094,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 						int16_t num_words)
 {
+	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_device *dev1;
+	
 	int16_t result = 0;			// result returned from a function
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
@@ -1117,12 +1120,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t dwell_seconds;
 	
 	strcpy(msg,"");
-
+	dev1 = &wsa_dev;
 	//*****
 	// Handle GET commands
 	//*****
 
-	if (strcmp(cmd_words[0], "GET") == 0) 
+	if (strcmp(cmd_words[0], "PING") == 0)
+	{
+		result = wsa_ping(dev1, cmd_words[1]);
+	}
+	else if (strcmp(cmd_words[0], "GET") == 0) 
 	{
 		if (strcmp(cmd_words[1], "ANT") == 0) 
 		{
@@ -2947,12 +2954,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		return result;
 	printf("Step: %0.3f \n", (float) freq/MHZ);
 
-	// print antenna sweep value
-	result = wsa_get_sweep_antenna(dev, &temp_int);
-	if (result < 0)
-		return result;
-	printf("   Antenna port: %d \n", temp_int);
-
 	// print samples per packets sweep value
 	result = wsa_get_sweep_samples_per_packet(dev, &temp_int);
 	if (result < 0)
@@ -2977,17 +2978,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		return result;
 	printf("   Frequency shift: %0.3f MHz \n", (float) fshift/MHZ);
 
-	// print gain if sweep value		
-	result = wsa_get_sweep_gain_if(dev, &temp_int);
-	if (result < 0)
-		return result;
-	printf("   Gain IF: %d dBm \n", temp_int);
-
-	// print gain rf sweep value
-	result = wsa_get_sweep_gain_rf(dev, temp);
-	if (result < 0)
-		return result;
-	printf("   Gain RF: %s\n", temp);
 
 	// print trigger status sweep value
 	printf("   Trigger settings:\n");
@@ -3051,13 +3041,12 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 		return result;
 	}
 	printf("Sweep Entry %d Settings:\n", id);
+	printf("  RFE Mode: %s \n", list_values->rfe_mode);
 	printf("  Sweep range (MHz): %0.3f - %0.3f, Step: %0.3f \n", ((float) list_values->start_freq / MHZ),(float)  (list_values->stop_freq / MHZ), (float) list_values->fstep / MHZ);
-	printf("  Antenna port: %u \n", list_values->ant_port);
+	printf("  Attenuation: %u \n", list_values->attenuator);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);
 	printf("  Frequency shift: %0.3f MHz\n", (float) (list_values->fshift/MHZ));
-	printf("  Gain IF: %u \n", list_values->gain_if);
-	printf("  Gain RF: %s\n", list_values->gain_rf);
 	printf("  Trigger settings:\n");
 
 	if (strcmp(list_values->trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0) 

@@ -101,7 +101,30 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 
 	// Start the WSA connection
 	// NOTE: API will always assume SCPI syntax
-	result = wsa_connect(dev, SCPI, intf_method);
+	result = wsa_connect(dev, SCPI, intf_method, WSA_CONNECT_TIMEOUT);
+	return result;
+}
+
+/**
+ * Ping a WSA by attempting to establish a socket connection with a user specified timeout
+ (
+ * @param dev - A pointer to the WSA device structure to be opened.
+ * @param intf_method - A char pointer to store the interface method to the 
+ * WSA. \n Possible methods: \n
+ * - With LAN, use: "TCPIP::<Ip address of the WSA>::37001" \n
+ * - With USB, use: "USB" (check if supported with the WSA version used). \n
+ *
+ * @return 0 on success, or a negative number on error.
+ * -
+ */
+int16_t wsa_ping(struct wsa_device *dev, char *intf_method)
+{
+	int16_t result = 0;
+	
+	// Start the WSA connection
+	result = wsa_connect(dev, SCPI, intf_method, WSA_PING_TIMEOUT);
+	wsa_disconnect(dev);
+	
 	return result;
 }
 
@@ -3952,11 +3975,14 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	// ****
 
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	strcpy(sweep_list->rfe_mode,strtok_result);
+
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
     }
 	sweep_list->start_freq = (int64_t) temp;
-	
+
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
@@ -3967,7 +3993,7 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;	
     }
-	sweep_list->fstep= (int64_t) temp;
+	sweep_list->fstep = (int64_t) temp;
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
@@ -3983,19 +4009,26 @@ int16_t wsa_sweep_entry_read(struct wsa_device *dev, int32_t id, struct wsa_swee
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
-		return WSA_ERR_RESPUNKNOWN;	
+		return WSA_ERR_RESPUNKNOWN;
     }
-	sweep_list->ant_port = (int32_t) temp;
-	
-	// Convert to wsa_gain type
-	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(sweep_list->gain_rf,strtok_result);
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
 		return WSA_ERR_RESPUNKNOWN;
     }
+	sweep_list->attenuator = (int32_t) temp;
+	
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (wsa_to_double(strtok_result, &temp) < 0) {
+		return WSA_ERR_RESPUNKNOWN;
+    }
 	sweep_list->gain_if = (int32_t) temp;
+
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	if (wsa_to_double(strtok_result, &temp) < 0) {
+		return WSA_ERR_RESPUNKNOWN;
+    }
+	sweep_list->gain_hdr = (int32_t) temp;
 
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	if (wsa_to_double(strtok_result, &temp) < 0) {
