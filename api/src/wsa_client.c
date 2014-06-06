@@ -229,15 +229,14 @@ int32_t wsa_sock_send(int32_t sock_fd, char const *out_str, int32_t len)
 		
 		// Check the returned value
 		if (bytes_txed > 0) {
-			doutf(DMED, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
+			doutf(DLOW, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
 			
 			// update all the count
 			total_txed += bytes_txed;
 			bytes_left -= bytes_txed;
-		}
-		else if (bytes_txed == -1)
+		} else if (bytes_txed == -1) {
 			return WSA_ERR_SOCKETERROR;
-		else {
+        } else {
 			// Client closed connection before we could reply to
 			// all the data it sent, so bomb out early.
 			return WSA_ERR_SOCKETDROPPED;
@@ -298,11 +297,13 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 		return WSA_ERR_SOCKETERROR;
 	}
 	else if (ret_val) {
-		doutf(DMED, "Data is available now.\n");
+		doutf(DLOW, "Data is available now.\n");
 	}
 	else {
-		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
-		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
+		doutf(DLOW, "No data received within %d milliseconds.\n", time_out);
+        if(ret_val) {
+    		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
+        }
 
 		return WSA_ERR_QUERYNORESP;
 	}
@@ -327,7 +328,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 			return WSA_ERR_SOCKETSETFUPFAILED;
 		}
 		
-		doutf(DMED, "Received (%d bytes)\n\n", ret_val);
+		doutf(DLOW, "Received (%d bytes)\n\n", ret_val);
 	}
 		
 	*bytes_received = ret_val;
