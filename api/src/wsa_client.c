@@ -153,9 +153,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	int32_t getaddrinfo_result;
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
-	int16_t opt_val;
-	int16_t opt_len = sizeof(int);
-	int16_t result;
+	int32_t result;
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -181,15 +179,15 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 			perror("client: socket() error");
 			continue;
 		}
-	#ifdef _WIN32
+#ifdef _WIN32
         result = setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout));
-	#else
+#else
         struct timeval tv;
         tv.tv_sec  = timeout / 1000;
         tv.tv_usec = timeout * 1000;
 
-        /* Ignore result */ setsockopt(sendsocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
-	#endif
+        /* Ignore result */ setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+#endif
 
         // establish the client connection
         if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
