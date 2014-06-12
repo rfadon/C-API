@@ -153,9 +153,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	int32_t getaddrinfo_result;
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
-	int16_t opt_val;
-	int16_t opt_len = sizeof(int);
-	int16_t result;
+	int32_t result;
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -181,15 +179,15 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 			perror("client: socket() error");
 			continue;
 		}
-	#ifdef _WIN32
+#ifdef _WIN32
         result = setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout));
-	#else
+#else
         struct timeval tv;
         tv.tv_sec  = timeout / 1000;
         tv.tv_usec = timeout * 1000;
 
-        /* Ignore result */ setsockopt(sendsocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
-	#endif
+        /* Ignore result */ setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+#endif
 
         // establish the client connection
         if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
@@ -240,15 +238,14 @@ int32_t wsa_sock_send(int32_t sock_fd, char const *out_str, int32_t len)
 		
 		// Check the returned value
 		if (bytes_txed > 0) {
-			doutf(DMED, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
+			doutf(DLOW, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
 			
 			// update all the count
 			total_txed += bytes_txed;
 			bytes_left -= bytes_txed;
-		}
-		else if (bytes_txed == -1)
+		} else if (bytes_txed == -1) {
 			return WSA_ERR_SOCKETERROR;
-		else {
+        } else {
 			// Client closed connection before we could reply to
 			// all the data it sent, so bomb out early.
 			return WSA_ERR_SOCKETDROPPED;
@@ -309,11 +306,13 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 		return WSA_ERR_SOCKETERROR;
 	}
 	else if (ret_val) {
-		doutf(DMED, "Data is available now.\n");
+		doutf(DLOW, "Data is available now.\n");
 	}
 	else {
-		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
-		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
+		doutf(DLOW, "No data received within %d milliseconds.\n", time_out);
+        if(ret_val) {
+    		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
+        }
 
 		return WSA_ERR_QUERYNORESP;
 	}
@@ -338,7 +337,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 			return WSA_ERR_SOCKETSETFUPFAILED;
 		}
 		
-		doutf(DMED, "Received (%d bytes)\n\n", ret_val);
+		doutf(DLOW, "Received (%d bytes)\n\n", ret_val);
 	}
 		
 	*bytes_received = ret_val;
