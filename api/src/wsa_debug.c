@@ -8,23 +8,48 @@
 #include <time.h>
 #include "wsa_debug.h"
 
-int doutf(int level, const char *fmt, ...)
+
+static int    debuglevel = DEBUGLEVEL;
+static void * debugcallbackpvoid = 0;
+static void (*debugcallbackfunc)(void * pvoid, char const * pstring) = 0; 
+
+void wsa_debuglevel(int level)
+{
+  debuglevel = level;
+}
+
+void wsa_debugcallback(void(*callback)(void * pvoid, char const * pstring), void * pvoid)
+{
+  debugcallbackfunc  = callback;
+  debugcallbackpvoid = pvoid;
+}
+
+int wsa_doutf(int level, const char *fmt, ...)
 {
 	va_list ap;
 	FILE* debugFile;
 	time_t rawtime;
 	struct tm * timeinfo;
+    char buffer[256];
 	int n;
 
 	// don't print if debug level is too low
-	if (level > DEBUGLEVEL)
+	if (level > debuglevel) {
 		return 0;
-		
-	va_start(ap, fmt);
-	n = vprintf(fmt, ap);
-	va_end(ap);
-
-	fflush(stdout);
+    }
+	
+    if(debugcallbackfunc) {
+	  va_start(ap, fmt);
+	  n = vsnprintf(buffer, sizeof(buffer), fmt, ap);
+	  va_end(ap);
+      buffer[sizeof(buffer)-1] = 0;
+      debugcallbackfunc(debugcallbackpvoid, buffer); 
+    } else {
+	  va_start(ap, fmt);
+	  n = vprintf(fmt, ap);
+	  va_end(ap);
+  	  fflush(stdout);
+    }
 
 	if (ENABLE_LOG_FILE)
 	{

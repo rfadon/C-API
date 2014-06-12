@@ -1094,6 +1094,9 @@ int16_t save_data_to_bin_file(struct wsa_device *dev, char *prefix)
 int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[], 
 						int16_t num_words)
 {
+	struct wsa_device wsa_dev;	// the wsa device structure
+	struct wsa_device *dev1;
+	
 	int16_t result = 0;			// result returned from a function
 	int8_t user_quit = FALSE;	// determine if user has entered 'q' command
 	char msg[MAX_STRING_LEN];
@@ -1117,12 +1120,16 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 	int32_t dwell_seconds;
 	
 	strcpy(msg,"");
-
+	dev1 = &wsa_dev;
 	//*****
 	// Handle GET commands
 	//*****
 
-	if (strcmp(cmd_words[0], "GET") == 0) 
+	if (strcmp(cmd_words[0], "PING") == 0)
+	{
+		result = wsa_ping(dev1, cmd_words[1]);
+	}
+	else if (strcmp(cmd_words[0], "GET") == 0) 
 	{
 		if (strcmp(cmd_words[1], "ANT") == 0) 
 		{
@@ -1377,7 +1384,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			{
 				if (num_words < 4) 
 					printf("Missing the frequency value.\n");
-				if (!to_double(cmd_words[3], &temp_double))
+				if (!wsa_to_double(cmd_words[3], &temp_double))
 				{
 					result = wsa_get_spec_inv(dev, (int64_t) temp_double *  MHZ, &temp_short);
 					if (result >= 0)
@@ -1629,7 +1636,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words < 3)
 				printf("Missing the frequency value. See 'h'.\n");
 
-			else if (!to_double(cmd_words[2], &temp_double))
+			else if (!wsa_to_double(cmd_words[2], &temp_double))
 			{
 				result = wsa_set_freq(dev, (int64_t) (temp_double * MHZ));
 				if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1647,7 +1654,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (num_words < 3)
 				printf("Missing the frequency value.  See 'h'.\n");
 
-			else if (!to_double(cmd_words[2], &temp_double))
+			else if (!wsa_to_double(cmd_words[2], &temp_double))
 			{
 				result = wsa_set_freq_shift(dev, (float) (temp_double * MHZ));
 				if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1816,7 +1823,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				// Get the start freq
 				strtok_result = strtok(cmd_words[3], ",");
-				if (to_double(strtok_result, &temp_double) < 0)
+				if (wsa_to_double(strtok_result, &temp_double) < 0)
 				{
 					printf("Start frequency must be a valid number. See 'h'.\n");
 					return 0;
@@ -1825,7 +1832,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				
 				// Get the top frequency
 				strtok_result = strtok(NULL, ",");
-				if (to_double(strtok_result, &temp_double) < 0)
+				if (wsa_to_double(strtok_result, &temp_double) < 0)
 				{
 					printf("Stop frequency must be a valid number. See 'h'.\n");
 					return 0;
@@ -1834,7 +1841,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 				// Get the amplitude value
 				strtok_result = strtok(NULL, ",");
-				if (to_double(strtok_result, &temp_double) < 0)
+				if (wsa_to_double(strtok_result, &temp_double) < 0)
 				{
 					printf("Amplitude must be a valid number. See 'h'.\n");
 					return 0;
@@ -1931,7 +1938,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 
 					strtok_result = strtok(cmd_words[4], ",");
-					if (to_double(strtok_result, &temp_double) < 0)
+					if (wsa_to_double(strtok_result, &temp_double) < 0)
 					{
 						printf("Invalid input. Dwell seconds value must be a valid number.\n");
 						return 0;
@@ -1939,7 +1946,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 					dwell_seconds = (int32_t) temp_double;
 					strtok_result = strtok(NULL, ",");
-					if (to_double(strtok_result, &temp_double) < 0)
+					if (wsa_to_double(strtok_result, &temp_double) < 0)
 					{
 						printf("Invalid input. Dwell microseconds value must be a valid number.\n");
 						return 0;
@@ -1957,7 +1964,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					}
 
 					strtok_result = strtok(cmd_words[4], ",");
-					if (to_double(strtok_result, &temp_double) < 0) 
+					if (wsa_to_double(strtok_result, &temp_double) < 0) 
 					{
 						printf("Invalid input. Start frequency must be a valid number.\n");
 						return 0;
@@ -1965,7 +1972,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 					start_freq = (int64_t) (temp_double);
 					
 					strtok_result = strtok(NULL, ",");
-					if (to_double(strtok_result, &temp_double) < 0) 
+					if (wsa_to_double(strtok_result, &temp_double) < 0) 
 					{
 						printf("Invalid input. Stop frequency must be a valid number.\n");
 						return 0;
@@ -1979,7 +1986,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				{
 					if (num_words < 5) 
 						printf("Missing the frequency shift value. See 'h'.\n");
-					else if(!to_double(cmd_words[4], &temp_double))
+					else if(!wsa_to_double(cmd_words[4], &temp_double))
 					{
 						result = wsa_set_sweep_freq_shift(dev, (float) (temp_double * MHZ));
 						if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -1995,7 +2002,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 				{
 					if (num_words < 5) 
 						printf("Missing the frequency step value. See 'h'.\n");
-					else if(!to_double(cmd_words[4], &temp_double))
+					else if(!wsa_to_double(cmd_words[4], &temp_double))
 					{
 						result = wsa_set_sweep_freq_step(dev, (int64_t) (temp_double * MHZ));
 						if (result == WSA_ERR_FREQOUTOFBOUND)
@@ -2110,7 +2117,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 						// get start frequency
 						strtok_result = strtok(cmd_words[5], ",");
-						if (to_double(strtok_result, &temp_double) < 0)
+						if (wsa_to_double(strtok_result, &temp_double) < 0)
 						{
 							printf("Invalid input. Start frequency must be a valid number\n");
 							return 0;
@@ -2119,7 +2126,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 						// get stop frequency
 						strtok_result = strtok(NULL, ",");
-						if (to_double(strtok_result, &temp_double) < 0)
+						if (wsa_to_double(strtok_result, &temp_double) < 0)
 						{
 							printf("Invalid input. Stop frequency must be a valid number\n");
 							return 0;
@@ -2128,7 +2135,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 
 						// get amplitude
 						strtok_result = strtok(NULL, ",");
-						if (to_double(strtok_result, &temp_double) < 0)
+						if (wsa_to_double(strtok_result, &temp_double) < 0)
 						{
 							printf("Invalid input. Amplitude must be a valid number\n");
 							return 0;
@@ -2947,12 +2954,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		return result;
 	printf("Step: %0.3f \n", (float) freq/MHZ);
 
-	// print antenna sweep value
-	result = wsa_get_sweep_antenna(dev, &temp_int);
-	if (result < 0)
-		return result;
-	printf("   Antenna port: %d \n", temp_int);
-
 	// print samples per packets sweep value
 	result = wsa_get_sweep_samples_per_packet(dev, &temp_int);
 	if (result < 0)
@@ -2977,17 +2978,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 		return result;
 	printf("   Frequency shift: %0.3f MHz \n", (float) fshift/MHZ);
 
-	// print gain if sweep value		
-	result = wsa_get_sweep_gain_if(dev, &temp_int);
-	if (result < 0)
-		return result;
-	printf("   Gain IF: %d dBm \n", temp_int);
-
-	// print gain rf sweep value
-	result = wsa_get_sweep_gain_rf(dev, temp);
-	if (result < 0)
-		return result;
-	printf("   Gain RF: %s\n", temp);
 
 	// print trigger status sweep value
 	printf("   Trigger settings:\n");
@@ -3051,13 +3041,12 @@ int16_t print_sweep_entry_information(struct wsa_device *dev, int32_t id)
 		return result;
 	}
 	printf("Sweep Entry %d Settings:\n", id);
+	printf("  RFE Mode: %s \n", list_values->rfe_mode);
 	printf("  Sweep range (MHz): %0.3f - %0.3f, Step: %0.3f \n", ((float) list_values->start_freq / MHZ),(float)  (list_values->stop_freq / MHZ), (float) list_values->fstep / MHZ);
-	printf("  Antenna port: %u \n", list_values->ant_port);
+	printf("  Attenuation: %u \n", list_values->attenuator);
 	printf("  Capture block: %d * %d \n", list_values->samples_per_packet, list_values->packets_per_block);
 	printf("  Decimation rate: %d \n", list_values->decimation_rate);
 	printf("  Frequency shift: %0.3f MHz\n", (float) (list_values->fshift/MHZ));
-	printf("  Gain IF: %u \n", list_values->gain_if);
-	printf("  Gain RF: %s\n", list_values->gain_rf);
 	printf("  Trigger settings:\n");
 
 	if (strcmp(list_values->trigger_type, WSA_LEVEL_TRIGGER_TYPE) == 0) 

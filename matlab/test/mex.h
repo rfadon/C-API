@@ -1,5 +1,9 @@
 #include <stdio.h>
+#ifdef _WIN32
 #include <malloc.h>
+#else
+#include <stdlib.h>
+#endif
 
 //
 //  This file is only for testing the matlab api outside of matlab
@@ -35,7 +39,7 @@ inline mxArray * mxCreateDoubleScalar(int)     { return 0; }
 inline mxArray * mxCreateString(char const *) { return 0; }
 inline int mxGetString(mxArray const *, char *, int) { return 0; }
 
-inline int    mxFree(void * ptr) { free(ptr); }
+inline int    mxFree(void * ptr) { free(ptr); return 0;}
 inline void * mxMalloc(int size) { return malloc(size); }
 inline void mexMakeMemoryPersistent(void*) { }
 

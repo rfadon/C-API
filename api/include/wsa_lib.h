@@ -91,6 +91,10 @@
 //*****
 // WSA specific values
 //*****
+
+#define WSA_CONNECT_TIMEOUT 5000
+#define WSA_PING_TIMEOUT 1
+
 #define WSA_IBW 125000000ULL
 #define WSA_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
 
@@ -269,12 +273,15 @@ struct wsa_vrt_packet_trailer {
 
 // Structure to hold sweep list data
 struct wsa_sweep_list {
+	char rfe_mode[MAX_STR_LEN];
 	int64_t start_freq;
 	int64_t stop_freq;
 	float fshift;
 	int64_t fstep;
 	int32_t decimation_rate;
 	int32_t ant_port;
+	int32_t attenuator;
+	int32_t gain_hdr;
 	int32_t gain_if;
 	int32_t dwell_seconds;
 	int32_t dwell_microseconds;
@@ -308,7 +315,7 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method);
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method, int16_t timeout);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
 

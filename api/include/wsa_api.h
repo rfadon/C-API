@@ -6,10 +6,20 @@
 
 
 // ////////////////////////////////////////////////////////////////////////////
+// DEBUG FUNCTIONS                                                           //
+// ////////////////////////////////////////////////////////////////////////////
+
+void wsa_debuglevel(int);
+void wsa_debugcallback(void(*callback)(void * pvoid, char const * pstring), void * pvoid);
+
+
+
+// ////////////////////////////////////////////////////////////////////////////
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
+int16_t wsa_ping(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 
 int16_t wsa_check_addr(char const *ip_addr);

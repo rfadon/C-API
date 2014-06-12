@@ -320,7 +320,7 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method)
+int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method, int16_t timeout)
 {
 	int16_t result = 0;			// result returned from a function
 	char *temp_str;		// temporary store a string
@@ -378,8 +378,7 @@ int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_m
 
 		// Can't determine connection method from the interface string
 		else {
-			doutf(DMED, "Error WSA_ERR_INVINTFMETHOD: %s.\n", 
-				_wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
+			doutf(DHIGH, "Error WSA_ERR_INVINTFMETHOD: %s.\n", _wsa_get_err_msg(WSA_ERR_INVINTFMETHOD));
 			return WSA_ERR_INVINTFMETHOD;
 		}
 	} // end if SCPI section
@@ -413,13 +412,13 @@ int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_m
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port);
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
 		if (result < 0) {
 			return result;
         }
 
 		// setup data socket & connect
-		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port);
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port, timeout);
 		if (result < 0) {
 			return result;
         }
@@ -503,7 +502,13 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
-	// TODO: check WSA version/model # 
+    if(!strncmp(command,  "TRACE:BLOCK:DATA?", 16)) {
+        doutf(DLOW, "wsa_send_command(%s)\n", command);
+    } else {
+        doutf(DMED, "wsa_send_command(%s)\n", command);
+    }
+
+    // TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) 
 	{	
 		return WSA_ERR_USBNOTAVBL;
@@ -525,7 +530,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 				if (resend_cnt > 3)
 					return WSA_ERR_CMDSENDFAILED;
 
-				printf("Not all bytes sent. Resending the packet...\n");
+				doutf(DMED, "Not all bytes sent. Resending the packet...\n");
 				resend_cnt++;
 			}
 			else
@@ -535,19 +540,24 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 		}  
 		// If it's not asking for data, query for any error to
 		// make sure that the set is done w/out any error in the system
-		if (strstr(command, "DATA?") == NULL) 
-		{
+		if (strstr(command, "DATA?") == NULL) {
 			wsa_query_error(dev, query_msg);
-			if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0))
+            if ((strstr(query_msg, "no response") != 0) && (bytes_txed > 0)) {
+                doutf(DHIGH, "wsa_send_command(%s) = WSA_ERR_QUERYNORESP\n", command);
 				return WSA_ERR_QUERYNORESP;
+            }
 			
 			if (strcmp(query_msg, "") != 0) {
-				if (strstr(query_msg, "-221") != NULL)
+				if (strstr(query_msg, "-221") != NULL) {
+                    doutf(DHIGH, "wsa_send_command(%s) = WSA_WARNING_TRIGGER_CONFLICT\n", command);
 					return WSA_WARNING_TRIGGER_CONFLICT;
+                }
 				
-				return WSA_ERR_SETFAILED;
+                doutf(DHIGH, "wsa_send_command(%s) = WSA_ERR_SETFAILED\n", command);
+
+                return WSA_ERR_SETFAILED;
 			}
-		}
+        }
 	}
 
 	return bytes_txed;
@@ -584,7 +594,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char const *file_name)
 	cmd_fptr = fopen(file_name, "r");
     if(cmd_fptr == NULL) {
         result = WSA_ERR_FILEREADFAILED;
-        printf("ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), file_name);
+        doutf(DHIGH, "ERROR %d: %s '%s'.\n", result, wsa_get_error_msg(result), file_name);
         return result;
     }
 
@@ -622,7 +632,7 @@ int16_t wsa_send_command_file(struct wsa_device *dev, char const *file_name)
                 // If a bad command is detected, continue? Prefer not.
                 if (result < 0)
                 {
-                    printf("Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
+                    doutf(DHIGH, "Error at line %d: '%s'.\n", i + 1, cmd_strs[i]);
                     break;
                 }
             }
@@ -893,9 +903,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 												vrt_header_bytes, 
 												TIMEOUT, 
 												&bytes_received);	
-	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
-	if (socket_receive_result < 0)
-	{
+	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+	if (socket_receive_result < 0) {
 		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_header_buffer);
 
@@ -961,8 +970,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
 		vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
-	doutf(DMED, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n",
-		socket_receive_result);
+	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", 

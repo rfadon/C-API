@@ -8,6 +8,11 @@
 #include "wsa_error.h"
 #include "wsa_debug.h"
 
+#if defined(_WIN32) && defined(UNICODE)
+# undef gai_strerror
+# define gai_strerror gai_strerrorA
+#endif
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Local Prototypes
@@ -66,7 +71,7 @@ int16_t _addr_check(const char *sock_addr, const char *sock_port,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 	
@@ -90,7 +95,7 @@ int16_t wsa_addr_check(const char *sock_addr, const char *sock_port)
 	// Check the address at the given port
 	result = _addr_check(sock_addr, sock_port, ai_list);
 	if (result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -141,14 +146,14 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
 int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
-					   int32_t *sock_fd, const char *sock_port)
+					   int32_t *sock_fd, const char *sock_port, int16_t timeout)
 {
 	struct addrinfo *ai_list, *ai_ptr;
 	struct addrinfo hint_ai;
 	int32_t getaddrinfo_result;
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
-	
+	int32_t result;
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -161,7 +166,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
+		doutf(DHIGH, "getaddrinfo: %s\n", gai_strerror(getaddrinfo_result));
 		return WSA_ERR_INVIPHOSTADDRESS;
 	}
 
@@ -174,20 +179,29 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 			perror("client: socket() error");
 			continue;
 		}
+#ifdef _WIN32
+        result = setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*) &timeout, sizeof(timeout));
+#else
+        struct timeval tv;
+        tv.tv_sec  = timeout / 1000;
+        tv.tv_usec = timeout * 1000;
 
-		// establish the client connection
-		if (connect(temp_fd, ai_ptr->ai_addr, ai_ptr->ai_addrlen) == -1) {
-			wsa_close_sock(temp_fd);
-			perror("client: connect() error");
-			continue;
-		}
+        /* Ignore result */ setsockopt(temp_fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+#endif
 
-		break; // successfully connected if got to here
-	}
+        // establish the client connection
+        if (connect(temp_fd, ai_ptr->ai_addr, (int)ai_ptr->ai_addrlen) == -1) {
+            wsa_close_sock(temp_fd);
+            perror("client: connect() error");
+            continue;
+        }
+
+        break; // successfully connected if got to here
+    }
 
 	// If no address succeeded
 	if (ai_ptr == NULL)  {
-		fprintf(stderr, "client: failed to connect\n");
+		doutf(DHIGH, "client: failed to connect\n");
 		return WSA_ERR_ETHERNETCONNECTFAILED;
 	}
 	
@@ -224,15 +238,14 @@ int32_t wsa_sock_send(int32_t sock_fd, char const *out_str, int32_t len)
 		
 		// Check the returned value
 		if (bytes_txed > 0) {
-			doutf(DMED, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
+			doutf(DLOW, "Sent '%s' (%d bytes) to server.\n", out_str, bytes_txed);
 			
 			// update all the count
 			total_txed += bytes_txed;
 			bytes_left -= bytes_txed;
-		}
-		else if (bytes_txed == -1)
+		} else if (bytes_txed == -1) {
 			return WSA_ERR_SOCKETERROR;
-		else {
+        } else {
 			// Client closed connection before we could reply to
 			// all the data it sent, so bomb out early.
 			return WSA_ERR_SOCKETDROPPED;
@@ -293,11 +306,13 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 		return WSA_ERR_SOCKETERROR;
 	}
 	else if (ret_val) {
-		doutf(DMED, "Data is available now.\n");
+		doutf(DLOW, "Data is available now.\n");
 	}
 	else {
-		doutf(DHIGH, "No data received within %d milliseconds.\n", time_out);
-		doutf(DMED, "In wsa_sock_recv: select returned %ld\n", ret_val);
+		doutf(DLOW, "No data received within %d milliseconds.\n", time_out);
+        if(ret_val) {
+    		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
+        }
 
 		return WSA_ERR_QUERYNORESP;
 	}
@@ -322,7 +337,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 			return WSA_ERR_SOCKETSETFUPFAILED;
 		}
 		
-		doutf(DMED, "Received (%d bytes)\n\n", ret_val);
+		doutf(DLOW, "Received (%d bytes)\n\n", ret_val);
 	}
 		
 	*bytes_received = ret_val;
@@ -364,11 +379,11 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 				bytes_expected -= bytes_received;
 			}
 			else {
-				doutf(DLOW, "total bytes received: %ld - ", *total_bytes);
+				doutf(DLOW, "total bytes received: %d - ", *total_bytes);
 				break;
 			}
 
-			doutf(DLOW, "bytes received: %ld - ", bytes_received);
+			doutf(DLOW, "bytes received: %d - ", bytes_received);
 		}
 		else {
 			// if got error, try again to make sure?
