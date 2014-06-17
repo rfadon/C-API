@@ -125,9 +125,12 @@ void * wsa_probe_begin(void)
     doutf(DLOW, "IP Address: %s\n", probe->padaptor->IpAddressList.IpAddress.String);
     doutf(DLOW, "IP Mask:    %s\n", probe->padaptor->IpAddressList.IpMask.String);
 
-    if(probe->padaptor->Type == MIB_IF_TYPE_ETHERNET) {
+    switch(probe->padaptor->Type) {
+    case MIB_IF_TYPE_ETHERNET:
+    case IF_TYPE_IEEE80211:
       ipaddr = inet_addr(probe->padaptor->IpAddressList.IpAddress.String);
       ipmask = inet_addr(probe->padaptor->IpAddressList.IpMask.String);
+      break;
     }
 #elif defined(ANDROID)
     /* getifaddr is not included in android NDK, try to get the first wlan/eth0 interface of the device */
@@ -175,8 +178,8 @@ void * wsa_probe_begin(void)
          ipmask = ipaddr = 0;
        }
     }
-    doutf(DLOW, "Interface:  %s\n", padaptor->ifa_name);
-    doutf(DLOW, "IP Type:    %d\n", padaptor->ifa_addr->sa_family);
+    doutf(DLOW, "Interface:  %s\n", probe->padaptor->ifa_name);
+    doutf(DLOW, "IP Type:    %d\n", probe->padaptor->ifa_addr->sa_family);
 #endif
     doutf(DLOW, "IP Address: %d.%d.%d.%d\n", (ipaddr)&0xff, (ipaddr>>8)&0xff, (ipaddr>>16)&0xff, (ipaddr>>24)&0xff);
     doutf(DLOW, "IP Mask:    %d.%d.%d.%d\n", (ipmask)&0xff, (ipmask>>8)&0xff, (ipmask>>16)&0xff, (ipmask>>24)&0xff);
@@ -234,8 +237,6 @@ void * wsa_probe_begin(void)
     probe->padaptor = probe->padaptor->ifa_next;
 #endif
   }
-
-  
 
   return probe;
 }
@@ -354,8 +355,6 @@ or
 gcc -DSTANDALONE wsa_probe.c -o wsa_probe
 
 */
-
-#include "../../../../src/wsCore/wsCore.h"
 
 
 int main(int argc, char ** argv)
