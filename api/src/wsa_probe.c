@@ -9,8 +9,8 @@
 #include "wsa_error.h"
 #include "wsa_debug.h"
 #else
-# include <windows.h>
 # ifdef _WIN32
+#  include <windows.h>
 #  pragma comment(lib, "WINMM.lib")
 # endif
 # define doutf(x, s, ...) if(x) fprintf(stderr, s, __VA_ARGS__);
@@ -30,7 +30,7 @@
 # include <sys/ioctl.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
-# ifndef ANDROID
+# ifndef __ANDROID__
 #  include <ifaddrs.h>
 # else
 #  include <stdlib.h>
@@ -62,8 +62,8 @@ typedef struct {
   IP_ADAPTER_INFO * padaptorinfo;
   IP_ADAPTER_INFO * padaptor;
   ULONG             adaptorinfosize;
-#elif defined(WS_OS_ANDROID)
-  int               padaptorinfo = 1;
+#elif defined(__ANDROID__)
+  int               padaptorinfo;
   int               padaptor;
 #else
   struct ifaddrs *  padaptorinfo;
@@ -109,11 +109,13 @@ void * wsa_probe_begin(void)
     free(probe);
     return 0;
   }
-#elif !defined(WS_OS_ANDROID)
+#elif !defined(__ANDROID__)
   if(getifaddrs(&probe->padaptorinfo)) {
     doutf(DHIGH, "wsa_probe_begin: getifadds failed %d", errno);
     return 0;
   }
+#else
+  probe->padaptorinfo = 1;
 #endif
 
   for(probe->padaptor = probe->padaptorinfo; probe->padaptor && (probe->socketcount < arraysize(probe->socket)); ) {
@@ -132,7 +134,7 @@ void * wsa_probe_begin(void)
       ipmask = inet_addr(probe->padaptor->IpAddressList.IpMask.String);
       break;
     }
-#elif defined(ANDROID)
+#elif defined(__ANDROID__)
     /* getifaddr is not included in android NDK, try to get the first wlan/eth0 interface of the device */
     FILE * fp = fopen("/proc/net/route", "r");
     char buffer[1024];
@@ -231,7 +233,7 @@ void * wsa_probe_begin(void)
 
 #ifdef _WIN32
     probe->padaptor = probe->padaptor->Next;
-#elif defined(WS_OS_ANDROID)
+#elif defined(__ANDROID__)
     probe->padaptor = 0;
 #else
     probe->padaptor = probe->padaptor->ifa_next;
@@ -255,7 +257,7 @@ void wsa_probe_end(void * handle)
 
 #ifdef _WIN32
   free(probe->padaptorinfo);
-#elif !defined(WS_OS_ANDROID)
+#elif !defined(__ANDROID__)
   freeifaddrs(probe->padaptorinfo);
 #endif
 
@@ -394,7 +396,8 @@ int main(int argc, char ** argv)
   void * handle = wsa_probe_begin();
 
   if(handle) {
-    for(int i = 0; i < 50; i+=2) {
+    int i;
+    for(i = 0; i < 50; i+=2) {
       found = wsa_probe_poll(handle, 1, ipaddr, device, serial, version, 32);
 
       if(found) {
