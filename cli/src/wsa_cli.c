@@ -2938,7 +2938,6 @@ int16_t print_sweep_entry_template(struct wsa_device *dev)
 	int32_t amplitude;
 	char trigger_type[MAX_STRING_LEN];
 	char trigger_sync_state[MAX_STRING_LEN];
-	char temp[10];
 
 	printf("Current Sweep Entry Template Settings:\n");
 

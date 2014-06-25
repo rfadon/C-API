@@ -126,8 +126,8 @@
 #define WSA_SLAVE_TRIGGER "SLAVE"
 
 // delay limitations
-#define WSA_trigger_SYNC_DELAY_MAX 4294967295
-#define WSA_trigger_SYNC_DELAY_MIN 0
+#define WSA_trigger_SYNC_DELAY_MAX      0x7ffffff8
+#define WSA_trigger_SYNC_DELAY_MIN      0
 #define WSA_trigger_SYNC_DELAY_MULTIPLE 8
 
 // Decimation Range
