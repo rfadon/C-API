@@ -758,14 +758,12 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
 	end_time = 1000 + start_time;
 
 	packet = (uint8_t *) malloc(packet_size * sizeof(uint8_t));
-	if (packet == NULL)
-	{
+	if (packet == NULL)	{
 		doutf(DHIGH, "In wsa_clean_data_socket: failed to allocate memory\n");
 		return WSA_ERR_MALLOCFAILED;
 	}
 	// read the left over packets from the socket
-	while(clock() <= end_time) 
-	{
+	while(clock() <= end_time) {
 		wsa_sock_recv_data(dev->sock.data, 
 									packet, 
 									packet_size, 
@@ -924,19 +922,18 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
-	if (data_buffer == NULL)
-	{
+	if (data_buffer == NULL) {
 		doutf(DHIGH, "In wsa_read_vrt_packet: failed to allocate memory\n");
 		return WSA_ERR_MALLOCFAILED;
 	}
 			
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer);
-	doutf(DMED, "wsa_read_vrt_packet_raw returned %hd\n", result);
-	if (result < 0)
-	{
+	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
+	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
-		if (result == WSA_ERR_NOTIQFRAME)
+		if (result == WSA_ERR_NOTIQFRAME) {
 			wsa_system_abort_capture(dev);
+        }
 
 		free(data_buffer);
 		return result;
@@ -3715,26 +3712,30 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 	char status[MAX_STR_LEN];
 	int32_t size = 0;
 
-
 	result = wsa_get_capture_mode(dev, status);
-	if (result < 0)
+	if (result < 0) {
 		return result;
+    }
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) == 0) {
 		return WSA_ERR_SWEEPALREADYRUNNING;
+    }
 	
 	// check if the wsa is streaming
-	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) == 0)
+	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) == 0) {
 		return WSA_ERR_SWEEPWHILESTREAMING;
+    }
 	
 	// check if the sweep list is empty
 	result = wsa_get_sweep_entry_size(dev, &size);
-	if (result < 0)
-		return result;	
-	if (size <= 0) 
+	if (result < 0) {
+		return result;
+    }
+	if (size <= 0) {
 		return WSA_ERR_SWEEPLISTEMPTY;
-	
+    }
+
 	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
     if (result < 0) {
     	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
