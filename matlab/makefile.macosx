@@ -1,4 +1,6 @@
 #
+#   Makefile to compile the libwsa64mac.a under macosx
+#
 #   Run with make -f makefile.macosx
 #
 #   Assumes C-API is located in ../api
@@ -6,8 +8,8 @@
 
 WSFLAGS = -I../api/include -I../api/include/include-unix -O2
 
-all:	wsa_api.o wsa_client.o wsa_commons.o wsa_debug.o wsa_lib.o wsa_client_unix.o
-	ar cr libwsa64mac.a wsa_api.o wsa_client.o wsa_commons.o wsa_debug.o wsa_lib.o wsa_client_unix.o
+all:	wsa_api.o wsa_client.o wsa_client_unix.o wsa_commons.o wsa_debug.o wsa_lib.o
+	ar cr libwsa64mac.a wsa_api.o wsa_client.o wsa_client_unix.o wsa_commons.o wsa_debug.o wsa_lib.o wsa_probe.o
 
 
 wsa_api.o:	../api/src/wsa_api.c
@@ -15,6 +17,9 @@ wsa_api.o:	../api/src/wsa_api.c
 
 wsa_client.o: ../api/src/wsa_client.c
 	gcc -c $(WSFLAGS) ../api/src/wsa_client.c
+
+wsa_client_unix.o: ../api/src/src-unix/wsa_client_unix.c
+	gcc -c $(WSFLAGS) ../api/src/src-unix/wsa_client_unix.c
 
 wsa_commons.o: ../api/src/wsa_commons.c
 	gcc -c $(WSFLAGS) ../api/src/wsa_commons.c
@@ -25,6 +30,7 @@ wsa_debug.o: ../api/src/wsa_debug.c
 wsa_lib.o: ../api/src/wsa_lib.c
 	gcc -c $(WSFLAGS) ../api/src/wsa_lib.c
 
-wsa_client_unix.o: ../api/src/src-unix/wsa_client_unix.c
-	gcc -c $(WSFLAGS) ../api/src/src-unix/wsa_client_unix.c
+wsa_probe.o: ../api/src/wsa_probe.c
+	gcc -c $(WSFLAGS) ../api/src/wsa_probe.c
+
 

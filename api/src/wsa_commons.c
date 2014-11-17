@@ -207,14 +207,12 @@ const char *_wsa_get_err_msg(int16_t err_id)
 
 	// This loop is not efficient.  Should probably do a binary 
 	// search instead but the error list is small right now.
-	do
-	{
-		if (wsa_err_list[id].err_id == err_id) 
-		{
+	do {
+		if (wsa_err_list[id].err_id == err_id) {
           return wsa_err_list[id].err_msg;
-			break;
+		} else {
+          id++;
         }
-		else id++;
 	} while (wsa_err_list[id].err_msg != NULL);
 	
 	//return wsa_err_list[WSA_ERR_UNKNOWN_ERROR].err_msg;
@@ -406,7 +404,7 @@ int16_t wsa_to_double(char const * num_str, double * val)
  * 
  * @return 0 if the symbol is inside the string, else a negative value
  */
-int16_t wsa_find_char_in_string(const char *command, char *symbol)
+int16_t wsa_find_char_in_string(const char * command, char const * symbol)
 {
 	int32_t length;
 	int32_t i;
