@@ -71,9 +71,13 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000208);
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000208_MAX_FREQ * MHZ);
-
 		}
-		
+
+		else if (strstr(strtok_result, WSA5000408) != NULL)
+		{
+			sprintf(dev->descr.dev_model, "%s", WSA5000408);
+			dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
+		}
 		else if (strstr(strtok_result, WSA5000220) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000220);
