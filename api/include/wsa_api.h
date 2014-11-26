@@ -95,7 +95,8 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		int16_t * const i16_buffer,
 		int16_t * const q16_buffer,
 		int32_t * const i32_buffer,
-		int32_t samples_per_packet);
+		int32_t samples_per_packet,
+		uint32_t timeout);
 
 int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_packet);
 int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet);

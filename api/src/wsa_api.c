@@ -903,6 +903,7 @@ int16_t wsa_capture_block(struct wsa_device * const dev)
  *		I data buffer with size specified by samples_per_packet.
  * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
  *		{I, Q} sample pairs) per VRT packet to be captured.
+ * @param timeout - An unsigned 32-bit value containing the timeout (in miliseconds)
  *
  * @return 0 on success or a negative value on error
  */
@@ -915,11 +916,12 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		int16_t * const i16_buffer, 
 		int16_t * const q16_buffer,
 		int32_t * const i32_buffer,
-		int32_t samples_per_packet)		
+		int32_t samples_per_packet,
+		uint32_t timeout)		
 {
 	uint8_t *data_buffer;
 	int16_t result = 0;
-
+	int16_t result2 = 0;
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 	if (data_buffer == NULL) {
@@ -927,17 +929,19 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		return WSA_ERR_MALLOCFAILED;
 	}
 			
-	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer);
+	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer, timeout);
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
-		if (result == WSA_ERR_NOTIQFRAME) {
+		if (result == WSA_ERR_NOTIQFRAME || result == WSA_ERR_QUERYNORESP) {
 			wsa_system_abort_capture(dev);
+			result2 = wsa_flush_data(dev); 
         }
 
 		free(data_buffer);
 		return result;
 	} 
+
 	// decode ZIF data packets
 	if (header->stream_id == I16Q16_DATA_STREAM_ID) 
 		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, header->samples_per_packet);
