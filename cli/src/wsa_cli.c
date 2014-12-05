@@ -487,7 +487,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	TIME_HOLDER capture_end_time;
 	double capture_time_ms = 0;
 
-	uint32_t timeout = 6000;
+	uint32_t timeout = 5000;
 	// to store different VRT packet types
 	struct wsa_vrt_packet_header *header;
 	struct wsa_vrt_packet_trailer *trailer;

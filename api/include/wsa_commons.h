@@ -2,6 +2,7 @@
 #define __WSA_COMMONS_H__
 
 #include "thinkrf_stdint.h"
+#include "stdio.h"
 
 #define FALSE	0
 #define TRUE	1

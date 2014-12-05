@@ -282,8 +282,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 
 	// first set the time out timer
 	timer.tv_sec = seconds;
-	timer.tv_usec = time_out - (seconds * 1000);
-
+	timer.tv_usec = (long) (time_out - (seconds * 1000)) * 1000;
 	// *****
 	// Use select() & FD_SET to make this receiving non-blocking (i.e. with
 	// time out value)
