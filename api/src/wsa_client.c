@@ -282,8 +282,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 
 	// first set the time out timer
 	timer.tv_sec = seconds;
-	timer.tv_usec = time_out - (seconds * 1000);
-
+	timer.tv_usec = (long) (time_out - (seconds * 1000)) * 1000;
 	// *****
 	// Use select() & FD_SET to make this receiving non-blocking (i.e. with
 	// time out value)
@@ -365,11 +364,13 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 	int32_t bytes_received = 0;
 	int32_t bytes_expected = buf_size;
 	uint16_t retry = 0;
+	uint16_t try_limit = 3;
 
 	*total_bytes = 0;
-
+	
 	do {
-		recv_result = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out, &bytes_received);
+
+		recv_result = wsa_sock_recv(sock_fd, rx_buf_ptr, bytes_expected, time_out / (uint32_t) try_limit, &bytes_received);
 		if (recv_result == 0) {
 			retry = 0;
 			*total_bytes += bytes_received;
@@ -387,7 +388,7 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 		}
 		else {
 			// if got error, try again to make sure?
-			if (retry == 2)
+			if (retry == (try_limit - 1))
 				return recv_result;
 			retry++;
 		}

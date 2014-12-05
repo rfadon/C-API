@@ -487,6 +487,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 	TIME_HOLDER capture_end_time;
 	double capture_time_ms = 0;
 
+	uint32_t timeout = 5000;
 	// to store different VRT packet types
 	struct wsa_vrt_packet_header *header;
 	struct wsa_vrt_packet_trailer *trailer;
@@ -703,7 +704,7 @@ int16_t save_data_to_file(struct wsa_device *dev, char *prefix, char *ext)
 		get_current_time(&capture_start_time);
 
 		result = wsa_read_vrt_packet(dev, header, trailer, receiver, digitizer,
-					extension, i16_buffer, q16_buffer, i32_buffer, samples_per_packet);
+					extension, i16_buffer, q16_buffer, i32_buffer, samples_per_packet, timeout);
 		if (result < 0)
 			break;
 		
@@ -2409,7 +2410,7 @@ int8_t process_cmd_words(struct wsa_device *dev, char *cmd_words[],
 			if (result == WSA_ERR_QUERYNORESP) 
 			{
 				printf("Possibly due to loss of Ethernet connection.\n\n");
-				user_quit = TRUE;
+				user_quit = FALSE;
 			}
 		}
 	}

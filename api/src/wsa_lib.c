@@ -71,13 +71,15 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000208);
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000208_MAX_FREQ * MHZ);
-		}
 
+		}
 		else if (strstr(strtok_result, WSA5000408) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000408);
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
+
 		}
+
 		else if (strstr(strtok_result, WSA5000220) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000220);
@@ -757,7 +759,6 @@ int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_r
 			resp->status = bytes_received;
 		}
 	}
-
 	return 0;
 }
 
@@ -854,6 +855,7 @@ const char *wsa_get_error_msg(int16_t err_code)
  *		(i.e. sizeof(\b data_buffer) = \b samples_per_packet * 4 bytes per sample).
  * @param samples_per_packet - A 16-bit unsigned integer sample size (i.e. number of
  *		{I, Q} sample pairs) per VRT packet to be captured.
+ * @param timeout - An unsigned 32-bit integer containing the timeout (in miliseconds).
  *
  * @return  0 on success or a negative value on error
  */
@@ -863,7 +865,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const extension,
-		uint8_t * const data_buffer)
+		uint8_t * const data_buffer,
+		uint32_t timeout)
 {	
 	uint8_t *vrt_header_buffer;
 	int32_t vrt_header_bytes;
@@ -905,7 +908,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
 												vrt_header_buffer, 
 												vrt_header_bytes, 
-												TIMEOUT, 
+												timeout, 
 												&bytes_received);	
 	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0) {
@@ -973,7 +976,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	}
 
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
-		vrt_packet_buffer, vrt_packet_bytes, TIMEOUT, &bytes_received);
+		vrt_packet_buffer, vrt_packet_bytes, timeout, &bytes_received);
 	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{
