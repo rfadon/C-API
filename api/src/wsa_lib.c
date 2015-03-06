@@ -704,7 +704,6 @@ int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_r
 	uint8_t resend_cnt = 0;
 	int32_t len = (int32_t)strlen(command);
 	int32_t loop_count = 0;
-
 	// set defaults
 	strcpy(resp->output, "");
 	resp->status = 0;
@@ -750,16 +749,12 @@ int16_t wsa_send_query(struct wsa_device *dev, char const *command, struct wsa_r
 
 					loop_count++;
 				}
-
-				if (recv_result == 0 && bytes_received < MAX_STR_LEN)
-					resp->output[bytes_received] = '\0'; // add EOL to the string
-				else
-					resp->output[MAX_STR_LEN - 1] = '\0'; // add EOL to the string
-
 				break;
 			}
 		}
-
+		if (resp->output[bytes_received - 1] == '\n'){
+			resp->output[bytes_received - 1] = '\0';
+		}
 		// TODO define what result should be
 		if (recv_result != 0) 
 		{
