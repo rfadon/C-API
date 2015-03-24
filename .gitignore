@@ -1,1 +1,6 @@
 build-*/
+.*.swp
+html/
+js/
+latex/
+tags
