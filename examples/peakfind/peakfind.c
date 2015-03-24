@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ctype.h>
+#include "wsa_api.h"
 
 #define MHZ 1000000ULL
 #define KHZ 1000ULL
@@ -25,6 +27,7 @@ void show_syntax(void)
 	puts("");
 	puts("Options:");
 	puts("--help\tshows this help text");
+	puts("--mode=<n>\twhich mode do we perform the sweep in? possible values are: shn");
 	puts("--start=n\tstart frequency of sweep");
 	puts("--stop=n\tstop frequency of sweep");
 	puts("--rbw=n\trbw to use for the sweep");
@@ -82,13 +85,20 @@ int main(int argc, char *argv[])
 	char *optname, *optvalue;
 	uint64_t fstart, fstop, rbw;
 	uint32_t peaks;
+	char *ptr;
 	char *host;
+	char intf_str[40];
+	char mode[16];
+	struct wsa_device wsa_device;
+	struct wsa_device *wsadev = &wsa_device;
+	int result;
 
 	// init options
 	fstart = 2000ULL * MHZ;
 	fstop = 3000ULL * MHZ;
 	rbw = 100 * KHZ;
 	peaks = 1;
+	strcpy(mode, "SH");
 
 	// parse args
 	// NOTE: this method is easy but mangles argv
@@ -107,6 +117,27 @@ int main(int argc, char *argv[])
 		if (!strcmp(optname, "help")) {
 			show_syntax();
 			return 0;
+
+		// set sweep mode
+		} else if (!strcmp(optname, "mode")) {
+			if (n != 2) {
+				fprintf(stderr, "error: value for --start missing\n\n");
+				show_syntax();
+				return -1;
+			}
+
+			// copy and convert to uppercase
+			for(i=0;;i++) {
+				// break on string terminated
+				if (!optvalue[i])
+					break;
+
+				// break on max string len
+				if (i >= 16)
+					break;
+
+				mode[i] = toupper(optvalue[i]);
+			}
 
 		// set start frequency
 		} else if (!strcmp(optname, "start")) {
@@ -177,13 +208,21 @@ int main(int argc, char *argv[])
 	host = argv[i];
 
 	printf("host: %s\n", host);
+	printf("mode: %s\n", mode);
 	printf("fstart: %" PRIu64 "\n", fstart);
 	printf("fstop: %" PRIu64 "\n", fstop);
 	printf("rbw: %" PRIu32 "\n", rbw);
 	printf("peaks: %" PRIu32 "\n", peaks);
 
 	// connect to a WSA
-
+	printf("Connecting to WSA at %s... ", host);
+	snprintf(intf_str, 39, "TCPIP::%s", host);
+	result = wsa_open(wsadev, intf_str);
+	if (result < 0) {
+		fprintf(stderr, "error: wsa_open() failed: %d\n", result);
+		return -1;
+	}
+	printf("connected.\n");
 
 	// create the sweep device
 
@@ -196,6 +235,9 @@ int main(int argc, char *argv[])
 
 	// print results
 
+
+	// clean up
+	wsa_close(wsadev);
 
 	return 0;
 }
