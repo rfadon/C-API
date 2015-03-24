@@ -6,9 +6,12 @@
 #include <errno.h>
 #include <ctype.h>
 #include "wsa_api.h"
+#include "wsa_sweep_device.h"
 
 #define MHZ 1000000ULL
 #define KHZ 1000ULL
+
+#define MAXPEAKS 256
 
 /**
  * this program is mostly a test case for testing the behaviour of the sweep 
@@ -76,6 +79,22 @@ int parse_option(char *option, char **name, char **value)
 }
 
 
+int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t *pfreq, float *pamp)
+{
+	int found = 0;
+	uint32_t i;
+
+	// loop through the amplitude data
+	for (i=0; i<buflen; i++) {
+
+
+
+	}
+
+	return 0;
+}
+
+
 /**
  * main
  */
@@ -91,7 +110,12 @@ int main(int argc, char *argv[])
 	char mode[16];
 	struct wsa_device wsa_device;
 	struct wsa_device *wsadev = &wsa_device;
-	int result;
+	struct wsa_sweep_device wsa_sweep_device;
+	struct wsa_sweep_device *wsasweepdev = &wsa_sweep_device;
+	int16_t result;
+	float *psbuf;
+	uint64_t pfreq[MAXPEAKS];
+	float pamp[MAXPEAKS];
 
 	// init options
 	fstart = 2000ULL * MHZ;
@@ -224,19 +248,37 @@ int main(int argc, char *argv[])
 	}
 	printf("connected.\n");
 
-	// create the sweep device
+	// initialize WSA
+	wsa_system_request_acq_access(wsadev, &result);
+	wsa_system_abort_capture(wsadev);
+	wsa_flush_data(wsadev);
 
+	// create the sweep device
+	wsasweepdev = wsa_sweep_device_new(wsadev);
+	if (wsasweepdev == NULL) {
+		fprintf(stderr, "error: unable to create sweep device\n");
+		wsa_close(wsadev);
+		return -1;
+	}
+
+	// allocate memory for our ffts to go in
+	result = wsa_power_spectrum_alloc(wsasweepdev, fstart, fstop, rbw, mode, pscfg, psbuf);
 
 	// capture some spectrum
-
+	wsa_capture_power_spectrum(wsasweepdev, pscfg, psbuf);
 
 	// find the peaks
-
+	peakfind(psbuf, pscfg.len, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
 
 	// print results
-
+	printf("Peaks found:\n");
+	for (i=0; i<peaks; i++) {
+		printf("-> %0.2f dBm @ %llu\n", pamp[i], pfreq[i]);
+	}
 
 	// clean up
+	wsa_power_spectrum_free(pscfg, psbuf);
+	wsa_sweep_device_free(wsasweepdev);
 	wsa_close(wsadev);
 
 	return 0;

@@ -35,7 +35,8 @@ CC = gcc
 AR = ar
 LD = gcc
 LIBS = -lm -lrt
-CFLAGS = -std=gnu89 -Wall -Wextra -Werror -DCLI_VERSION="\"${VERSION}\""
+#CFLAGS = -std=gnu89 -Wall -Wextra -Werror -DCLI_VERSION="\"${VERSION}\""
+CFLAGS = -std=gnu89 -Wall -Wextra -DCLI_VERSION="\"${VERSION}\""
 COMPILE_ONLY_FLAG = -c
 OUTPUT_FILE_FLAG = -o 
 ARFLAGS = rcs
