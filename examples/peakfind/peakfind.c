@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
 	struct wsa_sweep_device wsa_sweep_device;
 	struct wsa_sweep_device *wsasweepdev = &wsa_sweep_device;
 	int16_t result;
+	struct wsa_power_spectrum_config *pscfg;
 	float *psbuf;
 	uint64_t pfreq[MAXPEAKS];
 	float pamp[MAXPEAKS];
@@ -262,22 +263,22 @@ int main(int argc, char *argv[])
 	}
 
 	// allocate memory for our ffts to go in
-	result = wsa_power_spectrum_alloc(wsasweepdev, fstart, fstop, rbw, mode, pscfg, psbuf);
+	result = wsa_power_spectrum_alloc(wsasweepdev, fstart, fstop, rbw, mode, &pscfg);
 
 	// capture some spectrum
-	wsa_capture_power_spectrum(wsasweepdev, pscfg, psbuf);
+	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
 
 	// find the peaks
-	peakfind(psbuf, pscfg.len, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
+	peakfind(pscfg->buf, pscfg->buflen, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
 
 	// print results
 	printf("Peaks found:\n");
 	for (i=0; i<peaks; i++) {
-		printf("-> %0.2f dBm @ %llu\n", pamp[i], pfreq[i]);
+		printf("-> %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
 	}
 
 	// clean up
-	wsa_power_spectrum_free(pscfg, psbuf);
+	wsa_power_spectrum_free(pscfg);
 	wsa_sweep_device_free(wsasweepdev);
 	wsa_close(wsadev);
 
