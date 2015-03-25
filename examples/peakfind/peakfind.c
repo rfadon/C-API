@@ -56,8 +56,11 @@ int parse_option(char *option, char **name, char **value)
 		return -1;
 
 	// check for and trim the starting "--"
-	if (strncmp(option, "--", 2))
+	if (strncmp(option, "--", 2)) {
+		*name = NULL;
+		*value = NULL;
 		return 0;
+	}
 	option += 2;
 
 	// search for the '='.  it divides the name and value
@@ -146,7 +149,7 @@ int main(int argc, char *argv[])
 		// set sweep mode
 		} else if (!strcmp(optname, "mode")) {
 			if (n != 2) {
-				fprintf(stderr, "error: value for --start missing\n\n");
+				fprintf(stderr, "error: value for --mode missing\n\n");
 				show_syntax();
 				return -1;
 			}
@@ -163,6 +166,7 @@ int main(int argc, char *argv[])
 
 				mode[i] = toupper(optvalue[i]);
 			}
+			mode[15] = 0;
 
 		// set start frequency
 		} else if (!strcmp(optname, "start")) {
@@ -219,6 +223,12 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "error: could not parse peaks value: %s\n", optvalue);
 				return -1;
 			}
+
+		// unrecognized options
+		} else {
+			fprintf(stderr, "error: unrecognized option: %s\n", optname);
+			show_syntax();
+			return -1;
 		}
 	}
 
@@ -272,9 +282,9 @@ int main(int argc, char *argv[])
 	peakfind(pscfg->buf, pscfg->buflen, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
 
 	// print results
-	printf("Peaks found:\n");
+	printf("\nPeaks found:\n");
 	for (i=0; i<peaks; i++) {
-		printf("-> %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
+		printf("  %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
 	}
 
 	// clean up

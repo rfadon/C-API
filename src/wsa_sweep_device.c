@@ -57,6 +57,27 @@ int wsa_power_spectrum_alloc(
 	struct wsa_power_spectrum_config **pscfg
 )
 {
+	struct wsa_power_spectrum_config *ptr;
+
+	// alloc some memory for it
+	ptr = malloc(sizeof(struct wsa_power_spectrum_config));
+	if (ptr == NULL)
+		return -1;
+	*pscfg = ptr;
+
+	// copy the sweep settings into the cfg object
+	ptr->fstart = fstart;
+	ptr->fstop = fstop;
+	ptr->rbw = rbw;
+	ptr->buflen = (fstop - fstart) / rbw;
+	ptr->buf = malloc(sizeof(float) * ptr->buflen);
+	printf("-> buflen = %d\n", ptr->buflen);
+	printf("-> buf @ 0x%08x\n", (unsigned int) ptr->buf);
+	if (ptr->buf == NULL) {
+		free(ptr);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -68,7 +89,9 @@ int wsa_power_spectrum_alloc(
  */
 void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg)
 {
-
+	// free the buffer and then the struct
+	free(cfg->buf);
+	free(cfg);
 }
 
 
@@ -86,5 +109,16 @@ int wsa_capture_power_spectrum(
 	float **buf
 )
 {
+	// assign their convienence pointer
+	if (*buf)
+		*buf == cfg->buf;
+
+	// do a single capture
+
+	// fft that
+
+	// apply reflevel
+
+
 	return 0;
 }
