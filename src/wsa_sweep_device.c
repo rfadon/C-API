@@ -1,6 +1,31 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include "wsa_sweep_device.h"
+#include "kiss_fft.h"
+
+
+void benchmark(struct timeval *since, char *msg)
+{
+	struct timeval now;
+	time_t diff_sec;
+	suseconds_t diff_usec;
+
+	gettimeofday(&now, NULL);
+
+	// diff seconds
+	diff_sec = now.tv_sec - since->tv_sec;
+
+	// diff nsec.. account for wrap
+	if (now.tv_usec >= since->tv_usec) {
+		diff_usec = now.tv_usec - since->tv_usec;
+	} else {
+		diff_usec = (now.tv_usec + 1000000) - since->tv_usec;
+		diff_sec -= 1;
+	}
+
+	printf("Mark -- %s -- %d.%06u\n", msg, diff_sec, diff_usec);
+}
 
 /**
  * dumps a vrt packet header to stdout
@@ -161,6 +186,13 @@ int wsa_capture_power_spectrum(
 	int16_t i16_buffer[1024];
 	int16_t q16_buffer[1024];
 	int32_t i32_buffer[1024];
+	struct timeval start;
+	kiss_fft_cfg fft;
+	kiss_fft_cpx fftin[1024];
+	kiss_fft_cpx fftout[1024];
+
+	gettimeofday(&start, NULL);
+	benchmark(&start, "start");
 
 	// assign their convienence pointer
 	if (*buf)
@@ -172,7 +204,6 @@ int wsa_capture_power_spectrum(
 
 	// flush buffer
 	wsa_flush_data(dev);
-	wsa_clean_data_socket(dev);
 
 	// do a capture
 	wsa_set_rfe_input_mode(dev, WSA_RFE_SHN_STRING);
@@ -183,6 +214,7 @@ int wsa_capture_power_spectrum(
 		fprintf(stderr, "error: wsa_capture_block(): %d\n", result);
 		return -1;
 	}
+	benchmark(&start, "capture");
 
 	/*
 	 * read out packets until we get a data packet
@@ -205,16 +237,12 @@ int wsa_capture_power_spectrum(
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
 			return -1;
 		}
-
 		wsa_dump_vrt_packet_header(&header);
 
 		if (header.packet_type == IF_PACKET_TYPE)
 			break;
-}
-
-	for(i=0; i<1024; i++)
-		printf("%d\n", i16_buffer[i]);
-	puts("");
+	}
+	benchmark(&start, "read");
 
 	/*
 	 * fft that
