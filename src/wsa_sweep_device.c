@@ -247,6 +247,14 @@ int wsa_capture_power_spectrum(
 	/*
 	 * fft that
 	 */
+	fft = kiss_fft_alloc(1024, 0, 0, 0);
+	benchmark(&start, "fft_alloc");
+
+	kiss_fft(fft, i16_buffer, q16_buffer);
+	benchmark(&start, "fft_compute");
+
+	free(fft);
+	benchmark(&start, "fft_free");
 
 	/*
 	 * apply reflevel
