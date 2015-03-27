@@ -2,6 +2,47 @@
 #include <stdlib.h>
 #include "wsa_sweep_device.h"
 
+/**
+ * dumps a vrt packet header to stdout
+ *
+ * @param header - the struct wsa_vrt_packet_header to dump
+ */
+void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
+{
+	printf("VRT Header");
+	
+	if (header->stream_id == RECEIVER_STREAM_ID)
+		printf("(CTX_RECEIVER): ");
+	else if (header->stream_id == DIGITIZER_STREAM_ID)
+		printf("(CTX_DIGITIZER): ");
+	else if (header->stream_id == EXTENSION_STREAM_ID)
+		printf("(CTX_EXTENSION): ");
+	else if (header->stream_id == I16Q16_DATA_STREAM_ID)
+		printf("(DATA_I16Q16): ");
+	else if (header->stream_id == I16_DATA_STREAM_ID)
+		printf("(DATA_I16): ");
+	else if (header->stream_id == I32_DATA_STREAM_ID)
+		printf("(DATA_I32): ");
+	else
+		printf("(UNKNOWN=0x%08x): ", header->stream_id);
+
+	if (header->packet_type == IF_PACKET_TYPE)
+		printf("type=IF, ");
+	else if (header->packet_type == CONTEXT_PACKET_TYPE)
+		printf("type=CONTEXT, ");
+	else if (header->packet_type == EXTENSION_PACKET_TYPE)
+		printf("type=EXTENSION, ");
+	else
+		printf("type=UNKNOWN(%d), ", header->packet_type);
+	
+	printf("count=%d, spp=%u, ts:%u.%012llus\n", 
+		header->pkt_count, 
+		header->samples_per_packet,
+		header->time_stamp.sec,
+		header->time_stamp.psec
+	);
+}
+
 
 /**
  * creates a new sweep device object and returns it
@@ -109,15 +150,79 @@ int wsa_capture_power_spectrum(
 	float **buf
 )
 {
+	int i;
+	int16_t result;
+	struct wsa_device *dev = sweep_device->real_device;
+	struct wsa_vrt_packet_header header;
+	struct wsa_vrt_packet_trailer trailer;
+	struct wsa_receiver_packet receiver;
+	struct wsa_digitizer_packet digitizer;
+	struct wsa_extension_packet sweep;
+	int16_t i16_buffer[1024];
+	int16_t q16_buffer[1024];
+	int32_t i32_buffer[1024];
+
 	// assign their convienence pointer
 	if (*buf)
-		*buf == cfg->buf;
+		*buf = cfg->buf;
 
-	// do a single capture
+	/*
+	 * do a single capture
+	 */
 
-	// fft that
+	// flush buffer
+	wsa_flush_data(dev);
+	wsa_clean_data_socket(dev);
 
-	// apply reflevel
+	// do a capture
+	wsa_set_rfe_input_mode(dev, WSA_RFE_SHN_STRING);
+	wsa_set_samples_per_packet(dev, 1024);
+	wsa_set_packets_per_block(dev, 1);
+	result = wsa_capture_block(dev);
+	if (result < 0) {
+		fprintf(stderr, "error: wsa_capture_block(): %d\n", result);
+		return -1;
+	}
+
+	/*
+	 * read out packets until we get a data packet
+	 */
+	while(1) {
+
+		// poison the buffers
+		for(i=0; i<1024; i++)
+			i16_buffer[i] = 9999;
+
+		// read a packet
+		result = wsa_read_vrt_packet(
+			dev, 
+			&header, &trailer, &receiver, &digitizer, &sweep,
+			i16_buffer, q16_buffer, i32_buffer, 
+			1024, 
+			5000
+		);
+		if (result < 0) {
+			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
+			return -1;
+		}
+
+		wsa_dump_vrt_packet_header(&header);
+
+		if (header.packet_type == IF_PACKET_TYPE)
+			break;
+}
+
+	for(i=0; i<1024; i++)
+		printf("%d\n", i16_buffer[i]);
+	puts("");
+
+	/*
+	 * fft that
+	 */
+
+	/*
+	 * apply reflevel
+	 */
 
 
 	return 0;
