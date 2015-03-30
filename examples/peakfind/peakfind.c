@@ -83,16 +83,84 @@ int parse_option(char *option, char **name, char **value)
 }
 
 
+/**
+ * Shift the contents of an array over by one item, starting at "start"
+ */
+void array_shift(void *buf, unsigned int itemsize, unsigned int buflen, int start)
+{
+	void *startptr, *curptr;
+
+	// test buflen and start for errors
+	if (buflen == 0)
+		return;
+
+	if (start > (buflen-1))
+		return;
+
+	/*
+	 * start at end of array, loop in reverse until we got to "start" position. end there.
+	 */
+	startptr = (void *) ( ((unsigned long) buf) + (itemsize * start));
+	curptr = (void *) ( ((unsigned long) buf) + (itemsize * (buflen - 1)));
+	for(;;) {
+
+		// got back to buf ptr?  we're done.
+		if (curptr == startptr)
+			return;
+
+		// copy previous value to current value
+		memcpy(curptr, (void *) ( ((unsigned long) curptr) - itemsize), itemsize);
+
+		// inc pointer to prev in array
+		curptr = (void *) ( ((unsigned long) curptr) - itemsize);
+	}
+}
+
+
+int array_getpos(float *buf, int buflen, float item)
+{
+	int i;
+
+	for (i=0; i<buflen; i++) {
+		if (item > buf[i])
+			return i;
+	}
+
+	return -1;
+}
+
+
 int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t *pfreq, float *pamp)
 {
-	int found = 0;
-	uint32_t i;
+	int i, j, n;
+
+	// make sure they asked for less peaks than we have data values
+	if (peaks > buflen) {
+		fprintf(stderr, "error: not enough data to find this many peaks: (%d > %d)\n", peaks, buflen);
+		return -1;
+	}
+
+	// populate the result arrays with 0s
+	for (i=0; i<peaks; i++) {
+		pfreq[i] = 0;
+		pamp[i] = 0;
+	}
 
 	// loop through the amplitude data
 	for (i=0; i<buflen; i++) {
+	
+		// find the spot in the array to place the item
+		n = array_getpos(pamp, peaks, buf[i]);
 
+		// shift over the array to make space for the new element
+		if (n >= 0) {
+			array_shift(pfreq, sizeof(uint64_t), peaks, n);
+			array_shift(pamp, sizeof(float), peaks, n);
 
-
+			// insert amplitude
+			pamp[n] = buf[i];
+			pfreq[n] = hzperbin * i;
+		}
 	}
 
 	return 0;
@@ -279,7 +347,6 @@ int main(int argc, char *argv[])
 	// capture some spectrum
 	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
 
-#if 0
 	// find the peaks
 	peakfind(pscfg->buf, pscfg->buflen, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
 
@@ -288,7 +355,6 @@ int main(int argc, char *argv[])
 	for (i=0; i<peaks; i++) {
 		printf("  %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
 	}
-#endif
 
 	// clean up
 	wsa_power_spectrum_free(pscfg);
