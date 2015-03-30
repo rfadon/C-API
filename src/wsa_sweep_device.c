@@ -1,11 +1,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <math.h>
 #include "wsa_sweep_device.h"
 
 
 #define FIXED_POINT 16
-#include "kiss_fftr.h"
+#include "kiss_fft.h"
 
 
 void benchmark(struct timeval *since, char *msg)
@@ -182,7 +183,9 @@ int wsa_power_spectrum_alloc(
 	ptr->fstart = fstart;
 	ptr->fstop = fstop;
 	ptr->rbw = rbw;
-	ptr->buflen = (fstop - fstart) / rbw;
+	// fix buffer size to 1024 for now
+	//	ptr->buflen = (fstop - fstart) / rbw;
+	ptr->buflen = 1024;
 	ptr->buf = malloc(sizeof(float) * ptr->buflen);
 	printf("-> buflen = %d\n", ptr->buflen);
 	printf("-> buf @ 0x%08x\n", (unsigned int) ptr->buf);
@@ -234,8 +237,8 @@ int wsa_capture_power_spectrum(
 	int16_t q16_buffer[1024];
 	int32_t i32_buffer[1024];
 	struct timeval start;
-	kiss_fftr_cfg fftcfg;
-	kiss_fft_scalar realdata[1024];
+	kiss_fft_cfg fftcfg;
+	kiss_fft_cpx iq[1024];
 	kiss_fft_cpx fftout[1024];
 
 	gettimeofday(&start, NULL);
@@ -249,13 +252,13 @@ int wsa_capture_power_spectrum(
 	 * do a single capture
 	 */
 
-	// just autotune to a good band for now
-	wsa_set_freq(dev, 98500000);
-	wsa_set_rfe_input_mode(dev, WSA_RFE_SHN_STRING);
-	wsa_set_attenuation(dev, 0);
-
 	// flush buffer
 	wsa_flush_data(dev);
+
+	// just autotune to a good band for now
+	wsa_set_freq(dev, 98500000);
+	wsa_set_rfe_input_mode(dev, WSA_RFE_SH_STRING);
+	wsa_set_attenuation(dev, 0);
 
 	// do a capture
 	wsa_set_samples_per_packet(dev, 1024);
@@ -301,44 +304,48 @@ int wsa_capture_power_spectrum(
 	benchmark(&start, "read");
 
 	// for now, just copy the data into the fft array.  Later, we'll figure out how to do this without the extra copy
-	for (i=0; i<1024; i++)
-		realdata[i] = i16_buffer[i];
+	for (i=0; i<1024; i++) {
+		iq[i].r = i16_buffer[i];
+		iq[i].i = 0;
+	}
 	benchmark(&start, "copy");
 
+#if 0
 	// print
 	for (i=0; i<1024; i++)
-		printf("%d\n", realdata[i]);
+		printf("%d, %d\n", iq[i].r, iq[i].i);
+#endif
+
 	/*
 	 * fft that
 	 */
-	fftcfg = kiss_fftr_alloc(1024, 0, 0, 0);
+	fftcfg = kiss_fft_alloc(1024, 0, 0, 0);
 	benchmark(&start, "fft_alloc");
 
-	kiss_fftr(fftcfg, realdata, fftout);
+	kiss_fft(fftcfg, iq, fftout);
 	benchmark(&start, "fft_compute");
 
+#if 0
 	// print
 	for (i=0; i<1024; i++)
 		printf("%d, %d\n", fftout[i].r, fftout[i].i);
+#endif
 
 	free(fftcfg);
 	benchmark(&start, "fft_free");
 
-	/*
-	 * apply reflevel
-	 */
-
-
-	/*
-	 * copy to output
+	/* 
+	 * convert to power and apply reflevel
 	 */
 	for (i=0; i<1024; i++)
-		cfg->buf[i] = (fftout[i].r * fftout[i].r) + (fftout[i].i * fftout[i].i);
+		cfg->buf[i] = 10 * log10(sqrt((fftout[i].r * fftout[i].r) + (fftout[i].i * fftout[i].i)));
 	benchmark(&start, "copy");
 
+#if 0
 	// print
 	for (i=0; i<1024; i++)
-		printf("%0.2f\n", cfg->buf[i]);
+		printf("%d  %0.2f\n", i, cfg->buf[i]);
+#endif
 
 	return 0;
 }
