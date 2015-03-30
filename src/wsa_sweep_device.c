@@ -73,6 +73,46 @@ void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
 
 
 /**
+ * dumps a vrt receiver packet to stdout
+ */
+void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
+{
+	printf("  Receiver Context[");
+	
+	if (pkt->indicator_field & FREQ_INDICATOR_MASK)
+		printf("freq=%lf ", pkt->freq);
+
+	else if (pkt->indicator_field & REF_POINT_INDICATOR_MASK)
+		printf("refpoint=%ld ", pkt->reference_point);
+
+	else if (pkt->indicator_field & GAIN_INDICATOR_MASK)
+		printf("gain=%lf/%lf ", pkt->gain_if, pkt->gain_rf);
+
+	puts("]");
+}
+
+
+/**
+ * dumps a vrt digitizer packet to stdout
+ */
+void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
+{
+	printf("  Digitizer Context[");
+	
+	if (pkt->indicator_field & BW_INDICATOR_MASK)
+		printf("bw=%lf ", pkt->bandwidth);
+
+	else if (pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK)
+		printf("freqoffset=%ld ", pkt->rf_freq_offset);
+
+	else if (pkt->indicator_field & REF_LEVEL_INDICATOR_MASK)
+		printf("revlevel=%d ", pkt->reference_level);
+
+	puts("]");
+}
+
+
+/**
  * creates a new sweep device object and returns it
  *
  * @param device - a pointer to the wsa we've connected to
@@ -249,6 +289,11 @@ int wsa_capture_power_spectrum(
 			return -1;
 		}
 		wsa_dump_vrt_packet_header(&header);
+		if (header.stream_id == RECEIVER_STREAM_ID)
+			wsa_dump_vrt_receiver_packet(&receiver);
+		else if (header.stream_id == DIGITIZER_STREAM_ID)
+			wsa_dump_vrt_digitizer_packet(&digitizer);
+
 
 		if (header.packet_type == IF_PACKET_TYPE)
 			break;
