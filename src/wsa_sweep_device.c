@@ -17,6 +17,44 @@
 // #define FIXED_POINT 32
 #include "kiss_fft.h"
 
+
+/**
+ * performs a hanning window on a list of scalar values, windowing is done in place
+ *
+ * @values - a pointer to the array of scalar values
+ * @len - the length of the array
+ */
+void hanning_window_scalar(kiss_fft_scalar *values, int len)
+{
+	int i;
+	float mult;
+	
+	for(i=0; i<len; i++) {
+		mult = 0.5 * (1 - cosf(2 * M_PI * i / (len - 1)));
+		values[i] = values[i] * mult;
+	}
+}
+
+
+/**
+ * performs a hanning window on a list of complex values, windowing is done in place
+ *
+ * @values - a pointer to the array of complex values
+ * @len - the length of the array
+ */
+void hanning_window_cpx(kiss_fft_cpx *values, int len)
+{
+	int i;
+	float mult;
+	
+	for(i=0; i<len; i++) {
+		mult = 0.5 * (1 - cosf(2 * M_PI * i / (len - 1)));
+		values[i].r = values[i].r * mult;
+		values[i].i = values[i].i * mult;
+	}
+}
+
+
 void dump_cpx_to_file(char *filename, kiss_fft_cpx *values, int len)
 {
 	FILE *fp;
@@ -364,6 +402,17 @@ int wsa_capture_power_spectrum(
 	dump_cpx_to_file("iq.dat", iq, 1024);
 #endif
 
+	/*
+	 * perform a hanning window on the data
+	 */
+	hanning_window_cpx(iq, 1024);
+#if LOG_DATA_TO_STDOUT
+	// print
+	for (i=0; i<1024; i++)
+		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
+#elif LOG_DATA_TO_FILE
+	dump_cpx_to_file("windowed.dat", fftout, 1024);
+#endif
 	/*
 	 * fft that
 	 */
