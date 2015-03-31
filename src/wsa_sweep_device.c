@@ -5,8 +5,52 @@
 #include "wsa_sweep_device.h"
 
 
-#define FIXED_POINT 16
+#define VRT_DEBUG 0
+#define LOG_DATA_TO_FILE 1
+#define LOG_DATA_TO_STDOUT 0
+
+#define HZ 1
+#define KHZ 1000
+#define MHZ 1000000
+#define GHZ 1000000000
+
+// #define FIXED_POINT 32
 #include "kiss_fft.h"
+
+void dump_cpx_to_file(char *filename, kiss_fft_cpx *values, int len)
+{
+	FILE *fp;
+	int i;
+
+	fp = fopen(filename, "w");
+	if (fp == NULL) {
+		fprintf(stderr, "error: could not dump to file\n");
+		return;
+	}
+
+	for (i=0; i<len; i++)
+		fprintf(fp, "%d, %0.2f, %0.2f\n", i, values[i].r, values[i].i);
+
+	fclose(fp);
+}
+
+
+void dump_scalar_to_file(char *filename, kiss_fft_scalar *values, int len)
+{
+	FILE *fp;
+	int i;
+
+	fp = fopen(filename, "w");
+	if (fp == NULL) {
+		fprintf(stderr, "error: could not dump to file\n");
+		return;
+	}
+
+	for (i=0; i<len; i++)
+		fprintf(fp, "%d, %0.2f\n", i, values[i]);
+
+	fclose(fp);
+}
 
 
 void benchmark(struct timeval *since, char *msg)
@@ -256,8 +300,8 @@ int wsa_capture_power_spectrum(
 	wsa_flush_data(dev);
 
 	// just autotune to a good band for now
-	wsa_set_freq(dev, 98500000);
-	wsa_set_rfe_input_mode(dev, WSA_RFE_SH_STRING);
+	wsa_set_rfe_input_mode(dev, WSA_RFE_SHN_STRING);
+	wsa_set_freq(dev, 433 * MHZ);
 	wsa_set_attenuation(dev, 0);
 
 	// do a capture
@@ -291,11 +335,13 @@ int wsa_capture_power_spectrum(
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
 			return -1;
 		}
+#if VRT_DEBUG
 		wsa_dump_vrt_packet_header(&header);
 		if (header.stream_id == RECEIVER_STREAM_ID)
 			wsa_dump_vrt_receiver_packet(&receiver);
 		else if (header.stream_id == DIGITIZER_STREAM_ID)
 			wsa_dump_vrt_digitizer_packet(&digitizer);
+#endif
 
 
 		if (header.packet_type == IF_PACKET_TYPE)
@@ -310,10 +356,12 @@ int wsa_capture_power_spectrum(
 	}
 	benchmark(&start, "copy");
 
-#if 0
+#if LOG_DATA_TO_STDOUT
 	// print
 	for (i=0; i<1024; i++)
 		printf("%d, %d\n", iq[i].r, iq[i].i);
+#elif LOG_DATA_TO_FILE
+	dump_cpx_to_file("iq.dat", iq, 1024);
 #endif
 
 	/*
@@ -325,10 +373,12 @@ int wsa_capture_power_spectrum(
 	kiss_fft(fftcfg, iq, fftout);
 	benchmark(&start, "fft_compute");
 
-#if 0
+#if LOG_DATA_TO_STDOUT
 	// print
 	for (i=0; i<1024; i++)
-		printf("%d, %d\n", fftout[i].r, fftout[i].i);
+		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
+#elif LOG_DATA_TO_FILE
+	dump_cpx_to_file("fft.dat", fftout, 1024);
 #endif
 
 	free(fftcfg);
@@ -341,10 +391,12 @@ int wsa_capture_power_spectrum(
 		cfg->buf[i] = 10 * log10(sqrt((fftout[i].r * fftout[i].r) + (fftout[i].i * fftout[i].i)));
 	benchmark(&start, "copy");
 
-#if 0
+#if LOG_DATA_TO_STDOUT
 	// print
 	for (i=0; i<1024; i++)
 		printf("%d  %0.2f\n", i, cfg->buf[i]);
+#elif LOG_DATA_TO_FILE
+	dump_scalar_to_file("psd.dat", cfg->buf, 1024);
 #endif
 
 	return 0;
