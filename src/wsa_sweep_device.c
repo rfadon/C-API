@@ -19,20 +19,48 @@
 
 
 /**
- * performs a hanning window on a list of scalar values, windowing is done in place
+ * performs a hanning window on a scalar value
  *
  * @values - a pointer to the array of scalar values
- * @len - the length of the array
+ * @len - the length of the array that is being windowed
+ * @index - the index of this item in the window
+ * @returns the windowed value
  */
-void hanning_window_scalar(kiss_fft_scalar *values, int len)
+kiss_fft_scalar window_hanning_scalar(kiss_fft_scalar value, int len, int index)
+{
+	return value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1)));
+}
+
+
+/**
+ * performs a hanning window on a list of scalar values, windowing is done in place
+ *
+ * @param values - a pointer to the array of scalar values
+ * @param len - the length of the array
+ */
+void window_hanning_scalar_array(kiss_fft_scalar *values, int len)
 {
 	int i;
-	float mult;
-	
+
 	for(i=0; i<len; i++) {
-		mult = 0.5 * (1 - cosf(2 * M_PI * i / (len - 1)));
-		values[i] = values[i] * mult;
+		values[i] = window_hanning_scalar(values[i], len, i);
 	}
+}
+
+
+/**
+ * performs a hanning window on a complex value in place
+ *
+ * @values - a pointer to the array of complex values
+ * @len - the length of the array
+ * @index - the index in the array we are windowing
+ */
+void window_hanning_cpx(kiss_fft_cpx *value, int len, int index)
+{
+	float mult = 0.5 * (1 - cosf(2 * M_PI * index / (len - 1)));
+
+	value->r = value->r * mult;
+	value->i = value->i * mult;
 }
 
 
@@ -42,16 +70,55 @@ void hanning_window_scalar(kiss_fft_scalar *values, int len)
  * @values - a pointer to the array of complex values
  * @len - the length of the array
  */
-void hanning_window_cpx(kiss_fft_cpx *values, int len)
+void window_hanning_cpx_array(kiss_fft_cpx *values, int len)
 {
 	int i;
-	float mult;
 	
 	for(i=0; i<len; i++) {
-		mult = 0.5 * (1 - cosf(2 * M_PI * i / (len - 1)));
-		values[i].r = values[i].r * mult;
-		values[i].i = values[i].i * mult;
+		window_hanning_cpx(&values[i], len, i);
 	}
+}
+
+
+/**
+ * normalize a value
+ *
+ * @param value - the value to normalize
+ * @param maxval - the maximum we are normalizing over
+ * @returns - the normalized value
+ */
+kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval)
+{
+	return value / maxval;
+}
+
+/**
+ * normalize a complex value in place
+ *
+ * @param value - the value to normalize
+ * @param maxval - the maximum we are normalizing over
+ */
+void normalize_cpx(kiss_fft_cpx *value, kiss_fft_scalar maxval)
+{
+	value->r = value->r / maxval;
+	value->i = value->i / maxval;
+}
+
+
+/**
+ * converts a complex value to a power value
+ *
+ * @param value - the complex value to convert
+ * @returns - the power value
+ */
+kiss_fft_scalar cpx_to_power(kiss_fft_cpx value)
+{
+	return sqrt((value.r * value.r) + (value.i * value.i));
+}
+
+
+kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
+	return 10 * log10(value);
 }
 
 
@@ -162,13 +229,13 @@ void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
 {
 	printf("  Receiver Context[");
 	
-	if (pkt->indicator_field & FREQ_INDICATOR_MASK)
-		printf("freq=%lf ", pkt->freq);
+	if ((pkt->indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
+		printf("freq=%0.2f ", (float)pkt->freq);
 
-	else if (pkt->indicator_field & REF_POINT_INDICATOR_MASK)
+	if ((pkt->indicator_field & REF_POINT_INDICATOR_MASK) == REF_POINT_INDICATOR_MASK)
 		printf("refpoint=%ld ", pkt->reference_point);
 
-	else if (pkt->indicator_field & GAIN_INDICATOR_MASK)
+	if ((pkt->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK)
 		printf("gain=%lf/%lf ", pkt->gain_if, pkt->gain_rf);
 
 	puts("]");
@@ -182,14 +249,14 @@ void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
 {
 	printf("  Digitizer Context[");
 	
-	if (pkt->indicator_field & BW_INDICATOR_MASK)
-		printf("bw=%lf ", pkt->bandwidth);
+	if ((pkt->indicator_field & BW_INDICATOR_MASK) == BW_INDICATOR_MASK)
+		printf("bw=%0.2f ", (float) pkt->bandwidth);
 
-	else if (pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK)
-		printf("freqoffset=%ld ", pkt->rf_freq_offset);
+	if ((pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == RF_FREQ_OFFSET_INDICATOR_MASK)
+		printf("freqoffset=%Ld ", (float) pkt->rf_freq_offset);
 
-	else if (pkt->indicator_field & REF_LEVEL_INDICATOR_MASK)
-		printf("revlevel=%d ", pkt->reference_level);
+	if ((pkt->indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK)
+		printf("reflevel=%d ", pkt->reference_level);
 
 	puts("]");
 }
@@ -265,12 +332,10 @@ int wsa_power_spectrum_alloc(
 	ptr->fstart = fstart;
 	ptr->fstop = fstop;
 	ptr->rbw = rbw;
-	// fix buffer size to 1024 for now
+	// fix buffer size to 2048 for now
 	//	ptr->buflen = (fstop - fstart) / rbw;
-	ptr->buflen = 1024;
+	ptr->buflen = 2048;
 	ptr->buf = malloc(sizeof(float) * ptr->buflen);
-	printf("-> buflen = %d\n", ptr->buflen);
-	printf("-> buf @ 0x%08x\n", (unsigned int) ptr->buf);
 	if (ptr->buf == NULL) {
 		free(ptr);
 		return -1;
@@ -315,13 +380,15 @@ int wsa_capture_power_spectrum(
 	struct wsa_receiver_packet receiver;
 	struct wsa_digitizer_packet digitizer;
 	struct wsa_extension_packet sweep;
-	int16_t i16_buffer[1024];
-	int16_t q16_buffer[1024];
-	int32_t i32_buffer[1024];
+	int16_t i16_buffer[2048];
+	int16_t q16_buffer[2048];
+	int32_t i32_buffer[2048];
 	struct timeval start;
 	kiss_fft_cfg fftcfg;
-	kiss_fft_cpx iq[1024];
-	kiss_fft_cpx fftout[1024];
+	kiss_fft_cpx iq[2048];
+	kiss_fft_cpx fftout[2048];
+	float reflevel = 0;
+	kiss_fft_scalar tmpscalar;
 
 	gettimeofday(&start, NULL);
 	benchmark(&start, "start");
@@ -343,7 +410,7 @@ int wsa_capture_power_spectrum(
 	wsa_set_attenuation(dev, 0);
 
 	// do a capture
-	wsa_set_samples_per_packet(dev, 1024);
+	wsa_set_samples_per_packet(dev, 2048);
 	wsa_set_packets_per_block(dev, 1);
 	result = wsa_capture_block(dev);
 	if (result < 0) {
@@ -358,7 +425,7 @@ int wsa_capture_power_spectrum(
 	while(1) {
 
 		// poison the buffers
-		for(i=0; i<1024; i++)
+		for(i=0; i<2048; i++)
 			i16_buffer[i] = 9999;
 
 		// read a packet
@@ -366,7 +433,7 @@ int wsa_capture_power_spectrum(
 			dev, 
 			&header, &trailer, &receiver, &digitizer, &sweep,
 			i16_buffer, q16_buffer, i32_buffer, 
-			1024, 
+			2048, 
 			5000
 		);
 		if (result < 0) {
@@ -381,6 +448,12 @@ int wsa_capture_power_spectrum(
 			wsa_dump_vrt_digitizer_packet(&digitizer);
 #endif
 
+		// grab the reflevel for each capture, so we can translate our FFTs
+		if (header.stream_id == DIGITIZER_STREAM_ID) {
+			if ((digitizer.indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK) {
+				reflevel = (float) digitizer.reference_level;
+			}
+		}
 
 		if (header.packet_type == IF_PACKET_TYPE)
 			break;
@@ -388,7 +461,7 @@ int wsa_capture_power_spectrum(
 	benchmark(&start, "read");
 
 	// for now, just copy the data into the fft array.  Later, we'll figure out how to do this without the extra copy
-	for (i=0; i<1024; i++) {
+	for (i=0; i<2048; i++) {
 		iq[i].r = i16_buffer[i];
 		iq[i].i = 0;
 	}
@@ -396,38 +469,41 @@ int wsa_capture_power_spectrum(
 
 #if LOG_DATA_TO_STDOUT
 	// print
-	for (i=0; i<1024; i++)
+	for (i=0; i<2048; i++)
 		printf("%d, %d\n", iq[i].r, iq[i].i);
 #elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("iq.dat", iq, 1024);
+	dump_cpx_to_file("iq.dat", iq, 2048);
 #endif
 
 	/*
-	 * perform a hanning window on the data
+	 * window and normalize our data
 	 */
-	hanning_window_cpx(iq, 1024);
+	for (i=0; i<2048; i++) {
+		window_hanning_cpx(&iq[i], 2048, i);
+		normalize_cpx(&iq[i], 8192);
+	}
 #if LOG_DATA_TO_STDOUT
 	// print
-	for (i=0; i<1024; i++)
+	for (i=0; i<2048; i++)
 		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
 #elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("windowed.dat", fftout, 1024);
+	dump_cpx_to_file("windowed.dat", fftout, 2048);
 #endif
+
 	/*
 	 * fft that
 	 */
-	fftcfg = kiss_fft_alloc(1024, 0, 0, 0);
+	fftcfg = kiss_fft_alloc(2048, 0, 0, 0);
 	benchmark(&start, "fft_alloc");
 
 	kiss_fft(fftcfg, iq, fftout);
 	benchmark(&start, "fft_compute");
-
 #if LOG_DATA_TO_STDOUT
 	// print
-	for (i=0; i<1024; i++)
+	for (i=0; i<2048; i++)
 		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
 #elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("fft.dat", fftout, 1024);
+	dump_cpx_to_file("fft.dat", fftout, 2048);
 #endif
 
 	free(fftcfg);
@@ -436,16 +512,18 @@ int wsa_capture_power_spectrum(
 	/* 
 	 * convert to power and apply reflevel
 	 */
-	for (i=0; i<1024; i++)
-		cfg->buf[i] = 10 * log10(sqrt((fftout[i].r * fftout[i].r) + (fftout[i].i * fftout[i].i)));
+	for (i=0; i<2048; i++) {
+		tmpscalar = cpx_to_power(fftout[i]) / 2048.0;
+		tmpscalar = 2 * power_to_logpower(tmpscalar);
+		cfg->buf[i] = tmpscalar + reflevel;
+	}
 	benchmark(&start, "copy");
-
 #if LOG_DATA_TO_STDOUT
 	// print
-	for (i=0; i<1024; i++)
+	for (i=0; i<2048; i++)
 		printf("%d  %0.2f\n", i, cfg->buf[i]);
 #elif LOG_DATA_TO_FILE
-	dump_scalar_to_file("psd.dat", cfg->buf, 1024);
+	dump_scalar_to_file("psd.dat", cfg->buf, 2048);
 #endif
 
 	return 0;

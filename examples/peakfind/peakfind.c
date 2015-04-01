@@ -143,7 +143,7 @@ int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t
 	// populate the result arrays with 0s
 	for (i=0; i<peaks; i++) {
 		pfreq[i] = 0;
-		pamp[i] = 0;
+		pamp[i] = -99999;
 	}
 
 	// loop through the amplitude data
