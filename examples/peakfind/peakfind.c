@@ -358,6 +358,11 @@ int main(int argc, char *argv[])
 
 	// allocate memory for our ffts to go in
 	result = wsa_power_spectrum_alloc(wsasweepdev, fstart, fstop, rbw, mode, &pscfg);
+	if (result < 0) {
+		wsa_sweep_device_free(wsasweepdev);
+		wsa_close(wsadev);
+		return -1;
+	}
 
 	// capture some spectrum
 	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
