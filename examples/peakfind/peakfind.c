@@ -14,6 +14,8 @@
 
 #define MAXPEAKS 256
 
+#define OPTIONMAXLEN 16
+
 /**
  * this program is mostly a test case for testing the behaviour of the sweep 
  * functions.  It has one mandatory parameter which is the IP of the device.
@@ -48,33 +50,49 @@ void show_syntax(void)
  * @param value -- pointer to a record the pointer in
  * @returns -- 2 if it found an option AND value, 1 if just an option, 0 if it didn't, -1 on error
  */
-int parse_option(char *option, char **name, char **value)
+int parse_option(char *option, char *name, char *value)
 {
 	char *ptr;
+	unsigned int len, tocopy;
 
 	// null string is an error
 	if (option == NULL)
 		return -1;
 
 	// check for and trim the starting "--"
-	if (strncmp(option, "--", 2)) {
-		*name = NULL;
-		*value = NULL;
+	if (strncmp(option, "--", 2))
 		return 0;
-	}
 	option += 2;
+	len = strlen(option);
 
 	// search for the '='.  it divides the name and value
 	ptr = index(option, '=');
 	if (ptr) {
-		// terminate option there. Name is what's before.  value is what's after.
-		*ptr = 0;
-		*name = option;
-		*value = ptr + 1;
+		// copy name
+		tocopy = ptr - option;
+		if (tocopy > OPTIONMAXLEN)
+			return -2;
+		strncpy(name, option, tocopy);
+		name[tocopy] = 0;
+
+		// copy value
+		tocopy = len - (ptr - option) - 1;
+		if (tocopy > OPTIONMAXLEN)
+			return -2;
+		strncpy(value, ptr+1, tocopy);
+		value[tocopy] = 0;
+
 		return 2;
+
 	} else {
-		// no value found.  just a name
-		*name = option;
+		// no value found.  copy name
+		if (len > OPTIONMAXLEN)
+			tocopy = OPTIONMAXLEN;
+		else
+			tocopy = len;
+		strncpy(name, option, tocopy);
+		name[tocopy] = 0;
+
 		return 1;
 	}
 
@@ -172,8 +190,9 @@ int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t
  */
 int main(int argc, char *argv[])
 {
-	int i, n;
-	char *optname, *optvalue;
+	int i, j, n;
+	char optname[OPTIONMAXLEN];
+	char optvalue[OPTIONMAXLEN];
 	uint64_t fstart, fstop, rbw;
 	uint32_t peaks;
 	char *ptr;
@@ -201,7 +220,7 @@ int main(int argc, char *argv[])
 	// NOTE: this method is easy but mangles argv
 	for(i=1; i<argc; i++) {
 		// parse option..
-		n = parse_option(argv[i], &optname, &optvalue);
+		n = parse_option(argv[i], optname, optvalue);
 		if (n == 0) {
 			break;
 		} else if (n < 0) {
@@ -224,16 +243,12 @@ int main(int argc, char *argv[])
 			}
 
 			// copy and convert to uppercase
-			for(i=0;;i++) {
+			for(j=0; j<OPTIONMAXLEN; j++) {
+				mode[j] = toupper(optvalue[j]);
+
 				// break on string terminated
-				if (!optvalue[i])
+				if (!optvalue[j])
 					break;
-
-				// break on max string len
-				if (i >= 16)
-					break;
-
-				mode[i] = toupper(optvalue[i]);
 			}
 			mode[15] = 0;
 
@@ -245,7 +260,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			errno = 0;
-			fstart = strtoull(optvalue, NULL, 10);
+			fstart = (uint64_t) strtod(optvalue, NULL);
 			if (errno) {
 				fprintf(stderr, "error: could not parse fstart value: %s\n", optvalue);
 				return -1;
@@ -259,7 +274,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			errno = 0;
-			fstop = strtoull(optvalue, NULL, 10);
+			fstop = (uint64_t) strtod(optvalue, NULL);
 			if (errno) {
 				fprintf(stderr, "error: could not parse fstop value: %s\n", optvalue);
 				return -1;
@@ -273,7 +288,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			errno = 0;
-			rbw = strtoul(optvalue, NULL, 10);
+			rbw = (uint32_t) strtod(optvalue, NULL);
 			if (errno) {
 				fprintf(stderr, "error: could not parse rbw value: %s\n", optvalue);
 				return -1;
