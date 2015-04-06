@@ -364,6 +364,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	// set some settings the sweep device
+	wsa_sweep_device_set_attenuator(wsasweepdev, 0);
+
 	// capture some spectrum
 	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
 

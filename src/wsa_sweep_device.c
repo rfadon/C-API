@@ -44,7 +44,7 @@
 /*
  * define internal functions
  */
-static int wsa_plan_sweep(struct wsa_sweep_device *, struct wsa_power_spectrum_config *);
+static int wsa_plan_sweep(struct wsa_power_spectrum_config *);
 
 
 /// a list of properties that are attributed to each mode
@@ -62,8 +62,8 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 	{ 
 		MODE_SHN, SAMPLETYPE_I_ONLY, 1,
 		50ULL*MHZ, 20ULL*GHZ, 100*KHZ,
-		62500*KHZ, 10*MHZ, 0.56, ?, ?
-		4, 4
+		62500*KHZ, 10*MHZ, 19600*KHZ, 14600*KHZ, 24600*KHZ, 
+		4, 512
 	},
 
 	// list terminator
@@ -459,7 +459,7 @@ int wsa_power_spectrum_alloc(
 	pscfg->rbw = rbw;
 
 	// figure out a way to get that spectrum
-	result = wsa_plan_sweep(sweep_device, pscfg);
+	result = wsa_plan_sweep(pscfg);
 	if (result < 0)
 		return result;
 
@@ -690,11 +690,14 @@ struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t mod
  * @param pscfg - the config object which describes what we're trying to sweep
  * @return - negative on error, zero on success
  */
-static int wsa_plan_sweep(struct wsa_sweep_device *sweepdev, struct wsa_power_spectrum_config *pscfg)
+static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 {
 	struct wsa_sweep_device_properties *prop;
 	uint64_t fcstart, fcstop;
+	uint32_t fstep;
 	uint32_t binsize;
+	uint32_t half_usable_bw;
+	unsigned int points;
 
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
@@ -711,7 +714,7 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweepdev, struct wsa_power_sp
 	half_usable_bw = prop->usable_bw >> 1;
 
 	// how many points (fft bins) are in a full band
-	points = prop->full_bw - rbw;
+	points = prop->full_bw / pscfg->rbw;
 	points = (uint32_t) pow(2, ceil(log2(points)));
 	if (points < WSA_MIN_SPP)
 		return -EBANDTOOSMALL;
@@ -726,10 +729,39 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweepdev, struct wsa_power_sp
 	 */
 
 	// test if start and stop are valid
-	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop.min_tunable) || (fcstop > prop.max_tunable) )
+	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
 		return -EFREQOUTOFRANGE;
 
+	// figure out our sweep step size
+	fstep = prop->usable_bw;
 
+	printf("sweep list: start=%llu stop=%llu step=%lu points=%d binsize=%u\n", fcstart, fcstop, fstep, points, binsize);
 
 	return 0;
 }
+
+
+/**
+ * sets the attenatuor in the sweep device
+ *
+ * @param sweep_device - the sweep device to use
+ * @param value - the attenuator setting, 0 = out, 1 = in
+ */
+void wsa_sweep_device_set_attenuator(struct wsa_sweep_device *sweep_device, unsigned int val)
+{
+	sweep_device->device_settings.attenuator = val;
+}
+
+
+/**
+ * gets the attenatuor in the sweep device
+ *
+ * @param sweep_device - the sweep device to use
+ * @return - the attenuator setting, 0 = out, 1 = in
+ */
+unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_device)
+{
+	return sweep_device->device_settings.attenuator;
+}
+
+

@@ -8,6 +8,7 @@
 struct wsa_sweep_device_properties {
 	uint32_t mode;
 	uint32_t sample_type;
+	uint8_t fshift_available;
 	uint64_t min_tunable;
 	uint64_t max_tunable;
 	uint32_t tuning_resolution;
@@ -18,19 +19,38 @@ struct wsa_sweep_device_properties {
 	uint32_t usable_right;
 	uint32_t min_decimation;
 	uint32_t max_decimation;
-	uint8_t fshift_available;
 };
 
 /// a sweep plan entry struct
 struct wsa_sweep_plan {
+	/// next sweep plan entry
+	struct wsa_sweep_plan *next;
 
+	/// sweep start
+	uint64_t fcstart;
 
+	/// sweep stop
+	uint64_t fcstop;
+
+	/// step size
+	uint32_t fstep;
+
+	/// samples per packet
+	uint32_t spp;
+	
+	/// packets per block
+	uint32_t ppb;
 };
 
 /// this struct represents our sweep device object
 struct wsa_sweep_device {
 	/// a reference to the wsa we're connected to
 	struct wsa_device *real_device;
+
+	/// device settings that get sent to a sweep
+	struct {
+		uint8_t attenuator;
+	} device_settings;
 };
 
 /// struct representing a configuration that we are going to sweep with and capture power spectrum data
