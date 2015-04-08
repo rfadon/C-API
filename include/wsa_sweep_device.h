@@ -24,7 +24,7 @@ struct wsa_sweep_device_properties {
 /// a sweep plan entry struct
 struct wsa_sweep_plan {
 	/// next sweep plan entry
-	struct wsa_sweep_plan *next;
+	struct wsa_sweep_plan *next_entry;
 
 	/// sweep start
 	uint64_t fcstart;
@@ -69,6 +69,9 @@ struct wsa_power_spectrum_config {
 
 	/// a sweep plan that achieves capturing the spectrum requested
 	struct wsa_sweep_plan *sweep_plan;
+
+	/// how many packets will this sweep plan generate
+	uint32_t packet_total;
 
 	/// the float buffer 
 	float *buf;

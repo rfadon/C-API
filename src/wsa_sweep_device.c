@@ -5,8 +5,8 @@
 #include "wsa_sweep_device.h"
 
 
-#define VRT_DEBUG 0
-#define LOG_DATA_TO_FILE 1
+#define VRT_DEBUG 1
+#define LOG_DATA_TO_FILE 0
 #define LOG_DATA_TO_STDOUT 0
 
 #define HZ 1
@@ -40,11 +40,14 @@
 #define EFREQOUTOFRANGE 1
 #define EUNSUPPORTED 2
 #define EBANDTOOSMALL 3
+#define ENOMEM 4
 
 /*
  * define internal functions
  */
 static int wsa_plan_sweep(struct wsa_power_spectrum_config *);
+static int wsa_sweep_plan_load(struct wsa_sweep_device *, struct wsa_power_spectrum_config *);
+static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t);
 
 
 /// a list of properties that are attributed to each mode
@@ -62,7 +65,7 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 	{ 
 		MODE_SHN, SAMPLETYPE_I_ONLY, 1,
 		50ULL*MHZ, 20ULL*GHZ, 100*KHZ,
-		62500*KHZ, 10*MHZ, 19600*KHZ, 14600*KHZ, 24600*KHZ, 
+		62500*KHZ, 10*MHZ, 35*MHZ, 30*MHZ, 40*MHZ, 
 		4, 512
 	},
 
@@ -82,7 +85,7 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
  * @param modestr - a string containing a mode
  * @returns 0 if the mode string is invalid, otherwise the const for that string
  */
-uint32_t mode_string_to_const(const char *modestr)
+static uint32_t mode_string_to_const(const char *modestr)
 {
 	if (!strcmp(modestr, "ZIF"))
 		return MODE_ZIF;
@@ -113,7 +116,7 @@ uint32_t mode_string_to_const(const char *modestr)
  * @param modeint - an int containing a mode const
  * @returns the mode string if valid, otherwise NULL
  */
-const char *mode_const_to_string(uint32_t modeint)
+static const char *mode_const_to_string(uint32_t modeint)
 {
 	if (modeint == MODE_ZIF)
 		return "ZIF";
@@ -307,22 +310,20 @@ void benchmark(struct timeval *since, char *msg)
  */
 void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
 {
-	printf("VRT Header");
-	
 	if (header->stream_id == RECEIVER_STREAM_ID)
-		printf("(CTX_RECEIVER): ");
+		printf("- CTX_RECEIVER: ");
 	else if (header->stream_id == DIGITIZER_STREAM_ID)
-		printf("(CTX_DIGITIZER): ");
+		printf("- CTX_DIGITIZER: ");
 	else if (header->stream_id == EXTENSION_STREAM_ID)
-		printf("(CTX_EXTENSION): ");
+		printf("- CTX_EXTENSION: ");
 	else if (header->stream_id == I16Q16_DATA_STREAM_ID)
-		printf("(DATA_I16Q16): ");
+		printf("- DATA_I16Q16: ");
 	else if (header->stream_id == I16_DATA_STREAM_ID)
-		printf("(DATA_I16): ");
+		printf("- DATA_I16: ");
 	else if (header->stream_id == I32_DATA_STREAM_ID)
-		printf("(DATA_I32): ");
+		printf("- DATA_I32: ");
 	else
-		printf("(UNKNOWN=0x%08x): ", header->stream_id);
+		printf("- UNKNOWN=0x%08x: ", header->stream_id);
 
 	if (header->packet_type == IF_PACKET_TYPE)
 		printf("type=IF, ");
@@ -347,18 +348,14 @@ void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
  */
 void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
 {
-	printf("  Receiver Context[");
-	
 	if ((pkt->indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
-		printf("freq=%0.2f ", (float)pkt->freq);
+		printf("\t- freq=%0.2lf\n", (double) pkt->freq);
 
 	if ((pkt->indicator_field & REF_POINT_INDICATOR_MASK) == REF_POINT_INDICATOR_MASK)
-		printf("refpoint=%d ", pkt->reference_point);
+		printf("\t- refpoint=%d\n", pkt->reference_point);
 
 	if ((pkt->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK)
-		printf("gain=%lf/%lf ", pkt->gain_if, pkt->gain_rf);
-
-	puts("]");
+		printf("\t- gain=%lf/%lf\n", pkt->gain_if, pkt->gain_rf);
 }
 
 
@@ -367,18 +364,14 @@ void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
  */
 void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
 {
-	printf("  Digitizer Context[");
-	
 	if ((pkt->indicator_field & BW_INDICATOR_MASK) == BW_INDICATOR_MASK)
-		printf("bw=%0.2f ", (float) pkt->bandwidth);
+		printf("\t- bw=%0.2lf\n", (double) pkt->bandwidth);
 
 	if ((pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == RF_FREQ_OFFSET_INDICATOR_MASK)
-		printf("freqoffset=%ld ", (long int) pkt->rf_freq_offset);
+		printf("\t- freqoffset=%ld\n", (long int) pkt->rf_freq_offset);
 
 	if ((pkt->indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK)
-		printf("reflevel=%d ", pkt->reference_level);
-
-	puts("]");
+		printf("\t- reflevel=%d\n", pkt->reference_level);
 }
 
 
@@ -463,9 +456,16 @@ int wsa_power_spectrum_alloc(
 	if (result < 0)
 		return result;
 
+	printf("- mode: %d\n", pscfg->mode);
+	printf("- fstart: %llu\n", pscfg->fstart);
+	printf("- fstop: %llu\n", pscfg->fstop);
+	printf("- rbw: %u\n", pscfg->rbw);
+	printf("- packet_total: %u\n", pscfg->packet_total);
+
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
+	printf("- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 	if (pscfg->buf == NULL) {
 		free(pscfg);
 		return -1;
@@ -482,8 +482,15 @@ int wsa_power_spectrum_alloc(
  */
 void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg)
 {
-	// free the buffer and then the struct
-	free(cfg->buf);
+	// free the plan, if there is one
+	if (cfg->sweep_plan)
+		free(cfg->sweep_plan);
+
+	// free the buffer
+	if (cfg->buf)
+		free(cfg->buf);
+
+	// free the struct
 	free(cfg);
 }
 
@@ -510,15 +517,20 @@ int wsa_capture_power_spectrum(
 	struct wsa_receiver_packet receiver;
 	struct wsa_digitizer_packet digitizer;
 	struct wsa_extension_packet sweep;
-	int16_t i16_buffer[2048];
-	int16_t q16_buffer[2048];
-	int32_t i32_buffer[2048];
+	int16_t i16_buffer[32768];
+	int16_t q16_buffer[32768];
+	int32_t i32_buffer[32768];
 	struct timeval start;
 	kiss_fft_cfg fftcfg;
-	kiss_fft_cpx iq[2048];
-	kiss_fft_cpx fftout[2048];
-	float reflevel = 0;
+	kiss_fft_cpx iq[32768];
+	kiss_fft_cpx fftout[32768];
+	float pkt_reflevel = 0;
+	uint64_t pkt_fcenter = 0;
+	uint32_t buf_offset = 0;
 	kiss_fft_scalar tmpscalar;
+	uint32_t packet_count;
+	struct wsa_sweep_device_properties *prop;
+	uint32_t istart, istop;
 
 	gettimeofday(&start, NULL);
 	benchmark(&start, "start");
@@ -527,35 +539,26 @@ int wsa_capture_power_spectrum(
 	if (*buf)
 		*buf = cfg->buf;
 
-	/*
-	 * do a single capture
-	 */
-
-	// flush buffer
-	wsa_flush_data(dev);
-
-	// just autotune to a good band for now
-	wsa_set_rfe_input_mode(dev, WSA_RFE_SHN_STRING);
-	wsa_set_freq(dev, 433 * MHZ);
-	wsa_set_attenuation(dev, 0);
-
-	// do a capture
-	wsa_set_samples_per_packet(dev, 2048);
-	wsa_set_packets_per_block(dev, 1);
-	result = wsa_capture_block(dev);
-	if (result < 0) {
-		fprintf(stderr, "error: wsa_capture_block(): %d\n", result);
-		return -1;
+	// try to get device properties for this mode
+	prop = wsa_get_sweep_device_properties(cfg->mode);
+	if (prop == NULL) {
+		fprintf(stderr, "error: unsupported rfe mode: %d - %s\n", cfg->mode, mode_const_to_string(cfg->mode));
+		return -EUNSUPPORTED;
 	}
-	benchmark(&start, "capture");
 
-	/*
-	 * read out packets until we get a data packet
-	 */
+	// load the sweep plan
+	wsa_sweep_plan_load(sweep_device, cfg);
+
+	// start the sweep
+	wsa_sweep_start(sweep_device->real_device);
+	benchmark(&start, "sweep");
+
+	// read out all the data
+	packet_count = 0;
 	while(1) {
 
 		// poison the buffers
-		for(i=0; i<2048; i++)
+		for(i=0; i<32768; i++)
 			i16_buffer[i] = 9999;
 
 		// read a packet
@@ -563,7 +566,7 @@ int wsa_capture_power_spectrum(
 			dev,
 			&header, &trailer, &receiver, &digitizer, &sweep,
 			i16_buffer, q16_buffer, i32_buffer,
-			2048,
+			32768,
 			5000
 		);
 		if (result < 0) {
@@ -578,83 +581,106 @@ int wsa_capture_power_spectrum(
 			wsa_dump_vrt_digitizer_packet(&digitizer);
 #endif
 
-		// grab the reflevel for each capture, so we can translate our FFTs
+		// capture digitizer context packets we need
 		if (header.stream_id == DIGITIZER_STREAM_ID) {
+		// grab the reflevel for each capture, so we can translate our FFTs
 			if ((digitizer.indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK) {
-				reflevel = (float) digitizer.reference_level;
+				pkt_reflevel = (float) digitizer.reference_level;
+			}
+
+		//  capture receiver context packets we need
+		} else if (header.stream_id == RECEIVER_STREAM_ID) {
+			// grab the center frequency for each capture
+			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
+				pkt_fcenter = (uint64_t) receiver.freq;
+				printf("- New fcenter = %llu\n", pkt_fcenter);
 			}
 		}
 
-		if (header.packet_type == IF_PACKET_TYPE)
-			break;
+		// data packets need to be parsed
+		if (header.packet_type == IF_PACKET_TYPE) {
+			
+			/*
+			 * for now, we assume it's an I16 packet
+			 */
+
+			// for now, just copy the data into the fft array.
+			for (i=0; i<header.samples_per_packet; i++) {
+				iq[i].r = i16_buffer[i];
+				iq[i].i = 0;
+			}
+			benchmark(&start, "copy_to_iq");
+#if LOG_DATA_TO_STDOUT
+			for (i=0; i<header.samples_per_packet; i++)
+				printf("%d, %d\n", iq[i].r, iq[i].i);
+#elif LOG_DATA_TO_FILE
+			dump_cpx_to_file("iq.dat", iq, header.samples_per_packet);
+#endif
+
+			// perform windowing
+			for (i=0; i<header.samples_per_packet; i++) {
+				window_hanning_cpx(&iq[i], header.samples_per_packet, i);
+				normalize_cpx(&iq[i], 8192);
+			}
+			benchmark(&start, "window");
+#if LOG_DATA_TO_STDOUT
+			for (i=0; i<header.samples_per_packet; i++)
+				printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
+#elif LOG_DATA_TO_FILE
+			dump_cpx_to_file("windowed.dat", fftout, header.samples_per_packet);
+#endif
+
+			// fft this data
+			fftcfg = kiss_fft_alloc(header.samples_per_packet, 0, 0, 0);
+			benchmark(&start, "fft_alloc");
+
+			kiss_fft(fftcfg, iq, fftout);
+			benchmark(&start, "fft_compute");
+#if LOG_DATA_TO_STDOUT
+			for (i=0; i<header.samples_per_packet; i++)
+				printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
+#elif LOG_DATA_TO_FILE
+			dump_cpx_to_file("fft.dat", fftout, header.samples_per_packet);
+#endif
+			free(fftcfg);
+			benchmark(&start, "fft_free");
+
+			// calculate indexes of our good data
+			istart = prop->usable_left / cfg->rbw;
+			istop = prop->usable_right / cfg->rbw;
+			printf("- istart=%u, istop=%u, idiff=%u\n", istart, istop, istop - istart);
+
+			// calculate offset for where in the output array this fft data will go
+			buf_offset = ((pkt_fcenter - (prop->usable_bw >> 1)) - cfg->fstart) / cfg->rbw;
+			printf("- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%u\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
+			printf("- offset_start=%u, offset_stop=%u\n", buf_offset, buf_offset + (istop - istart));
+			printf("- copying results for %llu Hz to %llu Hz\n", 
+				cfg->fstart + (buf_offset * cfg->rbw), 
+				cfg->fstart + ((buf_offset + (istop - istart)) * cfg->rbw)
+			);
+
+			// for the usable section, convert to power, apply reflevel and copy into buffer
+			for (i=0; i<(istop - istart); i++) {
+				tmpscalar = cpx_to_power(fftout[i+istart]) / header.samples_per_packet;
+				tmpscalar = 2 * power_to_logpower(tmpscalar);
+				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
+			}
+			benchmark(&start, "copy_to_buf");
+#if LOG_DATA_TO_STDOUT
+			// print
+			for (i=0; i<header.samples_per_packet; i++)
+				printf("%d  %0.2f\n", i, cfg->buf[i]);
+#elif LOG_DATA_TO_FILE
+			dump_scalar_to_file("psd.dat", cfg->buf, header.samples_per_packet);
+#endif
+
+			// do we have all our packets?
+			packet_count++;
+			if (packet_count > cfg->packet_total)
+				break;
+		}
 	}
 	benchmark(&start, "read");
-
-	// for now, just copy the data into the fft array.  Later, we'll figure out how to do this without the extra copy
-	for (i=0; i<2048; i++) {
-		iq[i].r = i16_buffer[i];
-		iq[i].i = 0;
-	}
-	benchmark(&start, "copy");
-
-#if LOG_DATA_TO_STDOUT
-	// print
-	for (i=0; i<2048; i++)
-		printf("%d, %d\n", iq[i].r, iq[i].i);
-#elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("iq.dat", iq, 2048);
-#endif
-
-	/*
-	 * window and normalize our data
-	 */
-	for (i=0; i<2048; i++) {
-		window_hanning_cpx(&iq[i], 2048, i);
-		normalize_cpx(&iq[i], 8192);
-	}
-#if LOG_DATA_TO_STDOUT
-	// print
-	for (i=0; i<2048; i++)
-		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
-#elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("windowed.dat", fftout, 2048);
-#endif
-
-	/*
-	 * fft that
-	 */
-	fftcfg = kiss_fft_alloc(2048, 0, 0, 0);
-	benchmark(&start, "fft_alloc");
-
-	kiss_fft(fftcfg, iq, fftout);
-	benchmark(&start, "fft_compute");
-#if LOG_DATA_TO_STDOUT
-	// print
-	for (i=0; i<2048; i++)
-		printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
-#elif LOG_DATA_TO_FILE
-	dump_cpx_to_file("fft.dat", fftout, 2048);
-#endif
-
-	free(fftcfg);
-	benchmark(&start, "fft_free");
-
-	/* 
-	 * convert to power and apply reflevel
-	 */
-	for (i=0; i<2048; i++) {
-		tmpscalar = cpx_to_power(fftout[i]) / 2048.0;
-		tmpscalar = 2 * power_to_logpower(tmpscalar);
-		cfg->buf[i] = tmpscalar + reflevel;
-	}
-	benchmark(&start, "copy");
-#if LOG_DATA_TO_STDOUT
-	// print
-	for (i=0; i<2048; i++)
-		printf("%d  %0.2f\n", i, cfg->buf[i]);
-#elif LOG_DATA_TO_FILE
-	dump_scalar_to_file("psd.dat", cfg->buf, 2048);
-#endif
 
 	return 0;
 }
@@ -666,7 +692,7 @@ int wsa_capture_power_spectrum(
  * @param mode - a string holding the mode
  * @return - pointer to the properties struct, or NULL if not supported
  */
-struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t mode)
+static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t mode)
 {
 	struct wsa_sweep_device_properties *ptr;
 
@@ -693,9 +719,9 @@ struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t mod
 static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 {
 	struct wsa_sweep_device_properties *prop;
+	struct wsa_sweep_plan *plan;
 	uint64_t fcstart, fcstop;
 	uint32_t fstep;
-	uint32_t binsize;
 	uint32_t half_usable_bw;
 	unsigned int points;
 
@@ -718,7 +744,9 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	points = (uint32_t) pow(2, ceil(log2(points)));
 	if (points < WSA_MIN_SPP)
 		return -EBANDTOOSMALL;
-	binsize = prop->full_bw / points;
+
+	// recalc what that actually results in for the rbw
+	pscfg->rbw = prop->full_bw / points;
 
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
@@ -735,7 +763,29 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// figure out our sweep step size
 	fstep = prop->usable_bw;
 
-	printf("sweep list: start=%llu stop=%llu step=%lu points=%d binsize=%u\n", fcstart, fcstop, fstep, points, binsize);
+	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%u\n", fcstart, fcstop, fstep, points, pscfg->rbw);
+
+	// create sweep plan objects for each entry
+	plan = malloc(sizeof(struct wsa_sweep_plan));
+	if (plan == NULL)
+		return -ENOMEM;
+	pscfg->sweep_plan = plan;
+
+	// set all the settings in the plan
+	plan->next_entry = NULL;
+	plan->fcstart = fcstart;
+	plan->fcstop = fcstop;
+	plan->fstep = fstep;
+	plan->spp = points;
+	plan->ppb = 1;
+
+	// how many steps on in this plan? loop through the list and count 'em
+	pscfg->packet_total = 0;
+	for (plan=pscfg->sweep_plan; plan; plan = plan->next_entry) {
+		
+		// inc packet total by (steps * ppb)
+		pscfg->packet_total += ((plan->fcstop - plan->fcstart) / plan->fstep) * plan->ppb;
+	}
 
 	return 0;
 }
@@ -764,4 +814,46 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
 	return sweep_device->device_settings.attenuator;
 }
 
+
+/**
+ * converts a sweep plan into a list of sweep entries and loads them onto the device
+ *
+ * @param sweep_device - the sweep device to use
+ * @param cfg - the sweep configuration which holds all sweep info, including the sweep plan
+ * @return - negative on error, 0 on success
+ */
+static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
+{
+	struct wsa_device *wsadev = wsasweepdev->real_device;
+	struct wsa_sweep_plan *plan_entry;
+
+	// clear any existing sweep entries
+	wsa_sweep_entry_delete_all(wsadev);
+
+	// setup the sweep list to only run once
+	wsa_set_sweep_iteration(wsadev, 1);
+
+	// create new entry with all the sweep entry devices
+	wsa_sweep_entry_new(wsadev);
+
+	// set sweep wide settings
+	wsa_set_sweep_rfe_input_mode(wsadev, mode_const_to_string(cfg->mode));
+	wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+
+	// loop over sweep plan, convert to entries and save
+	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
+
+		// set settings
+		wsa_set_sweep_freq(wsadev, plan_entry->fcstart, plan_entry->fcstop);
+		wsa_set_sweep_freq_step(wsadev, plan_entry->fstep);
+		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
+		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
+		wsa_set_sweep_packets_per_block(wsadev, plan_entry->ppb);
+
+		// save to end of list
+		wsa_sweep_entry_save(wsadev, 0);
+	}
+
+	return 0;
+}
 

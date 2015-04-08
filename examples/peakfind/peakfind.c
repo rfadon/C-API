@@ -370,6 +370,8 @@ int main(int argc, char *argv[])
 	// capture some spectrum
 	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
 
+#if 0
+
 	// find the peaks
 	peakfind(pscfg->buf, pscfg->buflen, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
 
@@ -378,6 +380,7 @@ int main(int argc, char *argv[])
 	for (i=0; i<peaks; i++) {
 		printf("  %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
 	}
+#endif
 
 	// clean up
 	wsa_power_spectrum_free(pscfg);
