@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdarg.h>
 #include "colog.h"
 
 /*

@@ -1,10 +1,6 @@
-#ifndef __CLOG_h__
-#define __CLOG_h__
+#ifndef __COLOG_h__
+#define __COLOG_h__
 
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdarg.h>
 
 /*
  * based on https://github.com/thlorenz/log.h/blob/master/log.h
@@ -51,6 +47,6 @@
 #define C_LIGHTCYAN  (CA_HIGHINT + CC_CYAN)
 #define C_LIGHTWHITE  (CA_HIGHINT + CC_WHITE)
 
-void clog(unsigned int, unsigned int, const char *, ...);
+void colog(unsigned int, unsigned int, const char *, ...);
 
 #endif
