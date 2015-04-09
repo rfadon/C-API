@@ -771,8 +771,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
 		return -EFREQOUTOFRANGE;
 
-	// figure out our sweep step size
-	fstep = prop->usable_bw;
+	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
+	fstep = prop->usable_bw - pscfg->rbw;
+	fstep = fstep / prop->tuning_resolution;
+	fstep = fstep * prop->tuning_resolution;
 
 	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
