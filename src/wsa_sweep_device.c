@@ -1,12 +1,13 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <sys/time.h>
 #include <math.h>
 #include "wsa_sweep_device.h"
-
+#include "colog.h"
 
 #define VRT_DEBUG 1
-#define LOG_DATA_TO_FILE 0
+#define LOG_DATA_TO_FILE 1
 #define LOG_DATA_TO_STDOUT 0
 
 #define HZ 1
@@ -39,7 +40,7 @@
 /// error values
 #define EFREQOUTOFRANGE 1
 #define EUNSUPPORTED 2
-#define EBANDTOOSMALL 3
+#define EINVCAPTSIZE 3
 #define ENOMEM 4
 
 /*
@@ -300,7 +301,7 @@ void benchmark(struct timeval *since, char *msg)
 		diff_sec -= 1;
 	}
 
-	printf("Mark -- %s -- %ld.%06u\n", msg, (long signed) diff_sec, (unsigned) diff_usec);
+	colog(0, C_LIGHTBLUE, "Mark -- %s -- %ld.%06u\n", msg, (long signed) diff_sec, (unsigned) diff_usec);
 }
 
 /**
@@ -311,30 +312,30 @@ void benchmark(struct timeval *since, char *msg)
 void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
 {
 	if (header->stream_id == RECEIVER_STREAM_ID)
-		printf("- CTX_RECEIVER: ");
+		colog(0, C_DARKGREEN, "- CTX_RECEIVER: ");
 	else if (header->stream_id == DIGITIZER_STREAM_ID)
-		printf("- CTX_DIGITIZER: ");
+		colog(0, C_DARKGREEN, "- CTX_DIGITIZER: ");
 	else if (header->stream_id == EXTENSION_STREAM_ID)
-		printf("- CTX_EXTENSION: ");
+		colog(0, C_DARKGREEN, "- CTX_EXTENSION: ");
 	else if (header->stream_id == I16Q16_DATA_STREAM_ID)
-		printf("- DATA_I16Q16: ");
+		colog(0, C_DARKGREEN, "- DATA_I16Q16: ");
 	else if (header->stream_id == I16_DATA_STREAM_ID)
-		printf("- DATA_I16: ");
+		colog(0, C_DARKGREEN, "- DATA_I16: ");
 	else if (header->stream_id == I32_DATA_STREAM_ID)
-		printf("- DATA_I32: ");
+		colog(0, C_DARKGREEN, "- DATA_I32: ");
 	else
-		printf("- UNKNOWN=0x%08x: ", header->stream_id);
+		colog(0, C_DARKGREEN, "- UNKNOWN=0x%08x: ", header->stream_id);
 
 	if (header->packet_type == IF_PACKET_TYPE)
-		printf("type=IF, ");
+		colog(0, C_DARKGREEN, "type=IF, ");
 	else if (header->packet_type == CONTEXT_PACKET_TYPE)
-		printf("type=CONTEXT, ");
+		colog(0, C_DARKGREEN, "type=CONTEXT, ");
 	else if (header->packet_type == EXTENSION_PACKET_TYPE)
-		printf("type=EXTENSION, ");
+		colog(0, C_DARKGREEN, "type=EXTENSION, ");
 	else
-		printf("type=UNKNOWN(%d), ", header->packet_type);
+		colog(0, C_DARKGREEN, "type=UNKNOWN(%d), ", header->packet_type);
 	
-	printf("count=%d, spp=%u, ts:%u.%012llus\n",
+	colog(0, C_DARKGREEN, "count=%d, spp=%u, ts:%u.%012llus\n",
 		header->pkt_count,
 		header->samples_per_packet,
 		header->time_stamp.sec,
@@ -349,13 +350,13 @@ void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
 void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
 {
 	if ((pkt->indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
-		printf("\t- freq=%0.2lf\n", (double) pkt->freq);
+		colog(0, C_DARKGREEN, "\t- freq=%0.2lf\n", (double) pkt->freq);
 
 	if ((pkt->indicator_field & REF_POINT_INDICATOR_MASK) == REF_POINT_INDICATOR_MASK)
-		printf("\t- refpoint=%d\n", pkt->reference_point);
+		colog(0, C_DARKGREEN, "\t- refpoint=%d\n", pkt->reference_point);
 
 	if ((pkt->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK)
-		printf("\t- gain=%lf/%lf\n", pkt->gain_if, pkt->gain_rf);
+		colog(0, C_DARKGREEN, "\t- gain=%lf/%lf\n", pkt->gain_if, pkt->gain_rf);
 }
 
 
@@ -365,13 +366,13 @@ void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
 void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
 {
 	if ((pkt->indicator_field & BW_INDICATOR_MASK) == BW_INDICATOR_MASK)
-		printf("\t- bw=%0.2lf\n", (double) pkt->bandwidth);
+		colog(0, C_DARKGREEN, "\t- bw=%0.2lf\n", (double) pkt->bandwidth);
 
 	if ((pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == RF_FREQ_OFFSET_INDICATOR_MASK)
-		printf("\t- freqoffset=%ld\n", (long int) pkt->rf_freq_offset);
+		colog(0, C_DARKGREEN, "\t- freqoffset=%ld\n", (long int) pkt->rf_freq_offset);
 
 	if ((pkt->indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK)
-		printf("\t- reflevel=%d\n", pkt->reference_level);
+		colog(0, C_DARKGREEN, "\t- reflevel=%d\n", pkt->reference_level);
 }
 
 
@@ -449,7 +450,7 @@ int wsa_power_spectrum_alloc(
 	pscfg->mode = mode_string_to_const(mode);
 	pscfg->fstart = fstart;
 	pscfg->fstop = fstop;
-	pscfg->rbw = rbw;
+	pscfg->rbw = (float) rbw;
 
 	// figure out a way to get that spectrum
 	result = wsa_plan_sweep(pscfg);
@@ -459,7 +460,7 @@ int wsa_power_spectrum_alloc(
 	printf("- mode: %d\n", pscfg->mode);
 	printf("- fstart: %llu\n", pscfg->fstart);
 	printf("- fstop: %llu\n", pscfg->fstop);
-	printf("- rbw: %u\n", pscfg->rbw);
+	printf("- rbw: %0.3f\n", pscfg->rbw);
 	printf("- packet_total: %u\n", pscfg->packet_total);
 
 	// now allocate enough buffer for the spectrum
@@ -538,6 +539,10 @@ int wsa_capture_power_spectrum(
 	// assign their convienence pointer
 	if (*buf)
 		*buf = cfg->buf;
+
+	// poison our buffer
+	for (i=0; i<cfg->buflen; i++)
+		cfg->buf[i] = 77;
 
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(cfg->mode);
@@ -648,13 +653,14 @@ int wsa_capture_power_spectrum(
 			// calculate indexes of our good data
 			istart = prop->usable_left / cfg->rbw;
 			istop = prop->usable_right / cfg->rbw;
-			printf("- istart=%u, istop=%u, idiff=%u\n", istart, istop, istop - istart);
 
 			// calculate offset for where in the output array this fft data will go
 			buf_offset = ((pkt_fcenter - (prop->usable_bw >> 1)) - cfg->fstart) / cfg->rbw;
 			printf("- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%u\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
-			printf("- offset_start=%u, offset_stop=%u\n", buf_offset, buf_offset + (istop - istart));
-			printf("- copying results for %llu Hz to %llu Hz\n", 
+			colog(0, C_LIGHTYELLOW, "- copying %u words from fftout[%u:%u] to buf[%u:%u] for %f Hz to %f Hz\n", 
+				istop - istart,
+				istart, istop,
+				buf_offset, buf_offset + (istop - istart),
 				cfg->fstart + (buf_offset * cfg->rbw), 
 				cfg->fstart + ((buf_offset + (istop - istart)) * cfg->rbw)
 			);
@@ -671,7 +677,7 @@ int wsa_capture_power_spectrum(
 			for (i=0; i<header.samples_per_packet; i++)
 				printf("%d  %0.2f\n", i, cfg->buf[i]);
 #elif LOG_DATA_TO_FILE
-			dump_scalar_to_file("psd.dat", cfg->buf, header.samples_per_packet);
+			dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
 #endif
 
 			// do we have all our packets?
@@ -742,11 +748,16 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// how many points (fft bins) are in a full band
 	points = prop->full_bw / pscfg->rbw;
 	points = (uint32_t) pow(2, ceil(log2(points)));
-	if (points < WSA_MIN_SPP)
-		return -EBANDTOOSMALL;
 
 	// recalc what that actually results in for the rbw
-	pscfg->rbw = prop->full_bw / points;
+	pscfg->rbw = ((float) prop->full_bw) / points;
+
+	// double points because superheet
+	points = points << 1;
+
+	// make sure points is a valid capture value
+	if ((points < WSA_MIN_SPP) || (points > WSA_MAX_SPP))
+		return -EINVCAPTSIZE;
 
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
@@ -763,7 +774,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// figure out our sweep step size
 	fstep = prop->usable_bw;
 
-	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%u\n", fcstart, fcstop, fstep, points, pscfg->rbw);
+	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
 	// create sweep plan objects for each entry
 	plan = malloc(sizeof(struct wsa_sweep_plan));

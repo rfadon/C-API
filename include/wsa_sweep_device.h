@@ -4,6 +4,8 @@
 #include "wsa_lib.h"
 #include "wsa_api.h"
 
+/// a struct for holding all the info about captured data being received
+
 /// a struct for holding sweep device properties
 struct wsa_sweep_device_properties {
 	uint32_t mode;
@@ -65,7 +67,7 @@ struct wsa_power_spectrum_config {
 	uint64_t fstop;
 
 	/// the rbw
-	uint32_t rbw;
+	float rbw;
 
 	/// a sweep plan that achieves capturing the spectrum requested
 	struct wsa_sweep_plan *sweep_plan;

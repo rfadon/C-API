@@ -148,7 +148,7 @@ int array_getpos(float *buf, int buflen, float item)
 }
 
 
-int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t *pfreq, float *pamp)
+int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, float *pfreq, float *pamp)
 {
 	int i, j, n;
 
@@ -160,7 +160,7 @@ int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t
 
 	// populate the result arrays with 0s
 	for (i=0; i<peaks; i++) {
-		pfreq[i] = 0;
+		pfreq[i] = 99999;
 		pamp[i] = -99999;
 	}
 
@@ -172,7 +172,7 @@ int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, uint64_t
 
 		// shift over the array to make space for the new element
 		if (n >= 0) {
-			array_shift(pfreq, sizeof(uint64_t), peaks, n);
+			array_shift(pfreq, sizeof(float), peaks, n);
 			array_shift(pamp, sizeof(float), peaks, n);
 
 			// insert amplitude
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 	int16_t result;
 	struct wsa_power_spectrum_config *pscfg;
 	float *psbuf;
-	uint64_t pfreq[MAXPEAKS];
+	float pfreq[MAXPEAKS];
 	float pamp[MAXPEAKS];
 
 	// init options
@@ -370,17 +370,14 @@ int main(int argc, char *argv[])
 	// capture some spectrum
 	wsa_capture_power_spectrum(wsasweepdev, pscfg, &psbuf);
 
-#if 0
-
 	// find the peaks
-	peakfind(pscfg->buf, pscfg->buflen, ((fstop - fstart) / rbw), peaks, pfreq, pamp);
+	peakfind(pscfg->buf, pscfg->buflen, pscfg->rbw, peaks, pfreq, pamp);
 
 	// print results
 	printf("\nPeaks found:\n");
 	for (i=0; i<peaks; i++) {
-		printf("  %0.2f dBm @ %llu\n", pamp[i], pfreq[i] + fstart);
+		printf("  %0.2f dBm @ %f\n", pamp[i], pfreq[i] + fstart);
 	}
-#endif
 
 	// clean up
 	wsa_power_spectrum_free(pscfg);
