@@ -189,6 +189,33 @@ void window_hanning_cpx(kiss_fft_cpx *value, int len, int index)
 
 
 /**
+ * performs a spectral inversion on fft data
+ *
+ * @value - a pointer to the array of complex values
+ * @len - the length of the array
+ */
+void reverse_cpx(kiss_fft_cpx *value, int len)
+{
+	int i;
+	kiss_fft_cpx tmpval;
+
+	for (i=0; i<(len/2); i++) {
+		// copy current to tmp
+		tmpval.r = value[i].r;
+		tmpval.i = value[i].i;
+
+		// copy opposite to current
+		value[i].r = value[len - i - 1].r;
+		value[i].i = value[len - i - 1].i;
+
+		// copy tmp to opposite
+		value[len - i - 1].r = tmpval.r;
+		value[len - i - 1].i = tmpval.i;
+	}
+}
+
+
+/**
  * performs a hanning window on a list of complex values, windowing is done in place
  *
  * @values - a pointer to the array of complex values
@@ -510,7 +537,7 @@ int wsa_capture_power_spectrum(
 	float **buf
 )
 {
-	int i;
+	int i, n;
 	int16_t result;
 	struct wsa_device *dev = sweep_device->real_device;
 	struct wsa_vrt_packet_header header;
@@ -531,7 +558,8 @@ int wsa_capture_power_spectrum(
 	kiss_fft_scalar tmpscalar;
 	uint32_t packet_count;
 	struct wsa_sweep_device_properties *prop;
-	uint32_t istart, istop;
+	uint32_t istart, istop, ilen;
+	kiss_fft_cpx tmpfftval;
 
 	gettimeofday(&start, NULL);
 	benchmark(&start, "start");
@@ -598,13 +626,13 @@ int wsa_capture_power_spectrum(
 			// grab the center frequency for each capture
 			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
 				pkt_fcenter = (uint64_t) receiver.freq;
-				printf("- New fcenter = %llu\n", pkt_fcenter);
+				colog(0, C_LIGHTPURPLE, "- New fcenter = %llu\n", pkt_fcenter);
 			}
 		}
 
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
-			
+		
 			/*
 			 * for now, we assume it's an I16 packet
 			 */
@@ -643,26 +671,61 @@ int wsa_capture_power_spectrum(
 			benchmark(&start, "fft_compute");
 #if LOG_DATA_TO_STDOUT
 			for (i=0; i<header.samples_per_packet; i++)
-				printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
+				colog(0, C_LIGHTPURPLE, "%d => %0.2f, %0.2f\n", i, fftout[i].r, fftout[i].i);
 #elif LOG_DATA_TO_FILE
 			dump_cpx_to_file("fft.dat", fftout, header.samples_per_packet);
 #endif
 			free(fftcfg);
 			benchmark(&start, "fft_free");
 
+			// perform fft shift
+			n = header.samples_per_packet >> 1;
+			for (i=0; i<n; i++) {
+				tmpfftval.r = fftout[i].r;
+				tmpfftval.i = fftout[i].i;
+				fftout[i].r = fftout[i + n].r;
+				fftout[i].i = fftout[i + n].i;
+				fftout[i + n].r = tmpfftval.r;
+				fftout[i + n].i = tmpfftval.i;
+			}
+
+			// check for inversion
+			if (trailer.spectral_inversion_indicator) {
+				colog(CF_INVERSE, C_LIGHTPURPLE, "Spectrum is Inverted.\n");
+				reverse_cpx(fftout, header.samples_per_packet);
+			} else {
+				colog(0, C_LIGHTPURPLE, "Spectrum is NOT Inverted.\n");
+			}
+
+			/*
+			 * we used to be in superhet mode, but after a complex FFT, we have twice 
+			 * the spectrum at twice the RBW.
+			 * our fcenter is now moved from center to $passband_center so our start and stop 
+			 * indexes are calculated given that fact
+			 */
+
 			// calculate indexes of our good data
-			istart = prop->usable_left / cfg->rbw;
-			istop = prop->usable_right / cfg->rbw;
+			istart = (header.samples_per_packet / 2) + (prop->usable_left / cfg->rbw);
+			istop = (header.samples_per_packet / 2) + (prop->usable_right / cfg->rbw);
+			ilen = istop - istart;
 
 			// calculate offset for where in the output array this fft data will go
 			buf_offset = ((pkt_fcenter - (prop->usable_bw >> 1)) - cfg->fstart) / cfg->rbw;
-			printf("- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%u\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
+
+			// make sure we don't copy beyond end of buffer
+			if ((buf_offset + ilen) >= cfg->buflen) {
+				// reduce istop by how much it's past
+				istop = istop - ((buf_offset + ilen) - cfg->buflen);
+				ilen = istop - istart;
+			}
+
+			printf("- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%0.3f\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
 			colog(0, C_LIGHTYELLOW, "- copying %u words from fftout[%u:%u] to buf[%u:%u] for %f Hz to %f Hz\n", 
 				istop - istart,
 				istart, istop,
-				buf_offset, buf_offset + (istop - istart),
+				buf_offset, buf_offset + ilen,
 				cfg->fstart + (buf_offset * cfg->rbw), 
-				cfg->fstart + ((buf_offset + (istop - istart)) * cfg->rbw)
+				cfg->fstart + ((buf_offset + ilen) * cfg->rbw)
 			);
 
 			// for the usable section, convert to power, apply reflevel and copy into buffer
@@ -670,11 +733,12 @@ int wsa_capture_power_spectrum(
 				tmpscalar = cpx_to_power(fftout[i+istart]) / header.samples_per_packet;
 				tmpscalar = 2 * power_to_logpower(tmpscalar);
 				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
+				// colog(0, C_DARKRED, "#%d->%d, %0.2f\n", i, buf_offset + i, cfg->buf[buf_offset + i]);
 			}
 			benchmark(&start, "copy_to_buf");
 #if LOG_DATA_TO_STDOUT
 			// print
-			for (i=0; i<header.samples_per_packet; i++)
+			for (i=0; i<cfg->buflen; i++)
 				printf("%d  %0.2f\n", i, cfg->buf[i]);
 #elif LOG_DATA_TO_FILE
 			dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
@@ -726,7 +790,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 {
 	struct wsa_sweep_device_properties *prop;
 	struct wsa_sweep_plan *plan;
-	uint64_t fcstart, fcstop;
+	uint64_t fcstart, fcstop, tmpfreq;
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	unsigned int points;
@@ -763,18 +827,31 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	fcstart = pscfg->fstart + half_usable_bw;
 	fcstop = pscfg->fstop - half_usable_bw;
 
-	/*
-	 * commence the planning!
-	 */
-
-	// test if start and stop are valid
-	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
-		return -EFREQOUTOFRANGE;
-
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
 	fstep = prop->usable_bw - pscfg->rbw;
 	fstep = fstep / prop->tuning_resolution;
 	fstep = fstep * prop->tuning_resolution;
+
+	// force fcstart to a multiple of tuning resolution
+	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
+
+	// force fcstop to a multiple of tuning resolution AND (fstart + N*fstep)
+	fcstop = (fcstop / prop->tuning_resolution) * prop->tuning_resolution;
+	tmpfreq = fcstart + (((fcstop - fcstart) / fstep) * fstep);
+
+	// see if we need an additional step to get the bits at the end of the sweep
+	if (fcstop != tmpfreq) {
+		colog(0, C_LIGHTCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
+		fcstop = tmpfreq + fstep;
+		colog(0, C_DARKCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
+	} else {
+		colog(0, C_DARKCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
+		fcstop = tmpfreq;
+	}
+
+	// test if start and stop are valid
+	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
+		return -EFREQOUTOFRANGE;
 
 	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
