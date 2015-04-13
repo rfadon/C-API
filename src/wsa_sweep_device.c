@@ -243,6 +243,24 @@ kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval)
 	return value / maxval;
 }
 
+
+/**
+ * normalize an array of values
+ *
+ * @param values - an integer array of the values to normalize
+ * @param result - a kiss_fft_scalar array to place the results in
+ * @param len - the length of the array
+ * @param maxval - the maximum we are normalizing over
+ */
+void normalize_scalar_array(int16_t *values, kiss_fft_scalar *results, int len, int16_t maxval)
+{
+	int i;
+
+	for (i=0; i<len; i++)
+		results[i] = normalize_scalar(values[i], maxval);
+}
+
+
 /**
  * normalize a complex value in place
  *
@@ -330,6 +348,60 @@ void benchmark(struct timeval *since, char *msg)
 
 	colog(0, C_LIGHTBLUE, "Mark -- %s -- %ld.%06u\n", msg, (long signed) diff_sec, (unsigned) diff_usec);
 }
+
+
+/**
+ * performs a real fft on some scalar data
+ *
+ * @param idata - the real values to perform the FFT on
+ * @param fftdata - the pointer to put the resulting fft data in
+ * @param len - the length of the array
+ * @returns negative on error, 0 on success
+ */
+int rfft(kiss_fft_scalar *idata, kiss_fft_cpx *fftdata, int len)
+{
+	int i, n;
+	kiss_fft_cfg fftcfg;
+	kiss_fft_cpx *iq;
+	kiss_fft_cpx tmpval;
+
+	iq = malloc(sizeof(kiss_fft_cpx) * len);
+	if (iq == NULL) {
+		fprintf(stderr, "error: out of memory during rfft alloc\n");
+		return -ENOMEM;
+	}
+
+	// copy the real data into an complex iq array
+	for (i=0; i<len; i++) {
+		iq[i].r = idata[i];
+		iq[i].i = 0;
+	}
+
+	fftcfg = kiss_fft_alloc(len, 0, 0, 0);
+	kiss_fft(fftcfg, iq, fftdata);
+	free(fftcfg);
+	free(iq);
+
+	// perform fft shift
+	n = len >> 1;
+	for (i=0; i<n; i++) {
+		tmpval.r = fftdata[i].r;
+		tmpval.i = fftdata[i].i;
+		fftdata[i].r = fftdata[i + n].r;
+		fftdata[i].i = fftdata[i + n].i;
+		fftdata[i + n].r = tmpval.r;
+		fftdata[i + n].i = tmpval.i;
+	}
+
+	// because we did a real fft, half the data is just an image.. get rid of it
+	for (i=0; i<n; i++) {
+		fftdata[i].r = fftdata[i+n].r;
+		fftdata[i].i = fftdata[i+n].i;
+	}
+
+	return 0;
+}
+
 
 /**
  * dumps a vrt packet header to stdout
@@ -493,11 +565,11 @@ int wsa_power_spectrum_alloc(
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
-	printf("- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 	if (pscfg->buf == NULL) {
 		free(pscfg);
 		return -1;
 	}
+	printf("- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 
 	return 0;
 }
@@ -537,7 +609,7 @@ int wsa_capture_power_spectrum(
 	float **buf
 )
 {
-	int i, n;
+	int i;
 	int16_t result;
 	struct wsa_device *dev = sweep_device->real_device;
 	struct wsa_vrt_packet_header header;
@@ -549,8 +621,7 @@ int wsa_capture_power_spectrum(
 	int16_t q16_buffer[32768];
 	int32_t i32_buffer[32768];
 	struct timeval start;
-	kiss_fft_cfg fftcfg;
-	kiss_fft_cpx iq[32768];
+	kiss_fft_scalar idata[32768];
 	kiss_fft_cpx fftout[32768];
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
@@ -559,7 +630,7 @@ int wsa_capture_power_spectrum(
 	uint32_t packet_count;
 	struct wsa_sweep_device_properties *prop;
 	uint32_t istart, istop, ilen;
-	kiss_fft_cpx tmpfftval;
+	uint32_t spp, fftlen;;
 
 	gettimeofday(&start, NULL);
 	benchmark(&start, "start");
@@ -633,69 +704,20 @@ int wsa_capture_power_spectrum(
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
 		
+			spp = header.samples_per_packet;
+
 			/*
 			 * for now, we assume it's an I16 packet
 			 */
 
-			// for now, just copy the data into the fft array.
-			for (i=0; i<header.samples_per_packet; i++) {
-				iq[i].r = i16_buffer[i];
-				iq[i].i = 0;
-			}
-			benchmark(&start, "copy_to_iq");
-#if LOG_DATA_TO_STDOUT
-			for (i=0; i<header.samples_per_packet; i++)
-				printf("%d, %d\n", iq[i].r, iq[i].i);
-#elif LOG_DATA_TO_FILE
-			dump_cpx_to_file("iq.dat", iq, header.samples_per_packet);
-#endif
-
-			// perform windowing
-			for (i=0; i<header.samples_per_packet; i++) {
-				window_hanning_cpx(&iq[i], header.samples_per_packet, i);
-				normalize_cpx(&iq[i], 8192);
-			}
+			// window and normalize the data
+			normalize_scalar_array(i16_buffer, idata, spp, 8192);
+			window_hanning_scalar_array(idata, spp);
 			benchmark(&start, "window");
-#if LOG_DATA_TO_STDOUT
-			for (i=0; i<header.samples_per_packet; i++)
-				printf("%0.2f, %0.2f\n", fftout[i].r, fftout[i].i);
-#elif LOG_DATA_TO_FILE
-			dump_cpx_to_file("windowed.dat", fftout, header.samples_per_packet);
-#endif
 
 			// fft this data
-			fftcfg = kiss_fft_alloc(header.samples_per_packet, 0, 0, 0);
-			benchmark(&start, "fft_alloc");
-
-			kiss_fft(fftcfg, iq, fftout);
-			benchmark(&start, "fft_compute");
-#if LOG_DATA_TO_STDOUT
-			for (i=0; i<header.samples_per_packet; i++)
-				colog(0, C_LIGHTPURPLE, "%d => %0.2f, %0.2f\n", i, fftout[i].r, fftout[i].i);
-#elif LOG_DATA_TO_FILE
-			dump_cpx_to_file("fft.dat", fftout, header.samples_per_packet);
-#endif
-			free(fftcfg);
-			benchmark(&start, "fft_free");
-
-			// perform fft shift
-			n = header.samples_per_packet >> 1;
-			for (i=0; i<n; i++) {
-				tmpfftval.r = fftout[i].r;
-				tmpfftval.i = fftout[i].i;
-				fftout[i].r = fftout[i + n].r;
-				fftout[i].i = fftout[i + n].i;
-				fftout[i + n].r = tmpfftval.r;
-				fftout[i + n].i = tmpfftval.i;
-			}
-
-			// check for inversion
-			if (trailer.spectral_inversion_indicator) {
-				colog(CF_INVERSE, C_LIGHTPURPLE, "Spectrum is Inverted.\n");
-				reverse_cpx(fftout, header.samples_per_packet);
-			} else {
-				colog(0, C_LIGHTPURPLE, "Spectrum is NOT Inverted.\n");
-			}
+			rfft(idata, fftout, spp);
+			fftlen = spp >> 1;
 
 			/*
 			 * we used to be in superhet mode, but after a complex FFT, we have twice 
@@ -704,9 +726,21 @@ int wsa_capture_power_spectrum(
 			 * indexes are calculated given that fact
 			 */
 
-			// calculate indexes of our good data
-			istart = (header.samples_per_packet / 2) + (prop->usable_left / cfg->rbw);
-			istop = (header.samples_per_packet / 2) + (prop->usable_right / cfg->rbw);
+			// check for inversion and calculate indexes of our good data
+			if (trailer.spectral_inversion_indicator) {
+				colog(CF_INVERSE, C_LIGHTPURPLE, "Spectrum is Inverted.\n");
+				reverse_cpx(fftout, fftlen);
+
+				istart = (prop->full_bw - prop->usable_right) / cfg->rbw;
+				istop = (prop->full_bw - prop->usable_left) / cfg->rbw;
+
+			} else {
+				colog(0, C_LIGHTPURPLE, "Spectrum is NOT Inverted.\n");
+
+				istart = prop->usable_left / cfg->rbw;
+				istop = prop->usable_right / cfg->rbw;
+			}
+
 			ilen = istop - istart;
 
 			// calculate offset for where in the output array this fft data will go
@@ -736,13 +770,6 @@ int wsa_capture_power_spectrum(
 				// colog(0, C_DARKRED, "#%d->%d, %0.2f\n", i, buf_offset + i, cfg->buf[buf_offset + i]);
 			}
 			benchmark(&start, "copy_to_buf");
-#if LOG_DATA_TO_STDOUT
-			// print
-			for (i=0; i<cfg->buflen; i++)
-				printf("%d  %0.2f\n", i, cfg->buf[i]);
-#elif LOG_DATA_TO_FILE
-			dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
-#endif
 
 			// do we have all our packets?
 			packet_count++;
@@ -751,6 +778,7 @@ int wsa_capture_power_spectrum(
 		}
 	}
 	benchmark(&start, "read");
+	dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
 
 	return 0;
 }
