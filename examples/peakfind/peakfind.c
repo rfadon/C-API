@@ -326,13 +326,6 @@ int main(int argc, char *argv[])
 	}
 	host = argv[i];
 
-	printf("host: %s\n", host);
-	printf("mode: %s\n", mode);
-	printf("fstart: %" PRIu64 "\n", fstart);
-	printf("fstop: %" PRIu64 "\n", fstop);
-	printf("rbw: %" PRIu32 "\n", rbw);
-	printf("peaks: %" PRIu32 "\n", peaks);
-
 	// connect to a WSA
 	printf("Connecting to WSA at %s... ", host);
 	snprintf(intf_str, 39, "TCPIP::%s", host);
@@ -376,7 +369,7 @@ int main(int argc, char *argv[])
 	// print results
 	printf("\nPeaks found:\n");
 	for (i=0; i<peaks; i++) {
-		printf("  %0.2f dBm @ %f\n", pamp[i], pfreq[i] + fstart);
+		printf("  %0.2f dBm @ %llu\n", pamp[i], (uint64_t) (pfreq[i] + fstart));
 	}
 
 	// clean up
