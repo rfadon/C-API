@@ -3030,8 +3030,8 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t s
 	else if (result < 0)
 		return result;
 		
-	// make sure stop_freq is larger than start
-	if (stop_freq <= start_freq)
+	// make sure stop_freq is larger than (or equal to) start
+	if (stop_freq < start_freq)
 		return  WSA_ERR_INVSTOPFREQ;
 		
 	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n", start_freq, stop_freq);
