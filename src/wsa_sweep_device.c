@@ -585,11 +585,11 @@ int wsa_power_spectrum_alloc(
 	if (result < 0)
 		return result;
 
-	printf("- mode: %d\n", pscfg->mode);
-	printf("- fstart: %llu\n", pscfg->fstart);
-	printf("- fstop: %llu\n", pscfg->fstop);
-	printf("- rbw: %0.3f\n", pscfg->rbw);
-	printf("- packet_total: %u\n", pscfg->packet_total);
+	colog(0, C_DARKWHITE, "- mode: %d\n", pscfg->mode);
+	colog(0, C_DARKWHITE, "- fstart: %llu\n", pscfg->fstart);
+	colog(0, C_DARKWHITE, "- fstop: %llu\n", pscfg->fstop);
+	colog(0, C_DARKWHITE, "- rbw: %0.3f\n", pscfg->rbw);
+	colog(0, C_DARKWHITE, "- packet_total: %u\n", pscfg->packet_total);
 
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
@@ -598,7 +598,7 @@ int wsa_power_spectrum_alloc(
 		free(pscfg);
 		return -1;
 	}
-	printf("- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
+	colog(0, C_DARKWHITE, "- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 
 	return 0;
 }
@@ -797,7 +797,7 @@ int wsa_capture_power_spectrum(
 				ilen = istop - istart;
 			}
 
-			printf("- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%0.3f\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
+			colog(0, C_DARKWHITE, "- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%0.3f\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
 			colog(0, C_LIGHTYELLOW, "- copying %u words from fftout[%u:%u] to buf[%u:%u] for %f Hz to %f Hz\n", 
 				istop - istart,
 				istart, istop,
