@@ -578,7 +578,7 @@ int wsa_power_spectrum_alloc(
 	pscfg->mode = mode_string_to_const(mode);
 	pscfg->fstart = fstart;
 	pscfg->fstop = fstop;
-	pscfg->rbw = (float) rbw;
+	pscfg->rbw = (double) rbw;
 
 	// figure out a way to get that spectrum
 	result = wsa_plan_sweep(pscfg);
@@ -588,7 +588,7 @@ int wsa_power_spectrum_alloc(
 	colog(0, C_DARKWHITE, "- mode: %d\n", pscfg->mode);
 	colog(0, C_DARKWHITE, "- fstart: %llu\n", pscfg->fstart);
 	colog(0, C_DARKWHITE, "- fstop: %llu\n", pscfg->fstop);
-	colog(0, C_DARKWHITE, "- rbw: %0.3f\n", pscfg->rbw);
+	colog(0, C_DARKWHITE, "- rbw: %0.3Lf\n", pscfg->rbw);
 	colog(0, C_DARKWHITE, "- packet_total: %u\n", pscfg->packet_total);
 
 	// now allocate enough buffer for the spectrum
@@ -886,7 +886,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	points = (uint32_t) pow(2, ceil(log2(points)));
 
 	// recalc what that actually results in for the rbw
-	pscfg->rbw = ((float) prop->full_bw) / points;
+	pscfg->rbw = ((double) prop->full_bw) / points;
 
 	// double points because superheet
 	points = points << 1;

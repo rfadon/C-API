@@ -149,7 +149,7 @@ int array_getpos(float *buf, int buflen, float item)
 }
 
 
-int peakfind(float *buf, uint32_t buflen, uint32_t hzperbin, int peaks, float *pfreq, float *pamp)
+int peakfind(float *buf, uint32_t buflen, double hzperbin, int peaks, float *pfreq, float *pamp)
 {
 	int i, j, n;
 

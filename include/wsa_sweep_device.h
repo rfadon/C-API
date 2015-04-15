@@ -67,7 +67,7 @@ struct wsa_power_spectrum_config {
 	uint64_t fstop;
 
 	/// the rbw
-	float rbw;
+	double rbw;
 
 	/// a sweep plan that achieves capturing the spectrum requested
 	struct wsa_sweep_plan *sweep_plan;
