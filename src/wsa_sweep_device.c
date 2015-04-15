@@ -6,10 +6,6 @@
 #include "wsa_sweep_device.h"
 #include "colog.h"
 
-#define VRT_DEBUG 1
-#define LOG_DATA_TO_FILE 1
-#define LOG_DATA_TO_STDOUT 0
-
 #define HZ 1
 #define KHZ 1000
 // #define MHZ 1000000
@@ -291,42 +287,6 @@ kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
 }
 
 
-void dump_cpx_to_file(char *filename, kiss_fft_cpx *values, int len)
-{
-	FILE *fp;
-	int i;
-
-	fp = fopen(filename, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error: could not dump to file\n");
-		return;
-	}
-
-	for (i=0; i<len; i++)
-		fprintf(fp, "%d, %0.2f, %0.2f\n", i, values[i].r, values[i].i);
-
-	fclose(fp);
-}
-
-
-void dump_scalar_to_file(char *filename, kiss_fft_scalar *values, int len)
-{
-	FILE *fp;
-	int i;
-
-	fp = fopen(filename, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error: could not dump to file\n");
-		return;
-	}
-
-	for (i=0; i<len; i++)
-		fprintf(fp, "%d, %0.2f\n", i, values[i]);
-
-	fclose(fp);
-}
-
-
 /**
  * performs a real fft on some scalar data
  *
@@ -377,78 +337,6 @@ int rfft(kiss_fft_scalar *idata, kiss_fft_cpx *fftdata, int len)
 	}
 
 	return 0;
-}
-
-
-/**
- * dumps a vrt packet header to stdout
- *
- * @param header - the struct wsa_vrt_packet_header to dump
- */
-void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
-{
-	if (header->stream_id == RECEIVER_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_RECEIVER: ");
-	else if (header->stream_id == DIGITIZER_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_DIGITIZER: ");
-	else if (header->stream_id == EXTENSION_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_EXTENSION: ");
-	else if (header->stream_id == I16Q16_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I16Q16: ");
-	else if (header->stream_id == I16_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I16: ");
-	else if (header->stream_id == I32_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I32: ");
-	else
-		colog(0, C_DARKGREEN, "- UNKNOWN=0x%08x: ", header->stream_id);
-
-	if (header->packet_type == IF_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=IF, ");
-	else if (header->packet_type == CONTEXT_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=CONTEXT, ");
-	else if (header->packet_type == EXTENSION_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=EXTENSION, ");
-	else
-		colog(0, C_DARKGREEN, "type=UNKNOWN(%d), ", header->packet_type);
-	
-	colog(0, C_DARKGREEN, "count=%d, spp=%u, ts:%u.%012llus\n",
-		header->pkt_count,
-		header->samples_per_packet,
-		header->time_stamp.sec,
-		header->time_stamp.psec
-	);
-}
-
-
-/**
- * dumps a vrt receiver packet to stdout
- */
-void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
-{
-	if ((pkt->indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- freq=%0.2lf\n", (double) pkt->freq);
-
-	if ((pkt->indicator_field & REF_POINT_INDICATOR_MASK) == REF_POINT_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- refpoint=%d\n", pkt->reference_point);
-
-	if ((pkt->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- gain=%lf/%lf\n", pkt->gain_if, pkt->gain_rf);
-}
-
-
-/**
- * dumps a vrt digitizer packet to stdout
- */
-void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
-{
-	if ((pkt->indicator_field & BW_INDICATOR_MASK) == BW_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- bw=%0.2lf\n", (double) pkt->bandwidth);
-
-	if ((pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == RF_FREQ_OFFSET_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- freqoffset=%ld\n", (long int) pkt->rf_freq_offset);
-
-	if ((pkt->indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- reflevel=%d\n", pkt->reference_level);
 }
 
 
@@ -693,13 +581,6 @@ int wsa_capture_power_spectrum(
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
 			return -1;
 		}
-#if VRT_DEBUG
-		wsa_dump_vrt_packet_header(&header);
-		if (header.stream_id == RECEIVER_STREAM_ID)
-			wsa_dump_vrt_receiver_packet(&receiver);
-		else if (header.stream_id == DIGITIZER_STREAM_ID)
-			wsa_dump_vrt_digitizer_packet(&digitizer);
-#endif
 
 		// capture digitizer context packets we need
 		if (header.stream_id == DIGITIZER_STREAM_ID) {
@@ -791,7 +672,6 @@ int wsa_capture_power_spectrum(
 				break;
 		}
 	}
-	dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
 
 	return 0;
 }
