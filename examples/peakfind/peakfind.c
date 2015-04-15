@@ -33,6 +33,7 @@ void show_syntax(void)
 	puts("");
 	puts("Options:");
 	puts("--help\tshows this help text");
+	puts("--clkref=<n>\twhich clock reference should be used. possible values for n are: int, ext");
 	puts("--mode=<n>\twhich mode do we perform the sweep in? possible values are: shn");
 	puts("--start=n\tstart frequency of sweep");
 	puts("--stop=n\tstop frequency of sweep");
@@ -208,6 +209,7 @@ int main(int argc, char *argv[])
 	float *psbuf;
 	float pfreq[MAXPEAKS];
 	float pamp[MAXPEAKS];
+	char clkref[4];
 
 	// init options
 	fstart = 2000ULL * MHZ;
@@ -215,6 +217,7 @@ int main(int argc, char *argv[])
 	rbw = 100 * KHZ;
 	peaks = 1;
 	strcpy(mode, "SH");
+	strcpy(clkref, "INT");
 
 	// parse args
 	// NOTE: this method is easy but mangles argv
@@ -233,6 +236,24 @@ int main(int argc, char *argv[])
 		if (!strcmp(optname, "help")) {
 			show_syntax();
 			return 0;
+
+		// set clk reference
+		} else if (!strcmp(optname, "clkref")) {
+			if (n != 2) {
+				fprintf(stderr, "error: value for --mode missing\n\n");
+				show_syntax();
+				return -1;
+			}
+	
+			if (!strcmp(optvalue, "int"))
+				strcpy(clkref, "INT");
+			else if (!strcmp(optvalue, "ext"))
+				strcpy(clkref, "EXT");
+			else {
+				fprintf(stderr, "error: invalid value for --clkref: %s\n", optvalue);
+				show_syntax();
+				return -1;
+			}
 
 		// set sweep mode
 		} else if (!strcmp(optname, "mode")) {
@@ -327,19 +348,20 @@ int main(int argc, char *argv[])
 	host = argv[i];
 
 	// connect to a WSA
-	printf("Connecting to WSA at %s... ", host);
 	snprintf(intf_str, 39, "TCPIP::%s", host);
 	result = wsa_open(wsadev, intf_str);
 	if (result < 0) {
 		fprintf(stderr, "error: wsa_open() failed: %d\n", result);
 		return -1;
 	}
-	printf("connected.\n");
 
 	// initialize WSA
 	wsa_system_request_acq_access(wsadev, &result);
 	wsa_system_abort_capture(wsadev);
 	wsa_flush_data(wsadev);
+
+	// set clock ref to external or internal
+	wsa_set_reference_pll(wsadev, clkref);
 
 	// create the sweep device
 	wsasweepdev = wsa_sweep_device_new(wsadev);
@@ -367,9 +389,8 @@ int main(int argc, char *argv[])
 	peakfind(pscfg->buf, pscfg->buflen, pscfg->rbw, peaks, pfreq, pamp);
 
 	// print results
-	printf("\nPeaks found:\n");
 	for (i=0; i<peaks; i++) {
-		printf("  %0.2f dBm @ %llu\n", pamp[i], (uint64_t) (pfreq[i] + fstart));
+		printf("Peak #%d, %0.2f dBm @ %0.0f\n", i+1, pamp[i], (pfreq[i] + fstart));
 	}
 
 	// clean up
