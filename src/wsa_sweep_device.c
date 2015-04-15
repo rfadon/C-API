@@ -4,7 +4,6 @@
 #include <sys/time.h>
 #include <math.h>
 #include "wsa_sweep_device.h"
-#include "colog.h"
 
 #define HZ 1
 #define KHZ 1000
@@ -363,8 +362,6 @@ struct wsa_sweep_plan *wsa_sweep_plan_entry_new(uint64_t fcstart, uint64_t fcsto
 	plan->spp = spp;
 	plan->ppb = ppb;
 
-	colog(0, C_LIGHTCYAN, "- plan -- start:%llu, stop:%llu, step:%u, spp:%u, ppb:%u\n", fcstart, fcstop, fstep, spp, ppb);
-
 	return plan;
 }
 
@@ -450,12 +447,6 @@ int wsa_power_spectrum_alloc(
 	if (result < 0)
 		return result;
 
-	colog(0, C_DARKWHITE, "- mode: %d\n", pscfg->mode);
-	colog(0, C_DARKWHITE, "- fstart: %llu\n", pscfg->fstart);
-	colog(0, C_DARKWHITE, "- fstop: %llu\n", pscfg->fstop);
-	colog(0, C_DARKWHITE, "- rbw: %0.3Lf\n", pscfg->rbw);
-	colog(0, C_DARKWHITE, "- packet_total: %u\n", pscfg->packet_total);
-
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
@@ -463,7 +454,6 @@ int wsa_power_spectrum_alloc(
 		free(pscfg);
 		return -1;
 	}
-	colog(0, C_DARKWHITE, "- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 
 	return 0;
 }
@@ -594,7 +584,6 @@ int wsa_capture_power_spectrum(
 			// grab the center frequency for each capture
 			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
 				pkt_fcenter = (uint64_t) receiver.freq;
-				colog(0, C_LIGHTPURPLE, "- New fcenter = %llu\n", pkt_fcenter);
 			}
 		}
 
@@ -624,14 +613,12 @@ int wsa_capture_power_spectrum(
 
 			// check for inversion and calculate indexes of our good data
 			if (trailer.spectral_inversion_indicator) {
-				colog(CF_INVERSE, C_LIGHTPURPLE, "Spectrum is Inverted.\n");
 				reverse_cpx(fftout, fftlen);
 
 				istart = (prop->full_bw - prop->usable_right) / cfg->rbw;
 				istop = (prop->full_bw - prop->usable_left) / cfg->rbw;
 
 			} else {
-				colog(0, C_LIGHTPURPLE, "Spectrum is NOT Inverted.\n");
 
 				istart = prop->usable_left / cfg->rbw;
 				istop = prop->usable_right / cfg->rbw;
@@ -649,21 +636,11 @@ int wsa_capture_power_spectrum(
 				ilen = istop - istart;
 			}
 
-			colog(0, C_DARKWHITE, "- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%0.3f\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
-			colog(0, C_LIGHTYELLOW, "- copying %u words from fftout[%u:%u] to buf[%u:%u] for %f Hz to %f Hz\n", 
-				istop - istart,
-				istart, istop,
-				buf_offset, buf_offset + ilen,
-				cfg->fstart + (buf_offset * cfg->rbw), 
-				cfg->fstart + ((buf_offset + ilen) * cfg->rbw)
-			);
-
 			// for the usable section, convert to power, apply reflevel and copy into buffer
 			for (i=0; i<(istop - istart); i++) {
 				tmpscalar = cpx_to_power(fftout[i+istart]) / header.samples_per_packet;
 				tmpscalar = 2 * power_to_logpower(tmpscalar);
 				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
-				// colog(0, C_DARKRED, "#%d->%d, %0.2f\n", i, buf_offset + i, cfg->buf[buf_offset + i]);
 			}
 
 			// do we have all our packets?
@@ -767,7 +744,6 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
 		return -EFREQOUTOFRANGE;
 
-	colog(0, C_DARKWHITE, "sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, 1);
@@ -855,9 +831,6 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
-		colog(0, C_LIGHTPURPLE, "- loading fstart:%llu, fstop:%llu, fstep:%u, spp:%u, ppb:%u\n", 
-			plan_entry->fcstart, plan_entry->fcstop, plan_entry->fstep, plan_entry->spp, plan_entry->ppb
-		);
 		// set settings
 		result = wsa_set_sweep_freq(wsadev, plan_entry->fcstart, plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR fstart fstop\n");
