@@ -883,16 +883,18 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 	// how many points (fft bins) are in a full band
 	points = prop->full_bw / pscfg->rbw;
-	points = (uint32_t) pow(2, ceil(log2(points)));
 
 	// double points because superheet
 	points = points << 1;
 
-	// make sure points is a valid capture value
+	// test value for size
 	if (points < WSA_MIN_SPP)
 		points = WSA_MIN_SPP;
 	if (points > WSA_MAX_SPP)
 		points = WSA_MAX_SPP;
+
+	// make sure it's a power of 2
+	points = (uint32_t) pow(2, ((unsigned int)log2(points)));
 
 	// recalc what that actually results in for the rbw
 	pscfg->rbw = ((double) prop->full_bw) / (points / 2);
