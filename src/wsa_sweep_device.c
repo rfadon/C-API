@@ -327,29 +327,6 @@ void dump_scalar_to_file(char *filename, kiss_fft_scalar *values, int len)
 }
 
 
-void benchmark(struct timeval *since, char *msg)
-{
-	struct timeval now;
-	time_t diff_sec;
-	suseconds_t diff_usec;
-
-	gettimeofday(&now, NULL);
-
-	// diff seconds
-	diff_sec = now.tv_sec - since->tv_sec;
-
-	// diff nsec.. account for wrap
-	if (now.tv_usec >= since->tv_usec) {
-		diff_usec = now.tv_usec - since->tv_usec;
-	} else {
-		diff_usec = (now.tv_usec + 1000000) - since->tv_usec;
-		diff_sec -= 1;
-	}
-
-	colog(0, C_LIGHTBLUE, "Mark -- %s -- %ld.%06u\n", msg, (long signed) diff_sec, (unsigned) diff_usec);
-}
-
-
 /**
  * performs a real fft on some scalar data
  *
@@ -664,7 +641,6 @@ int wsa_capture_power_spectrum(
 	int16_t i16_buffer[32768];
 	int16_t q16_buffer[32768];
 	int32_t i32_buffer[32768];
-	struct timeval start;
 	kiss_fft_scalar idata[32768];
 	kiss_fft_cpx fftout[32768];
 	float pkt_reflevel = 0;
@@ -675,9 +651,6 @@ int wsa_capture_power_spectrum(
 	struct wsa_sweep_device_properties *prop;
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;;
-
-	gettimeofday(&start, NULL);
-	benchmark(&start, "start");
 
 	// assign their convienence pointer
 	if (*buf)
@@ -699,7 +672,6 @@ int wsa_capture_power_spectrum(
 
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-	benchmark(&start, "sweep");
 
 	// read out all the data
 	packet_count = 0;
@@ -757,7 +729,6 @@ int wsa_capture_power_spectrum(
 			// window and normalize the data
 			normalize_scalar_array(i16_buffer, idata, spp, 8192);
 			window_hanning_scalar_array(idata, spp);
-			benchmark(&start, "window");
 
 			// fft this data
 			rfft(idata, fftout, spp);
@@ -813,7 +784,6 @@ int wsa_capture_power_spectrum(
 				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
 				// colog(0, C_DARKRED, "#%d->%d, %0.2f\n", i, buf_offset + i, cfg->buf[buf_offset + i]);
 			}
-			benchmark(&start, "copy_to_buf");
 
 			// do we have all our packets?
 			packet_count++;
@@ -821,7 +791,6 @@ int wsa_capture_power_spectrum(
 				break;
 		}
 	}
-	benchmark(&start, "read");
 	dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
 
 	return 0;
