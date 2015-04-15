@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 
 	// print results
 	for (i=0; i<peaks; i++) {
-		printf("Peak #%d, %0.2f dBm @ %0.0f\n", i+1, pamp[i], (pfreq[i] + fstart));
+		printf("Peak #%d, %0.2f dBm @ %0.0f Hz, RBW = %u Hz\n", i+1, pamp[i], (pfreq[i] + fstart), (uint32_t) pscfg->rbw);
 	}
 
 	// clean up
