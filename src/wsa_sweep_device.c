@@ -476,6 +476,35 @@ void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
 
 
 /**
+ * creates a new sweep plan entry and initializes it with values given
+ *
+ * @param device - a pointer to the wsa we've connected to
+ * @return - a pointer to the allocated sweep plan struct, or NULL on failure
+ */
+struct wsa_sweep_plan *wsa_sweep_plan_entry_new(uint64_t fcstart, uint64_t fcstop, uint32_t fstep, uint32_t spp, uint32_t ppb)
+{
+	struct wsa_sweep_plan *plan;
+
+	// alloc memory for object
+	plan = malloc(sizeof(struct wsa_sweep_plan));
+	if (plan == NULL)
+		return NULL;
+
+	// set all the settings in the plan
+	plan->next_entry = NULL;
+	plan->fcstart = fcstart;
+	plan->fcstop = fcstop;
+	plan->fstep = fstep;
+	plan->spp = spp;
+	plan->ppb = ppb;
+
+	colog(0, C_LIGHTCYAN, "- plan -- start:%llu, stop:%llu, step:%u, spp:%u, ppb:%u\n", fcstart, fcstop, fstep, spp, ppb);
+
+	return plan;
+}
+
+
+/**
  * creates a new sweep device object and returns it
  *
  * @param device - a pointer to the wsa we've connected to
@@ -582,9 +611,24 @@ int wsa_power_spectrum_alloc(
  */
 void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg)
 {
+	struct wsa_sweep_plan *plan, *next;
+
 	// free the plan, if there is one
-	if (cfg->sweep_plan)
-		free(cfg->sweep_plan);
+	plan = cfg->sweep_plan;
+	for (;;) {
+		// list is null terminated
+		if (plan == NULL)
+			break;
+
+		// store next pointer before freeing
+		next = plan->next_entry;
+
+		// free the memory
+		free(plan);
+
+		// go to next item
+		plan = next;
+	}
 
 	// free the buffer
 	if (cfg->buf)
@@ -773,7 +817,7 @@ int wsa_capture_power_spectrum(
 
 			// do we have all our packets?
 			packet_count++;
-			if (packet_count > cfg->packet_total)
+			if (packet_count >= cfg->packet_total)
 				break;
 		}
 	}
@@ -853,56 +897,52 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
-	fcstop = pscfg->fstop - half_usable_bw;
+	fcstop = pscfg->fstop;
 
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
 	fstep = prop->usable_bw - pscfg->rbw;
-	fstep = fstep / prop->tuning_resolution;
-	fstep = fstep * prop->tuning_resolution;
+	fstep = (fstep / prop->tuning_resolution) * prop->tuning_resolution;
 
 	// force fcstart to a multiple of tuning resolution
 	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
 
-	// force fcstop to a multiple of tuning resolution AND (fstart + N*fstep)
-	fcstop = (fcstop / prop->tuning_resolution) * prop->tuning_resolution;
-	tmpfreq = fcstart + (((fcstop - fcstart) / fstep) * fstep);
-
-	// see if we need an additional step to get the bits at the end of the sweep
-	if (fcstop != tmpfreq) {
-		colog(0, C_LIGHTCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
-		fcstop = tmpfreq + fstep;
-		colog(0, C_DARKCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
-	} else {
-		colog(0, C_DARKCYAN, "- fcstop=%llu, tmpfreq=%llu\n", fcstop, tmpfreq);
-		fcstop = tmpfreq;
-	}
+	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
+	tmpfreq = ((fcstop - fcstart) / fstep) * fstep;
+	fcstop = fcstart + tmpfreq;
 
 	// test if start and stop are valid
 	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
 		return -EFREQOUTOFRANGE;
 
-	printf("sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
+	colog(0, C_DARKWHITE, "sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
 	// create sweep plan objects for each entry
-	plan = malloc(sizeof(struct wsa_sweep_plan));
-	if (plan == NULL)
-		return -ENOMEM;
-	pscfg->sweep_plan = plan;
+	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, 1);
 
-	// set all the settings in the plan
-	plan->next_entry = NULL;
-	plan->fcstart = fcstart;
-	plan->fcstop = fcstop;
-	plan->fstep = fstep;
-	plan->spp = points;
-	plan->ppb = 1;
+	// do we need a cleanup entry?
+	if ((fcstop + half_usable_bw) < pscfg->fstop) {
+		// how much is left over? (it should be less than usable_bw)
+		tmpfreq = pscfg->fstop - (fcstop + half_usable_bw);
+
+		// make a sweep entry for fcstop + half of that
+		tmpfreq = pscfg->fstop - (tmpfreq / 2);
+
+		// which must be a multiple of freq resolution
+		tmpfreq = (tmpfreq / prop->tuning_resolution) * prop->tuning_resolution;
+
+		// now create the entry
+		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new(tmpfreq, tmpfreq, fstep, points, 1);
+	}
 
 	// how many steps on in this plan? loop through the list and count 'em
 	pscfg->packet_total = 0;
-	for (plan=pscfg->sweep_plan; plan; plan = plan->next_entry) {
+	for (plan=pscfg->sweep_plan; plan; plan=plan->next_entry) {
 		
 		// inc packet total by (steps * ppb)
-		pscfg->packet_total += ((plan->fcstop - plan->fcstart) / plan->fstep) * plan->ppb;
+		if ((plan->fcstop - plan->fcstart) < plan->fstep)
+			pscfg->packet_total += plan->ppb;
+		else
+			pscfg->packet_total += (((plan->fcstop - plan->fcstart) / plan->fstep) * plan->ppb) + 1;
 	}
 
 	return 0;
@@ -942,6 +982,7 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
  */
 static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
 {
+	int result;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 
@@ -960,13 +1001,19 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
-
+		
+		colog(0, C_LIGHTPURPLE, "- loading fstart:%llu, fstop:%llu, fstep:%u, spp:%u, ppb:%u\n", 
+			plan_entry->fcstart, plan_entry->fcstop, plan_entry->fstep, plan_entry->spp, plan_entry->ppb
+		);
 		// set settings
-		wsa_set_sweep_freq(wsadev, plan_entry->fcstart, plan_entry->fcstop);
+		result = wsa_set_sweep_freq(wsadev, plan_entry->fcstart, plan_entry->fcstop);
+		if (result < 0) fprintf(stderr, "ERROR fstart fstop\n");
 		wsa_set_sweep_freq_step(wsadev, plan_entry->fstep);
+		if (result < 0) fprintf(stderr, "ERROR fstep\n");
 		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
-		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
+		if (result < 0) fprintf(stderr, "ERROR spp\n");
 		wsa_set_sweep_packets_per_block(wsadev, plan_entry->ppb);
+		if (result < 0) fprintf(stderr, "ERROR ppb\n");
 
 		// save to end of list
 		wsa_sweep_entry_save(wsadev, 0);
