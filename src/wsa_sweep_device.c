@@ -5,11 +5,6 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "wsa_sweep_device.h"
-#include "colog.h"
-
-#define VRT_DEBUG 1
-#define LOG_DATA_TO_FILE 1
-#define LOG_DATA_TO_STDOUT 0
 
 #define HZ 1
 #define KHZ 1000
@@ -338,65 +333,6 @@ kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
 }
 
 
-void dump_cpx_to_file(char *filename, kiss_fft_cpx *values, int len)
-{
-	FILE *fp;
-	int i;
-
-	fp = fopen(filename, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error: could not dump to file\n");
-		return;
-	}
-
-	for (i=0; i<len; i++)
-		fprintf(fp, "%d, %0.2f, %0.2f\n", i, values[i].r, values[i].i);
-
-	fclose(fp);
-}
-
-
-void dump_scalar_to_file(char *filename, kiss_fft_scalar *values, int len)
-{
-	FILE *fp;
-	int i;
-
-	fp = fopen(filename, "w");
-	if (fp == NULL) {
-		fprintf(stderr, "error: could not dump to file\n");
-		return;
-	}
-
-	for (i=0; i<len; i++)
-		fprintf(fp, "%d, %0.2f\n", i, values[i]);
-
-	fclose(fp);
-}
-
-
-void benchmark(struct timeval *since, char *msg)
-{
-	struct timeval now;
-	time_t diff_sec;
-	suseconds_t diff_usec;
-
-	//gettimeofday(&now, NULL);
-
-	// diff seconds
-	diff_sec = now.tv_sec - since->tv_sec;
-
-	// diff nsec.. account for wrap
-	if (now.tv_usec >= since->tv_usec) {
-		diff_usec = now.tv_usec - since->tv_usec;
-	} else {
-		diff_usec = (now.tv_usec + 1000000) - since->tv_usec;
-		diff_sec -= 1;
-	}
-
-	colog(0, C_LIGHTBLUE, "Mark -- %s -- %ld.%06u\n", msg, (long signed) diff_sec, (unsigned) diff_usec);
-}
-
-
 /**
  * performs a real fft on some scalar data
  *
@@ -451,78 +387,6 @@ int rfft(kiss_fft_scalar *idata, kiss_fft_cpx *fftdata, int len)
 
 
 /**
- * dumps a vrt packet header to stdout
- *
- * @param header - the struct wsa_vrt_packet_header to dump
- */
-void wsa_dump_vrt_packet_header(struct wsa_vrt_packet_header *header)
-{
-	if (header->stream_id == RECEIVER_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_RECEIVER: ");
-	else if (header->stream_id == DIGITIZER_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_DIGITIZER: ");
-	else if (header->stream_id == EXTENSION_STREAM_ID)
-		colog(0, C_DARKGREEN, "- CTX_EXTENSION: ");
-	else if (header->stream_id == I16Q16_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I16Q16: ");
-	else if (header->stream_id == I16_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I16: ");
-	else if (header->stream_id == I32_DATA_STREAM_ID)
-		colog(0, C_DARKGREEN, "- DATA_I32: ");
-	else
-		colog(0, C_DARKGREEN, "- UNKNOWN=0x%08x: ", header->stream_id);
-
-	if (header->packet_type == IF_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=IF, ");
-	else if (header->packet_type == CONTEXT_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=CONTEXT, ");
-	else if (header->packet_type == EXTENSION_PACKET_TYPE)
-		colog(0, C_DARKGREEN, "type=EXTENSION, ");
-	else
-		colog(0, C_DARKGREEN, "type=UNKNOWN(%d), ", header->packet_type);
-	
-	colog(0, C_DARKGREEN, "count=%d, spp=%u, ts:%u.%012llus\n",
-		header->pkt_count,
-		header->samples_per_packet,
-		header->time_stamp.sec,
-		header->time_stamp.psec
-	);
-}
-
-
-/**
- * dumps a vrt receiver packet to stdout
- */
-void wsa_dump_vrt_receiver_packet(struct wsa_receiver_packet *pkt)
-{
-	if ((pkt->indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- freq=%0.2lf\n", (double) pkt->freq);
-
-	if ((pkt->indicator_field & REF_POINT_INDICATOR_MASK) == REF_POINT_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- refpoint=%d\n", pkt->reference_point);
-
-	if ((pkt->indicator_field & GAIN_INDICATOR_MASK) == GAIN_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- gain=%lf/%lf\n", pkt->gain_if, pkt->gain_rf);
-}
-
-
-/**
- * dumps a vrt digitizer packet to stdout
- */
-void wsa_dump_vrt_digitizer_packet(struct wsa_digitizer_packet *pkt)
-{
-	if ((pkt->indicator_field & BW_INDICATOR_MASK) == BW_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- bw=%0.2lf\n", (double) pkt->bandwidth);
-
-	if ((pkt->indicator_field & RF_FREQ_OFFSET_INDICATOR_MASK) == RF_FREQ_OFFSET_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- freqoffset=%ld\n", (long int) pkt->rf_freq_offset);
-
-	if ((pkt->indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK)
-		colog(0, C_DARKGREEN, "\t- reflevel=%d\n", pkt->reference_level);
-}
-
-
-/**
  * creates a new sweep plan entry and initializes it with values given
  *
  * @param device - a pointer to the wsa we've connected to
@@ -544,8 +408,6 @@ struct wsa_sweep_plan *wsa_sweep_plan_entry_new(uint64_t fcstart, uint64_t fcsto
 	plan->fstep = fstep;
 	plan->spp = spp;
 	plan->ppb = ppb;
-
-	colog(0, C_LIGHTCYAN, "- plan -- start:%llu, stop:%llu, step:%u, spp:%u, ppb:%u\n", fcstart, fcstop, fstep, spp, ppb);
 
 	return plan;
 }
@@ -632,12 +494,6 @@ int wsa_power_spectrum_alloc(
 	if (result < 0)
 		return result;
 
-	colog(0, C_DARKWHITE, "- mode: %d\n", pscfg->mode);
-	colog(0, C_DARKWHITE, "- fstart: %llu\n", pscfg->fstart);
-	colog(0, C_DARKWHITE, "- fstop: %llu\n", pscfg->fstop);
-	colog(0, C_DARKWHITE, "- rbw: %0.3Lf\n", pscfg->rbw);
-	colog(0, C_DARKWHITE, "- packet_total: %u\n", pscfg->packet_total);
-
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
@@ -645,7 +501,6 @@ int wsa_power_spectrum_alloc(
 		free(pscfg);
 		return -1;
 	}
-	colog(0, C_DARKWHITE, "- pscfg->buf: allocated %d bytes at 0x%08x for buffer of length %d\n", pscfg->buflen * sizeof(float), (unsigned long) pscfg->buf, pscfg->buflen);
 
 	return 0;
 }
@@ -711,7 +566,6 @@ int wsa_capture_power_spectrum(
 	int16_t i16_buffer[32768];
 	int16_t q16_buffer[32768];
 	int32_t i32_buffer[32768];
-	struct timeval start;
 	kiss_fft_scalar idata[32768];
 	kiss_fft_cpx fftout[32768];
 	float pkt_reflevel = 0;
@@ -722,9 +576,6 @@ int wsa_capture_power_spectrum(
 	struct wsa_sweep_device_properties *prop;
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;;
-
-	//gettimeofday(&start, NULL);
-	benchmark(&start, "start");
 
 	// assign their convienence pointer
 	if (*buf)
@@ -746,7 +597,6 @@ int wsa_capture_power_spectrum(
 
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-	benchmark(&start, "sweep");
 
 	// read out all the data
 	packet_count = 0;
@@ -768,13 +618,6 @@ int wsa_capture_power_spectrum(
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
 			return -1;
 		}
-#if VRT_DEBUG
-		wsa_dump_vrt_packet_header(&header);
-		if (header.stream_id == RECEIVER_STREAM_ID)
-			wsa_dump_vrt_receiver_packet(&receiver);
-		else if (header.stream_id == DIGITIZER_STREAM_ID)
-			wsa_dump_vrt_digitizer_packet(&digitizer);
-#endif
 
 		// capture digitizer context packets we need
 		if (header.stream_id == DIGITIZER_STREAM_ID) {
@@ -788,7 +631,6 @@ int wsa_capture_power_spectrum(
 			// grab the center frequency for each capture
 			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
 				pkt_fcenter = (uint64_t) receiver.freq;
-				colog(0, C_LIGHTPURPLE, "- New fcenter = %llu\n", pkt_fcenter);
 			}
 		}
 
@@ -804,7 +646,6 @@ int wsa_capture_power_spectrum(
 			// window and normalize the data
 			normalize_scalar_array(i16_buffer, idata, spp, 8192);
 			window_hanning_scalar_array(idata, spp);
-			benchmark(&start, "window");
 
 			// fft this data
 			rfft(idata, fftout, spp);
@@ -819,14 +660,12 @@ int wsa_capture_power_spectrum(
 
 			// check for inversion and calculate indexes of our good data
 			if (trailer.spectral_inversion_indicator) {
-				colog(CF_INVERSE, C_LIGHTPURPLE, "Spectrum is Inverted.\n");
 				reverse_cpx(fftout, fftlen);
 
 				istart = (prop->full_bw - prop->usable_right) / cfg->rbw;
 				istop = (prop->full_bw - prop->usable_left) / cfg->rbw;
 
 			} else {
-				colog(0, C_LIGHTPURPLE, "Spectrum is NOT Inverted.\n");
 
 				istart = prop->usable_left / cfg->rbw;
 				istop = prop->usable_right / cfg->rbw;
@@ -844,23 +683,12 @@ int wsa_capture_power_spectrum(
 				ilen = istop - istart;
 			}
 
-			colog(0, C_DARKWHITE, "- pkt_center=%llu, full_bw=%u Hz, cfg->fstart=%llu, cfg->rbw=%0.3f\n", pkt_fcenter, prop->full_bw, cfg->fstart, cfg->rbw);
-			colog(0, C_LIGHTYELLOW, "- copying %u words from fftout[%u:%u] to buf[%u:%u] for %f Hz to %f Hz\n", 
-				istop - istart,
-				istart, istop,
-				buf_offset, buf_offset + ilen,
-				cfg->fstart + (buf_offset * cfg->rbw), 
-				cfg->fstart + ((buf_offset + ilen) * cfg->rbw)
-			);
-
 			// for the usable section, convert to power, apply reflevel and copy into buffer
 			for (i=0; i<(istop - istart); i++) {
 				tmpscalar = cpx_to_power(fftout[i+istart]) / header.samples_per_packet;
 				tmpscalar = 2 * power_to_logpower(tmpscalar);
 				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
-				// colog(0, C_DARKRED, "#%d->%d, %0.2f\n", i, buf_offset + i, cfg->buf[buf_offset + i]);
 			}
-			benchmark(&start, "copy_to_buf");
 
 			// do we have all our packets?
 			packet_count++;
@@ -868,8 +696,6 @@ int wsa_capture_power_spectrum(
 				break;
 		}
 	}
-	benchmark(&start, "read");
-	dump_scalar_to_file("psd.dat", cfg->buf, cfg->buflen);
 
 	return 0;
 }
@@ -963,7 +789,6 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	if ( (pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable) || (fcstop > prop->max_tunable) )
 		return -EFREQOUTOFRANGE;
 
-	colog(0, C_DARKWHITE, "sweep list: start=%llu stop=%llu step=%lu points=%d rbw=%0.3f\n", fcstart, fcstop, fstep, points, pscfg->rbw);
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, 1);
@@ -1052,9 +877,6 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
-		colog(0, C_LIGHTPURPLE, "- loading fstart:%llu, fstop:%llu, fstep:%u, spp:%u, ppb:%u\n", 
-			plan_entry->fcstart, plan_entry->fcstop, plan_entry->fstep, plan_entry->spp, plan_entry->ppb
-		);
 		// set settings
 		result = wsa_set_sweep_freq(wsadev, plan_entry->fcstart, plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR fstart fstop\n");
