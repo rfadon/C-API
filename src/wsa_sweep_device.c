@@ -1,7 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <sys/time.h>
+//#include <sys/time.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "wsa_sweep_device.h"
 #include "colog.h"
@@ -17,6 +18,52 @@
 
 // #define FIXED_POINT 32
 #include "kiss_fft.h"
+
+#ifndef _TIMES_H
+#define _TIMES_H
+
+#ifdef _WIN32
+#include <sys/timeb.h>
+#include <sys/types.h>
+#include <winsock2.h>
+
+// Calculates log2 of number.  
+double log2( double n )  
+{  
+    // log(n)/log(2) is log2.  
+    return log( n ) / log( 2 );  
+}
+
+int gettimeofday(struct timeval* t,void* timezone);
+
+// from linux's sys/times.h
+
+//#include <features.h>
+
+#define __need_clock_t
+#include <time.h>
+
+
+/* Structure describing CPU time used by a process and its children.  */
+struct tms
+  {
+    clock_t tms_utime;          /* User CPU time.  */
+    clock_t tms_stime;          /* System CPU time.  */
+
+    clock_t tms_cutime;         /* User CPU time of dead children.  */
+    clock_t tms_cstime;         /* System CPU time of dead children.  */
+  };
+
+/* Store the CPU time used by this process and all its
+   dead children (and their dead children) in BUFFER.
+   Return the elapsed real time, or (clock_t) -1 for errors.
+   All times are in CLK_TCKths of a second.  */
+clock_t times (struct tms *__buffer);
+
+typedef long long suseconds_t ;
+
+#endif
+#endif
 
 /*
  * define internal constants
@@ -333,7 +380,7 @@ void benchmark(struct timeval *since, char *msg)
 	time_t diff_sec;
 	suseconds_t diff_usec;
 
-	gettimeofday(&now, NULL);
+	//gettimeofday(&now, NULL);
 
 	// diff seconds
 	diff_sec = now.tv_sec - since->tv_sec;
@@ -676,7 +723,7 @@ int wsa_capture_power_spectrum(
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;;
 
-	gettimeofday(&start, NULL);
+	//gettimeofday(&start, NULL);
 	benchmark(&start, "start");
 
 	// assign their convienence pointer
@@ -892,13 +939,11 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		points = WSA_MIN_SPP;
 	if (points > WSA_MAX_SPP)
 		points = WSA_MAX_SPP;
-
+    
 	// make sure it's a power of 2
 	points = (uint32_t) pow(2, ((unsigned int)log2(points)));
-
 	// recalc what that actually results in for the rbw
 	pscfg->rbw = ((double) prop->full_bw) / (points / 2);
-
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
 	fcstop = pscfg->fstop;
@@ -906,12 +951,12 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
 	fstep = prop->usable_bw - pscfg->rbw;
 	fstep = (fstep / prop->tuning_resolution) * prop->tuning_resolution;
-
 	// force fcstart to a multiple of tuning resolution
 	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
 
 	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
-	tmpfreq = ((fcstop - fcstart) / fstep) * fstep;
+    tmpfreq = ((fcstop - fcstart) / fstep) * fstep;
+
 	fcstop = fcstart + tmpfreq;
 
 	// test if start and stop are valid
@@ -940,6 +985,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 	// how many steps on in this plan? loop through the list and count 'em
 	pscfg->packet_total = 0;
+
 	for (plan=pscfg->sweep_plan; plan; plan=plan->next_entry) {
 		
 		// inc packet total by (steps * ppb)
