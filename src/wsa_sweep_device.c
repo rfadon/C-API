@@ -540,6 +540,17 @@ void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg)
 	free(cfg);
 }
 
+/**
+ * Configure the WSA to the configuration in the power spectrum config structure
+ *
+ * @param sweep_device - the sweep device to use
+ * @param cfg - the power spectrum config to use
+ */
+void wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
+{
+	// load the sweep plan
+	wsa_sweep_plan_load(sweep_device, pscfg);
+}
 
 /**
  * captures some power spectrum using the configuration supplied
@@ -592,12 +603,8 @@ int wsa_capture_power_spectrum(
 		return -EUNSUPPORTED;
 	}
 
-	// load the sweep plan
-	wsa_sweep_plan_load(sweep_device, cfg);
-
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-
 	// read out all the data
 	packet_count = 0;
 	while(1) {
