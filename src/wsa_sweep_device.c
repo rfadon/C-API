@@ -111,7 +111,14 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 		62500*KHZ, 10*MHZ, 35*MHZ, 30*MHZ, 40*MHZ, 
 		4, 512
 	},
-
+	
+	// SH
+	{ 
+		MODE_SH, SAMPLETYPE_I_ONLY, 1,
+		50ULL*MHZ, 20ULL*GHZ, 100*KHZ,
+		62500*KHZ, 40*MHZ, 35*MHZ, 15*MHZ, 55*MHZ, 
+		4, 512
+	},
 	// list terminator
 	{ 
 		0, 0, 0, 0,

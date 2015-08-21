@@ -3716,30 +3716,6 @@ int16_t wsa_sweep_start(struct wsa_device *dev)
 	char status[MAX_STR_LEN];
 	int32_t size = 0;
 
-	result = wsa_get_capture_mode(dev, status);
-	if (result < 0) {
-		return result;
-    }
-
-	// check if the wsa is already sweeping
-	if (strcmp(status, WSA_SWEEP_CAPTURE_MODE) == 0) {
-		return WSA_ERR_SWEEPALREADYRUNNING;
-    }
-	
-	// check if the wsa is streaming
-	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) == 0) {
-		return WSA_ERR_SWEEPWHILESTREAMING;
-    }
-	
-	// check if the sweep list is empty
-	result = wsa_get_sweep_entry_size(dev, &size);
-	if (result < 0) {
-		return result;
-    }
-	if (size <= 0) {
-		return WSA_ERR_SWEEPLISTEMPTY;
-    }
-
 	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
     if (result < 0) {
     	doutf(DHIGH, "In wsa_sweep_start: %d - %s.\n", result, wsa_get_error_msg(result));
