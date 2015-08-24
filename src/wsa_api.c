@@ -45,6 +45,7 @@
 #include "wsa_lib.h"
 #include "wsa_api.h"
 #include "wsa_client.h"
+#include "wsa_dsp.h"
 
 #ifdef _WIN32
 # define strtok_r strtok_s
@@ -1151,7 +1152,91 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	return result;
 }
 
+// ////////////////////////////////////////////////////////////////////////////
+// DSP Section                                                               //
+// ////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Retrieve the the size of the buffer required to store the spectral data
+ *
+ * @param samples_per_packet - The number of time domain samples
+ * @param stream_id - The ID indentifying the type of data
+ * @param buffer_size - The size of the buffer required to store the spectral data
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_fft_size(int32_t const samples_per_packet, 
+							int32_t const stream_id,
+							int32_t *buffer_size)
+{
+	if (stream_id == I16Q16_DATA_STREAM_ID)
+		*buffer_size = samples_per_packet;
+	else
+		*buffer_size = samples_per_packet / 2;
+	return 0;
+}
+/**
+ * Retrieve the the size of the buffer required to store the spectral data
+ *
+ * @param samples_per_packet - The number of time domain samples
+ * @param stream_id - The ID indentifying the type of data
+ * @param reference_level - dBm value used to calibrate the signal
+ * @param spectral_inversion - byte containing whether spectral inversion is active
+ * @param i16_buffer - buffer containing 16-bit iData
+ * @param q16_buffer - buffer containing 16-bit qData
+ * @param i32_buffer - buffer containing 32-bit iData
+ * @param fft_buffer - Buffer to store the FFT data
+ *
+* @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_compute_fft(int32_t const samples_per_packet,
+				int32_t const stream_id,
+				int16_t const reference_level,
+				uint8_t const spectral_inversion,
+				int16_t * const i16_buffer,
+				int16_t * const q16_buffer,
+				int32_t * const i32_buffer,
+				float * fft_buffer
+				)
+{
+	kiss_fft_scalar idata[32768];
+	kiss_fft_cpx fftout[32768];
+	kiss_fft_scalar tmpscalar;
+	int32_t spp = samples_per_packet;
+	int i = 0;
+
+	/*
+	* for now, we assume it's an I16 packet
+	*/
+
+	// window and normalize the data
+	normalize_scalar_array(i16_buffer, idata, spp, 8192);
+	window_hanning_scalar_array(idata, spp);
+
+	// fft this data
+	rfft(idata, fftout, spp);
+
+	/*
+	* we used to be in superhet mode, but after a complex FFT, we have twice 
+	* the spectrum at twice the RBW.
+	* our fcenter is now moved from center to $passband_center so our start and stop 
+	* indexes are calculated given that fact
+	*/
+
+	// check for inversion and calculate indexes of our good data
+	if (spectral_inversion)
+		reverse_cpx(fftout, sizeof(fft_buffer));
+	
+	// for the usable section, convert to power, apply reflevel and copy into buffer
+	for (i=0; i<sizeof(fft_buffer); i++) {
+		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
+		tmpscalar = 2 * power_to_logpower(tmpscalar);
+		fft_buffer[i] = tmpscalar + reference_level;
+	}
+	free(idata);
+	free(fftout);
+	return 0;
+	}
 ///////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
 ///////////////////////////////////////////////////////////////////////////////
@@ -3713,7 +3798,6 @@ int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration)
 int16_t wsa_sweep_start(struct wsa_device *dev)
 {	
 	int16_t result = 0;
-	char status[MAX_STR_LEN];
 	int32_t size = 0;
 
 	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
