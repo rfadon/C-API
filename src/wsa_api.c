@@ -923,6 +923,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	uint8_t *data_buffer;
 	int16_t result = 0;
 	int16_t result2 = 0;
+	int i = 0;
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 	if (data_buffer == NULL) {
@@ -1166,7 +1167,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
  * @return 0 on successful or a negative number on error.
  */
 int16_t wsa_get_fft_size(int32_t const samples_per_packet, 
-							int32_t const stream_id,
+							uint32_t const stream_id,
 							int32_t *buffer_size)
 {
 	if (stream_id == I16Q16_DATA_STREAM_ID)
@@ -1187,10 +1188,11 @@ int16_t wsa_get_fft_size(int32_t const samples_per_packet,
  * @param i32_buffer - buffer containing 32-bit iData
  * @param fft_buffer - Buffer to store the FFT data
  *
-* @return 0 on successful or a negative number on error.
+* @return 0 on successful or a negative number   on error.
  */
 int16_t wsa_compute_fft(int32_t const samples_per_packet,
-				int32_t const stream_id,
+				int32_t const fft_size,
+				uint32_t const stream_id,
 				int16_t const reference_level,
 				uint8_t const spectral_inversion,
 				int16_t * const i16_buffer,
@@ -1200,22 +1202,29 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 				)
 {
 	kiss_fft_scalar idata[32768];
+	kiss_fft_scalar qdata[32768];
 	kiss_fft_cpx fftout[32768];
 	kiss_fft_scalar tmpscalar;
-	int32_t spp = samples_per_packet;
-	int i = 0;
-
-	/*
-	* for now, we assume it's an I16 packet
-	*/
+	int16_t result = 0;
+	int32_t i = 0;
 
 	// window and normalize the data
-	normalize_scalar_array(i16_buffer, idata, spp, 8192);
-	window_hanning_scalar_array(idata, spp);
+	normalize_iq_data(samples_per_packet,
+					stream_id,
+					i16_buffer,
+					q16_buffer,
+					i32_buffer,
+					idata,
+					qdata);
+	printf("\n %f \n", idata[1]);
+	doutf(DHIGH, "In wsa_compute_fft: normalized data\n");
+	window_hanning_scalar_array(idata, samples_per_packet);
 
+	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
 	// fft this data
-	rfft(idata, fftout, spp);
+	rfft(idata, fftout, samples_per_packet);
 
+	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
 	/*
 	* we used to be in superhet mode, but after a complex FFT, we have twice 
 	* the spectrum at twice the RBW.
@@ -1225,18 +1234,19 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 
 	// check for inversion and calculate indexes of our good data
 	if (spectral_inversion)
-		reverse_cpx(fftout, sizeof(fft_buffer));
-	
+		reverse_cpx(fftout, fft_size);
+
+	doutf(DHIGH, "In wsa_compute_fft: finished compensating for spectral inversion\n");
 	// for the usable section, convert to power, apply reflevel and copy into buffer
-	for (i=0; i<sizeof(fft_buffer); i++) {
+	for (i = 0; i < fft_size; i++) {
 		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
 		tmpscalar = 2 * power_to_logpower(tmpscalar);
 		fft_buffer[i] = tmpscalar + reference_level;
-	}
-	free(idata);
-	free(fftout);
-	return 0;
-	}
+		}
+
+	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
+	return result;
+}
 ///////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
 ///////////////////////////////////////////////////////////////////////////////

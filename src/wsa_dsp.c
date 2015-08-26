@@ -1,36 +1,68 @@
 #include "kiss_fft.h"
 #include "thinkrf_stdint.h"
+#include "wsa_lib.h"
+#include "wsa_dsp.h"
+
 #define _USE_MATH_DEFINES
 #include "math.h"
 #define ENOMEM 4
-/**
- * normalize a value
- *
- * @param value - the value to normalize
- * @param maxval - the maximum we are normalizing over
- * @returns - the normalized value
- */
+// ////////////////////////////////////////////////////////////////////////////
+// Local Functions Section                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval);
 kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval)
 {
 	return value / maxval;
 }
 
-
-/**
- * normalize an array of values
- *
- * @param values - an integer array of the values to normalize
- * @param result - a kiss_fft_scalar array to place the results in
- * @param len - the length of the array
- * @param maxval - the maximum we are normalizing over
- */
-
-void normalize_scalar_array(int16_t *values, kiss_fft_scalar *results, int len, int16_t maxval)
+void get_normalization_factor(uint32_t const stream_id, kiss_fft_scalar  * normalization_factor);
+void get_normalization_factor(uint32_t const stream_id, kiss_fft_scalar  * normalization_factor)
 {
-	int i;
 
-	for (i=0; i<len; i++)
-		results[i] = normalize_scalar(values[i], maxval);
+		if (stream_id == I32_DATA_STREAM_ID)
+			*normalization_factor = 8388608;
+		else
+			*normalization_factor = 8192;
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+// Normalize Section                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+void normalize_iq_data(int32_t samples_per_packet,
+					uint32_t stream_id,
+					int16_t * i16_buffer,
+					int16_t * q16_buffer,
+					int32_t * i32_buffer,
+					kiss_fft_scalar * idata,
+					kiss_fft_scalar * qdata)
+{
+	int i = 0;
+	// retrieve the normalization factor based on the number of bits
+	kiss_fft_scalar normalization_factor = 0;
+	get_normalization_factor(stream_id, &normalization_factor);
+	
+	// normalize data, depending on whether data is I-only or IQ
+	if (stream_id == I16Q16_DATA_STREAM_ID)
+	{
+		for (i=0; i<samples_per_packet; i++)
+		{
+			idata[i] = normalize_scalar( (kiss_fft_scalar) i16_buffer[i], normalization_factor);
+			qdata[i] = normalize_scalar( (kiss_fft_scalar) q16_buffer[i], normalization_factor);
+		}
+	}
+	else if (stream_id == I16_DATA_STREAM_ID)
+	{
+		for (i=0; i<samples_per_packet; i++)
+		{
+			idata[i] = ((float) i16_buffer[i]) / normalization_factor;
+		}
+	}
+	else
+	{
+		for (i=0; i<samples_per_packet; i++)
+			idata[i] = normalize_scalar( (kiss_fft_scalar) i32_buffer[i], normalization_factor);
+	}
+
 }
 
 /**

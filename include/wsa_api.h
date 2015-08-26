@@ -110,9 +110,10 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 // ////////////////////////////////////////////////////////////////////////////
 // DSP Section                                                               //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_get_fft_size(int32_t const samples_per_packet, int32_t const stream_id, int32_t *array_size);
+int16_t wsa_get_fft_size(int32_t const samples_per_packet, uint32_t const stream_id, int32_t *array_size);
 int16_t wsa_compute_fft(int32_t const samples_per_packet,
-						int32_t const stream_id,
+						int32_t const fft_size,
+						uint32_t const stream_id,
 						int16_t const reference_level,
 						uint8_t const spectral_inversion,
 						int16_t * const i16_buffer,

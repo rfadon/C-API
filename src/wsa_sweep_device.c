@@ -383,6 +383,7 @@ int wsa_capture_power_spectrum(
 	int16_t q16_buffer[32768];
 	int32_t i32_buffer[32768];
 	kiss_fft_scalar idata[32768];
+	kiss_fft_scalar qdata[32768];
 	kiss_fft_cpx fftout[32768];
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
@@ -456,7 +457,14 @@ int wsa_capture_power_spectrum(
 			 */
 
 			// window and normalize the data
-			normalize_scalar_array(i16_buffer, idata, spp, 8192);
+			normalize_iq_data(spp,
+					header.stream_id,
+					i16_buffer,
+					q16_buffer,
+					i32_buffer,
+					idata,
+					qdata);
+
 			window_hanning_scalar_array(idata, spp);
 
 			// fft this data
