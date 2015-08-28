@@ -1216,8 +1216,11 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 					i32_buffer,
 					idata,
 					qdata);
-	printf("\n %f \n", idata[1]);
 	doutf(DHIGH, "In wsa_compute_fft: normalized data\n");
+
+	// correct the DC offset
+	//correct_dc_offset(samples_per_packet, idata, qdata);
+
 	window_hanning_scalar_array(idata, samples_per_packet);
 
 	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");

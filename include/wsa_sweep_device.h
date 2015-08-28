@@ -68,7 +68,7 @@ struct wsa_power_spectrum_config {
 
 	/// the rbw
 	double rbw;
-
+			
 	/// a sweep plan that achieves capturing the spectrum requested
 	struct wsa_sweep_plan *sweep_plan;
 
@@ -85,6 +85,7 @@ struct wsa_power_spectrum_config {
 
 struct wsa_sweep_device *wsa_sweep_device_new(struct wsa_device *device);
 void wsa_sweep_device_free(struct wsa_sweep_device *sweepdev);
+void wsa_sweep_device_set_attenuator(struct wsa_sweep_device *sweep_device, unsigned int val);
 int wsa_power_spectrum_alloc(
 	struct wsa_sweep_device *sweep_device,
 	uint64_t fstart,

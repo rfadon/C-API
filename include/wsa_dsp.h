@@ -14,6 +14,9 @@ void normalize_iq_data(int32_t samples_per_packet,
 					kiss_fft_scalar * idata,
 					kiss_fft_scalar * qdata);
 
+void correct_dc_offset(int32_t samples_per_packet,
+					kiss_fft_scalar * idata,
+					kiss_fft_scalar * qdata);
 
 // ////////////////////////////////////////////////////////////////////////////
 // Windowing Section                                                         //

@@ -7,8 +7,22 @@
 #include "math.h"
 #define ENOMEM 4
 // ////////////////////////////////////////////////////////////////////////////
-// Local Functions Section                                                         //
+// Local Functions Section                                                   //
 // ////////////////////////////////////////////////////////////////////////////
+kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average);
+kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average)
+{
+	kiss_fft_scalar sum = 0;
+	int i = 0;
+
+	for (i=0; i < array_size; i++)
+	{
+		sum = sum + data_array[i];
+	}
+	*average = sum / array_size;
+
+}
+
 kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval);
 kiss_fft_scalar normalize_scalar(kiss_fft_scalar value, kiss_fft_scalar maxval)
 {
@@ -28,6 +42,17 @@ void get_normalization_factor(uint32_t const stream_id, kiss_fft_scalar  * norma
 // ////////////////////////////////////////////////////////////////////////////
 // Normalize Section                                                         //
 // ////////////////////////////////////////////////////////////////////////////
+/**
+ * Normalize I or IQ data
+ *
+ * @samples_per_packet - the number of samples
+ * @stream_id - the stream id which identifies the data format
+ * @i16_buffer - buffer containing the 16-bit i data
+ * @q16_buffer - buffer containing the 16-bit q data
+ * @i32_buffer - buffer containing the 32-bit i data
+ * @idata - buffer containing normalized i data
+ * @qdata - buffer containing normalized q data
+ */
 void normalize_iq_data(int32_t samples_per_packet,
 					uint32_t stream_id,
 					int16_t * i16_buffer,
@@ -64,7 +89,34 @@ void normalize_iq_data(int32_t samples_per_packet,
 	}
 
 }
+/**
+ * Correct the DC offset
+ *
+ * @samples_per_packet - the number of samples
+ * @idata - buffer containing normalized i data
+ * @qdata - buffer containing normalized q data
+ */
+void correct_dc_offset(int32_t samples_per_packet,
+					kiss_fft_scalar * idata,
+					kiss_fft_scalar * qdata)
+{
+	kiss_fft_scalar i_average = 0;
+	kiss_fft_scalar q_average = 0;
+	int i = 0;
+	find_average(samples_per_packet, idata, &i_average);
+	find_average(samples_per_packet, qdata, &q_average);
 
+	for (i=0; i < samples_per_packet; i++)
+	{
+		idata[i] = idata[i] / i_average;
+		qdata[i] = qdata[i] / i_average;
+	}
+
+
+}
+// ////////////////////////////////////////////////////////////////////////////
+// Windowing Section                                                         //
+// ////////////////////////////////////////////////////////////////////////////
 /**
  * performs a hanning window on a scalar value
  *

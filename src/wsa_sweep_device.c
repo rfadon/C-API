@@ -108,7 +108,7 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 	// SHN
 	{ 
 		MODE_SHN, SAMPLETYPE_I_ONLY, 1,
-		50ULL*MHZ, 20ULL*GHZ, 100*KHZ,
+		50ULL*MHZ, 27ULL*GHZ, 100*KHZ,
 		62500*KHZ, 10*MHZ, 35*MHZ, 30*MHZ, 40*MHZ, 
 		4, 512
 	},
@@ -116,7 +116,7 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 	// SH
 	{ 
 		MODE_SH, SAMPLETYPE_I_ONLY, 1,
-		50ULL*MHZ, 20ULL*GHZ, 100*KHZ,
+		50ULL*MHZ, 27ULL*GHZ, 100*KHZ,
 		62500*KHZ, 40*MHZ, 35*MHZ, 15*MHZ, 55*MHZ, 
 		4, 512
 	},
@@ -645,7 +645,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 
 /**
- * sets the attenatuor in the sweep device
+ * sets the attenuator in the sweep device
  *
  * @param sweep_device - the sweep device to use
  * @param value - the attenuator setting, 0 = out, 1 = in
