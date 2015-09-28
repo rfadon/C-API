@@ -42,6 +42,10 @@ struct wsa_sweep_plan {
 	
 	/// packets per block
 	uint32_t ppb;
+
+	/// indicate whether DD mode is required
+	uint8_t dd_mode;
+
 };
 
 /// this struct represents our sweep device object
