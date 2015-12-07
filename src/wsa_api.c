@@ -46,6 +46,7 @@
 #include "wsa_api.h"
 #include "wsa_client.h"
 #include "wsa_dsp.h"
+#include "wsa_sweep_device.h"
 
 #ifdef _WIN32
 # define strtok_r strtok_s
@@ -957,6 +958,74 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	return 0;
 }
 
+
+/**
+ * Find the peak value within the specified range
+ * Note you must set the sample size, and acquire read status before 
+ * calling this function
+ * @param dev - A pointer to the WSA device structure.
+ * @fstart- An unsigned 64-bit integer containing the start frequency
+ * @fstop - An unsigned 64-bit integer containing the stop frequency
+ * @rbw - A 64-bit integer containing the RBW value of the captured data (in Hz)
+ * @mode - A string containing the mode for the measurement
+ * @attenuator - An integer to hold the 20dB attenuator's state (0 = on, 1 = off)
+ * @peak_freq - An unsigned 64-bit integer to store the frequency of the peak(in Hz)
+ * @peak_power - A flloating point pointer to stopre the power level of the peak (in dBm)
+
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t peak_find(struct wsa_device *dev, 
+					uint64_t fstart, 
+					uint64_t fstop, 
+					uint32_t rbw, 
+					char *mode,
+					int32_t attenuator,
+					uint64_t *peak_freq,
+					float *peak_power)
+{
+	
+
+	struct wsa_power_spectrum_config *pscfg;
+	struct wsa_sweep_device wsa_Sweep_Device;
+	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_Device;
+	int result = 5;
+	int16_t acq_status = 0;
+	float *psbuf;
+	uint32_t i = 0;
+	uint64_t current_freq = fstart;
+
+	// create the sweep device
+	wsa_sweep_dev = wsa_sweep_device_new(dev);
+	
+	// set the attenuator
+	wsa_sweep_device_set_attenuator(wsa_sweep_dev, attenuator);
+
+	// allocate memory for our ffts to go in
+	result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart, fstop, rbw, mode, &pscfg);
+	if (result < 0)
+	{
+		wsa_power_spectrum_free(pscfg);
+		wsa_sweep_device_free(wsa_sweep_dev);
+		return (int16_t) result; 
+	}
+
+	// capture power spectrum
+	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
+	*peak_power = psbuf[i];
+	*peak_freq = fstart;
+	for (i = 0; i < pscfg->buflen; i++){
+		if (psbuf[i] > *peak_power){
+			*peak_power = psbuf[i];
+			*peak_freq = current_freq;
+		}
+		current_freq = current_freq + (uint64_t) rbw;
+	}
+
+	wsa_power_spectrum_free(pscfg);
+	wsa_sweep_device_free(wsa_sweep_dev);
+	return 0;
+}
 
 /**
  * Set the number of samples per packet for the manual capture block
