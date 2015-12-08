@@ -970,11 +970,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
  * @mode - A string containing the mode for the measurement
  * @attenuator - An integer to hold the 20dB attenuator's state (0 = on, 1 = off)
  * @peak_freq - An unsigned 64-bit integer to store the frequency of the peak(in Hz)
- * @peak_power - A flloating point pointer to stopre the power level of the peak (in dBm)
-
+ * @peak_power - A flloating point pointer to store the power level of the peak (in dBm)
  *
  * @return 0 on success or a negative value on error
  */
+
 int16_t peak_find(struct wsa_device *dev, 
 					uint64_t fstart, 
 					uint64_t fstop, 
@@ -1021,6 +1021,71 @@ int16_t peak_find(struct wsa_device *dev,
 		}
 		current_freq = current_freq + (uint64_t) rbw;
 	}
+
+	wsa_power_spectrum_free(pscfg);
+	wsa_sweep_device_free(wsa_sweep_dev);
+	return 0;
+}
+
+/**
+ * Calculate the channel power within a specific range
+ * Note you must set the sample size, and acquire read status before 
+ * calling this function
+ * @param dev - A pointer to the WSA device structure.
+ * @fstart- An unsigned 64-bit integer containing the start frequency
+ * @fstop - An unsigned 64-bit integer containing the stop frequency
+ * @rbw - A 64-bit integer containing the RBW value of the captured data (in Hz)
+ * @mode - A string containing the mode for the measurement
+ * @attenuator - An integer to hold the 20dB attenuator's state (0 = on, 1 = off)
+ * @channel_power - A flloating point pointer to store the channel power(in dBm)
+
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t calculate_channel_power(struct wsa_device *dev, 
+					uint64_t fstart, 
+					uint64_t fstop, 
+					uint32_t rbw, 
+					char *mode,
+					int32_t attenuator,
+					float *channel_power)
+{
+	
+
+	struct wsa_power_spectrum_config *pscfg;
+	struct wsa_sweep_device wsa_Sweep_Device;
+	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_Device;
+	int result = 5;
+	int16_t acq_status = 0;
+	float *psbuf;
+	float linear_sum = 0;
+	float tmp_float = 0;
+	uint32_t i = 0;
+
+	// create the sweep device
+	wsa_sweep_dev = wsa_sweep_device_new(dev);
+	
+	// set the attenuator
+	wsa_sweep_device_set_attenuator(wsa_sweep_dev, attenuator);
+
+	// allocate memory for our ffts to go in
+	result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart, fstop, rbw, mode, &pscfg);
+	if (result < 0)
+	{
+		wsa_power_spectrum_free(pscfg);
+		wsa_sweep_device_free(wsa_sweep_dev);
+		return (int16_t) result; 
+	}
+
+	// capture power spectrum
+	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
+
+	// find the linear sum of the squares
+	for (i = 0; i < pscfg->buflen; i++){
+		tmp_float = pow(10,  (psbuf[i] / 20));
+		linear_sum = linear_sum + (tmp_float * tmp_float);
+	}
+	*channel_power = 10 * log10(linear_sum);
 
 	wsa_power_spectrum_free(pscfg);
 	wsa_sweep_device_free(wsa_sweep_dev);
