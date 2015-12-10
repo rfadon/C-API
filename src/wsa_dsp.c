@@ -256,3 +256,71 @@ kiss_fft_scalar cpx_to_power(kiss_fft_cpx value)
 kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
 	return 10 * log10(value);
 }
+
+// ////////////////////////////////////////////////////////////////////////////
+// Utility Functions                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+/**
+ * Find the peak value within the given spectral data
+ * Note you must set the sample size, and acquire read status before 
+ * calling this function
+ * @param dev - A pointer to the WSA device structure.
+ * @fstart- An unsigned 64-bit integer containing the start frequency
+ * @fstop - An unsigned 64-bit integer containing the stop frequency
+ * @rbw - A 64-bit integer containing the RBW value of the captured data (in Hz)
+ * @data_size - The number of samples inside the spectral data array
+ * @spectral_data - A floating point array containing the spectral data(in dBm)
+ * @peak_freq - An unsigned 64-bit integer to store the frequency of the peak(in Hz)
+ * @peak_power - A flloating point pointer to store the power level of the peak (in dBm)
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t psd_peak_find(uint64_t fstart, 
+				uint64_t fstop, 
+				uint32_t rbw, 
+				uint32_t data_size,
+				float *spectra_data,
+				uint64_t *peak_freq,
+				float *peak_power)
+{
+	uint32_t i = 0;
+	uint64_t current_freq = fstart;
+
+	*peak_power = spectra_data[i];
+	*peak_freq = fstart;
+	for (i = 0; i < data_size; i++){
+		if (spectra_data[i] > *peak_power){
+			*peak_power = spectra_data[i];
+			*peak_freq = current_freq;
+		}
+		current_freq = current_freq + (uint64_t) rbw;
+	}
+	return 0;
+}
+
+/**
+ * Calculate the channel power of a range of spectral data
+ * @data_size - The number of samples inside the spectral data array
+ * @spectral_data - A floating point array containing the spectral data(in dBm)
+ * @channel_power - A flloating point pointer to store the channel power(in dBm)
+ *
+ * @return 0 on success or a negative value on error
+ */
+int16_t psd_calculate_channel_power(float *spectral_data,
+								uint32_t data_size,
+								float *channel_power)
+{
+	
+
+	float linear_sum = 0;
+	float tmp_float = 0;
+	uint32_t i = 0;
+
+	// find the linear sum of the squares
+	for (i = 0; i < data_size; i++){
+		tmp_float = pow(10,  (channel_power[i] / 20));
+		linear_sum = linear_sum + (tmp_float * tmp_float);
+	}
+	*channel_power = 10 * log10(linear_sum);
+	return 0;
+}
