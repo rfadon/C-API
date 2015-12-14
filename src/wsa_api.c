@@ -1073,7 +1073,7 @@ int16_t calculate_channel_power(struct wsa_device *dev,
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
 	
 	// calculate the channel power
-	result = psd_calculate_channel_power(psbuf, pscfg->buflen, channel_power);
+	result = psd_calculate_channel_power(psbuf,0, pscfg->buflen, pscfg->buflen, channel_power);
 
 	// free the sweep config and the sweep device
 	wsa_power_spectrum_free(pscfg);
@@ -1087,6 +1087,7 @@ int16_t calculate_channel_power(struct wsa_device *dev,
  * @fstart- An unsigned 64-bit integer containing the start frequency
  * @fstop - An unsigned 64-bit integer containing the stop frequency
  * @rbw - A 64-bit integer containing the RBW value of the captured data (in Hz)
+ * @occupied_percentage - How much of the channel power percentage should be in the occupied bandwidth
  * @mode - A string containing the mode for the measurement
  * @attenuator - An integer to hold the 20dB attenuator's state (0 = on, 1 = off)
  * @occupied_bandwidth -An unsigned 64-bit pointer to hold the frequency (MHz)
@@ -1097,6 +1098,7 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 					uint64_t fstart, 
 					uint64_t fstop, 
 					uint32_t rbw, 
+					float occupied_percentage,
 					char *mode,
 					int32_t attenuator,
 					uint64_t *occupied_bw)
@@ -1110,7 +1112,12 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	int16_t acq_status = 0;
 	float *psbuf;
 	float linear_sum = 0;
-	float tmp_float = 0;
+	float perc_channel_power = 0;
+	float channel_power;
+	float tmp_channel_power = 0;
+	float percentage = (100 - occupied_percentage) / (2 * 100);
+	uint64_t start_freq = fstart;
+	uint64_t stop_freq = fstop;
 	uint32_t i = 0;
 
 	// create the sweep device
@@ -1130,13 +1137,28 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 
 	// capture power spectrum
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
-
-	// find the linear sum of the squares
-	for (i = 0; i < pscfg->buflen; i++){
-		tmp_float = pow(10,  (psbuf[i] / 20));
-		linear_sum = linear_sum + (tmp_float * tmp_float);
+	
+	// calculate the channel power
+	result = psd_calculate_channel_power(psbuf, 0, pscfg->buflen, pscfg->buflen, &channel_power);
+	perc_channel_power = percentage * channel_power;
+	tmp_channel_power = channel_power;
+	
+	// find the location of the first half percentile
+	i = 1;
+	while (tmp_channel_power >= perc_channel_power){
+		result = psd_calculate_channel_power(psbuf, 0, i, pscfg->buflen, &channel_power);
+		i++;
+		start_freq = start_freq +  (uint64_t) rbw;
 	}
 
+	tmp_channel_power = channel_power;
+	i = pscfg->buflen - 1;
+	while (tmp_channel_power >= perc_channel_power){
+		result = psd_calculate_channel_power(psbuf, i, pscfg->buflen, pscfg->buflen, &channel_power);
+		i--;
+		stop_freq = stop_freq - (uint64_t) rbw;
+	}
+	occupied_bw = stop_freq - start_freq;
 	wsa_power_spectrum_free(pscfg);
 	wsa_sweep_device_free(wsa_sweep_dev);
 	return 0;

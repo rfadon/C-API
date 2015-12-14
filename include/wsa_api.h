@@ -115,6 +115,15 @@ int16_t calculate_channel_power(struct wsa_device *dev,
 					int32_t attenuator,
 					float *channel_power);
 
+int16_t calculate_occupied_bandwidth(struct wsa_device *dev, 
+					uint64_t fstart, 
+					uint64_t fstop, 
+					uint32_t rbw, 
+					float occupied_percentage,
+					char *mode,
+					int32_t attenuator,
+					uint64_t *occupied_bw);
+
 int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_packet);
 int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_packet);
 

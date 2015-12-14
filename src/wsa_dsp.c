@@ -300,17 +300,20 @@ int16_t psd_peak_find(uint64_t fstart,
 
 /**
  * Calculate the channel power of a range of spectral data
+ * @start_bin - The first bin where the channel power calculation should take place
+ * @stop_bin - The last bin where the channel power calculation should take place
  * @data_size - The number of samples inside the spectral data array
  * @spectral_data - A floating point array containing the spectral data(in dBm)
  * @channel_power - A flloating point pointer to store the channel power(in dBm)
  *
  * @return 0 on success or a negative value on error
  */
-int16_t psd_calculate_channel_power(float *spectral_data,
+int16_t psd_calculate_channel_power(uint32_t start_bin,
+								uint32_t stop_bin,
+								float *spectral_data,
 								uint32_t data_size,
 								float *channel_power)
 {
-	
 
 	float linear_sum = 0;
 	float tmp_float = 0;
@@ -318,8 +321,10 @@ int16_t psd_calculate_channel_power(float *spectral_data,
 
 	// find the linear sum of the squares
 	for (i = 0; i < data_size; i++){
-		tmp_float = pow(10,  (channel_power[i] / 20));
-		linear_sum = linear_sum + (tmp_float * tmp_float);
+		if (i >= start_bin && i <= stop_bin){
+			tmp_float = pow(10,  (channel_power[i] / 20));
+			linear_sum = linear_sum + (tmp_float * tmp_float);
+		}
 	}
 	*channel_power = 10 * log10(linear_sum);
 	return 0;

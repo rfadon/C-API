@@ -49,6 +49,8 @@ int16_t psd_peak_find(uint64_t fstart,
 				uint64_t *peak_freq,
 				float *peak_power);
 
-int16_t psd_calculate_channel_power(float *spectral_data,
+int16_t psd_calculate_channel_power(uint32_t start_bin,
+								uint32_t stop_bin,
+								float *spectral_data,
 								uint32_t data_size,
 								float *channel_power);
