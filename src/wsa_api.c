@@ -958,6 +958,102 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	return 0;
 }
 
+/**
+ * Retrieve the the size of the buffer required to store the spectral data
+ *
+ * @param samples_per_packet - The number of time domain samples
+ * @param stream_id - The ID indentifying the type of data
+ * @param buffer_size - The size of the buffer required to store the spectral data
+ *
+ * @return 0 on successful or a negative number on error.
+ */
+int16_t wsa_get_fft_size(int32_t const samples_per_packet, 
+							uint32_t const stream_id,
+							int32_t *buffer_size)
+{
+	if (stream_id == I16Q16_DATA_STREAM_ID)
+		*buffer_size = samples_per_packet;
+	else
+		*buffer_size = samples_per_packet / 2;
+	return 0;
+}
+
+
+/**
+ * Retrieve the the size of the buffer required to store the spectral data
+ *
+ * @param samples_per_packet - The number of time domain samples
+ * @param stream_id - The ID indentifying the type of data
+ * @param reference_level - dBm value used to calibrate the signal
+ * @param spectral_inversion - byte containing whether spectral inversion is active
+ * @param i16_buffer - buffer containing 16-bit iData
+ * @param q16_buffer - buffer containing 16-bit qData
+ * @param i32_buffer - buffer containing 32-bit iData
+ * @param fft_buffer - Buffer to store the FFT data
+ *
+* @return 0 on successful or a negative number   on error.
+ */
+int16_t wsa_compute_fft(int32_t const samples_per_packet,
+				int32_t const fft_size,
+				uint32_t const stream_id,
+				int16_t const reference_level,
+				uint8_t const spectral_inversion,
+				int16_t * const i16_buffer,
+				int16_t * const q16_buffer,
+				int32_t * const i32_buffer,
+				float * fft_buffer
+				)
+{
+	kiss_fft_scalar idata[32768];
+	kiss_fft_scalar qdata[32768];
+	kiss_fft_cpx fftout[32768];
+	kiss_fft_scalar tmpscalar;
+	int16_t result = 0;
+	int32_t i = 0;
+
+	// window and normalize the data
+	normalize_iq_data(samples_per_packet,
+					stream_id,
+					i16_buffer,
+					q16_buffer,
+					i32_buffer,
+					idata,
+					qdata);
+	doutf(DHIGH, "In wsa_compute_fft: normalized data\n");
+
+	// correct the DC offset
+	//correct_dc_offset(samples_per_packet, idata, qdata);
+
+	window_hanning_scalar_array(idata, samples_per_packet);
+
+	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
+	// fft this data
+	rfft(idata, fftout, samples_per_packet);
+
+	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
+	/*
+	* we used to be in superhet mode, but after a complex FFT, we have twice 
+	* the spectrum at twice the RBW.
+	* our fcenter is now moved from center to $passband_center so our start and stop 
+	* indexes are calculated given that fact
+	*/
+
+	// check for inversion and calculate indexes of our good data
+	if (spectral_inversion)
+		reverse_cpx(fftout, fft_size);
+
+	doutf(DHIGH, "In wsa_compute_fft: finished compensating for spectral inversion\n");
+	// for the usable section, convert to power, apply reflevel and copy into buffer
+	for (i = 0; i < fft_size; i++) {
+		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
+		tmpscalar = 2 * power_to_logpower(tmpscalar);
+		fft_buffer[i] = tmpscalar + reference_level;
+		}
+
+	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
+	return result;
+}
+
 
 /**
  * Find the peak value within the specified range
@@ -1004,10 +1100,11 @@ int16_t peak_find(struct wsa_device *dev,
 	{
 		wsa_power_spectrum_free(pscfg);
 		wsa_sweep_device_free(wsa_sweep_dev);
-		return (int16_t) result; 
+		return (int16_t) result;
 	}
 
 	// capture power spectrum
+	wsa_configure_sweep(wsa_sweep_dev, pscfg);
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
 	result = psd_peak_find(fstart, 
 				fstop, 
@@ -1051,7 +1148,6 @@ int16_t calculate_channel_power(struct wsa_device *dev,
 	int result;
 	float *psbuf;
 	float linear_sum = 0;
-	float tmp_float = 0;
 	uint32_t i = 0;
 
 	// create the sweep device
@@ -1070,10 +1166,11 @@ int16_t calculate_channel_power(struct wsa_device *dev,
 	}
 
 	// capture power spectrum
+	wsa_configure_sweep(wsa_sweep_dev, pscfg);
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
 	
 	// calculate the channel power
-	result = psd_calculate_channel_power(psbuf,0, pscfg->buflen, pscfg->buflen, channel_power);
+	result = psd_calculate_channel_power(0, pscfg->buflen, psbuf, pscfg->buflen, channel_power);
 
 	// free the sweep config and the sweep device
 	wsa_power_spectrum_free(pscfg);
@@ -1108,18 +1205,20 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	struct wsa_power_spectrum_config *pscfg;
 	struct wsa_sweep_device wsa_Sweep_Device;
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_Device;
-	int result = 5;
+	int result = 0;
 	int16_t acq_status = 0;
 	float *psbuf;
 	float linear_sum = 0;
 	float perc_channel_power = 0;
+	float lowest_channel_power = 0;
 	float channel_power;
 	float tmp_channel_power = 0;
-	float percentage = (100 - occupied_percentage) / (2 * 100);
+	float percentage = (100 - occupied_percentage) / 200;
+	float calc_rbw = 0;
 	uint64_t start_freq = fstart;
 	uint64_t stop_freq = fstop;
 	uint32_t i = 0;
-
+	float min_point = 0;
 	// create the sweep device
 	wsa_sweep_dev = wsa_sweep_device_new(dev);
 	
@@ -1136,29 +1235,56 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	}
 
 	// capture power spectrum
+	wsa_configure_sweep(wsa_sweep_dev, pscfg);
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
+	calc_rbw = (fstop - fstart) / pscfg->buflen;
 	
-	// calculate the channel power
-	result = psd_calculate_channel_power(psbuf, 0, pscfg->buflen, pscfg->buflen, &channel_power);
-	perc_channel_power = percentage * channel_power;
-	tmp_channel_power = channel_power;
-	
-	// find the location of the first half percentile
-	i = 1;
-	while (tmp_channel_power >= perc_channel_power){
-		result = psd_calculate_channel_power(psbuf, 0, i, pscfg->buflen, &channel_power);
-		i++;
-		start_freq = start_freq +  (uint64_t) rbw;
+	// find the minimum of spectrum
+	for (i = 0; i < pscfg->buflen; i++)
+	{
+		if (psbuf[i] < min_point)
+			min_point = abs(psbuf[i]);
 	}
 
-	tmp_channel_power = channel_power;
-	i = pscfg->buflen - 1;
-	while (tmp_channel_power >= perc_channel_power){
-		result = psd_calculate_channel_power(psbuf, i, pscfg->buflen, pscfg->buflen, &channel_power);
-		i--;
-		stop_freq = stop_freq - (uint64_t) rbw;
+
+	// find minimum point
+	// calculate the channel power
+	result = psd_calculate_channel_power((uint32_t) 0, (uint32_t) pscfg->buflen, psbuf,  pscfg->buflen, &channel_power);
+	printf("Calculated channel power: %0.10f  \n", channel_power);
+	channel_power = channel_power + min_point;
+	printf("Calculated channel power: %0.10f  \n", channel_power);
+	// calculate the percentage of channel power where the occupied bandwidth begins/end
+	result = psd_calculate_channel_power((uint32_t) 0, 2, psbuf,  pscfg->buflen, &lowest_channel_power);
+	tmp_channel_power = -500;
+
+	perc_channel_power = channel_power - (channel_power * (occupied_percentage / 100));
+	printf("Calculated channel power: %0.10f,  %0.10f  \n", perc_channel_power, channel_power);
+	// find the location where the occupied bandwidth begins
+	i = 1;
+	
+	while (tmp_channel_power <= perc_channel_power && i < pscfg->buflen){
+		result = psd_calculate_channel_power(0, i, psbuf, pscfg->buflen, &tmp_channel_power);
+		tmp_channel_power = tmp_channel_power + min_point;
+		i++;
+		printf("Calculated channel power: %0.2f,  %0.2f, %0.2f, % 0.2f  \n", (float) start_freq, tmp_channel_power, perc_channel_power, channel_power);
+		start_freq = start_freq +  (uint64_t) calc_rbw;
 	}
-	occupied_bw = stop_freq - start_freq;
+
+	// find location where occupied bandwidth ends
+	tmp_channel_power = -500;
+	i = pscfg->buflen - 1;
+	while (tmp_channel_power <= perc_channel_power && i > 0){
+		result = psd_calculate_channel_power(i, pscfg->buflen, psbuf, pscfg->buflen, &tmp_channel_power);
+		i--;
+		tmp_channel_power = tmp_channel_power + min_point;
+		stop_freq = stop_freq - (uint64_t) calc_rbw;
+		//printf("Calculated channel power: %0.10f,  %0.10f  \n", perc_channel_power, tmp_channel_power);
+	}
+	//printf("frequency: %0.2f tmp_channel_power %0.2f\n", (float) stop_freq, tmp_channel_power);
+	if (stop_freq > start_freq)
+		*occupied_bw = stop_freq - start_freq;
+	else
+		*occupied_bw = start_freq - stop_freq;
 	wsa_power_spectrum_free(pscfg);
 	wsa_sweep_device_free(wsa_sweep_dev);
 	return 0;
@@ -1359,103 +1485,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	return result;
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-// DSP Section                                                               //
-// ////////////////////////////////////////////////////////////////////////////
 
-/**
- * Retrieve the the size of the buffer required to store the spectral data
- *
- * @param samples_per_packet - The number of time domain samples
- * @param stream_id - The ID indentifying the type of data
- * @param buffer_size - The size of the buffer required to store the spectral data
- *
- * @return 0 on successful or a negative number on error.
- */
-int16_t wsa_get_fft_size(int32_t const samples_per_packet, 
-							uint32_t const stream_id,
-							int32_t *buffer_size)
-{
-	if (stream_id == I16Q16_DATA_STREAM_ID)
-		*buffer_size = samples_per_packet;
-	else
-		*buffer_size = samples_per_packet / 2;
-	return 0;
-}
-/**
- * Retrieve the the size of the buffer required to store the spectral data
- *
- * @param samples_per_packet - The number of time domain samples
- * @param stream_id - The ID indentifying the type of data
- * @param reference_level - dBm value used to calibrate the signal
- * @param spectral_inversion - byte containing whether spectral inversion is active
- * @param i16_buffer - buffer containing 16-bit iData
- * @param q16_buffer - buffer containing 16-bit qData
- * @param i32_buffer - buffer containing 32-bit iData
- * @param fft_buffer - Buffer to store the FFT data
- *
-* @return 0 on successful or a negative number   on error.
- */
-int16_t wsa_compute_fft(int32_t const samples_per_packet,
-				int32_t const fft_size,
-				uint32_t const stream_id,
-				int16_t const reference_level,
-				uint8_t const spectral_inversion,
-				int16_t * const i16_buffer,
-				int16_t * const q16_buffer,
-				int32_t * const i32_buffer,
-				float * fft_buffer
-				)
-{
-	kiss_fft_scalar idata[32768];
-	kiss_fft_scalar qdata[32768];
-	kiss_fft_cpx fftout[32768];
-	kiss_fft_scalar tmpscalar;
-	int16_t result = 0;
-	int32_t i = 0;
-
-	// window and normalize the data
-	normalize_iq_data(samples_per_packet,
-					stream_id,
-					i16_buffer,
-					q16_buffer,
-					i32_buffer,
-					idata,
-					qdata);
-	doutf(DHIGH, "In wsa_compute_fft: normalized data\n");
-
-	// correct the DC offset
-	//correct_dc_offset(samples_per_packet, idata, qdata);
-
-	window_hanning_scalar_array(idata, samples_per_packet);
-
-	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
-	// fft this data
-	rfft(idata, fftout, samples_per_packet);
-
-	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
-	/*
-	* we used to be in superhet mode, but after a complex FFT, we have twice 
-	* the spectrum at twice the RBW.
-	* our fcenter is now moved from center to $passband_center so our start and stop 
-	* indexes are calculated given that fact
-	*/
-
-	// check for inversion and calculate indexes of our good data
-	if (spectral_inversion)
-		reverse_cpx(fftout, fft_size);
-
-	doutf(DHIGH, "In wsa_compute_fft: finished compensating for spectral inversion\n");
-	// for the usable section, convert to power, apply reflevel and copy into buffer
-	for (i = 0; i < fft_size; i++) {
-		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
-		tmpscalar = 2 * power_to_logpower(tmpscalar);
-		fft_buffer[i] = tmpscalar + reference_level;
-		}
-
-	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
-	return result;
-}
 ///////////////////////////////////////////////////////////////////////////////
 // FREQUENCY SECTION                                                         //
 ///////////////////////////////////////////////////////////////////////////////

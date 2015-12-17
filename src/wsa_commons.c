@@ -124,7 +124,6 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVTRIGGERDELAY, "Invalid trigger synchronization delay, (must be a multiple of 8)"},
 		{WSA_ERR_INVTRIGGERSYNC, "Invalid trigger synchronization state"},
 
-		
 		//*****
 		// Timing related
 		//*****
@@ -152,6 +151,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_INVPLLREFSOURCE, "Invalid PLL reference source"},
 		{WSA_ERR_INVATTEN, "Invalid attenuator mode of operation"},
 		{WSA_ERR_INVRFEINPUTMODE, "Invalid RFE mode of operation"},
+
 		//*****
 		// File related
 		//*****
@@ -198,8 +198,13 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_STREAMALREADYRUNNING, "Stream mode is already enabled"},
 		{WSA_ERR_STREAMNOTRUNNING , "Stream mode is already disabled"},
 		{WSA_ERR_STREAMWHILESWEEPING, "Cannot initiate stream mode while sweeping"},
-		{WSA_ERR_INVSTREAMSTARTID, "Stream Start ID is out of bounds"}
-		
+		{WSA_ERR_INVSTREAMSTARTID, "Stream Start ID is out of bounds"},
+ 			
+		//*****
+		// DSP ERRORS      
+		//*****
+		{WSA_ERR_INVCHPOWERRANGE, "Invalid start/stop ranges for channel power"}
+
 
 	};
 
@@ -421,6 +426,3 @@ int16_t wsa_find_char_in_string(const char * command, char const * symbol)
 
 	return WSA_ERR_CMDINVALID;
 }
-
-
-

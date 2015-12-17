@@ -179,6 +179,11 @@
 #define WSA_ERR_STREAMWHILESWEEPING (LNEG_NUM - 4002)
 #define WSA_ERR_INVSTREAMSTARTID	(LNEG_NUM - 4003)
 
+// ///////////////////////////////
+// DSP ERRORS    				//
+// ///////////////////////////////
+#define WSA_ERR_INVCHPOWERRANGE	(LNEG_NUM - 4500)
+
 
 // ///////////////////////////////
 // WARNINGS						//

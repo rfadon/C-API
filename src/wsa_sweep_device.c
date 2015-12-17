@@ -404,7 +404,7 @@ int wsa_capture_power_spectrum(
 	uint32_t packet_count;
 	struct wsa_sweep_device_properties *prop;
 	struct wsa_sweep_device_properties *dd_prop;
-	uint32_t istart, tmp_start, istop, ilen;
+	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;
 	int16_t dd_packet = 0;
 

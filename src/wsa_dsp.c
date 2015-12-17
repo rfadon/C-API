@@ -2,7 +2,7 @@
 #include "thinkrf_stdint.h"
 #include "wsa_lib.h"
 #include "wsa_dsp.h"
-
+#include "wsa_error.h"
 #define _USE_MATH_DEFINES
 #include "math.h"
 #define ENOMEM 4
@@ -285,15 +285,17 @@ int16_t psd_peak_find(uint64_t fstart,
 {
 	uint32_t i = 0;
 	uint64_t current_freq = fstart;
-
+	uint64_t rbw_cal = (fstop - fstart) / (uint64_t) data_size;
 	*peak_power = spectra_data[i];
 	*peak_freq = fstart;
 	for (i = 0; i < data_size; i++){
 		if (spectra_data[i] > *peak_power){
 			*peak_power = spectra_data[i];
+			
 			*peak_freq = current_freq;
 		}
-		current_freq = current_freq + (uint64_t) rbw;
+		current_freq = current_freq + (uint64_t) rbw_cal;
+		
 	}
 	return 0;
 }
@@ -317,12 +319,20 @@ int16_t psd_calculate_channel_power(uint32_t start_bin,
 
 	float linear_sum = 0;
 	float tmp_float = 0;
-	uint32_t i = 0;
+	uint32_t i = 0;  
+
+	// make sure that the stop bin is larger than the start bin
+	if (start_bin >= stop_bin)
+		return WSA_ERR_INVCHPOWERRANGE;
+	
+	// make sure that the stop bin is lower than the data size
+	if (stop_bin > data_size)
+		return WSA_ERR_INVCHPOWERRANGE;
 
 	// find the linear sum of the squares
 	for (i = 0; i < data_size; i++){
 		if (i >= start_bin && i <= stop_bin){
-			tmp_float = pow(10,  (channel_power[i] / 20));
+			tmp_float = pow(10,  (spectral_data[i] / 20));
 			linear_sum = linear_sum + (tmp_float * tmp_float);
 		}
 	}
