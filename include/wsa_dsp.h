@@ -54,3 +54,9 @@ int16_t psd_calculate_channel_power(uint32_t start_bin,
 								float *spectral_data,
 								uint32_t data_size,
 								float *channel_power);
+
+int16_t psd_calculate_absolute_power(uint32_t start_bin,
+								uint32_t stop_bin,
+								float *spectral_data,
+								uint32_t data_size,
+								float *absolute_power);

@@ -1206,17 +1206,13 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	struct wsa_sweep_device wsa_Sweep_Device;
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_Device;
 	int result = 0;
-	int16_t acq_status = 0;
 	float *psbuf;
-	float linear_sum = 0;
-	float perc_channel_power = 0;
-	float lowest_channel_power = 0;
-	float channel_power;
+	float perc_abs_power = 0;
+	float abs_power;
 	float tmp_channel_power = 0;
-	float percentage = (100 - occupied_percentage) / 200;
 	float calc_rbw = 0;
-	uint64_t start_freq = fstart;
-	uint64_t stop_freq = fstop;
+	uint64_t start_freq = fstart + ((fstop - fstart) / 2);
+	uint64_t stop_freq = fstart + ((fstop - fstart) / 2);
 	uint32_t i = 0;
 	float min_point = 0;
 	// create the sweep device
@@ -1248,39 +1244,24 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 
 
 	// find minimum point
-	// calculate the channel power
-	result = psd_calculate_channel_power((uint32_t) 0, (uint32_t) pscfg->buflen, psbuf,  pscfg->buflen, &channel_power);
-	printf("Calculated channel power: %0.10f  \n", channel_power);
-	channel_power = channel_power + min_point;
-	printf("Calculated channel power: %0.10f  \n", channel_power);
-	// calculate the percentage of channel power where the occupied bandwidth begins/end
-	result = psd_calculate_channel_power((uint32_t) 0, 2, psbuf,  pscfg->buflen, &lowest_channel_power);
-	tmp_channel_power = -500;
-
-	perc_channel_power = channel_power - (channel_power * (occupied_percentage / 100));
-	printf("Calculated channel power: %0.10f,  %0.10f  \n", perc_channel_power, channel_power);
+	// calculate the total absolute power
+	result = psd_calculate_absolute_power((uint32_t) 0, (uint32_t) pscfg->buflen, psbuf,  pscfg->buflen, &abs_power);
+	
+	perc_abs_power = abs_power * (occupied_percentage / 100);;
 	// find the location where the occupied bandwidth begins
 	i = 1;
-	
-	while (tmp_channel_power <= perc_channel_power && i < pscfg->buflen){
-		result = psd_calculate_channel_power(0, i, psbuf, pscfg->buflen, &tmp_channel_power);
-		tmp_channel_power = tmp_channel_power + min_point;
+	tmp_channel_power = -50;
+
+	while (tmp_channel_power <= perc_abs_power && i < pscfg->buflen){
+		result = psd_calculate_absolute_power((uint32_t) (((pscfg->buflen) / 2) - i), (uint32_t) (((pscfg->buflen) / 2) + i), psbuf, pscfg->buflen, &tmp_channel_power);
 		i++;
-		printf("Calculated channel power: %0.2f,  %0.2f, %0.2f, % 0.2f  \n", (float) start_freq, tmp_channel_power, perc_channel_power, channel_power);
-		start_freq = start_freq +  (uint64_t) calc_rbw;
+
+		start_freq = start_freq -  (uint64_t) calc_rbw;
+		stop_freq = stop_freq +  (uint64_t) calc_rbw;
+		
 	}
 
-	// find location where occupied bandwidth ends
-	tmp_channel_power = -500;
-	i = pscfg->buflen - 1;
-	while (tmp_channel_power <= perc_channel_power && i > 0){
-		result = psd_calculate_channel_power(i, pscfg->buflen, psbuf, pscfg->buflen, &tmp_channel_power);
-		i--;
-		tmp_channel_power = tmp_channel_power + min_point;
-		stop_freq = stop_freq - (uint64_t) calc_rbw;
-		//printf("Calculated channel power: %0.10f,  %0.10f  \n", perc_channel_power, tmp_channel_power);
-	}
-	//printf("frequency: %0.2f tmp_channel_power %0.2f\n", (float) stop_freq, tmp_channel_power);
+	printf("Frequencies: %0.8f, % 0.8f  \n",  (float) start_freq, (float) stop_freq);
 	if (stop_freq > start_freq)
 		*occupied_bw = stop_freq - start_freq;
 	else
