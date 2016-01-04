@@ -1047,7 +1047,7 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	for (i = 0; i < fft_size; i++) {
 		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
 		tmpscalar = 2 * power_to_logpower(tmpscalar);
-		fft_buffer[i] = tmpscalar + reference_level;
+		fft_buffer[i] = tmpscalar + reference_level + KISS_FFT_OFFSET;
 		}
 
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
@@ -1260,8 +1260,6 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 		stop_freq = stop_freq +  (uint64_t) calc_rbw;
 		
 	}
-
-	printf("Frequencies: %0.8f, % 0.8f  \n",  (float) start_freq, (float) stop_freq);
 	if (stop_freq > start_freq)
 		*occupied_bw = stop_freq - start_freq;
 	else

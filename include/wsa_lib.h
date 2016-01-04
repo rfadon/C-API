@@ -134,6 +134,8 @@
 #define WSA_MAX_DECIMATION 1024
 #define WSA_MIN_DECIMATION 4
 
+// Offset of KISS FFT
+#define KISS_FFT_OFFSET 2.64;
 // *****
 // WSA4000 SPECIFIC
 // *****

@@ -535,7 +535,7 @@ int wsa_capture_power_spectrum(
 				tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
 
 				tmpscalar = 2 * power_to_logpower(tmpscalar);
-				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel;
+				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - KISS_FFT_OFFSET;
 			}
 			buf_offset = buf_offset + ilen;
 			// do we have all our packets?
