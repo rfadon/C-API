@@ -1004,12 +1004,17 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 				float * fft_buffer
 				)
 {
-	kiss_fft_scalar idata[32768];
-	kiss_fft_scalar qdata[32768];
-	kiss_fft_cpx fftout[32768];
+
+	kiss_fft_scalar *idata;
+	kiss_fft_scalar *qdata;
+	kiss_fft_cpx *fftout;
 	kiss_fft_scalar tmpscalar;
 	int16_t result = 0;
 	int32_t i = 0;
+
+	idata = (float *) malloc(sizeof(float) *MAX_BLOCK_SIZE);
+	qdata = (float *) malloc(sizeof(float) * MAX_BLOCK_SIZE);
+	fftout = (float *) malloc(sizeof(float) * MAX_BLOCK_SIZE);
 
 	// window and normalize the data
 	normalize_iq_data(samples_per_packet,
@@ -1029,7 +1034,7 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
 	// fft this data
 	rfft(idata, fftout, samples_per_packet);
-
+	
 	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
 	/*
 	* we used to be in superhet mode, but after a complex FFT, we have twice 
@@ -1051,6 +1056,11 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 		}
 
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
+
+	free(qdata);
+	free(fftout);
+	free(idata);
+	
 	return result;
 }
 

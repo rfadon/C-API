@@ -22,6 +22,7 @@
 #define MAX_VRT_PKT_COUNT 15
 #define MIN_VRT_PKT_COUNT 0
 
+#define MAX_BLOCK_SIZE 70000000
 // VRT packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
@@ -101,9 +102,9 @@
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA_MAX_SPP 65520
-#define WSA_SPP_MULTIPLE 16
-#define WSA_MIN_SPP 128
+#define WSA_MAX_SPP 65504
+#define WSA_SPP_MULTIPLE 32
+#define WSA_MIN_SPP 256
 #define WSA_MIN_PPB 1
 #define WSA_MAX_PPB UINT_MAX
 
