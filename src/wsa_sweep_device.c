@@ -491,8 +491,8 @@ int wsa_capture_power_spectrum(
 				ppb_count = 0;
 
 
-				spp = header.samples_per_packet;
-
+				spp = header.samples_per_packet * cfg->packets_per_block;
+				printf("spp is: %d \n", spp);
 				/*
 				 * for now, we assume it's an I16 packet
 				 */
@@ -609,7 +609,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
 	uint32_t points;
-	uint32_t ppb = 2;
+	uint32_t ppb = 1;
 	uint32_t divided_points;
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
@@ -639,9 +639,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	if (points < WSA_MIN_SPP)
 		points = WSA_MIN_SPP;
 	divided_points = WSA_MAX_SPP * 2;
+
 	// if the points are greater than the maximum size, use multiple packets per block
 	if (points > WSA_MAX_SPP){
-		
+		ppb = 2;
 		// if we find a number that has a valid spp and ppb
 		while(divided_points > WSA_MAX_SPP){
 			divided_points = points / ppb;
@@ -662,7 +663,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// assign the samples per packet and packets per block
 	pscfg->samples_per_packet = points;
 	pscfg->packets_per_block = ppb;
-
+	printf("spp: %d, ppb %d \n", points, ppb);
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
 
