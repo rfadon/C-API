@@ -59,27 +59,27 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	// grab product model
 	if(strstr(strtok_result, WSA4000) != NULL) {
 		sprintf(dev->descr.prod_model, "%s", WSA4000);
-	} else if(strstr(strtok_result, WSA5000) != NULL) {
-		sprintf(dev->descr.prod_model, "%s", WSA5000);
-		if (strstr(strtok_result, WSA5000108) != NULL)
+	} 
+	
+	else {
+		if(strstr(strtok_result, WSA5000) != NULL)
+			sprintf(dev->descr.prod_model, "%s", WSA5000);
+		else if (strstr(strtok_result, RTSA7500) != NULL)
+			sprintf(dev->descr.prod_model, "%s", RTSA7500);
+		
+		if (strstr(strtok_result, WSA5000108) != NULL ||
+			strstr(strtok_result, WSA5000208) != NULL ||
+			strstr(strtok_result, WSA5000308) != NULL ||
+			strstr(strtok_result, WSA5000408) != NULL ||
+			strstr(strtok_result, WSA5000408P) != NULL ||
+			strstr(strtok_result, RTSA75008) != NULL ||
+			strstr(strtok_result, RTSA75008P) != NULL)
 		{
-			sprintf(dev->descr.dev_model, "%s", WSA5000108);
+			sprintf(dev->descr.dev_model, "%s", WSA5000408);
+			
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
 		} 
 		
-		else if (strstr(strtok_result, WSA5000208) != NULL)
-		{
-			sprintf(dev->descr.dev_model, "%s", WSA5000208);
-			dev->descr.max_tune_freq = (uint64_t) (WSA_5000208_MAX_FREQ * MHZ);
-
-		}
-		else if (strstr(strtok_result, WSA5000408) != NULL)
-		{
-			sprintf(dev->descr.dev_model, "%s", WSA5000408);
-			dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
-
-		}
-
 		else if (strstr(strtok_result, WSA5000220) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000220);
@@ -87,23 +87,26 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 		}
 
-		else if (strstr(strtok_result, WSA5000418) != NULL)
+		else if (strstr(strtok_result, WSA5000418) != NULL || 
+				strstr(strtok_result, RTSA750018) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000418);
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 		}
 
-		else if (strstr(strtok_result, WSA5000427) != NULL)
+		else if (strstr(strtok_result, WSA5000427) != NULL ||
+				strstr(strtok_result, RTSA750027) != NULL)
 		{
 			sprintf(dev->descr.dev_model, "%s", WSA5000427);
+			
 			dev->descr.max_tune_freq = (uint64_t) (WSA_5000427_MAX_FREQ * MHZ);
 		}
 
-	}
-	else
-    {
+		else
+		{
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
+		}
 	}
 
 	// grab product mac address

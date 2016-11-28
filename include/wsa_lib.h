@@ -102,7 +102,7 @@
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA_MAX_SPP 65504
+#define WSA_MAX_SPP 32768
 #define WSA_SPP_MULTIPLE 32
 #define WSA_MIN_SPP 256
 #define WSA_MIN_PPB 1
@@ -169,13 +169,24 @@ enum wsa_gain {
 };
 
 // *****
+// RTSA7500 SPECIFIC
+// *****
+#define RTSA7500 "RTSA7500"
+#define RTSA75008 "RTSA7500-8"
+#define RTSA75008P "RTSA7500-8P"
+#define RTSA750018 "RTSA7500-18"
+#define RTSA750027 "RTSA7500-27"
+
+// *****
 // WSA5000 SPECIFIC
 // *****
 #define WSA5000 "WSA5000"
 #define WSA5000108 "108"
 #define WSA5000208 "208"
 #define WSA5000220 "220"
+#define WSA5000308 "308"
 #define WSA5000408 "408"
+#define WSA5000408P "408P"
 #define WSA5000418 "418"
 #define WSA5000427 "427"
 #define WSA_5000108_MAX_FREQ 8000ULL 

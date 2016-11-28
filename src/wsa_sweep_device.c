@@ -124,7 +124,7 @@ static struct wsa_sweep_device_properties wsa_sweep_device_properties[] = {
 	{ 
 		MODE_DD, SAMPLETYPE_I_ONLY, 1,
 		50ULL*MHZ, 27ULL*GHZ, 10,
-		62500*KHZ, 50*MHZ, 31.25*MHZ, 0*MHZ, 50*MHZ, 
+		62500*KHZ, 50*MHZ, 31250*KHZ, 0*MHZ, 50*MHZ, 
 		1, 1
 	},
 	// list terminator
@@ -220,7 +220,6 @@ struct wsa_sweep_plan *wsa_sweep_plan_entry_new(uint64_t fcstart, uint64_t fcsto
 	plan->fstep = fstep;
 	plan->spp = spp;
 	plan->ppb = ppb;
-
 	plan->dd_mode = dd_mode;
 
 	return plan;
@@ -312,7 +311,8 @@ int wsa_power_spectrum_alloc(
 	}
 
 	// now allocate enough buffer for the spectrum
-	pscfg->buflen = (pscfg->fstop - pscfg->fstart) / pscfg->rbw;
+	pscfg->buflen = (uint32_t) ((pscfg->fstop - pscfg->fstart) / pscfg->rbw);
+
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
 	if (pscfg->buf == NULL) {
 		free(pscfg);
@@ -383,20 +383,21 @@ int wsa_capture_power_spectrum(
 	float **buf
 )
 {
-	int i;
+	uint32_t i;
 	int16_t result;
+	const uint32_t total_samples = cfg->samples_per_packet * cfg->packets_per_block;
 	struct wsa_device *dev = sweep_device->real_device;
 	struct wsa_vrt_packet_header header;
 	struct wsa_vrt_packet_trailer trailer;
 	struct wsa_receiver_packet receiver;
 	struct wsa_digitizer_packet digitizer;
 	struct wsa_extension_packet sweep;
-	int16_t i16_buffer[32768];
-	int16_t q16_buffer[32768];
+	int16_t *i16_buffer;
+	int16_t *q16_buffer;
 	int32_t i32_buffer[32768];
-	kiss_fft_scalar idata[32768];
+	kiss_fft_scalar *idata;
 	kiss_fft_scalar qdata[32768];
-	kiss_fft_cpx fftout[32768];
+	kiss_fft_cpx *fftout;
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
 	uint32_t buf_offset = 0;
@@ -407,6 +408,14 @@ int wsa_capture_power_spectrum(
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;
 	int16_t dd_packet = 0;
+	int32_t ppb_count = 0;
+	int32_t offset = 0;
+
+	// do a malloc to allocate data for each buffer
+	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
+	idata = (kiss_fft_scalar *) malloc(sizeof(kiss_fft_scalar) * total_samples);
+	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * total_samples);
+
 
 	// assign their convienence pointer
 	if (*buf)
@@ -425,12 +434,14 @@ int wsa_capture_power_spectrum(
 	}
 	// get the properties for DD mode
 	dd_prop = wsa_get_sweep_device_properties(8);
+
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
+
 	// read out all the data
 	packet_count = 0;
 	while(1) {
-		if (packet_count == 0 && cfg->sweep_plan->dd_mode == 1)
+		if (packet_count < cfg->packets_per_block && cfg->sweep_plan->dd_mode == 1)
 			dd_packet = 1;
 		else
 			dd_packet = 0;
@@ -439,18 +450,21 @@ int wsa_capture_power_spectrum(
 			for(i=0; i<32768; i++)
 				i16_buffer[i] = 9999;
 		}
+
 		// read a packet
+		offset = cfg->samples_per_packet * ppb_count;
 
 		result = wsa_read_vrt_packet(
 			dev,
 			&header, &trailer, &receiver, &digitizer, &sweep,
-			i16_buffer, q16_buffer, i32_buffer,
+			i16_buffer + offset, q16_buffer, i32_buffer,
 			32768,
-			5000
-		);
+			5000);
+		
+		
 		if (result < 0) {
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
-			return -1;
+			return result;
 		}
 
 		// capture digitizer context packets we need
@@ -471,77 +485,83 @@ int wsa_capture_power_spectrum(
 
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
-		
-			spp = header.samples_per_packet;
-
-			/*
-			 * for now, we assume it's an I16 packet
-			 */
-
-			// window and normalize the data
-			normalize_iq_data(spp,
-					header.stream_id,
-					i16_buffer,
-					q16_buffer,
-					i32_buffer,
-					idata,
-					qdata);
-
-			window_hanning_scalar_array(idata, spp);
-
-			// fft this data
-			rfft(idata, fftout, spp);
-			fftlen = spp >> 1;
-
-			/*
-			 * we used to be in superhet mode, but after a complex FFT, we have twice 
-			 * the spectrum at twice the RBW.
-			 * our fcenter is now moved from center to $passband_center so our start and stop 
-			 * indexes are calculated given that fact
-			 */
-
-			// check for inversion and calculate indexes of our good data
-			if (trailer.spectral_inversion_indicator && dd_packet == 0) {
-				reverse_cpx(fftout, fftlen);
-
-				istart = (prop->full_bw - prop->usable_right) / cfg->rbw;
-				istop = (prop->full_bw - prop->usable_left) / cfg->rbw;
-
-			} else {
-
-				istart = prop->usable_left / cfg->rbw;
-				istop = prop->usable_right / cfg->rbw;
-			}
-
-			ilen = istop - istart;
-			// make sure we don't copy beyond end of buffer
-			if ((buf_offset + ilen) >= cfg->buflen) {
-				// reduce istop by how much it's past
-				istop = istop - ((buf_offset + ilen) - cfg->buflen);
-				ilen = istop - istart;
-			}
-
-			// if we are in DD mode
-			if (dd_packet == 1){
-				istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
-				istop = (uint32_t) (0.8 * spp / 2);
-				buf_offset = 0;
-				ilen = istop - istart;
-
-			}
-			
-			// for the usable section, convert to power, apply reflevel and copy into buffer
-			for (i=0; i<ilen; i++) {
-				tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
-
-				tmpscalar = 2 * power_to_logpower(tmpscalar);
-				cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - KISS_FFT_OFFSET;
-			}
-			buf_offset = buf_offset + ilen;
-			// do we have all our packets?
+			ppb_count++;
 			packet_count++;
+			if (ppb_count == cfg->packets_per_block){
+				ppb_count = 0;
+
+
+				spp = header.samples_per_packet;
+
+				/*
+				 * for now, we assume it's an I16 packet
+				 */
+
+				// window and normalize the data
+				normalize_iq_data(spp,
+						header.stream_id,
+						i16_buffer,
+						q16_buffer,
+						i32_buffer,
+						idata,
+						qdata);
+
+				window_hanning_scalar_array(idata, spp);
+
+				// fft this data
+				rfft(idata, fftout, spp);
+				fftlen = spp >> 1;
+
+				/*
+				 * we used to be in superhet mode, but after a complex FFT, we have twice 
+				 * the spectrum at twice the RBW.
+				 * our fcenter is now moved from center to $passband_center so our start and stop 
+				 * indexes are calculated given that fact
+				 */
+
+				// check for inversion and calculate indexes of our good data
+				if (trailer.spectral_inversion_indicator && dd_packet == 0) {
+					reverse_cpx(fftout, fftlen);
+
+					istart =  (prop->full_bw - prop->usable_right) / ((uint32_t) cfg->rbw);
+					istop = (prop->full_bw - prop->usable_left) / ( (uint32_t) cfg->rbw);
+
+				} else {
+
+					istart = prop->usable_left / ((uint32_t) cfg->rbw);
+					istop = prop->usable_right / ((uint32_t) cfg->rbw);
+				}
+
+				ilen = istop - istart;
+				// make sure we don't copy beyond end of buffer
+				if ((buf_offset + ilen) >= cfg->buflen) {
+					// reduce istop by how much it's past
+					istop = istop - ((buf_offset + ilen) - cfg->buflen);
+					ilen = istop - istart;
+				}
+
+				// if we are in DD mode, the start and stop will be different
+				if (dd_packet == 1){
+					istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
+					istop = (uint32_t) (0.8 * spp / 2);
+					buf_offset = 0;
+					ilen = istop - istart;
+
+				}
 			
+				// for the usable section, convert to power, apply reflevel and copy into buffer
+				for (i=0; i<ilen; i++) {
+					tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
+
+					tmpscalar = 2 * power_to_logpower(tmpscalar);
+					cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - (float) KISS_FFT_OFFSET;
+				}
+				buf_offset = buf_offset + ilen;
+
+			}
+
 			if (packet_count >= cfg->packet_total)
+
 				break;
 		}
 	}
@@ -588,8 +608,9 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
-	unsigned int points;
-
+	uint32_t points;
+	uint32_t ppb = 2;
+	uint32_t divided_points;
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
 	if (prop == NULL) {
@@ -601,31 +622,50 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	 * calculate some helper variables we'll need
 	 */
 
-
-
 	// how wide is halfband for this mode?
 	half_usable_bw = prop->usable_bw >> 1;
 
 	// how many points (fft bins) are in a full band
-	points = prop->full_bw / pscfg->rbw;
+	points = prop->full_bw / ((uint32_t) pscfg->rbw);
 
-	// double points because superheet
+	// make the sample size is a multiple of 32
+	points = (uint32_t) (((uint32_t) (points / WSA_SPP_MULTIPLE)) * WSA_SPP_MULTIPLE);
+	
+	
+	// double points because superhet
 	points = points << 1;
 
 	// test value for size
 	if (points < WSA_MIN_SPP)
 		points = WSA_MIN_SPP;
-	if (points > WSA_MAX_SPP)
-		points = WSA_MAX_SPP;
-    
-	// make sure it's a power of 2
-	points = (uint32_t) pow(2, ((unsigned int)log2(points)));
+	divided_points = WSA_MAX_SPP * 2;
+	// if the points are greater than the maximum size, use multiple packets per block
+	if (points > WSA_MAX_SPP){
+		
+		// if we find a number that has a valid spp and ppb
+		while(divided_points > WSA_MAX_SPP){
+			divided_points = points / ppb;
+			if (divided_points < WSA_MAX_SPP){
+				points = divided_points;
+				break;
+			}
+			ppb = ppb + 2;
+		}
+	}
+ 
+
 
 	// recalc what that actually results in for the rbw
 	pscfg->rbw = ((double) prop->full_bw) / (points / 2);
 	
+	
+	// assign the samples per packet and packets per block
+	pscfg->samples_per_packet = points;
+	pscfg->packets_per_block = ppb;
+
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
+
 	// determine if DD mode is required
 	if (pscfg->fstart < prop->min_tunable)
 	{
@@ -633,10 +673,12 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		fcstart = prop->min_tunable + half_usable_bw - prop->tuning_resolution;
 	}
 	fcstop = pscfg->fstop;
-	
+
+
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
-	fstep = prop->usable_bw - pscfg->rbw;
+	fstep = prop->usable_bw - (uint32_t) pscfg->rbw;
 	fstep = (fstep / prop->tuning_resolution) * prop->tuning_resolution;
+	
 	// force fcstart to a multiple of tuning resolution
 	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
 
@@ -644,6 +686,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
     tmpfreq = ((fcstop - fcstart) / fstep) * fstep;
 
 	fcstop = fcstart + tmpfreq;
+	
+	// if the stop is less than the start, then make the start/stop the same
+	if (fcstop < fcstart)
+		fcstop = fcstart;
 
 	// test if start frequency and stop frequency are valid
 	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
@@ -655,8 +701,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		fcstart = prop->min_tunable + half_usable_bw;
 		fcstop = prop->min_tunable + half_usable_bw;
 	}
+
+
 	// create sweep plan objects for each entry
-	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, 1, dd_mode);
+	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, ppb, dd_mode);
 
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
@@ -680,18 +728,18 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// how many steps on in this plan? loop through the list and count 'em
 
 	pscfg->packet_total = 0;
-
 	// add a packet for DD mode
 	if (dd_mode == 1)
 		pscfg->packet_total = 1;
 	for (plan=pscfg->sweep_plan; plan; plan=plan->next_entry) {
 
-		// inc packet total by (steps * ppb)
+		// if it is frequency step
 		if ((plan->fcstop - plan->fcstart) < plan->fstep)
 			pscfg->packet_total += plan->ppb;
 		else
-			pscfg->packet_total += (((plan->fcstop - plan->fcstart) / plan->fstep) * plan->ppb) + 1;
+			pscfg->packet_total += ((((uint32_t) (plan->fcstop - plan->fcstart)) / plan->fstep) * plan->ppb) + 1;
 	}
+
 	doutf(DHIGH, "wsa_plan_sweep: finished planning the sweep\n");
 	return 0;
 }
@@ -705,7 +753,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
  */
 void wsa_sweep_device_set_attenuator(struct wsa_sweep_device *sweep_device, unsigned int val)
 {
-	sweep_device->device_settings.attenuator = val;
+	sweep_device->device_settings.attenuator = (uint8_t) val;
 }
 
 
@@ -763,12 +811,16 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
 		// set settings
+
 		result = wsa_set_sweep_freq(wsadev, (int64_t) plan_entry->fcstart, (int64_t) plan_entry->fcstop);
-		if (result < 0) fprintf(stderr, "ERROR fstart fstop\n");
-		wsa_set_sweep_freq_step(wsadev, (int64_t)  plan_entry->fstep);
+		if (result < 0) fprintf(stderr, "ERROR %d fstart fstop\n", result);
+		
+		result = wsa_set_sweep_freq_step(wsadev, (int64_t)  plan_entry->fstep);
 		if (result < 0) fprintf(stderr, "ERROR fstep\n");
+		
 		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
 		if (result < 0) fprintf(stderr, "ERROR spp\n");
+		
 		wsa_set_sweep_packets_per_block(wsadev, plan_entry->ppb);
 		if (result < 0) fprintf(stderr, "ERROR ppb\n");
 

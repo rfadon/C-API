@@ -79,6 +79,12 @@ struct wsa_power_spectrum_config {
 	/// how many packets will this sweep plan generate
 	uint32_t packet_total;
 
+	/// The number of packets within each frequency steps
+	uint32_t packets_per_block;
+
+	
+	/// The number of samples per packet
+	uint32_t samples_per_packet;
 	/// the float buffer 
 	float *buf;
 
