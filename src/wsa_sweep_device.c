@@ -508,8 +508,7 @@ int wsa_capture_power_spectrum(
 				 */
 
 				// window and normalize the data
-		/*		for (x = 0; x < (int) spp; x++)
-					printf("%d \n", (int) i16_buffer[x]);*/
+
 				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
 				
 				normalize_iq_data(spp,
@@ -519,6 +518,8 @@ int wsa_capture_power_spectrum(
 						i32_buffer,
 						idata,
 						qdata);
+				for (x = 0; x < (int) spp; x++)
+					printf("%d \n", (int) idata[x]);
 				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
 				window_hanning_scalar_array(idata, spp);
 
