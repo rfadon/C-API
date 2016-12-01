@@ -79,6 +79,7 @@ void normalize_iq_data(int32_t samples_per_packet,
 	{
 		for (i=0; i<samples_per_packet; i++)
 		{
+			
 			idata[i] = ((float) i16_buffer[i]) / normalization_factor;
 		}
 	}

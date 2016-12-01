@@ -393,10 +393,11 @@ int wsa_capture_power_spectrum(
 	struct wsa_digitizer_packet digitizer;
 	struct wsa_extension_packet sweep;
 	int16_t *i16_buffer;
+	int16_t *tmp_buffer;
 	int16_t *q16_buffer;
-	int32_t i32_buffer[32768];
+	int32_t *i32_buffer;
 	kiss_fft_scalar *idata;
-	kiss_fft_scalar qdata[32768];
+	kiss_fft_scalar *qdata;
 	kiss_fft_cpx *fftout;
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
@@ -410,9 +411,12 @@ int wsa_capture_power_spectrum(
 	int16_t dd_packet = 0;
 	int32_t ppb_count = 0;
 	int32_t offset = 0;
+	int x;
 
 	// do a malloc to allocate data for each buffer
 	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
+	tmp_buffer = (int16_t *) malloc(sizeof(int16_t) * cfg->samples_per_packet);
+	doutf(DHIGH, "wsa_capture_power_spectrum: Created I Data buffer sized: %d\n", (int) total_samples);
 	idata = (kiss_fft_scalar *) malloc(sizeof(kiss_fft_scalar) * total_samples);
 	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * total_samples);
 
@@ -447,20 +451,18 @@ int wsa_capture_power_spectrum(
 			dd_packet = 0;
 		// poison the buffers if last packet was a data packet
 		if (header.packet_type == IF_PACKET_TYPE) {
-			for(i=0; i<32768; i++)
+			for(i=0; i<total_samples; i++)
 				i16_buffer[i] = 9999;
 		}
 
 		// read a packet
-		offset = cfg->samples_per_packet * ppb_count;
-
 		result = wsa_read_vrt_packet(
 			dev,
 			&header, &trailer, &receiver, &digitizer, &sweep,
-			i16_buffer + offset, q16_buffer, i32_buffer,
-			32768,
+			tmp_buffer, q16_buffer, i32_buffer,
+			cfg->samples_per_packet,
 			5000);
-		
+
 		
 		if (result < 0) {
 			fprintf(stderr, "error: wsa_read_vrt_packet(): %d\n", result);
@@ -479,39 +481,51 @@ int wsa_capture_power_spectrum(
 			// grab the center frequency for each capture
 			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
 				pkt_fcenter = (uint64_t) receiver.freq;
+				
 
 			}
 		}
 
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
+			doutf(DHIGH, "wsa_capture_power_spectrum: Recieved data packet %0.2f \n", (float) pkt_fcenter);
+			
+			// increase packet count
 			ppb_count++;
 			packet_count++;
+
+			// calculate buffer offset
+			offset = cfg->samples_per_packet * ppb_count;
+
+			// move temporary buffer into the i16 buffer
 			if (ppb_count == cfg->packets_per_block){
 				ppb_count = 0;
-
-
+				
 				spp = header.samples_per_packet * cfg->packets_per_block;
-				printf("spp is: %d \n", spp);
+
 				/*
 				 * for now, we assume it's an I16 packet
 				 */
 
 				// window and normalize the data
+		/*		for (x = 0; x < (int) spp; x++)
+					printf("%d \n", (int) i16_buffer[x]);*/
+				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
+				
 				normalize_iq_data(spp,
 						header.stream_id,
-						i16_buffer,
+						tmp_buffer,
 						q16_buffer,
 						i32_buffer,
 						idata,
 						qdata);
-
+				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
 				window_hanning_scalar_array(idata, spp);
 
 				// fft this data
 				rfft(idata, fftout, spp);
 				fftlen = spp >> 1;
-
+				doutf(DHIGH, "wsa_capture_power_spectrum: applied hanning \n");
 				/*
 				 * we used to be in superhet mode, but after a complex FFT, we have twice 
 				 * the spectrum at twice the RBW.
@@ -565,6 +579,10 @@ int wsa_capture_power_spectrum(
 				break;
 		}
 	}
+	free(fftout);
+	free(idata);
+	free(tmp_buffer);
+	free(i16_buffer);
 
 	return 0;
 }
@@ -604,7 +622,8 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 {
 	struct wsa_sweep_device_properties *prop;
 	struct wsa_sweep_plan *plan;
-	uint64_t fcstart, fcstop, tmpfreq;
+	uint64_t fcstart, fcstop;
+	float tmpfreq;
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
@@ -654,7 +673,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		}
 	}
  
-
+	doutf(DHIGH, "wsa_plan_sweep: calculated spp/ppb: %d, %d\n", (int32_t) points,  (int32_t) ppb);
 
 	// recalc what that actually results in for the rbw
 	pscfg->rbw = ((double) prop->full_bw) / (points / 2);
@@ -663,7 +682,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// assign the samples per packet and packets per block
 	pscfg->samples_per_packet = points;
 	pscfg->packets_per_block = ppb;
-	printf("spp: %d, ppb %d \n", points, ppb);
+	
 	// change the start and stop they want into center start and stops
 	fcstart = pscfg->fstart + half_usable_bw;
 
@@ -675,22 +694,22 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	}
 	fcstop = pscfg->fstop;
 
-
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
 	fstep = prop->usable_bw - (uint32_t) pscfg->rbw;
 	fstep = (fstep / prop->tuning_resolution) * prop->tuning_resolution;
 	
 	// force fcstart to a multiple of tuning resolution
 	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
-
+	
 	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
-    tmpfreq = ((fcstop - fcstart) / fstep) * fstep;
-
-	fcstop = fcstart + tmpfreq;
+    tmpfreq =  (((float) (fcstop) -  (float) (fcstart)) /  (float)(fstep)) *  (float) (fstep);
+	fcstop = fcstart + (uint64_t) tmpfreq;
 	
 	// if the stop is less than the start, then make the start/stop the same
+
 	if (fcstop < fcstart)
 		fcstop = fcstart;
+	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %0.2f, %0.2f\n", (float) fcstart,  (float) fcstop);
 
 	// test if start frequency and stop frequency are valid
 	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
@@ -731,16 +750,19 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	pscfg->packet_total = 0;
 	// add a packet for DD mode
 	if (dd_mode == 1)
-		pscfg->packet_total = 1;
+		pscfg->packet_total = ppb;
 	for (plan=pscfg->sweep_plan; plan; plan=plan->next_entry) {
 
 		// if it is frequency step
-		if ((plan->fcstop - plan->fcstart) < plan->fstep)
+		if ((plan->fcstop - plan->fcstart) <= plan->fstep){
 			pscfg->packet_total += plan->ppb;
-		else
-			pscfg->packet_total += ((((uint32_t) (plan->fcstop - plan->fcstart)) / plan->fstep) * plan->ppb) + 1;
-	}
+		}
+		else{
+			pscfg->packet_total += ( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
 
+		}
+	}
+	doutf(DHIGH, "wsa_plan_sweep: packet total: %d\n", (int32_t) pscfg->packet_total);
 	doutf(DHIGH, "wsa_plan_sweep: finished planning the sweep\n");
 	return 0;
 }
@@ -812,7 +834,6 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
 		// set settings
-
 		result = wsa_set_sweep_freq(wsadev, (int64_t) plan_entry->fcstart, (int64_t) plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR %d fstart fstop\n", result);
 		
