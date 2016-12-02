@@ -496,7 +496,8 @@ int wsa_capture_power_spectrum(
 
 			// calculate buffer offset
 			offset = cfg->samples_per_packet * ppb_count;
-
+			for (x = 0; x < cfg->samples_per_packet; x++)
+				idata[x] = ((float) tmp_buffer[x]) / 8192;
 			// move temporary buffer into the i16 buffer
 			if (ppb_count == cfg->packets_per_block){
 				ppb_count = 0;
@@ -510,21 +511,13 @@ int wsa_capture_power_spectrum(
 				// window and normalize the data
 
 				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
-				
-				normalize_iq_data(spp,
-						header.stream_id,
-						tmp_buffer,
-						q16_buffer,
-						i32_buffer,
-						idata,
-						qdata);
-				for (x = 0; x < (int) spp; x++)
-					printf("%d \n", (int) idata[x]);
+
 				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
 				window_hanning_scalar_array(idata, spp);
 
 				// fft this data
 				rfft(idata, fftout, spp);
+
 				fftlen = spp >> 1;
 				doutf(DHIGH, "wsa_capture_power_spectrum: applied hanning \n");
 				/*
@@ -563,14 +556,30 @@ int wsa_capture_power_spectrum(
 					ilen = istop - istart;
 
 				}
-			
+				// for the usable section, convert to power, apply reflevel and copy into buffer
+				if(dd_packet == 1){
+					for (i=0; i<= (spp / 2); i++) {
+						tmpscalar = cpx_to_power(fftout[i]) / spp;
+						tmpscalar = 2 * power_to_logpower(tmpscalar);
+							if (tmpscalar >= -50.0)
+								printf("%d, %0.6f \n",i, tmpscalar);
+
+					}
+				}
+
+
+
+
 				// for the usable section, convert to power, apply reflevel and copy into buffer
 				for (i=0; i<ilen; i++) {
 					tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
 
 					tmpscalar = 2 * power_to_logpower(tmpscalar);
+					//if(dd_packet == 1)
+					//	printf("%0.6f \n",tmpscalar);
 					cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - (float) KISS_FFT_OFFSET;
 				}
+				doutf(DHIGH, "wsa_capture_power_spectrum: calculated dBm\n");
 				buf_offset = buf_offset + ilen;
 
 			}
@@ -628,6 +637,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
+
 	uint32_t points;
 	uint32_t ppb = 1;
 	uint32_t divided_points;
@@ -717,12 +727,12 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting \n");
 		return -EFREQOUTOFRANGE;
 	}
+	
+	// if only a dd packet is required
 	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable + half_usable_bw))
-	{
-		fcstart = prop->min_tunable + half_usable_bw;
-		fcstop = prop->min_tunable + half_usable_bw;
-	}
-
+		pscfg->only_dd = 1;
+	else
+		pscfg->only_dd = 0;
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, ppb, dd_mode);
@@ -763,6 +773,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 		}
 	}
+
+	// if there is only a dd entry
+	if (pscfg->only_dd)
+		pscfg->packet_total = ppb;
 	doutf(DHIGH, "wsa_plan_sweep: packet total: %d\n", (int32_t) pscfg->packet_total);
 	doutf(DHIGH, "wsa_plan_sweep: finished planning the sweep\n");
 	return 0;
@@ -848,7 +862,8 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 		if (result < 0) fprintf(stderr, "ERROR ppb\n");
 
 		// save to end of list
-		wsa_sweep_entry_save(wsadev, 0);
+		if (cfg->only_dd != 1) 
+			wsa_sweep_entry_save(wsadev, 0);
 	}
 
 	return 0;

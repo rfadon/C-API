@@ -61,6 +61,10 @@ struct wsa_sweep_device {
 
 /// struct representing a configuration that we are going to sweep with and capture power spectrum data
 struct wsa_power_spectrum_config {
+
+	// keep track if only a dd packet is available
+	uint8_t only_dd;
+
 	/// the mode to perform the sweep in
 	uint32_t mode;
 
