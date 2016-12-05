@@ -102,7 +102,7 @@
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
 // and also need to allow room for VRT header and trailer bytes
-#define WSA_MAX_SPP 6400
+#define WSA_MAX_SPP 64000
 #define WSA_SPP_MULTIPLE 32
 #define WSA_MIN_SPP 256
 #define WSA_MIN_PPB 1

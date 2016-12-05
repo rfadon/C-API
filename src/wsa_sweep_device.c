@@ -498,6 +498,7 @@ int wsa_capture_power_spectrum(
 			offset = cfg->samples_per_packet * ppb_count;
 			for (x = 0; x < cfg->samples_per_packet; x++)
 				idata[x] = ((float) tmp_buffer[x]) / 8192;
+
 			// move temporary buffer into the i16 buffer
 			if (ppb_count == cfg->packets_per_block){
 				ppb_count = 0;
@@ -509,17 +510,13 @@ int wsa_capture_power_spectrum(
 				 */
 
 				// window and normalize the data
-
-				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
-
-				doutf(DHIGH, "wsa_capture_power_spectrum: Normalized data \n");
 				window_hanning_scalar_array(idata, spp);
 
 				// fft this data
 				rfft(idata, fftout, spp);
 
 				fftlen = spp >> 1;
-				doutf(DHIGH, "wsa_capture_power_spectrum: applied hanning \n");
+
 				/*
 				 * we used to be in superhet mode, but after a complex FFT, we have twice 
 				 * the spectrum at twice the RBW.
@@ -574,7 +571,7 @@ int wsa_capture_power_spectrum(
 					cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - (float) KISS_FFT_OFFSET;
 
 				}
-				doutf(DHIGH, "wsa_capture_power_spectrum: calculated dBm\n");
+
 				buf_offset = buf_offset + ilen;
 
 			}
@@ -654,7 +651,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	points = prop->full_bw / ((uint32_t) pscfg->rbw);
 
 	// make the sample size is a multiple of 32
-	points = (uint32_t) (((uint32_t) (points / WSA_SPP_MULTIPLE)) * WSA_SPP_MULTIPLE);
+	points = (uint32_t) ((((uint32_t) (points / WSA_SPP_MULTIPLE)) * WSA_SPP_MULTIPLE) + WSA_SPP_MULTIPLE);
 	
 	
 	// double points because superhet
