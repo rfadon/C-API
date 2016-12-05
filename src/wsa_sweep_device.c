@@ -561,23 +561,18 @@ int wsa_capture_power_spectrum(
 					for (i=0; i<= (spp / 2); i++) {
 						tmpscalar = cpx_to_power(fftout[i]) / spp;
 						tmpscalar = 2 * power_to_logpower(tmpscalar);
-							if (tmpscalar >= -50.0)
-								printf("%d, %0.6f \n",i, tmpscalar);
 
 					}
 				}
-
-
-
 
 				// for the usable section, convert to power, apply reflevel and copy into buffer
 				for (i=0; i<ilen; i++) {
 					tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
 
 					tmpscalar = 2 * power_to_logpower(tmpscalar);
-					//if(dd_packet == 1)
-					//	printf("%0.6f \n",tmpscalar);
+;
 					cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - (float) KISS_FFT_OFFSET;
+
 				}
 				doutf(DHIGH, "wsa_capture_power_spectrum: calculated dBm\n");
 				buf_offset = buf_offset + ilen;
@@ -585,10 +580,10 @@ int wsa_capture_power_spectrum(
 			}
 
 			if (packet_count >= cfg->packet_total)
-
 				break;
 		}
 	}
+
 	free(fftout);
 	free(idata);
 	free(tmp_buffer);
@@ -672,16 +667,8 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 	// if the points are greater than the maximum size, use multiple packets per block
 	if (points > WSA_MAX_SPP){
-		ppb = 2;
-		// if we find a number that has a valid spp and ppb
-		while(divided_points > WSA_MAX_SPP){
-			divided_points = points / ppb;
-			if (divided_points < WSA_MAX_SPP){
-				points = divided_points;
-				break;
-			}
-			ppb = ppb + 2;
-		}
+		ppb = 1;
+		points = WSA_MAX_SPP;
 	}
  
 	doutf(DHIGH, "wsa_plan_sweep: calculated spp/ppb: %d, %d\n", (int32_t) points,  (int32_t) ppb);
@@ -713,14 +700,14 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	fcstart = (fcstart / prop->tuning_resolution) * prop->tuning_resolution;
 	
 	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
-    tmpfreq =  (((float) (fcstop) -  (float) (fcstart)) /  (float)(fstep)) *  (float) (fstep);
+    tmpfreq =  ((((float) (fcstop) -  (float) (fcstart)) /  (float)(fstep)) *  (float) (fstep)) + ((float) fstep);
 	fcstop = fcstart + (uint64_t) tmpfreq;
 	
 	// if the stop is less than the start, then make the start/stop the same
 
 	if (fcstop < fcstart)
 		fcstop = fcstart;
-	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %0.2f, %0.2f\n", (float) fcstart,  (float) fcstop);
+	
 
 	// test if start frequency and stop frequency are valid
 	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
@@ -736,7 +723,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, ppb, dd_mode);
-
+	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %u, %llu\n",  fcstart,  fcstop);
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
@@ -777,6 +764,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// if there is only a dd entry
 	if (pscfg->only_dd)
 		pscfg->packet_total = ppb;
+
 	doutf(DHIGH, "wsa_plan_sweep: packet total: %d\n", (int32_t) pscfg->packet_total);
 	doutf(DHIGH, "wsa_plan_sweep: finished planning the sweep\n");
 	return 0;
