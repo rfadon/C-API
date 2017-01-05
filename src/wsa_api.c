@@ -812,15 +812,6 @@ int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
 {
 	struct wsa_resp query;
 	wsa_send_query(dev, "SYST:CAPT:MODE?\n", &query);
-	
-	if (strcmp(query.output, WSA_BLOCK_CAPTURE_MODE) == 0 || 
-		strcmp(query.output, WSA_STREAM_CAPTURE_MODE) == 0 ||
-		strcmp(query.output, WSA_SWEEP_CAPTURE_MODE) == 0)
-		strcpy(mode, query.output);
-	
-	else
-		return WSA_ERR_RESPUNKNOWN;
-
 	return 0;
 }
 
@@ -1292,8 +1283,7 @@ int16_t wsa_set_samples_per_packet(struct wsa_device *dev, int32_t samples_per_p
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 
-	if ((samples_per_packet < WSA_MIN_SPP) || 
-		(samples_per_packet > WSA_MAX_SPP) || ((samples_per_packet % WSA_SPP_MULTIPLE) != 0))
+	if ((samples_per_packet < WSA_MIN_SPP) || (samples_per_packet > WSA_MAX_SPP))
 		return WSA_ERR_INVSAMPLESIZE;
 	
 	sprintf(temp_str, "TRACE:SPPACKET %u\n", samples_per_packet);
@@ -1330,12 +1320,6 @@ int16_t wsa_get_samples_per_packet(struct wsa_device *dev, int32_t *samples_per_
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	// Verify the validity of the return value
-	if ((temp < WSA_MIN_SPP) || (temp > WSA_MAX_SPP)) {
-		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-
 	*samples_per_packet = (int32_t) temp;
 
 	return 0;
@@ -1360,11 +1344,12 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
 	
-	if (packets_per_block < WSA_MIN_PPB) {
+	if (packets_per_block < WSA_MIN_PPB) 
 		return WSA_ERR_INVNUMBER;
-	} else if (packets_per_block > WSA_MAX_PPB) {
+
+	else if (packets_per_block > WSA_MAX_PPB) 
 		return WSA_ERR_INVCAPTURESIZE;
-    }
+
 
 	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
@@ -1432,14 +1417,6 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	// make sure the returned value is valid
-	if (((temp != 1) && (temp < dev->descr.min_decimation)) || 
-		(temp > dev->descr.max_decimation)) 
-	{
-		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-
 	*rate = (int32_t) temp;
 
 	return 0;
@@ -1461,11 +1438,11 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
 	char temp_str[MAX_STR_LEN];
 
 	// TODO get min & max rate
-	if (((rate != 1) && (rate < dev->descr.min_decimation)) || 
-		(rate > dev->descr.max_decimation))
+	if (((rate != 1) && (rate < dev->descr.min_decimation)) || (rate > dev->descr.max_decimation))
 		return WSA_ERR_INVDECIMATIONRATE;
 
 	sprintf(temp_str, "SENSE:DEC %d \n", rate);
+
 	result = wsa_send_command(dev, temp_str);
     if (result < 0) {
 	    doutf(DHIGH, "In wsa_set_decimation: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1501,12 +1478,6 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
 		printf("Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-
-	// Verify the validity of the return value
-	if ((temp < dev->descr.min_tune_freq) || (temp > dev->descr.max_tune_freq)) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -1727,146 +1698,6 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 }
 
 
-/**
- * Gets the current IF gain value of the RFE in dB.
- *
- * @param dev - A pointer to the WSA device structure.
- * @param gain - An integer pointer to store the IF gain value.
- *
- * @return The gain value in dB, or a large negative number on error.
- */
-int16_t wsa_get_gain_if(struct wsa_device *dev, int32_t *gain)
-{
-	struct wsa_resp query;		// store query results
-	int temp;
-
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0) {
-		return WSA_ERR_INV5000COMMAND;
-    }
-
-	wsa_send_query(dev, "INPUT:GAIN:IF?\n", &query);
-	if (query.status <= 0) {
-		return (int16_t) query.status;
-    }
-
-	// Convert the number & make sure no error
-	if (wsa_to_int(query.output, &temp) < 0) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-	
-	// Verify the validity of the return value
-	if (((int32_t) temp < dev->descr.min_if_gain) || 
-		((int32_t) temp > dev->descr.max_if_gain))
-	{
-		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-	
-	*gain = (int32_t) temp;
-
-	return 0;
-}
-
-
-/**
- * Sets the gain value in dB for the variable IF gain stages of the RFE, which 
- * is additive to the primary RF quantized gain stages (wsa_set_gain_rf()).
- *
- * @param dev - A pointer to the WSA device structure.
- * @param gain - The gain level in dB.
- * @remarks See the \b descr component of \b wsa_dev structure for 
- * maximum/minimum IF gain values.
- *
- * @return 0 on success, or a negative number on error.
- * @par Errors:
- * - Gain level out of range.
- */
-int16_t wsa_set_gain_if(struct wsa_device *dev, int32_t gain)
-{
-	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
-	
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0) {
-		return WSA_ERR_INV5000COMMAND;
-    }
-
-	if ((gain < dev->descr.min_if_gain) || (gain > dev->descr.max_if_gain)) {
-		return WSA_ERR_INVIFGAIN;
-    }
-
-	sprintf(temp_str, "INPUT:GAIN:IF %d dB\n", gain);
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-        doutf(DHIGH, "In wsa_set_gain_if: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-
-	return result;
-}
-
-
-/**
- * Gets the current quantized RF front end gain setting of the RFE.
- *
- * @param dev - A pointer to the WSA device structure.
- * @param gain - A char pointer to store the current RF gain setting.
- *
- * @return 0 on successful, or a negative number on error.
- */
-int16_t wsa_get_gain_rf(struct wsa_device *dev, char *gain)
-{
-	struct wsa_resp query;		// store query results
-
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
-	wsa_send_query(dev, "INPUT:GAIN:RF?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-	strcpy(gain,query.output);
-
-	if (strcmp(gain, WSA_GAIN_VLOW_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_LOW_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_MED_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_HIGH_STRING) != 0)
-		return WSA_ERR_INVRFGAIN;
-
-	return 0;
-}
-
-
-/**
- * Sets the quantized \b gain (sensitivity) level for the RFE of the WSA. \n
- * Valid RF gain settings are HIGH, MEDium, LOW, and VLOW
- *
- * @param dev - A pointer to the WSA device structure.
- * @param gain - A char pointer containing the rf gain setting\n
- * 
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_set_gain_rf(struct wsa_device *dev, char const * gain)
-{
-	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
-	if (strcmp(gain, WSA_GAIN_VLOW_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_LOW_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_MED_STRING) != 0 &&
-		strcmp(gain, WSA_GAIN_HIGH_STRING) != 0)
-		return WSA_ERR_INVRFGAIN;
-
-	sprintf(temp_str, "INPUT:GAIN:RF %s\n", gain);
-
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-        doutf(DHIGH, "In wsa_set_gain_rf: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-
-	return result;
-}
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -2245,24 +2076,29 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state)
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-	
-	if (strcmp(sync_state, WSA_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_state,  WSA_SLAVE_TRIGGER) == 0) 
+	struct wsa_resp query;
+	int32_t temp;
+
 		
-		sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
+	sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
 	
-	else
-		return WSA_ERR_INVTRIGGERSYNC;
-
 	result = wsa_send_command(dev, temp_str);
-    if (result < 0) {
-        doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
+	
+	// Convert the number & make sure no error
+	if (wsa_to_int(query.output, &temp) < 0) {
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
 
+    if (result < 0) 
+        doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
+    
+	*sync_state = temp;
+	
 	return result;
 }
 
@@ -2271,11 +2107,11 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_stat
  * Retrieve the WSA's current synchronization state
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_state - The  trigger synchronization state (MASTER or SLAVE) 
+ * @param sync_state - The  trigger synchronization state ( 0 for SLAVE, 1 FOR MASTERE) 
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state)
+int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 {
 	struct wsa_resp query;
 	
@@ -2501,19 +2337,7 @@ int16_t wsa_get_temperature(struct wsa_device *dev, float* rfe_temp, float* mixe
 int16_t wsa_stream_start(struct wsa_device * const dev)
 {
 	int16_t result = 0;
-	char capture_mode[MAX_STR_LEN];
 	
-	// retrieve wsa capture mode
-	result = wsa_get_capture_mode(dev, capture_mode);
-	if (result < 0)
-		return result;
-	
-	if (strcmp(capture_mode, WSA_STREAM_CAPTURE_MODE) == 0)
-		return WSA_ERR_STREAMALREADYRUNNING;
-
-	else if (strcmp(capture_mode, WSA_SWEEP_CAPTURE_MODE) == 0)
-		return WSA_ERR_STREAMWHILESWEEPING;
-
 	result = wsa_send_command(dev, "TRACE:STREAM:START\n");
 	if (result < 0) {
         doutf(DHIGH, "Error in wsa_stream_start: %d - %s\n", result, wsa_get_error_msg(result));

@@ -168,6 +168,8 @@ enum wsa_gain {
 	WSA_GAIN_VLOW
 };
 
+// R5500 SPECIFIC
+#define WSA5500 "WSA5500"
 // *****
 // RTSA7500 SPECIFIC
 // *****
@@ -176,6 +178,7 @@ enum wsa_gain {
 #define RTSA75008P "RTSA7500-8P"
 #define RTSA750018 "RTSA7500-18"
 #define RTSA750027 "RTSA7500-27"
+
 
 // *****
 // WSA5000 SPECIFIC

@@ -412,7 +412,7 @@ int wsa_capture_power_spectrum(
 	int32_t ppb_count = 0;
 	int32_t offset = 0;
 	int x;
-
+	
 	// do a malloc to allocate data for each buffer
 	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
 	tmp_buffer = (int16_t *) malloc(sizeof(int16_t) * cfg->samples_per_packet);
@@ -438,12 +438,13 @@ int wsa_capture_power_spectrum(
 	}
 	// get the properties for DD mode
 	dd_prop = wsa_get_sweep_device_properties(8);
-
+	
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-
+	
 	// read out all the data
 	packet_count = 0;
+	
 	while(1) {
 		if (packet_count < cfg->packets_per_block && cfg->sweep_plan->dd_mode == 1)
 			dd_packet = 1;
@@ -544,7 +545,7 @@ int wsa_capture_power_spectrum(
 					istop = istop - ((buf_offset + ilen) - cfg->buflen);
 					ilen = istop - istart;
 				}
-
+				
 				// if we are in DD mode, the start and stop will be different
 				if (dd_packet == 1){
 					istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
@@ -553,21 +554,14 @@ int wsa_capture_power_spectrum(
 					ilen = istop - istart;
 
 				}
-				// for the usable section, convert to power, apply reflevel and copy into buffer
-				if(dd_packet == 1){
-					for (i=0; i<= (spp / 2); i++) {
-						tmpscalar = cpx_to_power(fftout[i]) / spp;
-						tmpscalar = 2 * power_to_logpower(tmpscalar);
-
-					}
-				}
-
+				
 				// for the usable section, convert to power, apply reflevel and copy into buffer
 				for (i=0; i<ilen; i++) {
 					tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
 
 					tmpscalar = 2 * power_to_logpower(tmpscalar);
-;
+					if (buf_offset + i > cfg->buflen)
+						break;
 					cfg->buf[buf_offset + i] = tmpscalar + pkt_reflevel - (float) KISS_FFT_OFFSET;
 
 				}
@@ -629,11 +623,12 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
-
+	uint32_t add_packet = 0;
 	uint32_t points;
 	uint32_t ppb = 1;
 	uint32_t divided_points;
 	// try to get device properties for this mode
+	
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
 	if (prop == NULL) {
 		doutf(DHIGH, "wsa_plan_sweep: Unsupported RFE MODE \n");
@@ -701,10 +696,14 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	fcstop = fcstart + (uint64_t) tmpfreq;
 	
 	// if the stop is less than the start, then make the start/stop the same
-
 	if (fcstop < fcstart)
 		fcstop = fcstart;
-	
+
+	// if the configuration stop is less then the fcstart, make fcstop same as fcstop
+	if (pscfg->fstop  <= fcstart){
+		fcstop = fcstart;
+		add_packet = 1;
+	}
 
 	// test if start frequency and stop frequency are valid
 	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
@@ -713,14 +712,14 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	}
 	
 	// if only a dd packet is required
-	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable + half_usable_bw))
+	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable))
 		pscfg->only_dd = 1;
 	else
 		pscfg->only_dd = 0;
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, ppb, dd_mode);
-	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %u, %llu\n",  fcstart,  fcstop);
+	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %u, %u\n",  fcstart,  fcstop);
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
@@ -745,25 +744,27 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	pscfg->packet_total = 0;
 	// add a packet for DD mode
 	if (dd_mode == 1)
-		pscfg->packet_total = ppb;
+		pscfg->packet_total = pscfg->packet_total + ppb;
 	for (plan=pscfg->sweep_plan; plan; plan=plan->next_entry) {
 
 		// if it is frequency step
 		if ((plan->fcstop - plan->fcstart) <= plan->fstep){
 			pscfg->packet_total += plan->ppb;
 		}
-		else{
+		else {
 			pscfg->packet_total += ( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
 
 		}
 	}
 
 	// if there is only a dd entry
-	if (pscfg->only_dd)
+	if (pscfg->only_dd){
+		doutf(DHIGH, "wsa_plan_sweep: only read 1 dead packet\n");
 		pscfg->packet_total = ppb;
-
+	}
 	doutf(DHIGH, "wsa_plan_sweep: packet total: %d\n", (int32_t) pscfg->packet_total);
 	doutf(DHIGH, "wsa_plan_sweep: finished planning the sweep\n");
+	
 	return 0;
 }
 

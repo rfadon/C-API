@@ -6,7 +6,7 @@
 #define __WSA_DEBUG_H__
 
 #ifndef DEBUGLEVEL
-#define DEBUGLEVEL 0
+#define DEBUGLEVEL 1
 #endif
 
 // Different debug levels
