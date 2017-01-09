@@ -549,7 +549,13 @@ int wsa_capture_power_spectrum(
 				// if we are in DD mode, the start and stop will be different
 				if (dd_packet == 1){
 					istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
-					istop = (uint32_t) (0.8 * spp / 2);
+
+					doutf(DHIGH, "wsa_capture_power_spectrum: calculated istart %0.2f \n", (float) istart);
+					if (cfg->fstop >  (float) prop->min_tunable)
+						istop = (uint32_t) (0.8 * spp / 2);
+					else
+						istop = (uint32_t) (((float)cfg->fstop /  (float) prop->full_bw) * (spp / 2)) - 1;
+
 					buf_offset = 0;
 					ilen = istop - istart;
 
@@ -557,7 +563,9 @@ int wsa_capture_power_spectrum(
 				
 				// for the usable section, convert to power, apply reflevel and copy into buffer
 				for (i=0; i<ilen; i++) {
-					tmpscalar = cpx_to_power(fftout[i+ (int) istart]) / spp;
+					if (i + istart > (spp / 2))
+						break;
+					tmpscalar = cpx_to_power(fftout[i + istart]) / spp;
 
 					tmpscalar = 2 * power_to_logpower(tmpscalar);
 					if (buf_offset + i > cfg->buflen)
