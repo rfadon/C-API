@@ -1413,7 +1413,7 @@ int16_t wsa_get_decimation(struct wsa_device *dev, int32_t *rate)
 
 	// convert & make sure no error
 	if (wsa_to_int(query.output, &temp) < 0) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+		doutf(DHIGH, "Error: WSA rejhturned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
@@ -2072,7 +2072,7 @@ int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
  * Set the WSA's current synchronization state
  *
  * @param dev - A pointer to the WSA device structure.
- * @param sync_state - The synchronization state (MASTER or SLAVE) 
+ * @param sync_state - The synchronization state (0 for SLAVE or 1 for MASTER) 
  * 
  * @return 0 on success, or a negative number on error.
  */
@@ -2080,25 +2080,15 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-	struct wsa_resp query;
-	int32_t temp;
 
 		
 	sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
 	
 	result = wsa_send_command(dev, temp_str);
-	
-	// Convert the number & make sure no error
-	if (wsa_to_int(query.output, &temp) < 0) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
 
     if (result < 0) 
         doutf(DHIGH, "In wsa_set_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
-    
-	*sync_state = temp;
-	
+ 
 	return result;
 }
 
@@ -2116,17 +2106,12 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 	struct wsa_resp query;
 	
 	wsa_send_query(dev, "TRIGGER:SYNC?\n", &query);
+	
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
 	strcpy(sync_state, query.output);
-	
-	if (strcmp(sync_state, WSA_MASTER_TRIGGER) != 0 && 
-		strcmp(sync_state,  WSA_SLAVE_TRIGGER) != 0) 
-
-		return WSA_ERR_INVTRIGGERSYNC;
-	else
-		return 0;
+	return 0;
 
 }
 
@@ -2412,21 +2397,6 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 		return result;
 	}
 
-	doutf(DHIGH, "Clearing socket buffer... ");
-	
-	//flush remaining data in the wsa
-	result = wsa_flush_data(dev); 
-	if (result < 0) {
-		return result;
-    }
-	
-	// clean remaining data in the data socket socket
-	result = wsa_clean_data_socket(dev);
-	if (result < 0) {
-		return result;
-    }
-
-	doutf(DHIGH, "done.\n");
 	return 0;
 }
 
@@ -2501,74 +2471,6 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 	
 	return result;
 }
-
-
-/**
- * Get the IF gain currently set in the sweep entry template
- *
- * @param dev - A pointer to the WSA device structure
- * @param gain - An integer to store the IF gain value
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain)
-{
-	struct wsa_resp query;		// store query results
-	int temp;
-
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
-	wsa_send_query(dev, "SWEEP:ENTRY:GAIN:IF?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
-	// Convert the number & make sure no error
-	if (wsa_to_int(query.output, &temp) < 0) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-	
-	// Verify the validity of the return value
-	if (temp < dev->descr.min_if_gain || temp > dev->descr.max_if_gain) 
-	{
-		doutf(DHIGH, "Error: WSA returned '%d'.\n", temp);
-		return WSA_ERR_RESPUNKNOWN;
-	}
-	
-	*gain = (int32_t) temp;
-
-	return 0;
-}
-
-
-/**
- * Set the IF gain to the sweep entry template
- *
- * @param dev - A pointer to the WSA device structure
- * @param gain - An integer to store the IF gain value
- *
- * @return 0 on success, or a negative number on error
- */
-int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain)
-{
-	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
-	
-	if (strcmp(dev->descr.prod_model,WSA5000) == 0)
-		return WSA_ERR_INV5000COMMAND;
-
-	if (gain < dev->descr.min_if_gain || gain > dev->descr.max_if_gain)
-		return WSA_ERR_INVIFGAIN;
-
-	sprintf(temp_str, "SWEEP:ENTRY:GAIN:IF %d\n", gain);
-	result = wsa_send_command(dev, temp_str);
-	doutf(DHIGH, "In wsa_set_sweep_gain_if: %d - %s.\n", result, wsa_get_error_msg(result));
-
-	return result;
-}
-
-
 
 
 /**
@@ -3319,61 +3221,6 @@ int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay)
 }
 
 
-/**
- * Set the WSA's current synchronization state in the sweep entry
- *
- * @param dev - A pointer to the WSA device structure.
- * @param sync_state - The synchronization state (MASTER/SLAVE) 
- * 
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_set_sweep_trigger_sync_state(struct wsa_device *dev, char const *sync_state)
-{
-	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
-	
-	if (strcmp(sync_state, WSA_MASTER_TRIGGER) == 0 || 
-		strcmp(sync_state,  WSA_SLAVE_TRIGGER) == 0) 
-		
-		sprintf(temp_str, "SWEEP:LIST:TRIGGER:SYNC %s \n", sync_state);
-	
-	else
-		return WSA_ERR_INVTRIGGERSYNC;
-
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-        doutf(DHIGH, "In wsa_set_sweep_trigger_sync_state: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-
-	return result;
-}
-
-
-/**
- * Retrieve the WSA's current synchronization state in the sweep entry
- *
- * @param dev - A pointer to the WSA device structure.
- * @param sync_state - The  trigger synchronization mode (MASTER/SLAVE) 
- * 
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_get_sweep_trigger_sync_state(struct wsa_device *dev, char *sync_state)
-{
-	struct wsa_resp query;
-	
-	wsa_send_query(dev, "SWEEP:LIST:TRIGGER:SYNC?\n", &query);
-	if (query.status <= 0)
-		return (int16_t) query.status;
-	
-	strcpy(sync_state, query.output);
-	
-	if (strcmp(sync_state, WSA_MASTER_TRIGGER) != 0 || 
-		strcmp(sync_state,  WSA_SLAVE_TRIGGER) != 0) 
-
-		return WSA_ERR_INVTRIGGERSYNC;
-	else
-		return 0;
-}
 
 
 /**
@@ -3680,7 +3527,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	doutf(DHIGH, "Clearing socket buffer... ");
 	
 	// flush remaining data in the wsa
-	result = wsa_flush_data(dev); 
+
 	if (result < 0) {
 		return result;
     }
@@ -3694,41 +3541,6 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	doutf(DHIGH, "done.\n");
 	
 	return 0;
-}
-
-
-/**
- * Resume sweeping through the current sweep list starting
- * from the entry ID where the sweep engine stopped at
- *
- * @param dev - A pointer to the WSA device structure.
- *
- * @return 0 on success, or a negative number on error.
- */
-int16_t wsa_sweep_resume(struct wsa_device *dev) 
-{
-	int16_t result = 0;
-	char status[40];
-	int32_t size = 0;
-
-	result = wsa_get_sweep_status(dev, status);
-	if (result < 0)
-		return result;
-	if (strcmp(status, WSA_SWEEP_STATE_RUNNING) == 0) 
-		return WSA_ERR_SWEEPALREADYRUNNING;
-
-	result = wsa_get_sweep_entry_size(dev, &size);
-	if (result < 0)
-		return result;
-	if (size <= 0)
-		return WSA_ERR_SWEEPLISTEMPTY;
-
-	result = wsa_send_command(dev, "SWEEP:LIST:RESUME\n");
-    if (result < 0) {
-        doutf(DHIGH, "In wsa_sweep_resume: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-
-    return result;
 }
 
 
