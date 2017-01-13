@@ -128,7 +128,7 @@ void correct_dc_offset(int32_t samples_per_packet,
  */
 kiss_fft_scalar window_hanning_scalar(kiss_fft_scalar value, int len, int index)
 {
-	return value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1)));
+	return (float) (value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
 }
 
 
@@ -157,7 +157,7 @@ void window_hanning_scalar_array(kiss_fft_scalar *values, int len)
  */
 void window_hanning_cpx(kiss_fft_cpx *value, int len, int index)
 {
-	float mult = 0.5 * (1 - cosf(2 * M_PI * index / (len - 1)));
+	float mult =(float) (0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
 
 	value->r = value->r * mult;
 	value->i = value->i * mult;
@@ -250,12 +250,12 @@ int rfft(kiss_fft_scalar *idata, kiss_fft_cpx *fftdata, int len)
  */
 kiss_fft_scalar cpx_to_power(kiss_fft_cpx value)
 {
-	return sqrt((value.r * value.r) + (value.i * value.i));
+	return (float) (sqrt((value.r * value.r) + (value.i * value.i)));
 }
 
 
 kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
-	return 10 * log10(value);
+	return  (float) (10 * log10(value));
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -333,11 +333,11 @@ int16_t psd_calculate_channel_power(uint32_t start_bin,
 	// find the linear sum of the squares
 	for (i = 0; i < data_size; i++){
 		if (i >= start_bin && i <= stop_bin){
-			tmp_float = pow(10,  (spectral_data[i] / 20));
+			tmp_float = (float) (pow(10,  (spectral_data[i] / 20)));
 			linear_sum = linear_sum + (tmp_float * tmp_float);
 		}
 	}
-	*channel_power = 10 * log10(linear_sum);
+	*channel_power = (float) (10 * log10(linear_sum));
 	return 0;
 }
 
@@ -373,7 +373,7 @@ int16_t psd_calculate_absolute_power(uint32_t start_bin,
 	// find the linear sum of the squares
 	for (i = 0; i < data_size; i++){
 		if (i >= start_bin && i <= stop_bin){
-			tmp_float = pow(10,  (spectral_data[i] / 20));
+			tmp_float = (float) (pow(10,  (spectral_data[i] / 20)));
 			linear_sum = linear_sum + (tmp_float * tmp_float);
 		}
 	}

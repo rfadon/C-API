@@ -137,39 +137,9 @@
 
 // Offset of KISS FFT
 #define KISS_FFT_OFFSET 2.64;
-// *****
-// WSA4000 SPECIFIC
-// *****
-#define WSA4000 "WSA4000"
-#define WSA_4000_MAX_FREQ 10000ULL // MHz here b/c of large # issue
-#define WSA_4000_MIN_FREQ 0ULL  // Hz
-#define WSA_4000_MAX_IF_GAIN 34
-#define WSA_4000_MIN_IF_GAIN -10
-
-#define WSA_4000_FREQRES 100000ULL // to read in the register
-#define WSA_4000_MAX_ANT_PORT 2
-
-// TODO: TO BE DETERMINE W/ NIKHIL FOR THE FOLLOWING #S -> Read from eeprom
-#define WSA_4000_ABS_AMP_HIGH 0
-#define WSA_4000_ABS_AMP_MED 15
-#define WSA_4000_ABS_AMP_LOW 15
-#define WSA_4000_ABS_AMP_VLOW 15
-
-// RF gain modes
-#define WSA_GAIN_VLOW_STRING "VLOW"
-#define WSA_GAIN_LOW_STRING "LOW"
-#define WSA_GAIN_MED_STRING "MED"
-#define WSA_GAIN_HIGH_STRING "HIGH"
-
-enum wsa_gain {
-	WSA_GAIN_HIGH = 1,
-	WSA_GAIN_MED,
-	WSA_GAIN_LOW,
-	WSA_GAIN_VLOW
-};
 
 // R5500 SPECIFIC
-#define WSA5500 "WSA5500"
+#define R5500 "R5500"
 // *****
 // RTSA7500 SPECIFIC
 // *****

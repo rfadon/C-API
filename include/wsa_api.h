@@ -196,8 +196,8 @@ int16_t wsa_set_trigger_type(struct wsa_device *dev, char const *type);
 int16_t wsa_get_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
 int16_t wsa_set_trigger_sync_delay(struct wsa_device *dev, int32_t delay);
 
-int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, char const *sync_state);
-int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, char *sync_state);
+int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state);
+int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state);
 
 // ////////////////////////////////////////////////////////////////////////////
 // PLL SECTION                                                               //

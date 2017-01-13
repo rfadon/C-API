@@ -303,9 +303,6 @@ int16_t wsa_get_lan_config(struct wsa_device *dev, char const *config, char *lan
 	
 	sprintf(command, "SYST:COMM:LAN:CONF? %s \n", config);
 
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev, command, &query);
 	
 	if (query.status <= 0)
@@ -331,9 +328,6 @@ int16_t wsa_set_lan_config(struct wsa_device *dev, char const *lan_config)
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
 	sprintf(command, "SYST:COMM:LAN:CONF %s \n", lan_config);
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
 	if (result < 0) {
@@ -367,9 +361,6 @@ int16_t wsa_get_lan_ip(struct wsa_device *dev, char const *config, char *ip)
 
 	sprintf(command, "SYST:COMM:LAN:IP? %s \n", config);
 
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev, command, &query);
 	
 	if (query.status <= 0)
@@ -394,9 +385,6 @@ int16_t wsa_set_lan_ip(struct wsa_device *dev, char const *ip)
 	char command[MAX_STR_LEN];
 
 	sprintf(command, "SYST:COMM:LAN:IP %s \n", ip);
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
 	if (result < 0) {
@@ -430,9 +418,6 @@ int16_t wsa_get_lan_netmask(struct wsa_device *dev, char const *config, char *ne
 
 	sprintf(command, "SYST:COMM:LAN:NETMASK? %s \n", config);
 
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev, command, &query);
 	
 	if (query.status <= 0)
@@ -457,9 +442,6 @@ int16_t wsa_set_lan_netmask(struct wsa_device *dev, char const *netmask)
 	char command[MAX_STR_LEN];
 
 	sprintf(command, "SYST:COMM:LAN:NETMASK %s \n", netmask);
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
 	if (result < 0) {
@@ -492,9 +474,6 @@ int16_t wsa_get_lan_gateway(struct wsa_device *dev, char const *config, char *ga
 
 	sprintf(command, "SYST:COMM:LAN:GATEWAY? %s \n", config);
 
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev, command, &query);
 	
 	if (query.status <= 0)
@@ -519,9 +498,6 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 	char command[MAX_STR_LEN];
 
 	sprintf(command, "SYST:COMM:LAN:GATEWAY %s \n", gateway);
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
 	if (result < 0) {
@@ -555,9 +531,6 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
 	
 	sprintf(command, "SYST:COMM:LAN:DNS? %s \n", config);
 
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev, command, &query);
 	
 	if (query.status <= 0)
@@ -584,9 +557,6 @@ int16_t wsa_set_lan_dns(struct wsa_device *dev, char const *dns, char const *alt
 	int16_t result = 0;
 	char command[MAX_STR_LEN];
 	sprintf(command, "SYST:COMM:LAN:DNS %s \n", dns);
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	result = wsa_send_command(dev, command);
 	if (result < 0) {
@@ -1005,7 +975,7 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 
 	idata = (float *) malloc(sizeof(float) *MAX_BLOCK_SIZE);
 	qdata = (float *) malloc(sizeof(float) * MAX_BLOCK_SIZE);
-	fftout = (float *) malloc(sizeof(float) * MAX_BLOCK_SIZE);
+	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
 
 	// window and normalize the data
 	normalize_iq_data(samples_per_packet,
@@ -1043,7 +1013,7 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	for (i = 0; i < fft_size; i++) {
 		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
 		tmpscalar = 2 * power_to_logpower(tmpscalar);
-		fft_buffer[i] = tmpscalar + reference_level + KISS_FFT_OFFSET;
+		fft_buffer[i] = tmpscalar + ((float) reference_level) + KISS_FFT_OFFSET;
 		}
 
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
@@ -1234,13 +1204,13 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	// capture power spectrum
 	wsa_configure_sweep(wsa_sweep_dev, pscfg);
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
-	calc_rbw = (fstop - fstart) / pscfg->buflen;
+	calc_rbw = (float) (fstop - fstart) / ((uint64_t) pscfg->buflen);
 	
 	// find the minimum of spectrum
 	for (i = 0; i < pscfg->buflen; i++)
 	{
 		if (psbuf[i] < min_point)
-			min_point = abs(psbuf[i]);
+			min_point = (float) abs(psbuf[i]);
 	}
 
 
@@ -1645,10 +1615,6 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;
 	int temp;
-	
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
 
 	wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 	if (query.status <= 0) {
@@ -1680,9 +1646,6 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 	
 	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
 		return WSA_ERR_INVATTEN;
@@ -1716,10 +1679,6 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 int16_t wsa_get_rfe_input_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
-
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
 
 	wsa_send_query(dev, "INPUT:MODE?\n", &query);
 	if (query.status <= 0) {
@@ -1755,10 +1714,6 @@ int16_t wsa_set_rfe_input_mode(struct wsa_device *dev, char const *mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
-
 	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
 		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
 		(strcmp(mode, WSA_RFE_HDR_STRING)  != 0) &&
@@ -1791,9 +1746,6 @@ int16_t wsa_get_iq_output_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
 
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
-
 	wsa_send_query(dev,":OUT:IQ:MODE?\n", &query);
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -1820,9 +1772,6 @@ int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 
 	if (strcmp(mode, WSA_IQ_DIGITIZER_STRING) != 0 &&
 		strcmp(mode, WSA_IQ_CONNECTOR_STRING) != 0)
@@ -2418,10 +2367,6 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;
 	int temp;
-	
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
 
 	wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
 	if (query.status <= 0) {
@@ -2455,9 +2400,6 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.prod_model,WSA4000) == 0)
-		return WSA_ERR_INV4000COMMAND;
 	
 	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
 		return WSA_ERR_INVATTEN;
@@ -2484,10 +2426,6 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 int16_t wsa_get_sweep_rfe_input_mode(struct wsa_device *dev, char *mode)
 {
 	struct wsa_resp query;		// store query results
-
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
 
 	wsa_send_query(dev, "SWEEP:ENTRY:MODE?\n", &query);
 	if (query.status <= 0) {
@@ -2522,10 +2460,6 @@ int16_t wsa_set_sweep_rfe_input_mode(struct wsa_device *dev, char const *mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
-	if (strcmp(dev->descr.prod_model , WSA4000) == 0) {
-		return WSA_ERR_INV4000COMMAND;
-    }
 
 	if ((strcmp(mode, WSA_RFE_ZIF_STRING)  != 0) &&
 		(strcmp(mode, WSA_RFE_DD_STRING)   != 0) &&
