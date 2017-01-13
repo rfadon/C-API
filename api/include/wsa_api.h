@@ -19,6 +19,7 @@ void wsa_debugcallback(void(*callback)(void * pvoid, char const * pstring), void
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_open(struct wsa_device *dev, char *intf_method);
+int16_t wsa_reset(struct wsa_device *dev);
 int16_t wsa_ping(struct wsa_device *dev, char *intf_method);
 void wsa_close(struct wsa_device *dev);
 

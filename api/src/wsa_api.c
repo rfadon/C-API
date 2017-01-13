@@ -108,6 +108,21 @@ int16_t wsa_open(struct wsa_device *dev, char *intf_method)
 }
 
 /**
+ * Reset the WSA to default settings
+ *
+ * @param dev - A pointer to the WSA device structure.
+ *
+ * @return 0 on success, or a negative number on error.
+ */
+int16_t wsa_reset(struct wsa_device *dev) 
+{
+	int16_t result = 0;
+	
+	result = wsa_send_command(dev, "*RST\n");	
+	return result;
+} 
+
+/**
  * Ping a WSA by attempting to establish a socket connection with a user specified timeout
  (
  * @param dev - A pointer to the WSA device structure to be opened.

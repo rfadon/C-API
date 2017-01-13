@@ -46,30 +46,7 @@ int32_t main(int32_t argc, char *argv[])
 	result = wsa_flush_data(dev);
 	result = wsa_system_request_acq_access(dev, &acq_result);
 
-	// initialize sweep device
-	printf("initializing sweep dev \n");
-	wsa_sweep_dev = wsa_sweep_device_new(dev);
-	
-	printf("allocating memory for fft \n");
-	// allocate memory for our ffts to go in
-	result=  wsa_power_spectrum_alloc(wsa_sweep_dev, fstart, fstop, rbw, mode, &pscfg);
-	
-	if (result < 0)
-	{
-		wsa_power_spectrum_free(pscfg);
-		wsa_sweep_device_free(wsa_sweep_dev);
-		return result;
-	}
-	printf("configuring sweep \n");
-	wsa_configure_sweep(wsa_sweep_dev, pscfg);
-	printf("allocating buffer \n");
-	spectral_data = (float *) malloc(sizeof(float) *pscfg->buflen);
-	printf("capturing data \n");
-	wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &spectral_data);
-	for (i = 0; i < (int) (pscfg->buflen); i++){
-		//if (spectral_data[i] > -50.0)
-			printf("%0.2f, %0.2f \n",(float) ((((uint32_t) i) * pscfg->rbw) + fstart) / 1000000, spectral_data[i]);
-	}
+
 
 	return 0;
 }
