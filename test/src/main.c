@@ -6,6 +6,7 @@
 #include <wsa_lib.h>
 #include <wsa_sweep_device.h>
 #include <wsa_error.h>
+#include <attenuation_tests.h>
 
 
 /**
@@ -19,26 +20,21 @@ int32_t main(int32_t argc, char *argv[])
 	char wsa_addr[255] = "10.126.110.104";	// store wsa ip address
     char intf_str[255];
 	int i;
-	// initialize WSA settings
+	int32_t fail_count = 0;
+	int32_t pass_count = 0;
 
-	uint64_t fstart = 20000000;
-	uint64_t fstop = 40000000;
-	uint32_t rbw = 100000;
+	// initialize WSA settings
 	int32_t attenuator = 0;
-	uint32_t sweep_size = 0;
-	int16_t wsa_system_abort_capture(struct wsa_device *dev);
-	int16_t wsa_flush_data(struct wsa_device *dev);
+
 	int16_t result;
+
 	int16_t acq_result;
-	char mode[255] = "SH"; // RFE input mode
 	float *spectral_data;
 
 	// initialize sweep device
 	struct wsa_sweep_device wsa_Sweep_device;
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_device;
-	struct wsa_power_spectrum_config *pscfg;
 	sprintf(intf_str, "TCPIP::%s", wsa_addr);
-	printf("Initializing WSA settings... \n");	
     dev = &wsa_dev; // create device pointer
 	result = wsa_open(dev, intf_str); 
 	result =  wsa_send_scpi(dev, "*RST");
@@ -46,7 +42,9 @@ int32_t main(int32_t argc, char *argv[])
 	result = wsa_flush_data(dev);
 	result = wsa_system_request_acq_access(dev, &acq_result);
 
+	// ATTENUATION TESTS: Test attenuation for all 4 valid values (0, 10, 20, 30)
+	result = attenuation_tests(dev, &fail_count, &pass_count);
 
-
+	printf("TEST RESULTS: %d Tests, %d Passes, %d Fails", fail_count + pass_count, pass_count, fail_count);
 	return 0;
 }

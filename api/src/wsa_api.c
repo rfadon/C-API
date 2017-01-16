@@ -1630,21 +1630,50 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;
 	int temp;
+	printf("%s\n", dev->descr.prod_model);
+	// check if the device is a WSA5000
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
+	{
+		printf("GOT 5000 \n");
+		// send the scpi command
+		wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 
-	wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
-	if (query.status <= 0) {
-		return (int16_t) query.status;
-    }
-	
-	if (wsa_to_int(query.output, &temp) < 0) {
-		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-		return WSA_ERR_RESPUNKNOWN;
+		// check if SYST:ERR? got an error
+		if (query.status <= 0)
+			return (int16_t) query.status;	
+
+		// convert output to integer
+		if (wsa_to_int(query.output, &temp) < 0) {
+			doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+			return WSA_ERR_RESPUNKNOWN;
+		}
+
+		*mode = (int32_t) temp;
 	}
 
-	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED)
-		return WSA_ERR_INVATTEN;
-	*mode = (int32_t) temp;
-	
+	// If the device is an R5500
+	else if (strstr(dev->descr.prod_model, R5500) != NULL)
+	{
+
+		if (strstr(dev->descr.dev_model, WSA5000408) != NULL)
+		{
+			wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
+			if (query.status <= 0)
+				return (int16_t) query.status;
+			if (wsa_to_int(query.output, &temp) < 0) {
+				doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+				return WSA_ERR_RESPUNKNOWN;
+			}
+			*mode = (int32_t) temp;
+
+		//TODO: implement for 418/427
+		} 
+		
+		if (strstr(dev->descr.dev_model, WSA5000427) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000418) != NULL)
+			temp = 5;
+		}
+
 	return 0;
 }
 
@@ -1661,17 +1690,22 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-	
-	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
-		return WSA_ERR_INVATTEN;
 
-	sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+	// check if the device is a WSA5000
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
+	{
+		if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
+			return WSA_ERR_INVATTEN;
 
-	result = wsa_send_command(dev, temp_str);
-    if(result < 0) {
-	  doutf(DHIGH, "In wsa_set_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-	
+		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+		result = wsa_send_command(dev, temp_str);
+	}
+
+	else
+	{
+		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+		result = wsa_send_command(dev, temp_str);
+	}
 	return result;
 }
 

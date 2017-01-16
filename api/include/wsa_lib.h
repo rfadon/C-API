@@ -51,6 +51,14 @@
 #define STREAM_START_ID_INDICATOR_MASK 0x00000002
 
 // *****
+// Attenuation Control Types
+// *****
+#define WSA5000_408_ATTEN 0
+#define WSA5000_427_ATTEN 1
+#define R5500_408_ATTEN 2
+#define R5500_427 3
+
+// *****
 // SCPI related registers/bits
 // *****
 
@@ -201,6 +209,7 @@ struct wsa_descriptor {
 	char mac_addr[MAX_STR_LEN];
 	char fw_version[MAX_STR_LEN];
 	char intf_type[MAX_STR_LEN];
+	char ATTENUATION_CONTROL[MAX_STR_LEN];
 	uint64_t inst_bw;
 	int32_t max_sample_size;
 	int64_t max_tune_freq;
@@ -210,6 +219,7 @@ struct wsa_descriptor {
 	int32_t min_if_gain;
 	int32_t min_decimation;
 	int32_t max_decimation;
+
 	float abs_max_amp[NUM_RF_GAINS];
 };
 
