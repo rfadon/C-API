@@ -2080,7 +2080,7 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 	char temp_str[MAX_STR_LEN];
 
 		
-	sprintf(temp_str, "TRIGGER:SYNC %s \n", sync_state);
+	sprintf(temp_str, "SYSTem:SYNC:MASTer %d \n", sync_state);
 	
 	result = wsa_send_command(dev, temp_str);
 
@@ -2102,13 +2102,19 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 {
 	struct wsa_resp query;
-	
-	wsa_send_query(dev, "TRIGGER:SYNC?\n", &query);
+    double temp;
+
+	wsa_send_query(dev, "SYSTem:SYNC:MASTer?\n", &query);
 	
 	if (query.status <= 0)
 		return (int16_t) query.status;
 	
-	strcpy(sync_state, query.output);
+	if (wsa_to_double(query.output, &temp) < 0) {
+        doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+        return WSA_ERR_RESPUNKNOWN;
+    }
+
+	*sync_state = temp;
 	return 0;
 
 }
