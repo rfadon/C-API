@@ -1630,11 +1630,10 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;
 	int temp;
-	printf("%s\n", dev->descr.prod_model);
+
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
 	{
-		printf("GOT 5000 \n");
 		// send the scpi command
 		wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 
@@ -1660,6 +1659,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 			wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 			if (query.status <= 0)
 				return (int16_t) query.status;
+			
 			if (wsa_to_int(query.output, &temp) < 0) {
 				doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 				return WSA_ERR_RESPUNKNOWN;

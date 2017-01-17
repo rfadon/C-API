@@ -7,6 +7,8 @@
 #include <wsa_sweep_device.h>
 #include <wsa_error.h>
 
+// uses an R5500 device to test different attenuation settings
+// results are stored in the pass/fail count variables
 int16_t attenuation_tests(struct wsa_device *dev, int32_t *fail_count, int32_t *pass_count){
 
 	int16_t result;
@@ -24,7 +26,7 @@ int16_t attenuation_tests(struct wsa_device *dev, int32_t *fail_count, int32_t *
 		else
 			*pass_count = *pass_count + 1;
 	}
-	
+
 	// test for attenuation 10
 	result = wsa_set_attenuation(dev, 10);
 	if (result < 0)

@@ -44,7 +44,8 @@ int32_t main(int32_t argc, char *argv[])
 
 	// ATTENUATION TESTS: Test attenuation for all 4 valid values (0, 10, 20, 30)
 	result = attenuation_tests(dev, &fail_count, &pass_count);
+	printf("ATTENATION TEST RESULTS: %d Tests, %d Passes, %d Fails", fail_count + pass_count, pass_count, fail_count);
 
-	printf("TEST RESULTS: %d Tests, %d Passes, %d Fails", fail_count + pass_count, pass_count, fail_count);
+	printf("TOTAL TEST RESULTS: %d Tests, %d Passes, %d Fails", fail_count + pass_count, pass_count, fail_count);
 	return 0;
 }
