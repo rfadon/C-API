@@ -1693,12 +1693,24 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
-	{
-		if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
-			return WSA_ERR_INVATTEN;
 
-		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
-		result = wsa_send_command(dev, temp_str);
+	{
+
+		// set attenuation for WSA5000-408
+		if (strstr(dev->descr.dev_model, WSA5000408) != NULL)
+		{
+
+			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		}
+
+		// set attenuation for non 408 devices
+		else {
+
+			sprintf(temp_str, ":INP:ATT:VAR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		
+		}
 	}
 
 	else

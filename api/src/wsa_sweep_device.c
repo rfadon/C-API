@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <stdarg.h>>
+#include <string.h>
+
+# define strtok_r strtok_s
 //#include <sys/time.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -811,12 +814,22 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
 static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
 {
 	int result;
+	struct wsa_resp query;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 	char dd[255] = "DD";
+	char * strtok_result;
+    char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
+
+	// grab the device id
+	wsa_send_query(wsadev, "*IDN?\n", &query);
+	strtok_result = strtok_r(query.output, ",", &strtok_context);
+	strtok_result = strtok_r(NULL, " ", &strtok_context);
+
 	// clear any existing sweep entries
 	wsa_sweep_entry_delete_all(wsadev);
+
 
 	// setup the sweep list to only run once
 	wsa_set_sweep_iteration(wsadev, 1);
@@ -824,12 +837,23 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	// if DD mode is required, create one sweep entry with DD mode
 	if (cfg->sweep_plan->dd_mode == 1){
 		// create new entry with all the sweep entry devices
+
 		wsa_sweep_entry_new(wsadev);
-		result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+
+		// set attenuation, if the device is a 408 model use sweep entry
+		if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL || 
+			strstr(wsadev->descr.dev_model, R5500408) != NULL)
+			result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+		else
+			result = wsa_send_scpi(wsadev, "INP:ATT:VAR %d", wsasweepdev->device_settings.attenuator);
+		
 		// set ppb/spp settings
 		result = wsa_set_sweep_rfe_input_mode(wsadev, dd);
+
 		result = wsa_set_sweep_samples_per_packet(wsadev, (int32_t) (plan_entry->spp));
+
 		result = wsa_set_sweep_packets_per_block(wsadev, (int32_t) (plan_entry->ppb));
+
 		result = wsa_sweep_entry_save(wsadev, 0);
 	}
 	// create new entry with all the sweep entry devices
@@ -837,7 +861,11 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 
 	// set sweep wide settings
 	result = wsa_set_sweep_rfe_input_mode(wsadev, mode_const_to_string(cfg->mode));
-	result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+
+	if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL)
+		result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+	else
+		result = wsa_set_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
 
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
@@ -845,7 +873,7 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 		// set settings
 		result = wsa_set_sweep_freq(wsadev, (int64_t) plan_entry->fcstart, (int64_t) plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR %d fstart fstop\n", result);
-		
+
 		result = wsa_set_sweep_freq_step(wsadev, (int64_t)  plan_entry->fstep);
 		if (result < 0) fprintf(stderr, "ERROR fstep\n");
 		

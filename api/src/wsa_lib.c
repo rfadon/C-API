@@ -57,34 +57,31 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	wsa_send_query(dev, "*IDN?\n", &query);
 	
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
-	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	
-	// grab product model (5000 vs 5500)
-	if(strstr(strtok_result, WSA5000) != NULL)
-		sprintf(dev->descr.prod_model, "%s", WSA5000);
-	
-	// apply product model
-	else if (strstr(strtok_result, R5500) != NULL)
-		sprintf(dev->descr.prod_model, "%s", R5500);
-	
-	else if (strstr(strtok_result, RTSA7500) != NULL)
-		sprintf(dev->descr.prod_model, "%s", RTSA7500);
-	
+	strtok_result = strtok_r(NULL, " ", &strtok_context);
+
 	// apply device model (408 vs 418 etc)
 	if (strstr(strtok_result, WSA5000308) != NULL ||
 		strstr(strtok_result, WSA5000408) != NULL ||
-		strstr(strtok_result, WSA5000408P) != NULL ||
-		strstr(strtok_result, RTSA75008) != NULL ||
-		strstr(strtok_result, RTSA75008P) != NULL)
+		strstr(strtok_result, RTSA75008) != NULL)
 	{
 		sprintf(dev->descr.dev_model, "%s", WSA5000408);
-			
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
 	} 
 		
+	else if (strstr(strtok_result, WSA5000408P) != NULL || 
+			strstr(strtok_result, RTSA75008P) != NULL)
+	{
+
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
+		sprintf(dev->descr.dev_model, "%s", WSA5000408P);
+		dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
+	}
+
 	else if (strstr(strtok_result, WSA5000418) != NULL || 
 			strstr(strtok_result, RTSA750018) != NULL)
 	{
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		sprintf(dev->descr.dev_model, "%s", WSA5000418);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 	}
@@ -92,6 +89,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	else if (strstr(strtok_result, WSA5000427) != NULL ||
 			strstr(strtok_result, RTSA750027) != NULL)
 	{
+		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		sprintf(dev->descr.dev_model, "%s", WSA5000427);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000427_MAX_FREQ * MHZ);
 	}
@@ -101,6 +99,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			strstr(strtok_result, R5500308) != NULL ||
 			strstr(strtok_result, RTSA7550408) != NULL)
 	{
+		sprintf(dev->descr.prod_model, "%s", R5500);
 		sprintf(dev->descr.dev_model, "%s", R5500408);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
 	}
@@ -109,6 +108,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	else if (strstr(strtok_result, R5500418) != NULL ||
 			strstr(strtok_result, RTSA7550418) != NULL)
 	{
+		sprintf(dev->descr.prod_model, "%s", R5500);
 		sprintf(dev->descr.dev_model, "%s", WSA5000418);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 	}
@@ -117,6 +117,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	else if (strstr(strtok_result, R5500427) != NULL ||
 			strstr(strtok_result, RTSA7550427) != NULL)
 	{
+		sprintf(dev->descr.prod_model, "%s", R5500);
 		sprintf(dev->descr.dev_model, "%s", R5500427);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000427_MAX_FREQ * MHZ);
 	}
