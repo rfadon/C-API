@@ -144,7 +144,7 @@
 #define WSA_MIN_DECIMATION 4
 
 // Offset of KISS FFT
-#define KISS_FFT_OFFSET 2.64;
+#define KISS_FFT_OFFSET 0;
 
 // R5500 SPECIFIC
 #define R5500 "R5500"

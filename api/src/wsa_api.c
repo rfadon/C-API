@@ -1028,7 +1028,7 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	for (i = 0; i < fft_size; i++) {
 		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
 		tmpscalar = 2 * power_to_logpower(tmpscalar);
-		fft_buffer[i] = tmpscalar + ((float) reference_level) + KISS_FFT_OFFSET;
+		fft_buffer[i] = tmpscalar + ((float) reference_level) - KISS_FFT_OFFSET;
 		}
 
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
