@@ -116,6 +116,8 @@
 #define WSA_MIN_PPB 1
 #define WSA_MAX_PPB UINT_MAX
 
+// Offset of the reference level
+#define REFLEVEL_OFFSET -15
 // sweep states
 #define WSA_SWEEP_STATE_RUNNING "RUNNING"
 #define WSA_SWEEP_STATE_STOPPED "STOPPED"

@@ -822,10 +822,8 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
 
-	// grab the device id
-	wsa_send_query(wsadev, "*IDN?\n", &query);
-	strtok_result = strtok_r(query.output, ",", &strtok_context);
-	strtok_result = strtok_r(NULL, " ", &strtok_context);
+	// grab the device id, and initialize the object
+	result = _wsa_dev_init(wsadev);
 
 	// clear any existing sweep entries
 	wsa_sweep_entry_delete_all(wsadev);
@@ -847,6 +845,7 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 		else
 			result = wsa_send_scpi(wsadev, "INP:ATT:VAR %d", wsasweepdev->device_settings.attenuator);
 		
+
 		// set ppb/spp settings
 		result = wsa_set_sweep_rfe_input_mode(wsadev, dd);
 

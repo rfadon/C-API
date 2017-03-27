@@ -92,6 +92,8 @@ struct wsa_power_spectrum_config {
 	/// the float buffer 
 	float *buf;
 
+	// determine if the reference level needs to be modified
+	uint8_t modify_ref;
 	/// the length of the float buffer
 	uint32_t buflen;
 };

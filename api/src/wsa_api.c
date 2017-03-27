@@ -889,7 +889,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		struct wsa_vrt_packet_header * const header, 
 		struct wsa_vrt_packet_trailer * const trailer,
 		struct wsa_receiver_packet * const receiver,
-		struct wsa_digitizer_packet * const digitizer,
+		struct wsa_digitizer_packet * digitizer,
 		struct wsa_extension_packet * const sweep_info,
 		int16_t * const i16_buffer, 
 		int16_t * const q16_buffer,
@@ -929,6 +929,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16_DATA_STREAM_ID)
 		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
 
+	// apply reflevel offset to R5500 if needed
+	if (header->packet_type == IF_PACKET_TYPE){
+		if ((strstr(dev->descr.prod_model, R5500) != NULL))
+			digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+	}
 	free(data_buffer);
 
 	return 0;
