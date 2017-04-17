@@ -931,8 +931,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 
 	// apply reflevel offset to R5500 if needed
 	if (header->packet_type == IF_PACKET_TYPE){
-		if ((strstr(dev->descr.prod_model, R5500) != NULL))
+		if ((strstr(dev->descr.prod_model, R5500) != NULL)){
 			digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+		}
 	}
 	free(data_buffer);
 
@@ -2473,9 +2474,6 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 	
-	if (mode != WSA_ATTEN_ENABLED  && mode != WSA_ATTEN_DISABLED)
-		return WSA_ERR_INVATTEN;
-
 	sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
 
 	result = wsa_send_command(dev, temp_str);

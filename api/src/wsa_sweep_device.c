@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdarg.h>>
+#include <stdarg.h>
 #include <string.h>
 
 # define strtok_r strtok_s
@@ -304,7 +304,7 @@ int wsa_power_spectrum_alloc(
 	pscfg->mode = mode_string_to_const(mode);
 	pscfg->fstart = fstart;
 	pscfg->fstop = fstop;
-	pscfg->rbw = (double) rbw;
+	pscfg->rbw = (uint64_t) rbw;
 
 	// figure out a way to get that spectrum
 
@@ -400,7 +400,6 @@ int wsa_capture_power_spectrum(
 	int16_t *q16_buffer;
 	int32_t *i32_buffer;
 	kiss_fft_scalar *idata;
-	kiss_fft_scalar *qdata;
 	kiss_fft_cpx *fftout;
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
@@ -473,34 +472,27 @@ int wsa_capture_power_spectrum(
 			return result;
 		}
 
-		// capture digitizer context packets we need
-		if (header.stream_id == DIGITIZER_STREAM_ID) {
-		// grab the reflevel for each capture, so we can translate our FFTs
-			if ((digitizer.indicator_field & REF_LEVEL_INDICATOR_MASK) == REF_LEVEL_INDICATOR_MASK) {
-				pkt_reflevel = (float) digitizer.reference_level;
-			}
-
 		//  capture receiver context packets we need
-		} else if (header.stream_id == RECEIVER_STREAM_ID) {
+		if (header.stream_id == RECEIVER_STREAM_ID) {
 			// grab the center frequency for each capture
 			if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
 				pkt_fcenter = (uint64_t) receiver.freq;
 				
-
 			}
 		}
 
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
 			doutf(DHIGH, "wsa_capture_power_spectrum: Recieved data packet %0.2f \n", (float) pkt_fcenter);
-			
+			pkt_reflevel = (float) digitizer.reference_level;
+
 			// increase packet count
 			ppb_count++;
 			packet_count++;
 
 			// calculate buffer offset
 			offset = cfg->samples_per_packet * ppb_count;
-			for (x = 0; x < cfg->samples_per_packet; x++)
+			for (x = 0; x < (int) cfg->samples_per_packet; x++)
 				idata[x] = ((float) tmp_buffer[x]) / 8192;
 
 			// move temporary buffer into the i16 buffer
@@ -677,7 +669,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	doutf(DHIGH, "wsa_plan_sweep: calculated spp/ppb: %d, %d\n", (int32_t) points,  (int32_t) ppb);
 
 	// recalc what that actually results in for the rbw
-	pscfg->rbw = ((double) prop->full_bw) / (points / 2);
+	pscfg->rbw = (uint64_t) ((double) prop->full_bw) / (points / 2);
 	
 	
 	// assign the samples per packet and packets per block
@@ -818,6 +810,7 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 	char dd[255] = "DD";
+	char atten_cmd[255];
 	char * strtok_result;
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
@@ -828,24 +821,26 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	// clear any existing sweep entries
 	wsa_sweep_entry_delete_all(wsadev);
 
+	// create new entry with all the sweep entry devices
+	wsa_sweep_entry_new(wsadev);
 
 	// setup the sweep list to only run once
 	wsa_set_sweep_iteration(wsadev, 1);
 
+	// set attenuation, if the device is a 408 model use sweep entry
+	if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL || 
+		strstr(wsadev->descr.dev_model, R5500408) != NULL)
+		result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+
+	// send the command for 418/427 models
+	else{
+		sprintf(atten_cmd, "SWEEP:ENTRY:ATTEN:VAR %u\n", wsasweepdev->device_settings.attenuator);
+		result = wsa_send_scpi(wsadev, atten_cmd);
+	}
+
 	// if DD mode is required, create one sweep entry with DD mode
 	if (cfg->sweep_plan->dd_mode == 1){
-		// create new entry with all the sweep entry devices
-
-		wsa_sweep_entry_new(wsadev);
-
-		// set attenuation, if the device is a 408 model use sweep entry
-		if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL || 
-			strstr(wsadev->descr.dev_model, R5500408) != NULL)
-			result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
-		else
-			result = wsa_send_scpi(wsadev, "INP:ATT:VAR %d", wsasweepdev->device_settings.attenuator);
 		
-
 		// set ppb/spp settings
 		result = wsa_set_sweep_rfe_input_mode(wsadev, dd);
 
@@ -855,16 +850,10 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 
 		result = wsa_sweep_entry_save(wsadev, 0);
 	}
-	// create new entry with all the sweep entry devices
-	result = wsa_sweep_entry_new(wsadev);
 
 	// set sweep wide settings
 	result = wsa_set_sweep_rfe_input_mode(wsadev, mode_const_to_string(cfg->mode));
 
-	if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL)
-		result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
-	else
-		result = wsa_set_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
 
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
