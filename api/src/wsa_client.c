@@ -145,7 +145,7 @@ const char *_inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
  *
  * @return Newly-connected socket when succeed, or INVALID_SOCKET when fail.
  */
-int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
+int16_t wsa_setup_sock(const char *sock_addr, 
 					   int32_t *sock_fd, const char *sock_port, int16_t timeout)
 {
 	struct addrinfo *ai_list, *ai_ptr;
@@ -153,7 +153,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	int32_t getaddrinfo_result;
 	int32_t temp_fd = 0;
 	char str[INET6_ADDRSTRLEN];
-	int32_t result;
+	int32_t result = 0;
 	// Construct local address structure
 	memset(&hint_ai, 0, sizeof(hint_ai)); //Zero out structure
 	hint_ai.ai_family = AF_UNSPEC;		// Address family unspec in order to
@@ -162,7 +162,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	hint_ai.ai_socktype = SOCK_STREAM;	// For TCP type. Or use 0 for any type
 	hint_ai.ai_flags = 0;
 	hint_ai.ai_protocol = 0;			// to auto chose the protocol
-
+	
 	// Check the address at the given port
 	getaddrinfo_result = getaddrinfo(sock_addr, sock_port, &hint_ai, &ai_list);
 	if (getaddrinfo_result != 0) {

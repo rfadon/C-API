@@ -9,8 +9,8 @@
 // ////////////////////////////////////////////////////////////////////////////
 // Local Functions Section                                                   //
 // ////////////////////////////////////////////////////////////////////////////
-kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average);
-kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average)
+void find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average);
+void find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average)
 {
 	kiss_fft_scalar sum = 0;
 	int i = 0;
@@ -285,6 +285,7 @@ int16_t psd_peak_find(uint64_t fstart,
 				float *peak_power)
 {
 	uint32_t i = 0;
+	uint32_t random_holder = rbw;
 	uint64_t current_freq = fstart;
 	uint64_t rbw_cal = (fstop - fstart) / (uint64_t) data_size;
 	*peak_power = spectra_data[i];
@@ -298,6 +299,7 @@ int16_t psd_peak_find(uint64_t fstart,
 		current_freq = current_freq + (uint64_t) rbw_cal;
 		
 	}
+	i =  random_holder * 2;
 	return 0;
 }
 

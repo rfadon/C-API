@@ -809,6 +809,7 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	struct wsa_resp query;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
+	int32_t atten_val = 0;
 	char dd[255] = "DD";
 	char atten_cmd[255];
 	char * strtok_result;
@@ -826,15 +827,16 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 
 	// setup the sweep list to only run once
 	wsa_set_sweep_iteration(wsadev, 1);
+	atten_val = (int32_t) wsasweepdev->device_settings.attenuator;
 
 	// set attenuation, if the device is a 408 model use sweep entry
 	if (strstr(wsadev->descr.dev_model, WSA5000408) != NULL || 
 		strstr(wsadev->descr.dev_model, R5500408) != NULL)
-		result = wsa_set_sweep_attenuation(wsadev, wsasweepdev->device_settings.attenuator);
+		result = wsa_set_sweep_attenuation(wsadev, atten_val);
 
 	// send the command for 418/427 models
 	else{
-		sprintf(atten_cmd, "SWEEP:ENTRY:ATTEN:VAR %u\n", wsasweepdev->device_settings.attenuator);
+		sprintf(atten_cmd, "SWEEP:ENTRY:ATT:VAR %u\n", atten_val);
 		result = wsa_send_scpi(wsadev, atten_cmd);
 	}
 

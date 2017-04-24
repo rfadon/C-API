@@ -438,13 +438,13 @@ int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_m
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
+		result = wsa_setup_sock(wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
 		if (result < 0) {
 			return result;
         }
 
 		// setup data socket & connect
-		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port, timeout);
+		result = wsa_setup_sock(wsa_addr, &(dev->sock).data, data_port, timeout);
 		if (result < 0) {
 			return result;
         }
