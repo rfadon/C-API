@@ -16,6 +16,7 @@
 
 // #define FIXED_POINT 32
 #include "kiss_fft.h"
+#include "wsa_lib.h"
 #include "wsa_dsp.h"
 #include "wsa_debug.h"
 #ifndef _TIMES_H
@@ -417,11 +418,13 @@ int wsa_capture_power_spectrum(
 	
 	// do a malloc to allocate data for each buffer
 	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
+	q16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
+	i32_buffer = (int32_t *) malloc(sizeof(int32_t) * total_samples);
 	tmp_buffer = (int16_t *) malloc(sizeof(int16_t) * cfg->samples_per_packet);
-	doutf(DHIGH, "wsa_capture_power_spectrum: Created I Data buffer sized: %d\n", (int) total_samples);
+
 	idata = (kiss_fft_scalar *) malloc(sizeof(kiss_fft_scalar) * total_samples);
 	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * total_samples);
-
+	doutf(DHIGH, "wsa_capture_power_spectrum: Created Data buffers sized: %d\n", (int) total_samples);
 
 	// assign their convienence pointer
 	if (*buf)
@@ -581,6 +584,8 @@ int wsa_capture_power_spectrum(
 	free(fftout);
 	free(idata);
 	free(tmp_buffer);
+	free(i32_buffer);
+	free(q16_buffer);
 	free(i16_buffer);
 
 	return 0;
@@ -623,6 +628,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	struct wsa_sweep_plan *plan;
 	uint64_t fcstart, fcstop;
 	float tmpfreq;
+	uint64_t new_entry_freq;
 	uint32_t fstep;
 	uint32_t half_usable_bw;
 	uint8_t dd_mode = 0;
@@ -726,7 +732,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
-		tmpfreq = pscfg->fstop - (fcstop + half_usable_bw);
+		tmpfreq = (float) (pscfg->fstop - (fcstop + half_usable_bw));
 
 		// make a sweep entry for fcstop + half of that
 		tmpfreq = pscfg->fstop - (tmpfreq / 2);
@@ -736,9 +742,10 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		
 		// If dd mode is used, move spectrum by half the bandwidth
 		if (dd_mode == 1)
-			tmpfreq = pscfg->fstop + (half_usable_bw / 2);
+			tmpfreq = (float) (pscfg->fstop + (half_usable_bw / 2));
 		// now create the entry
-		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new(tmpfreq, tmpfreq, fstep, points, 1, dd_mode);
+		new_entry_freq = (uint64_t) tmpfreq;
+		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new(new_entry_freq, new_entry_freq, fstep, points, 1, dd_mode);
 	}
 
 	
@@ -755,7 +762,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 			pscfg->packet_total += plan->ppb;
 		}
 		else {
-			pscfg->packet_total += ( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
+			pscfg->packet_total += (uint64_t) ((((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * (uint32_t) (plan->ppb));
 
 		}
 	}
@@ -806,13 +813,11 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
 static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
 {
 	int result;
-	struct wsa_resp query;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 	int32_t atten_val = 0;
 	char dd[255] = "DD";
 	char atten_cmd[255];
-	char * strtok_result;
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
 

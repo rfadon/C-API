@@ -1194,7 +1194,7 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	for (i = 0; i < pscfg->buflen; i++)
 	{
 		if (psbuf[i] < min_point)
-			min_point = (float) abs(psbuf[i]);
+			min_point = abs(psbuf[i]);
 	}
 
 
@@ -2087,7 +2087,7 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
         return WSA_ERR_RESPUNKNOWN;
     }
 
-	*sync_state = temp;
+	*sync_state = (int32_t) temp;
 	return 0;
 
 }

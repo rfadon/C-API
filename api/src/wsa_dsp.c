@@ -128,7 +128,7 @@ void correct_dc_offset(int32_t samples_per_packet,
  */
 kiss_fft_scalar window_hanning_scalar(kiss_fft_scalar value, int len, int index)
 {
-	return (float) (value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
+	return (kiss_fft_scalar) (value * ((kiss_fft_scalar)  0.5 * (1 - cosf(2 * M_PI * index / (len - 1)))));
 }
 
 
