@@ -4,6 +4,12 @@
 
 #include "wsa_lib.h"
 
+#ifdef _DLL_
+#define  _spec(dllexport)
+#else
+#define  _spec(dllimport)
+#endif
+
 
 // ////////////////////////////////////////////////////////////////////////////
 // DEBUG FUNCTIONS                                                           //
@@ -26,7 +32,7 @@ void wsa_close(struct wsa_device *dev);
 int16_t wsa_check_addr(char const *ip_addr);
 int16_t wsa_check_addrandport(char const *ip_addr, char const *port);
 int16_t wsa_is_connected(struct wsa_device *dev);
-const char *wsa_get_err_msg(int16_t err_code);
+ const char *wsa_get_err_msg(int16_t err_code);
 
 int16_t wsa_do_scpi_command_file(struct wsa_device *dev, char const *file_name);
 
@@ -39,7 +45,7 @@ int16_t wsa_send_scpi(struct wsa_device *dev, char const *command);
 // ////////////////////////////////////////////////////////////////////////////
 
 void * wsa_probe_begin(void);
-int    wsa_probe_poll(void * handle, int timeout, char * probe, char * device, char * serial, char * version, int stringsize);
+ int    wsa_probe_poll(void * handle, int timeout, char * probe, char * device, char * serial, char * version, int stringsize);
 void   wsa_probe_end(void * handle);
 
 
@@ -66,7 +72,14 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev);
 
 
 // ////////////////////////////////////////////////////////////////////////////
-// DATA ACQUISITION SECTIO                                                  //
+// AMPLITUDE SECTION                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+
+int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
+						  float *value);
+
+// ////////////////////////////////////////////////////////////////////////////
+// DATA ACQUISITION SECTION                                                  //
 // ////////////////////////////////////////////////////////////////////////////
 
 int16_t wsa_system_request_acq_access(struct wsa_device *dev, int16_t *status);
@@ -228,7 +241,7 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode);
 int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode);
 
 int16_t wsa_get_sweep_decimation(struct wsa_device *dev, int32_t *rate);
-int16_t	wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
+int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
 
 int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *microseconds);
 int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t seconds, int32_t microseconds);

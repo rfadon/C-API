@@ -9,8 +9,8 @@
 // ////////////////////////////////////////////////////////////////////////////
 // Local Functions Section                                                   //
 // ////////////////////////////////////////////////////////////////////////////
-void find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average);
-void find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average)
+kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average);
+kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, kiss_fft_scalar * average)
 {
 	kiss_fft_scalar sum = 0;
 	int i = 0;
@@ -128,7 +128,7 @@ void correct_dc_offset(int32_t samples_per_packet,
  */
 kiss_fft_scalar window_hanning_scalar(kiss_fft_scalar value, int len, int index)
 {
-	return (kiss_fft_scalar) (value * ((kiss_fft_scalar)  0.5 * (1 - cosf(2 * M_PI * index / (len - 1)))));
+	return (float) (value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
 }
 
 
@@ -285,7 +285,6 @@ int16_t psd_peak_find(uint64_t fstart,
 				float *peak_power)
 {
 	uint32_t i = 0;
-	uint32_t random_holder = rbw;
 	uint64_t current_freq = fstart;
 	uint64_t rbw_cal = (fstop - fstart) / (uint64_t) data_size;
 	*peak_power = spectra_data[i];
@@ -299,7 +298,6 @@ int16_t psd_peak_find(uint64_t fstart,
 		current_freq = current_freq + (uint64_t) rbw_cal;
 		
 	}
-	i =  random_holder * 2;
 	return 0;
 }
 

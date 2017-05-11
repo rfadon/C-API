@@ -524,7 +524,7 @@ int16_t wsa_set_lan_gateway(struct wsa_device *dev, char const *gateway)
 
 
 /**
- * Gets the lan dns (either current or option set)
+ * Gets the lan dbs (either current or option set)
  *
  * @param dev - A pointer to the WSA device structure.
  * @param config - A char pointer that indicates which lan configuration to return
@@ -601,6 +601,41 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev)
 
 	return result;
 }
+
+
+// ////////////////////////////////////////////////////////////////////////////
+// AMPLITUDE SECTION                                                         //
+// ////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the absolute maximum RF input level (dBm) for the WSA at 
+ * the given gain setting.\n
+ * Operating the WSA device at the absolute maximum may cause damage to the 
+ * device.
+ *
+ * @param dev - A pointer to the WSA device structure.
+ * @param gain - The gain setting of \b wsa_gain type at which the absolute 
+ * maximum amplitude input level is to be retrieved.
+ * @param value - A float pointer to store the absolute maximum RF input 
+ * level in dBm for the given RF gain
+ *
+ * @return 0 on successful or negative error number.
+ */
+//int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
+//						  float *value)
+//{
+//	// TODO Check version of WSA & return the correct info here
+//	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
+//	strcmp(gain,WSA_GAIN_HIGH_STRING) != 0)
+//		return WSA_ERR_INVRFGAIN;	
+//	
+//	else 
+//		*value = dev->descr.abs_max_amp[gain];
+//	
+//	return 0;
+//}
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -865,21 +900,26 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	uint8_t *data_buffer;
 	int16_t result = 0;
 
+	// create a second result for the flush command
+	int16_t result2 = 0;
+	int i = 0;
 	// allocate the data buffer
 	data_buffer = (uint8_t *) malloc(samples_per_packet * BYTES_PER_VRT_WORD * sizeof(uint8_t));
 	if (data_buffer == NULL) {
 		doutf(DHIGH, "In wsa_read_vrt_packet: failed to allocate memory\n");
 		return WSA_ERR_MALLOCFAILED;
 	}
-	
-
-	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer, timeout);
+			
+	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
+		data_buffer, (uint16_t) samples_per_packet, timeout);
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
+	
 	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
+		
 		if (result == WSA_ERR_NOTIQFRAME || result == WSA_ERR_QUERYNORESP) {
 			wsa_system_abort_capture(dev);
-			result = wsa_flush_data(dev); 
+			result2 = wsa_flush_data(dev); 
         }
 
 		free(data_buffer);
@@ -895,9 +935,14 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
 
 	// apply reflevel offset to R5500 if needed
-	if (header->packet_type == IF_PACKET_TYPE){
-		if ((strstr(dev->descr.prod_model, R5500) != NULL)){
-			digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+	//if (header->packet_type == IF_PACKET_TYPE){
+	if (header->packet_type == CONTEXT_PACKET_TYPE) {	// don@bearanascence.com 10May17 in conference with Mohammad et al.
+		if (header->stream_id == DIGITIZER_STREAM_ID) {	
+			if ((digitizer->indicator_field & REF_LEVEL_INDICATOR_MASK) != 0x0) {
+				if ((strstr(dev->descr.prod_model, R5500) != NULL)) {
+					digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+				}
+			}
 		}
 	}
 	free(data_buffer);
@@ -1104,6 +1149,8 @@ int16_t calculate_channel_power(struct wsa_device *dev,
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_Sweep_Device;
 	int result;
 	float *psbuf;
+	float linear_sum = 0;
+	uint32_t i = 0;
 
 	// create the sweep device
 	wsa_sweep_dev = wsa_sweep_device_new(dev);
@@ -1194,7 +1241,7 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	for (i = 0; i < pscfg->buflen; i++)
 	{
 		if (psbuf[i] < min_point)
-			min_point = abs(psbuf[i]);
+			min_point = (float) fabs(psbuf[i]);
 	}
 
 
@@ -1297,6 +1344,13 @@ int16_t wsa_set_packets_per_block(struct wsa_device *dev, int32_t packets_per_bl
 {
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
+	
+	if (packets_per_block < WSA_MIN_PPB) 
+		return WSA_ERR_INVNUMBER;
+
+	else if (packets_per_block > WSA_MAX_PPB) 
+		return WSA_ERR_INVCAPTURESIZE;
+
 
 	sprintf(temp_str, "TRACE:BLOCK:PACKETS %u\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
@@ -1424,6 +1478,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 
 	// Convert the number & make sure no error
 	if (wsa_to_double(query.output, &temp) < 0)	{
+		printf("Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
@@ -2087,7 +2142,7 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
         return WSA_ERR_RESPUNKNOWN;
     }
 
-	*sync_state = (int32_t) temp;
+	*sync_state = (int32_t)temp;
 	return 0;
 
 }
@@ -2612,6 +2667,11 @@ int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t packets_
 {
 	int16_t result;
 	char temp_str[MAX_STR_LEN];
+
+	if (packets_per_block < WSA_MIN_PPB)
+		return WSA_ERR_INVNUMBER;
+	else if (packets_per_block > WSA_MAX_PPB) 
+		return WSA_ERR_INVCAPTURESIZE;
 
 	sprintf(temp_str, "SWEEP:ENTRY:PPBLOCK %d\n", packets_per_block);
 	result = wsa_send_command(dev, temp_str);
@@ -3390,6 +3450,7 @@ int16_t wsa_set_sweep_iteration(struct wsa_device *dev, int32_t iteration)
 int16_t wsa_sweep_start(struct wsa_device *dev)
 {	
 	int16_t result = 0;
+	int32_t size = 0;
 
 	result = wsa_send_command(dev, "SWEEP:LIST:START\n");
     if (result < 0) {

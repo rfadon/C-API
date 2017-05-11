@@ -13,7 +13,7 @@
 int16_t wsa_get_host_info(char *name);
 
 int16_t wsa_addr_check(const char *sock_addr, const char *sock_port);
-int16_t wsa_setup_sock(const char *sock_addr, 
+int16_t wsa_setup_sock(char *sock_name, const char *sock_addr, 
 					   int32_t *sock_fd, const char *sock_port, int16_t timeout);
 int16_t wsa_close_sock(int32_t sock_fd);
 

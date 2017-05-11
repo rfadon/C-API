@@ -438,13 +438,13 @@ int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_m
 		doutf(DLOW, "%s %s\n", ctrl_port, data_port);
 
 		// setup command socket & connect
-		result = wsa_setup_sock(wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
+		result = wsa_setup_sock("WSA 'command'", wsa_addr, &(dev->sock).cmd,  ctrl_port, timeout);
 		if (result < 0) {
 			return result;
         }
 
 		// setup data socket & connect
-		result = wsa_setup_sock(wsa_addr, &(dev->sock).data, data_port, timeout);
+		result = wsa_setup_sock("WSA 'data'", wsa_addr, &(dev->sock).data, data_port, timeout);
 		if (result < 0) {
 			return result;
         }
@@ -880,7 +880,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const extension,
-		uint8_t * const data_buffer,
+		uint8_t * const data_buffer, uint16_t data_buffer_size,
 		uint32_t timeout)
 {	
 	uint8_t *vrt_header_buffer;
@@ -899,6 +899,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	
 	uint8_t has_trailer = 0;
 	uint32_t trailer_word = 0;
+
+	uint16_t copy_size;
 
 	// reset header
 	header->pkt_count = 0;
@@ -1063,9 +1065,16 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		iq_packet_size = header->samples_per_packet;
 		
 		// Copy only the IQ data payload to the provided buffer
+
+		copy_size = iq_packet_size;
+		if (iq_packet_size > data_buffer_size) {
+			doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)", iq_packet_size, data_buffer_size);
+			copy_size = data_buffer_size;
+		}
 		memcpy(data_buffer, 
 			vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
-			iq_packet_size * BYTES_PER_VRT_WORD);
+			copy_size * BYTES_PER_VRT_WORD);
+
 
 		// Handle the trailer word
 		if (has_trailer)

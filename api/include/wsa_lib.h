@@ -344,7 +344,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const extension,
-		uint8_t * const data_buffer,
+		uint8_t * const data_buffer, uint16_t data_buffer_size,
 		uint32_t timeout);
 		
 int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 

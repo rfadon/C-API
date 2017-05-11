@@ -547,7 +547,7 @@ int wsa_capture_power_spectrum(
 				// if we are in DD mode, the start and stop will be different
 				if (dd_packet == 1){
 					istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
-
+					 
 					doutf(DHIGH, "wsa_capture_power_spectrum: calculated istart %0.2f \n", (float) istart);
 					if (cfg->fstop >  (float) prop->min_tunable)
 						istop = (uint32_t) (0.8 * spp / 2);
