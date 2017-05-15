@@ -93,7 +93,7 @@ typedef long long suseconds_t ;
 /*
  * define internal functions
  */
-static int wsa_plan_sweep(struct wsa_power_spectrum_config *);
+static int wsa_plan_sweep(struct wsa_sweep_device * sweep_device, struct wsa_power_spectrum_config *);
 static int wsa_sweep_plan_load(struct wsa_sweep_device *, struct wsa_power_spectrum_config *);
 static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t);
 
@@ -309,7 +309,7 @@ int wsa_power_spectrum_alloc(
 
 	// figure out a way to get that spectrum
 
-	result = wsa_plan_sweep(pscfg);
+	result = wsa_plan_sweep(sweep_device, pscfg);
 	if (result < 0){
 		return result;
 	}
@@ -622,10 +622,16 @@ static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint3
  * @param pscfg - the config object which describes what we're trying to sweep
  * @return - negative on error, zero on success
  */
-static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
+static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
 {
+	// keep track of mode properties
 	struct wsa_sweep_device_properties *prop;
+
+	// keep track of device properties
+	struct wsa_descriptor dev_prop = sweep_device->real_device->descr;
+
 	struct wsa_sweep_plan *plan;
+
 	uint64_t fcstart, fcstop;
 	float tmpfreq;
 	uint64_t new_entry_freq;
@@ -636,8 +642,8 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	uint32_t points;
 	uint32_t ppb = 1;
 	uint32_t divided_points;
+
 	// try to get device properties for this mode
-	
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
 	if (prop == NULL) {
 		doutf(DHIGH, "wsa_plan_sweep: Unsupported RFE MODE \n");
@@ -691,6 +697,8 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		dd_mode = 1;
 		fcstart = prop->min_tunable + half_usable_bw - prop->tuning_resolution;
 	}
+
+	// set the fstop to the provided stop frequency
 	fcstop = pscfg->fstop;
 
 	// figure out our sweep step size (a bit less than usable bw.  one rbw less, yet still a multiple of tuning res)
@@ -714,21 +722,28 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 		add_packet = 1;
 	}
 
+	// make the maximum fstop be the maximum tunable
+	if (fcstop > (uint64_t) dev_prop.max_tune_freq)
+		fcstop = fcstop - fstep;
+
 	// test if start frequency and stop frequency are valid
 	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
 		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting \n");
 		return -EFREQOUTOFRANGE;
 	}
+
+
 	
 	// if only a dd packet is required
 	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable))
 		pscfg->only_dd = 1;
+
 	else
 		pscfg->only_dd = 0;
 
 	// create sweep plan objects for each entry
 	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, points, ppb, dd_mode);
-	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %u, %u\n",  fcstart,  fcstop);
+	doutf(DHIGH, "wsa_plan_sweep: calculated fstart/fstop: %0.2f, %0.2f\n",  (float) fcstart, (float) fcstop);
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
@@ -865,8 +880,9 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	// loop over sweep plan, convert to entries and save
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
-		// set settings
+		// set settings and check the errors
 		result = wsa_set_sweep_freq(wsadev, (int64_t) plan_entry->fcstart, (int64_t) plan_entry->fcstop);
+		doutf(DHIGH, "wsa_sweep_plan_load: Setting sweep entry start freq: %0.6f, stop %0.6f \n", (float) plan_entry->fcstart, (float) plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR %d fstart fstop\n", result);
 
 		result = wsa_set_sweep_freq_step(wsadev, (int64_t)  plan_entry->fstep);

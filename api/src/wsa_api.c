@@ -909,7 +909,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	}
 	// read the raw data packet		
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
-		data_buffer, samples_per_packet, timeout);
+		data_buffer, (uint16_t) samples_per_packet, timeout);
 
 	
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
