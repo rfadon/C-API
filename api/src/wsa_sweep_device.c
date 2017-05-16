@@ -367,10 +367,14 @@ void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg)
  * @param sweep_device - the sweep device to use
  * @param cfg - the power spectrum config to use
  */
-void wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
+int16_t wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
 {
+	int16_t result = 0;
+
 	// load the sweep plan
-	wsa_sweep_plan_load(sweep_device, pscfg);
+	result = wsa_sweep_plan_load(sweep_device, pscfg);
+
+	return result;
 }
 
 /**
@@ -381,7 +385,7 @@ void wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power
  * @param buf - if buf is not NULL, a pointer to the allocated memory is stored there for convience
  * @return - 0 on success, negative on error
  */
-int wsa_capture_power_spectrum(
+int16_t wsa_capture_power_spectrum(
 	struct wsa_sweep_device *sweep_device,
 	struct wsa_power_spectrum_config *cfg,
 	float **buf
@@ -432,7 +436,7 @@ int wsa_capture_power_spectrum(
 
 	// poison our buffer
 	for (i=0; i<cfg->buflen; i++)
-		cfg->buf[i] = 77;
+		cfg->buf[i] = POISONED_BUFFER_VALUE;
 
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(cfg->mode);
