@@ -9,7 +9,7 @@
 #include "thinkrf_stdint.h"
 #include <attenuation_tests.h>
 
-struct test_data {
+typedef struct test_data {
 	int bug_count;
 	int fail_count;
 	int pass_count;
