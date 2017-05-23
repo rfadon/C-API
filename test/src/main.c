@@ -5,7 +5,7 @@
 
 #include "wsa_lib.h"
 #include "wsa_api.h"
-#include <test_util.h>
+#include "test_util.h"
 #include "thinkrf_stdint.h"
 #include <attenuation_tests.h>
 
@@ -15,7 +15,6 @@ typedef struct test_data {
 	int pass_count;
 
 };
-
 
 /**
  * Starting point
