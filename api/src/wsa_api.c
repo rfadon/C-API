@@ -1647,6 +1647,9 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 	struct wsa_resp query;
 	int temp;
 
+	// initializze the query struct
+	query.status = 0;
+
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
 	{
@@ -1666,20 +1669,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 			wsa_send_query(dev, "INPUT:ATTENUATOR:VAR?\n", &query);
 		
 		}
-	}
 
-
-		// check if SYST:ERR? got an error
-		if (query.status <= 0)
-			return (int16_t) query.status;	
-
-		// convert output to integer
-		if (wsa_to_int(query.output, &temp) < 0) {
-			doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-			return WSA_ERR_RESPUNKNOWN;
-		}
-
-		*mode = (int32_t) temp;
 	}
 
 	// If the device is an R5500
@@ -1692,13 +1682,13 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 
 		}
 
-		else if (strstr(dev->descr.dev_model, WSA5000427) != NULL ||
-			strstr(dev->descr.dev_model, WSA5000418) != NULL)
-
+		else
 		{
 			wsa_send_query(dev, "INPUT:ATTENUATOR:VAR?\n", &query);
 
 		}
+
+	}
 
 	if (query.status <= 0)
 		return (int16_t) query.status;
@@ -1708,9 +1698,9 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	*mode = (int32_t) temp;
-	return 0;
-}
+	return 0 ;
 
+}
 
 /**
  * Sets the attenuator's mode of operation (0 = Off/1 = On)
@@ -2477,6 +2467,9 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
+	// initializze the query struct
+	query.status = 0;
+
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
 
@@ -2514,8 +2507,7 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 				(strstr(dev->descr.dev_model, R5500427) != NULL))
 		{
 
-			sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR:VAR %d\n", mode);
-			result = wsa_send_command(dev, temp_str);
+			wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR:VAR?\n", &query);
 		}
 	}
 
@@ -2589,7 +2581,7 @@ int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 				(strstr(dev->descr.dev_model, R5500427) != NULL))
 		{
 
-			sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR:VAR %d\n", mode);
+			sprintf(temp_str, "SWEEP:ENTRY:ATT:VAR %d\n", mode);
 			result = wsa_send_command(dev, temp_str);
 		}
 	}
