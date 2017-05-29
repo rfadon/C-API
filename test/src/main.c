@@ -19,7 +19,7 @@ int32_t main(int32_t argc, char *argv[])
     struct wsa_device *dev;
 	char wsa_addr[255] = "10.126.110.104";	// store wsa ip address
     char intf_str[255];
-	int i;
+
 	int32_t fail_count = 0;
 	int32_t pass_count = 0;
 
@@ -29,7 +29,6 @@ int32_t main(int32_t argc, char *argv[])
 	int16_t result;
 
 	int16_t acq_result;
-	float *spectral_data;
 
 	// initialize sweep device
 	struct wsa_sweep_device wsa_Sweep_device;

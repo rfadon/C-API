@@ -529,7 +529,7 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	char query_msg[MAX_STR_LEN];
 
 	if (NULL == dev) {
-		return WSA_ERR_WSANPTRNULL;
+		return WSA_ERR_WSADEVPTRNULL;
 	}
 
     if(!strncmp(command,  "TRACE:BLOCK:DATA?", 16)) {
@@ -904,6 +904,8 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	uint8_t has_trailer = 0;
 	uint32_t trailer_word = 0;
 
+	uint16_t copy_size;
+
 	// reset header
 	header->pkt_count = 0;
 	header->samples_per_packet = 0;
@@ -1067,16 +1069,14 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		iq_packet_size = header->samples_per_packet;
 		
 		// Copy only the IQ data payload to the provided buffer
-		{
-			uint16_t copy_size = iq_packet_size;
-			if (iq_packet_size > data_buffer_size) {
-				doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)", iq_packet_size, data_buffer_size);
-				copy_size = data_buffer_size;
-			}
-			memcpy(data_buffer, 
-				vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
-				copy_size * BYTES_PER_VRT_WORD);
+		copy_size = iq_packet_size;
+		if (iq_packet_size > data_buffer_size) {
+			doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)", iq_packet_size, data_buffer_size);
+			copy_size = data_buffer_size;
 		}
+		memcpy(data_buffer, 
+			vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
+			copy_size * BYTES_PER_VRT_WORD);
 
 		// Handle the trailer word
 		if (has_trailer)

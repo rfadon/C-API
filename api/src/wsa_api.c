@@ -907,11 +907,13 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		doutf(DHIGH, "In wsa_read_vrt_packet: failed to allocate memory\n");
 		return WSA_ERR_MALLOCFAILED;
 	}
-			
+		
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
 		data_buffer, samples_per_packet, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
 		timeout);
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
+	
+	// check the result returned
 	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
 		if (result == WSA_ERR_NOTIQFRAME || result == WSA_ERR_QUERYNORESP) {
@@ -1695,7 +1697,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
  * Sets the attenuator's mode of operation (0 = Off/1 = On)
  *
  * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer pointer containing the attenuation's mode of operation
+ * @param mode - An integer pointer containing the attenuation's mode of operation (note the mode depends on device)
  * 
  * @return 0 on success, or a negative number on error.
  */
@@ -1704,26 +1706,44 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 	char temp_str[MAX_STR_LEN];
 
 	// check if the device is a WSA5000
-	if (strstr(dev->descr.prod_model, WSA5000) != NULL)	{
-		if (strstr(dev->descr.dev_model, WSA5000408) != NULL) {
-			// set attenuation for WSA5000-408
-			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
-		
-		} else if (strstr(dev->descr.dev_model, WSA5000427) != NULL) {
-			// WSA5000-427 devices
-			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
+	{
+		// set attenuation for WSA5000-108/208/308/408/220
+		if (strstr(dev->descr.dev_model, WSA5000408) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000208) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000220) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000108) != NULL || 
+			strstr(dev->descr.dev_model, WSA5000308) != NULL)
+		{
 
-		} else {
-			// set attenuation for other WSA5000 devices
 			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
 		}
-	
-	} else {
-		// All other devices
-		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
-	}
 
-	result = wsa_send_command(dev, temp_str);
+		// set attenuation for 408P/418/427
+		else {
+			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		
+		}
+	// set attenuation for R5500 devices
+	} else if (strstr(dev->descr.prod_model, R5500) != NULL)
+	{
+		// set the attenuation for R5500-408
+		if (strstr(dev->descr.dev_model, R5500408) != NULL)
+		{
+		
+			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		
+		}
+		// set the attenuation for R5500-418/427
+		else if (strstr(dev->descr.dev_model, R5500418) != NULL ||
+				(strstr(dev->descr.dev_model, R5500427) != NULL))
+
+			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+	}
 
 	return result;
 }
@@ -2402,16 +2422,6 @@ int16_t wsa_stream_start_id(struct wsa_device * const dev, int64_t stream_start_
 int16_t wsa_stream_stop(struct wsa_device * const dev)
 {
     int16_t result = 0;
-
-	//char status[MAX_STR_LEN];
-
-	//result = wsa_get_capture_mode(dev, status);
-	//if (result < 0)
-	//	return result;
-
-	// check if the wsa is already sweeping
-	//if (strcmp(status, WSA_STREAM_CAPTURE_MODE) != 0)
-	//	return WSA_ERR_STREAMNOTRUNNING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
 	if (result < 0)	{

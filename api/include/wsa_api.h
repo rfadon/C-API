@@ -27,7 +27,6 @@ DECL void wsa_debugcallback(void(*callback)(void * pvoid, char const * pstring),
 // ////////////////////////////////////////////////////////////////////////////
 // WSA RELATED FUNCTIONS                                                     //
 // ////////////////////////////////////////////////////////////////////////////
-
 DECL int16_t wsa_open(struct wsa_device *dev, char *intf_method);
 DECL int16_t wsa_reset(struct wsa_device *dev);
 DECL int16_t wsa_ping(struct wsa_device *dev, char *intf_method);
@@ -47,7 +46,6 @@ DECL int16_t wsa_send_scpi(struct wsa_device *dev, char const *command);
 // ////////////////////////////////////////////////////////////////////////////
 // PROBE SECTION                                                             //
 // ////////////////////////////////////////////////////////////////////////////
-
 DECL void * wsa_probe_begin(void);
 DECL int    wsa_probe_poll(void * handle, int timeout, char * probe, char * device, char * serial, char * version, int stringsize);
 DECL void   wsa_probe_end(void * handle);
