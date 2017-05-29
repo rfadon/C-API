@@ -191,6 +191,8 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_SWEEPMODEUNDEF, "WSA returned undefined sweep status"},
 		{WSA_ERR_INVSWEEPSTARTID, "Sweep Start ID is out of bounds"},
 		{WSA_ERR_SWEEPWHILESTREAMING, "Cannot initiate sweep mode while streaming"},
+		{WSA_ERR_INV_SWEEP_FREQ, "Invalid start/stop frequencies"},
+		
 		
 		//*****
 		// Stream Errors  

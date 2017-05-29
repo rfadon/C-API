@@ -319,6 +319,22 @@ struct wsa_socket {
 	int32_t data;
 };
 
+struct test_data {
+
+	// total bug count
+	int bug_count;
+
+	// totail fail count
+	int fail_count;
+
+	// total pass count
+	int pass_count;
+
+	// flag to indicate whether current bug is expected to fail (0 expected to pass, 1 expected to fail)
+	int fail_expected;
+
+};
+
 struct wsa_device {
 	struct wsa_descriptor descr;
 	struct wsa_socket sock;

@@ -528,11 +528,8 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
-    if(!strncmp(command,  "TRACE:BLOCK:DATA?", 16)) {
-        doutf(DLOW, "wsa_send_command(%s)\n", command);
-    } else {
-        doutf(DMED, "wsa_send_command(%s)\n", command);
-    }
+
+    doutf(DLOW, "wsa_send_command(%s)\n", command);
 
     // TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) 
