@@ -18,6 +18,7 @@
 #include "kiss_fft.h"
 #include "wsa_dsp.h"
 #include "wsa_debug.h"
+#include "wsa_lib.h"
 #ifndef _TIMES_H
 #define _TIMES_H
 
@@ -726,19 +727,20 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
-		tmpfreq = pscfg->fstop - (fcstop + half_usable_bw);
+		tmpfreq = (float)(pscfg->fstop - (fcstop + half_usable_bw));
 
 		// make a sweep entry for fcstop + half of that
-		tmpfreq = pscfg->fstop - (tmpfreq / 2);
+		tmpfreq = (float)(pscfg->fstop - (tmpfreq / 2));
 
 		// which must be a multiple of freq resolution
 		tmpfreq = (tmpfreq / prop->tuning_resolution) * prop->tuning_resolution;
 		
 		// If dd mode is used, move spectrum by half the bandwidth
 		if (dd_mode == 1)
-			tmpfreq = pscfg->fstop + (half_usable_bw / 2);
+			tmpfreq = (float)(pscfg->fstop + (half_usable_bw / 2));
+
 		// now create the entry
-		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new(tmpfreq, tmpfreq, fstep, points, 1, dd_mode);
+		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new((int64_t)tmpfreq, (int64_t)tmpfreq, fstep, points, 1, dd_mode);
 	}
 
 	
@@ -755,7 +757,7 @@ static int wsa_plan_sweep(struct wsa_power_spectrum_config *pscfg)
 			pscfg->packet_total += plan->ppb;
 		}
 		else {
-			pscfg->packet_total += ( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
+			pscfg->packet_total += (uint32_t)( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
 
 		}
 	}
@@ -806,12 +808,12 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
 static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
 {
 	int result;
-	struct wsa_resp query;
+	//struct wsa_resp query;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 	char dd[255] = "DD";
 	char atten_cmd[255];
-	char * strtok_result;
+	//char * strtok_result;
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
 
