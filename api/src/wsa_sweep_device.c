@@ -318,8 +318,9 @@ int16_t wsa_power_spectrum_alloc(
 	}
 
 	// now allocate enough buffer for the spectrum
-	pscfg->buflen = (uint32_t) ((pscfg->fstop - pscfg->fstart) / pscfg->rbw);
-	pscfg->buflen = pscfg->buflen + 5;
+	pscfg->buflen = (uint32_t) ((fstop - fstart) / pscfg->rbw);
+
+	doutf(DHIGH, "wsa_power_spectrum_alloc: Calculated Buffer length to be: %d\n", pscfg->buflen);
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
 	if (pscfg->buf == NULL) {
 		free(pscfg);
@@ -741,16 +742,27 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	// if the configuration stop is less then the fcstart, make fcstop same as fcstop
 	if (pscfg->fstop  <= fcstart){
 		fcstop = fcstart;
-		add_packet = 1;
 	}
 
 	// make the maximum fstop be the maximum tunable
-	if (fcstop > (uint64_t) dev_prop.max_tune_freq)
-		fcstop = fcstop - fstep;
+	if (fcstop > (uint64_t) prop->max_tunable){
+		fcstop = (uint64_t) prop->max_tunable;
+		doutf(DHIGH, "wsa_plan_sweep: Recalculated fcstop %0.2f \n", (float) fcstop);
+	}
 
 	// test if start frequency and stop frequency are valid
-	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
-		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting \n");
+	if (pscfg->fstart > pscfg->fstop){
+		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting, fstart greater than fstop \n");
+		return WSA_ERR_INV_SWEEP_FREQ;
+	}
+		
+	if (fcstart < prop->min_tunable && dd_mode == 0){
+		doutf(DHIGH, "wsa_plan_sweep: calculated new center is less than min tunable \n");
+		return WSA_ERR_INV_SWEEP_FREQ;
+	}
+		
+	if (fcstop > (uint64_t) prop->max_tunable){
+		doutf(DHIGH, "wsa_plan_sweep: Fstop (%0.2f) greater than max tunable (%0.2f)\n", (float) fcstop, (float) prop->max_tunable);
 		return WSA_ERR_INV_SWEEP_FREQ;
 	}
 
