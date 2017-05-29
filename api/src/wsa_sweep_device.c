@@ -287,7 +287,6 @@ int16_t wsa_power_spectrum_alloc(
 )
 {
 	struct wsa_power_spectrum_config *pscfg;
-	struct wsa_sweep_device_properties *prop;
 	int16_t result;
 
 	uint32_t calculated_rbw = 0;
@@ -320,7 +319,7 @@ int16_t wsa_power_spectrum_alloc(
 
 	// now allocate enough buffer for the spectrum
 	pscfg->buflen = (uint32_t) ((pscfg->fstop - pscfg->fstart) / pscfg->rbw);
-
+	pscfg->buflen = pscfg->buflen + 5;
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
 	if (pscfg->buf == NULL) {
 		free(pscfg);
