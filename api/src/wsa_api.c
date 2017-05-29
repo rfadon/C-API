@@ -908,7 +908,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		return WSA_ERR_MALLOCFAILED;
 	}
 			
-	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, data_buffer, timeout);
+	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
+		data_buffer, samples_per_packet, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
+		timeout);
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
@@ -923,16 +925,21 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 
 	// decode ZIF data packets
 	if (header->stream_id == I16Q16_DATA_STREAM_ID) 
-		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, header->samples_per_packet);
+		result = (int16_t) wsa_decode_zif_frame(data_buffer, samples_per_packet, i16_buffer, q16_buffer, header->samples_per_packet);
 	
 	// decode HDR/SH data packets
 	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16_DATA_STREAM_ID)
-		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
+		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, samples_per_packet, i16_buffer, i32_buffer,  header->samples_per_packet);
 
 	// apply reflevel offset to R5500 if needed
-	if (header->packet_type == IF_PACKET_TYPE){
-		if ((strstr(dev->descr.prod_model, R5500) != NULL)){
-			digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+	//if (header->packet_type == IF_PACKET_TYPE){
+	if (header->packet_type == CONTEXT_PACKET_TYPE) {	// don@bearanascence.com 10May17 in conference with Mohammad et al.
+		if (header->stream_id == DIGITIZER_STREAM_ID) {	
+			if ((digitizer->indicator_field & REF_LEVEL_INDICATOR_MASK) != 0x0) {
+				if ((strstr(dev->descr.prod_model, R5500) != NULL)) {
+					digitizer->reference_level = digitizer->reference_level - REFLEVEL_OFFSET;
+				}
+			}
 		}
 	}
 	free(data_buffer);
@@ -1231,7 +1238,7 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	for (i = 0; i < pscfg->buflen; i++)
 	{
 		if (psbuf[i] < min_point)
-			min_point = (float) abs(psbuf[i]);
+			min_point = (float) fabs(psbuf[i]);
 	}
 
 
@@ -1692,41 +1699,34 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
-{
+int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
 	// check if the device is a WSA5000
-	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
-
-	{
-
-		// set attenuation for WSA5000-408
-		if (strstr(dev->descr.dev_model, WSA5000408) != NULL)
-		{
-
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)	{
+		if (strstr(dev->descr.dev_model, WSA5000408) != NULL) {
+			// set attenuation for WSA5000-408
 			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
-			result = wsa_send_command(dev, temp_str);
-		}
-
-		// set attenuation for non 408 devices
-		else {
-
-			sprintf(temp_str, ":INP:ATT:VAR %d\n", mode);
-			result = wsa_send_command(dev, temp_str);
 		
+		} else if (strstr(dev->descr.dev_model, WSA5000427) != NULL) {
+			// WSA5000-427 devices
+			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
+
+		} else {
+			// set attenuation for other WSA5000 devices
+			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
 		}
+	
+	} else {
+		// All other devices
+		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
 	}
 
-	else
-	{
-		sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
-		result = wsa_send_command(dev, temp_str);
-	}
+	result = wsa_send_command(dev, temp_str);
+
 	return result;
 }
-
 
 
 
@@ -2132,7 +2132,7 @@ int16_t wsa_get_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
         return WSA_ERR_RESPUNKNOWN;
     }
 
-	*sync_state = temp;
+	*sync_state = (int32_t)temp;
 	return 0;
 
 }
@@ -2403,15 +2403,15 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
 {
     int16_t result = 0;
 
-	char status[MAX_STR_LEN];
+	//char status[MAX_STR_LEN];
 
-	result = wsa_get_capture_mode(dev, status);
-	if (result < 0)
-		return result;
+	//result = wsa_get_capture_mode(dev, status);
+	//if (result < 0)
+	//	return result;
 
 	// check if the wsa is already sweeping
-	if (strcmp(status, WSA_STREAM_CAPTURE_MODE) != 0)
-		return WSA_ERR_STREAMNOTRUNNING;
+	//if (strcmp(status, WSA_STREAM_CAPTURE_MODE) != 0)
+	//	return WSA_ERR_STREAMNOTRUNNING;
 
 	result = wsa_send_command(dev, "TRACE:STREAM:STOP\n");
 	if (result < 0)	{
