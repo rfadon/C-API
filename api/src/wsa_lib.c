@@ -528,6 +528,10 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
+	if (NULL == dev) {
+		return WSA_ERR_WSANPTRNULL;
+	}
+
     if(!strncmp(command,  "TRACE:BLOCK:DATA?", 16)) {
         doutf(DLOW, "wsa_send_command(%s)\n", command);
     } else {
@@ -880,7 +884,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		struct wsa_receiver_packet * const receiver,
 		struct wsa_digitizer_packet * const digitizer,
 		struct wsa_extension_packet * const extension,
-		uint8_t * const data_buffer,
+		uint8_t * const data_buffer, uint16_t data_buffer_size,
 		uint32_t timeout)
 {	
 	uint8_t *vrt_header_buffer;
@@ -1063,9 +1067,16 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		iq_packet_size = header->samples_per_packet;
 		
 		// Copy only the IQ data payload to the provided buffer
-		memcpy(data_buffer, 
-			vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
-			iq_packet_size * BYTES_PER_VRT_WORD);
+		{
+			uint16_t copy_size = iq_packet_size;
+			if (iq_packet_size > data_buffer_size) {
+				doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)", iq_packet_size, data_buffer_size);
+				copy_size = data_buffer_size;
+			}
+			memcpy(data_buffer, 
+				vrt_packet_buffer + ((VRT_HEADER_SIZE - 2) * BYTES_PER_VRT_WORD),
+				copy_size * BYTES_PER_VRT_WORD);
+		}
 
 		// Handle the trailer word
 		if (has_trailer)
@@ -1129,15 +1140,19 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
-						 int32_t sample_size)
+int32_t wsa_decode_zif_frame(uint8_t *data_buf, int32_t data_buf_size, 
+							 int16_t *i_buf, int16_t *q_buf, 
+							 int32_t sample_size)
 {
 	int32_t i;
 	int32_t j = 0;
 
+	// Guarantee no overrunning of data_buf_size of data_buf
+	int32_t copy_size = (sample_size>data_buf_size)?data_buf_size:sample_size;
+
     if(q_buf) {
 	  // Split up the IQ data bytes
-	  for (i = 0; i < sample_size * 4; i += 4) 
+	  for (i = 0; i < copy_size * 4; i += 4) 
 	  {
 		  i_buf[j] = (((int16_t) data_buf[i    ]) << 8) + ((int16_t) data_buf[i + 1]);
 		  q_buf[j] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
@@ -1145,7 +1160,7 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
 	  }
     }  else {
 	  // Leave IQ interleaved
-	  for (i = 0; i < sample_size * 4; i += 4) 
+	  for (i = 0; i < copy_size * 4; i += 4) 
 	  {
 		  i_buf[j*2  ] = (((int16_t) data_buf[i    ]) << 8) + ((int16_t) data_buf[i + 1]);
 		  i_buf[j*2+1] = (((int16_t) data_buf[i + 2]) << 8) + ((int16_t) data_buf[i + 3]);
@@ -1181,22 +1196,25 @@ int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf,
  * @return The number of samples decoded, or a 16-bit negative 
  * number on error.
  */
-int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *i16_buf,int32_t *i32_buf,  int32_t sample_size)
+int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int32_t data_buf_size, int16_t *i16_buf,int32_t *i32_buf,  int32_t sample_size)
 {
 	int32_t i = 0;
 	int32_t j = 0;
 
+	// Guarantee no overrunning of data_buf_size of data_buf
+	int32_t copy_size = (sample_size>data_buf_size)?data_buf_size:sample_size;
+
 	//  store HDR data in 32 bit buffer
 	if (stream_id == I32_DATA_STREAM_ID )
 	{
-		for (i = 0; i < sample_size * 4; i += 4) 
+		for (i = 0; i < copy_size * 4; i += 4) 
 		{
 			i32_buf[j] = (((int32_t) data_buf[i])  << 24) + ((int32_t) data_buf[i + 1] << 16) + ((int32_t) data_buf[i + 2] << 8) + ((int32_t) data_buf[i + 3]);
 			j++;
 		}
 	//  store SH data in 16 bit buffer
 	} else if (stream_id == I16_DATA_STREAM_ID)
-		for (i = 0; i < sample_size * 2; i += 2) 
+		for (i = 0; i < copy_size * 2; i += 2) 
 		{
 			i16_buf[j] =  ((int16_t) data_buf[i] << 8) + ((int16_t) data_buf[i + 1]);
 			j++;
