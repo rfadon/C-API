@@ -318,14 +318,18 @@ int16_t wsa_power_spectrum_alloc(
 	}
 
 	// now allocate enough buffer for the spectrum
-	pscfg->buflen = (uint32_t) ((fstop - fstart) / pscfg->rbw);
-
+	pscfg->buflen =  (uint32_t) (((float) (fstop - fstart)) / ((float) (pscfg->rbw)));
+	
 	doutf(DHIGH, "wsa_power_spectrum_alloc: Calculated Buffer length to be: %d\n", pscfg->buflen);
+	
+	// allocate data to the buffer
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
+	
 	if (pscfg->buf == NULL) {
 		free(pscfg);
 		return -1;
 	}
+
 	*pscfgptr = pscfg;
 	return 0;
 }
@@ -672,6 +676,9 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		return -EUNSUPPORTED;
 	}
 
+	// determine if frequency paramaters are valid
+	if (pscfg->fstart < dev_prop.min_tune_freq || pscfg->fstop > dev_prop.max_tune_freq)
+		return WSA_ERR_INV_SWEEP_FREQ;
 	/*
 	 * calculate some helper variables we'll need
 	 */
@@ -779,7 +786,8 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	doutf(DHIGH, "wsa_plan_sweep: Calculated expected fstop: %0.2f\n",  (float) expected_end);
 
 	// if the last data packet does not satisfy the sweep entry requirement, add another entry
-	if (expected_end > prop->min_tunable - fstep){
+	if (expected_end > (uint64_t) (dev_prop.max_tune_freq - ((uint32_t) fstep))){
+		
 		doutf(DHIGH, "wsa_plan_sweep: Will add extra entry to compensate for last bins\n");
 		pscfg->compensation_entry = 1;
 		pscfg->compensation_freq = expected_end + (((uint64_t) fstep) / 2);

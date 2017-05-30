@@ -2465,7 +2465,6 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 	struct wsa_resp query;
 	int temp;
 	int16_t result = 0;
-	char temp_str[MAX_STR_LEN];
 
 	// initializze the query struct
 	query.status = 0;
