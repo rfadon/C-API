@@ -8,11 +8,11 @@
 #include <test_util.h>
 
 // uses an R5500 device to test different sweep device settings
-int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
+int16_t test_device_descr(struct wsa_device *dev, struct test_data *test_info){
 
 
 	int16_t result;
 
-    return 0;
+    return result;
 }
 

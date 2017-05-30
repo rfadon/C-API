@@ -9,6 +9,7 @@
 #include "thinkrf_stdint.h"
 #include <attenuation_tests.h>
 #include <sweep_device_tests.h>
+#include <device_descr_tests.h>
 
 
 /**
@@ -54,6 +55,9 @@ int32_t main(int32_t argc, char *argv[])
 
 	result = sweep_device_tests(dev, &test_info);
 	printf("SWEEP DEVICE RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
+
+	result = test_device_descr(dev, &test_info);
+	printf("DEVICE DESCR RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
 	printf("TOTAL TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 	return 0;
