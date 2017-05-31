@@ -105,7 +105,7 @@
 #define WSA_PING_TIMEOUT 1
 
 #define WSA_IBW 125000000ULL
-#define WSA_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
+#define WSA_MAX_CAPTURE_BLOCK 32768
 
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
@@ -157,6 +157,9 @@
 #define R5500408 "R5500-408"
 #define R5500418 "R5500-418"
 #define R5500427 "R5500-427"
+
+#define R5500_MIN_FREQ 9000ULL
+#define R5500_FREQRES 10
 
 
 // *****
@@ -219,23 +222,31 @@
 // ////////////////////////////////////////////////////////////////////////////
 
 struct wsa_descriptor {
+
 	char prod_model[MAX_STR_LEN];
+	
 	char dev_model[MAX_STR_LEN];
-	char mac_addr[MAX_STR_LEN];
+	
+	char serial_number[MAX_STR_LEN];
+	
 	char fw_version[MAX_STR_LEN];
+	
 	char intf_type[MAX_STR_LEN];
-	char ATTENUATION_CONTROL[MAX_STR_LEN];
+
 	uint64_t inst_bw;
+	
 	int32_t max_sample_size;
-	int64_t max_tune_freq;
-	int64_t min_tune_freq;
+	
+	uint64_t max_tune_freq;
+	
+	uint64_t min_tune_freq;
+	
 	uint64_t freq_resolution;
-	int32_t max_if_gain;
-	int32_t min_if_gain;
+
 	int32_t min_decimation;
+	
 	int32_t max_decimation;
 
-	float abs_max_amp[NUM_RF_GAINS];
 };
 
 struct wsa_time {

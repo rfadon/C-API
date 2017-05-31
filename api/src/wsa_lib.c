@@ -45,21 +45,17 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.max_tune_freq = 0;
 	dev->descr.min_tune_freq = 0;
 	dev->descr.freq_resolution = 0;
-	dev->descr.max_if_gain = -1000;	// some impossible #
-	dev->descr.min_if_gain = -1000;	// some impossible #
 	dev->descr.max_decimation = 0;
 	dev->descr.min_decimation = 0;
-	
-
-	for (i = 0; i < NUM_RF_GAINS; i++)
-		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
-	
+		
 	wsa_send_query(dev, "*IDN?\n", &query);
 	
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	strtok_result = strtok_r(NULL, " ", &strtok_context);
 
 	// apply device model (408 vs 418 etc)
+
+	// check if the device is a WSA5000 308/408 or BNC 7500-8, treat all as 408
 	if (strstr(strtok_result, WSA5000308) != NULL ||
 		strstr(strtok_result, WSA5000408) != NULL ||
 		strstr(strtok_result, RTSA75008) != NULL)
@@ -68,7 +64,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
 	} 
-		
+	
+	// treat all WSA5000 P models the same
 	else if (strstr(strtok_result, WSA5000408P) != NULL || 
 			strstr(strtok_result, RTSA75008P) != NULL)
 	{
@@ -78,6 +75,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
 	}
 
+
+	// treat all WSA5000 18 GHz 
 	else if (strstr(strtok_result, WSA5000418) != NULL || 
 			strstr(strtok_result, RTSA750018) != NULL)
 	{
@@ -86,6 +85,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 	}
 
+	// treat all WSA5000-427 models the same
 	else if (strstr(strtok_result, WSA5000427) != NULL ||
 			strstr(strtok_result, RTSA750027) != NULL)
 	{
@@ -96,7 +96,6 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 	// R5500 408 and variants
 	else if (strstr(strtok_result, R5500408) != NULL ||
-			strstr(strtok_result, R5500308) != NULL ||
 			strstr(strtok_result, RTSA7550408) != NULL)
 	{
 		sprintf(dev->descr.prod_model, "%s", R5500);
@@ -129,25 +128,37 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
 	}
 	
-	// grab product mac address
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
 	
+	// grab product serial number
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	strcpy(dev->descr.serial_number, strtok_result);
+
 	// grab product firmware version
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	strcpy(dev->descr.fw_version, strtok_result);
 	
-	dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
+	dev->descr.max_sample_size = (int32_t) WSA_MAX_CAPTURE_BLOCK;
 	dev->descr.inst_bw = (uint64_t) WSA_IBW;
 	dev->descr.max_decimation = WSA_MAX_DECIMATION;
 	dev->descr.min_decimation = WSA_MIN_DECIMATION;
-	// 3rd, set some values base on the model
 	
-	if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
-	{
-		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
-		dev->descr.freq_resolution = WSA_5000_FREQRES;
-	}
+	dev->descr.freq_resolution = (uint64_t) R5500_FREQRES;
+	dev->descr.min_tune_freq = (uint64_t) (R5500_MIN_FREQ);
+	// 3rd, set some values base on the model
+	//if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
+	//{
+	//	dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
+	//	
+	//}
+	//else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
+	//{
+	//	dev->descr.min_tune_freq = (uint64_t) R5500_MIN_FREQ;
+
+	//}
+
+
+
 	return 0;
 }
 
