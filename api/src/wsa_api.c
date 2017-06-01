@@ -907,11 +907,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 		doutf(DHIGH, "In wsa_read_vrt_packet: failed to allocate memory\n");
 		return WSA_ERR_MALLOCFAILED;
 	}
-	// read the raw data packet		
+		
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
-		data_buffer, (uint16_t) samples_per_packet, timeout);
+		data_buffer, (uint16_t) samples_per_packet, timeout, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
+		timeout);
 
-	
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	
 	// check the result returned
@@ -928,11 +928,11 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 
 	// decode ZIF data packets
 	if (header->stream_id == I16Q16_DATA_STREAM_ID) 
-		result = (int16_t) wsa_decode_zif_frame(data_buffer, i16_buffer, q16_buffer, header->samples_per_packet);
+		result = (int16_t) wsa_decode_zif_frame(data_buffer, samples_per_packet, i16_buffer, q16_buffer, header->samples_per_packet);
 	
 	// decode HDR/SH data packets
 	else if (header->stream_id == I32_DATA_STREAM_ID || header->stream_id == I16_DATA_STREAM_ID)
-		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, i16_buffer, i32_buffer,  header->samples_per_packet);
+		result = (int16_t) wsa_decode_i_only_frame(header->stream_id, data_buffer, samples_per_packet, i16_buffer, i32_buffer,  header->samples_per_packet);
 
 	// apply reflevel offset to R5500 if needed
 	//if (header->packet_type == IF_PACKET_TYPE){
@@ -1702,14 +1702,12 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
  * 
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
-{
+int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
 
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
-
 	{
 		// set attenuation for WSA5000-108/208/308/408/220
 		if (strstr(dev->descr.dev_model, WSA5000408) != NULL ||
@@ -1729,10 +1727,8 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 			result = wsa_send_command(dev, temp_str);
 		
 		}
-	}
-
 	// set attenuation for R5500 devices
-	else if (strstr(dev->descr.prod_model, R5500) != NULL)
+	} else if (strstr(dev->descr.prod_model, R5500) != NULL)
 	{
 		// set the attenuation for R5500-408
 		if (strstr(dev->descr.dev_model, R5500408) != NULL)
@@ -1752,7 +1748,6 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode)
 
 	return result;
 }
-
 
 
 

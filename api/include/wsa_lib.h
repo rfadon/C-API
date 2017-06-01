@@ -333,6 +333,7 @@ struct wsa_resp {
 // ////////////////////////////////////////////////////////////////////////////
 // List of functions                                                         //
 // ////////////////////////////////////////////////////////////////////////////
+int16_t _wsa_dev_init(struct wsa_device *dev);
 int16_t wsa_connect(struct wsa_device *dev, char const *cmd_syntax, char *intf_method, int16_t timeout);
 int16_t wsa_disconnect(struct wsa_device *dev);
 int16_t wsa_verify_addr(const char *sock_addr, const char *sock_port);
@@ -350,10 +351,10 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		uint8_t * const data_buffer, uint16_t data_buffer_size,
 		uint32_t timeout);
 		
-int32_t wsa_decode_zif_frame(uint8_t *data_buf, int16_t *i_buf, int16_t *q_buf, 
+int32_t wsa_decode_zif_frame(uint8_t *data_buf, int32_t data_buf_size, int16_t *i_buf, int16_t *q_buf, 
 						 int32_t sample_size);
 
-int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int16_t *i16_buf, int32_t *i32_buf, int32_t sample_size);
+int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int32_t data_buf_size, int16_t *i16_buf, int32_t *i32_buf, int32_t sample_size);
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 
