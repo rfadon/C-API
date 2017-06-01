@@ -909,8 +909,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	}
 		
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
-		data_buffer, samples_per_packet, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
+		data_buffer, (uint16_t) samples_per_packet, timeout, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
 		timeout);
+
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	
 	// check the result returned

@@ -111,8 +111,8 @@ int wsa_power_spectrum_alloc(
 	struct wsa_power_spectrum_config **pscfg
 );
 void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg);
-void wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg);
-int wsa_capture_power_spectrum(
+int16_t wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg);
+int16_t wsa_capture_power_spectrum(
 	struct wsa_sweep_device *sweep_device,
 	struct wsa_power_spectrum_config *pscfg,
 	float **buf

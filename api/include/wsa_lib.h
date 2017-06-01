@@ -148,6 +148,9 @@
 // Offset of KISS FFT
 #define KISS_FFT_OFFSET 0;
 
+// a value to use whenever a buffer needs to be poisoned
+#define POISONED_BUFFER_VALUE 99999
+
 // R5500 SPECIFIC
 #define R5500 "R5500"
 #define R5500308 "R5500-308"
