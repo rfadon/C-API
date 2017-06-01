@@ -20,7 +20,7 @@ int32_t main(int32_t argc, char *argv[])
 // initialize WSA structure and IP setting
     struct wsa_device wsa_dev;	// the wsa device structure
     struct wsa_device *dev;
-	char wsa_addr[255] = "10.126.110.112";	// store wsa ip address
+	char wsa_addr[255] = "204.101.47.116";	// store wsa ip address
     char intf_str[255];
 
 	struct test_data test_info;
@@ -53,8 +53,8 @@ int32_t main(int32_t argc, char *argv[])
 	result = sweep_attenuation_tests(dev, &test_info);
 	printf("SWEEP ATTENATION TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
-	result = sweep_device_tests(dev, &test_info);
-	printf("SWEEP DEVICE RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
+	//result = sweep_device_tests(dev, &test_info);
+	//printf("SWEEP DEVICE RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
 	result = test_device_descr(dev, &test_info);
 	printf("DEVICE DESCR RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);

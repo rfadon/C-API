@@ -95,7 +95,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 	fstop = 1000000000;
 	span = fstop - fstart;
 	capt_counter = 0;
-	while(capt_counter < 5000){
+	while(capt_counter < 10){
 		capt_counter++;
 		wsa_power_spectrum_free(pscfg);
 		result = wsa_power_spectrum_alloc(wsa_sweep_dev, (uint64_t) 300000,  (uint64_t) fstop, (uint32_t) 100000, "SH", &pscfg);
