@@ -21,6 +21,8 @@
 #include "wsa_dsp.h"
 #include "wsa_debug.h"
 #include "wsa_error.h"
+
+
 #ifndef _TIMES_H
 #define _TIMES_H
 
@@ -812,10 +814,10 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	// do we need a cleanup entry?
 	if ((fcstop + half_usable_bw) < pscfg->fstop) {
 		// how much is left over? (it should be less than usable_bw)
-		tmpfreq = (float) (pscfg->fstop - (fcstop + half_usable_bw));
+		tmpfreq = (float)(pscfg->fstop - (fcstop + half_usable_bw));
 
 		// make a sweep entry for fcstop + half of that
-		tmpfreq = pscfg->fstop - (tmpfreq / 2);
+		tmpfreq = (float)(pscfg->fstop - (tmpfreq / 2));
 
 		// which must be a multiple of freq resolution
 		tmpfreq = (tmpfreq / prop->tuning_resolution) * prop->tuning_resolution;
@@ -827,7 +829,6 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		new_entry_freq = (uint64_t) tmpfreq;
 		pscfg->sweep_plan->next_entry = wsa_sweep_plan_entry_new(new_entry_freq, new_entry_freq, fstep, points, 1, dd_mode);
 	}
-
 	
 	// how many steps on in this plan? loop through the list and count 'em
 
@@ -847,8 +848,7 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 			pscfg->packet_total += plan->ppb;
 		}
 		else {
-			pscfg->packet_total += (uint32_t) ((((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * ((uint32_t) (plan->ppb)));
-
+			pscfg->packet_total += (uint32_t)( (((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * plan->ppb);
 		}
 	}
 
