@@ -459,7 +459,7 @@ int16_t wsa_capture_power_spectrum(
 	
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-	
+	doutf(DHIGH, "wsa_capture_power_spectrum: Called sweep start \n");
 	// read out all the data
 	packet_count = 0;
 	
@@ -471,7 +471,7 @@ int16_t wsa_capture_power_spectrum(
 		// poison the buffers if last packet was a data packet
 		if (header.packet_type == IF_PACKET_TYPE) {
 			for(i=0; i<total_samples; i++)
-				i16_buffer[i] = 9999;
+				i16_buffer[i] = (int16_t) POISONED_BUFFER_VALUE;
 		}
 
 		// read a packet
@@ -569,7 +569,7 @@ int16_t wsa_capture_power_spectrum(
 					if (cfg->fstop >  (float) prop->min_tunable)
 						istop = (uint32_t) (0.8 * spp / 2);
 					else
-						istop = (uint32_t) (((float)cfg->fstop /  (float) prop->full_bw) * (spp / 2)) - 1;
+						istop = (uint32_t) (((float)cfg->fstop /  (float) prop->full_bw) * (spp / 2));
 
 					buf_offset = 0;
 					ilen = istop - istart;
@@ -847,7 +847,7 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 			pscfg->packet_total += plan->ppb;
 		}
 		else {
-			pscfg->packet_total += (uint64_t) ((((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * (uint32_t) (plan->ppb));
+			pscfg->packet_total += (uint32_t) ((((plan->fcstop - plan->fcstart) /  plan->fstep) + 1) * ((uint32_t) (plan->ppb)));
 
 		}
 	}
@@ -905,6 +905,15 @@ static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct 
 	char atten_cmd[255];
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
+
+	// reset the device before the capture
+	result = wsa_reset(wsadev);
+
+	// flush the data
+	result = wsa_flush_data(wsadev);
+
+	// abort any previous capture
+	result = wsa_system_abort_capture(wsadev);
 
 	// grab the device id, and initialize the object
 	result = _wsa_dev_init(wsadev);

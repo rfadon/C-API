@@ -268,7 +268,7 @@ struct wsa_receiver_packet {
 	int32_t indicator_field;
 	uint8_t pkt_count;
 	int32_t reference_point;
-	long double freq;
+	uint64_t freq;
 	double gain_if;
 	double gain_rf;
 	double temperature;
@@ -278,9 +278,9 @@ struct wsa_receiver_packet {
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
 	uint8_t pkt_count;
-	long double bandwidth;
+	uint64_t bandwidth;
 	int16_t reference_level;
-	long double rf_freq_offset;
+	uint64_t rf_freq_offset;
 };
 
 //structure to hold extension packet data
