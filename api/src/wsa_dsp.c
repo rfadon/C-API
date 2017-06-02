@@ -20,6 +20,7 @@ kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, k
 		sum = sum + data_array[i];
 	}
 	*average = sum / array_size;
+	return sum;
 
 }
 

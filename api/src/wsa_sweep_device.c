@@ -465,6 +465,8 @@ int16_t wsa_capture_power_spectrum(
 	// read out all the data
 	packet_count = 0;
 	
+	// initialize the header packet type
+	header.packet_type = 0;
 	while(1) {
 		if (packet_count < cfg->packets_per_block && cfg->sweep_plan->dd_mode == 1)
 			dd_packet = 1;

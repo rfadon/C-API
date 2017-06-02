@@ -221,6 +221,7 @@
 // STRUCTS DEFINES                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
+// structure to hold device properties
 struct wsa_descriptor {
 
 	char prod_model[MAX_STR_LEN];

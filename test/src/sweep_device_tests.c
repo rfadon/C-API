@@ -21,7 +21,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 	uint64_t fstart =  26500000000;
 	uint64_t fstop =  27000000000;
 	uint64_t span = fstop - fstart;
-
+	 
 
 	uint32_t max_index = 0;
 	struct wsa_sweep_device wsa_sweep_device;
