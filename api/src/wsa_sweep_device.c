@@ -433,10 +433,7 @@ int16_t wsa_capture_power_spectrum(
 	
 	// do a malloc to allocate data for each buffer
 	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
-	q16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
-	i32_buffer = (int32_t *) malloc(sizeof(int32_t) * total_samples);
 	tmp_buffer = (int16_t *) malloc(sizeof(int16_t) * cfg->samples_per_packet);
-
 	idata = (kiss_fft_scalar *) malloc(sizeof(kiss_fft_scalar) * total_samples);
 	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * total_samples);
 	doutf(DHIGH, "wsa_capture_power_spectrum: Created Data buffers sized: %d\n", (int) total_samples);
@@ -613,8 +610,6 @@ int16_t wsa_capture_power_spectrum(
 	free(fftout);
 	free(idata);
 	free(tmp_buffer);
-	free(i32_buffer);
-	free(q16_buffer);
 	free(i16_buffer);
 
 	return 0;
@@ -756,8 +751,8 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	}
 
 	// make the maximum fstop be the maximum tunable
-	if (fcstop > (uint64_t) prop->max_tunable){
-		fcstop = (uint64_t) prop->max_tunable;
+	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
+		fcstop = (uint64_t) dev_prop.max_tune_freq;
 		doutf(DHIGH, "wsa_plan_sweep: Recalculated fcstop %0.2f \n", (float) fcstop);
 	}
 
