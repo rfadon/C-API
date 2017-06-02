@@ -1511,7 +1511,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq)
 		return result;
     }
 
-	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %u Hz\n", cfreq);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_freq: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1916,7 +1916,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint6
 		return result;
     }
 
-	sprintf(temp_str, ":TRIG:LEVEL %llu,%llu,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2914,7 +2914,7 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, uint64_t start_freq, uint64_t
 	if (stop_freq < start_freq)
 		return  WSA_ERR_INVSTOPFREQ;
 		
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %llu Hz, %llu Hz\n", start_freq, stop_freq);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %u Hz, %u Hz\n", start_freq, stop_freq);
 	result = wsa_send_command(dev, temp_str);
     if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2999,7 +2999,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, uint64_t step)
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %llu Hz\n", step);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %u Hz\n", step);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq_step: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -3139,7 +3139,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, uint64_t start_freq,
 		return WSA_ERR_INVSTOPFREQ;
     }
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %llu,%llu,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
 	if (result < 0) {
