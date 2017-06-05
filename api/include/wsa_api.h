@@ -160,8 +160,8 @@ DECL int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate);
 // FREQUENCY SECTION                                                         //
 // ////////////////////////////////////////////////////////////////////////////
 
-DECL int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq);
-DECL int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq);
+DECL int16_t wsa_get_freq(struct wsa_device *dev, uint64_t *cfreq);
+DECL int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq);
 
 DECL int16_t wsa_get_freq_shift(struct wsa_device *dev, float *fshift);
 DECL int16_t wsa_set_freq_shift(struct wsa_device *dev, float fshift);
@@ -193,8 +193,8 @@ DECL int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode);
 // TRIGGER SECTION                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
-DECL int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude);
-DECL int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
+DECL int16_t wsa_get_trigger_level(struct wsa_device *dev, uint64_t *start_freq, uint64_t *stop_freq, int32_t *amplitude);
+DECL int16_t wsa_set_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq, int32_t amplitude);
 
 DECL int16_t wsa_get_trigger_enable(struct wsa_device *dev, int32_t *enable);
 DECL int16_t wsa_set_trigger_enable(struct wsa_device *dev, int32_t enable);
@@ -247,15 +247,15 @@ DECL int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate);
 
 DECL int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *microseconds);
 DECL int16_t wsa_set_sweep_dwell(struct wsa_device *dev,int32_t seconds, int32_t microseconds);
-	
-DECL int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *freq_start, int64_t *freq_stop);
-DECL int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq);
+
+int16_t wsa_get_sweep_freq(struct wsa_device *dev, uint64_t *freq_start, uint64_t *freq_stop);
+int16_t wsa_set_sweep_freq(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq);
 
 DECL int16_t wsa_get_sweep_freq_shift(struct wsa_device *dev, float *fshift);
 DECL int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift);
 
-DECL int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *step);
-DECL int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step);
+int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, uint64_t *step);
+int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, uint64_t step);
 
 DECL int16_t wsa_get_sweep_gain_if(struct wsa_device *dev, int32_t *gain);
 DECL int16_t wsa_set_sweep_gain_if(struct wsa_device *dev, int32_t gain);
@@ -275,8 +275,8 @@ DECL int16_t wsa_set_sweep_packets_per_block(struct wsa_device *dev, int32_t pac
 DECL int16_t wsa_get_sweep_trigger_type(struct wsa_device *dev, char *type);
 DECL int16_t wsa_set_sweep_trigger_type(struct wsa_device *dev, char const *type);
 
-DECL int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude);
-DECL int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude);
+DECL int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq, int32_t amplitude);
+DECL int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, uint64_t *start_freq, uint64_t *stop_freq, int32_t *amplitude);
 
 DECL int16_t wsa_get_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t *delay);
 DECL int16_t wsa_set_sweep_trigger_sync_delay(struct wsa_device *dev, int32_t delay);

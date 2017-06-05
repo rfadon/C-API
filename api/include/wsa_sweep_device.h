@@ -65,6 +65,12 @@ struct wsa_power_spectrum_config {
 	// keep track if only a dd packet is available
 	uint8_t only_dd;
 
+	// determine if an entry is required at the end to compensate for last frequency
+	uint8_t compensation_entry;
+
+	// frequency of the very last entry
+	uint64_t compensation_freq;
+
 	/// the mode to perform the sweep in
 	uint32_t mode;
 
@@ -89,20 +95,24 @@ struct wsa_power_spectrum_config {
 	
 	/// The number of samples per packet
 	uint32_t samples_per_packet;
+
 	/// the float buffer 
 	float *buf;
 
 	// determine if the reference level needs to be modified
 	uint8_t modify_ref;
+
 	/// the length of the float buffer
 	uint32_t buflen;
+
+
 };
 
 
 struct wsa_sweep_device *wsa_sweep_device_new(struct wsa_device *device);
 void wsa_sweep_device_free(struct wsa_sweep_device *sweepdev);
 void wsa_sweep_device_set_attenuator(struct wsa_sweep_device *sweep_device, unsigned int val);
-int wsa_power_spectrum_alloc(
+int16_t wsa_power_spectrum_alloc(
 	struct wsa_sweep_device *sweep_device,
 	uint64_t fstart,
 	uint64_t fstop,

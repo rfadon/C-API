@@ -45,21 +45,17 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.max_tune_freq = 0;
 	dev->descr.min_tune_freq = 0;
 	dev->descr.freq_resolution = 0;
-	dev->descr.max_if_gain = -1000;	// some impossible #
-	dev->descr.min_if_gain = -1000;	// some impossible #
 	dev->descr.max_decimation = 0;
 	dev->descr.min_decimation = 0;
-	
-
-	for (i = 0; i < NUM_RF_GAINS; i++)
-		dev->descr.abs_max_amp[i] = -1000;	// some impossible #
-	
+		
 	wsa_send_query(dev, "*IDN?\n", &query);
 	
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	strtok_result = strtok_r(NULL, " ", &strtok_context);
 
 	// apply device model (408 vs 418 etc)
+
+	// check if the device is a WSA5000 308/408 or BNC 7500-8, treat all as 408
 	if (strstr(strtok_result, WSA5000308) != NULL ||
 		strstr(strtok_result, WSA5000408) != NULL ||
 		strstr(strtok_result, RTSA75008) != NULL)
@@ -68,7 +64,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
 	} 
-		
+	
+	// treat all WSA5000 P models the same
 	else if (strstr(strtok_result, WSA5000408P) != NULL || 
 			strstr(strtok_result, RTSA75008P) != NULL)
 	{
@@ -78,6 +75,8 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000408_MAX_FREQ * MHZ);
 	}
 
+
+	// treat all WSA5000 18 GHz 
 	else if (strstr(strtok_result, WSA5000418) != NULL || 
 			strstr(strtok_result, RTSA750018) != NULL)
 	{
@@ -86,6 +85,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 	}
 
+	// treat all WSA5000-427 models the same
 	else if (strstr(strtok_result, WSA5000427) != NULL ||
 			strstr(strtok_result, RTSA750027) != NULL)
 	{
@@ -96,7 +96,6 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 
 	// R5500 408 and variants
 	else if (strstr(strtok_result, R5500408) != NULL ||
-			strstr(strtok_result, R5500308) != NULL ||
 			strstr(strtok_result, RTSA7550408) != NULL)
 	{
 		sprintf(dev->descr.prod_model, "%s", R5500);
@@ -129,25 +128,37 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		sprintf(dev->descr.prod_model, "%s", WSA5000);
 	}
 	
-	// grab product mac address
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(dev->descr.mac_addr, strtok_result); // temp for now
 	
+	// grab product serial number
+	strtok_result = strtok_r(NULL, ",", &strtok_context);
+	strcpy(dev->descr.serial_number, strtok_result);
+
 	// grab product firmware version
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	strcpy(dev->descr.fw_version, strtok_result);
 	
-	dev->descr.max_sample_size = WSA_MAX_CAPTURE_BLOCK;
+	dev->descr.max_sample_size = (int32_t) WSA_MAX_CAPTURE_BLOCK;
 	dev->descr.inst_bw = (uint64_t) WSA_IBW;
 	dev->descr.max_decimation = WSA_MAX_DECIMATION;
 	dev->descr.min_decimation = WSA_MIN_DECIMATION;
-	// 3rd, set some values base on the model
 	
-	if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
-	{
-		dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
-		dev->descr.freq_resolution = WSA_5000_FREQRES;
-	}
+	dev->descr.freq_resolution = (uint64_t) R5500_FREQRES;
+	dev->descr.min_tune_freq = (uint64_t) (R5500_MIN_FREQ);
+	// 3rd, set some values base on the model
+	//if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
+	//{
+	//	dev->descr.min_tune_freq = WSA_5000_MIN_FREQ;
+	//	
+	//}
+	//else if (strcmp(dev->descr.prod_model, WSA5000) == 0) 
+	//{
+	//	dev->descr.min_tune_freq = (uint64_t) R5500_MIN_FREQ;
+
+	//}
+
+
+
 	return 0;
 }
 
@@ -304,7 +315,8 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
 	}
 	else 
 	{
-		printf("WSA returned: %s\n", resp.output);
+		doutf(DHIGH, "WSA Error returned: %s\n", resp.output);
+
 		strcpy(output, resp.output); // TODO verify this output
 	}
 
@@ -528,15 +540,12 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
+
+    doutf(DLOW, "wsa_send_command(%s)\n", command);
+
 	if (NULL == dev) {
 		return WSA_ERR_WSADEVPTRNULL;
 	}
-
-    if(!strncmp(command,  "TRACE:BLOCK:DATA?", 16)) {
-        doutf(DLOW, "wsa_send_command(%s)\n", command);
-    } else {
-        doutf(DMED, "wsa_send_command(%s)\n", command);
-    }
 
     // TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) 
@@ -1241,8 +1250,8 @@ void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_pack
 	int32_t reference_point = 0;
 	int64_t freq_word1 = 0; 
 	int64_t freq_word2 = 0;
-	long double freq_int_part = 0;
-	long double freq_dec_part = 0;
+	uint64_t freq_int_part = 0;
+	uint64_t freq_dec_part = 0;
 	
 	int8_t data_pos = 16; // to increment data index
 	
@@ -1276,8 +1285,8 @@ void extract_receiver_packet_data(uint8_t *temp_buffer, struct wsa_receiver_pack
 					(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 					(int64_t) temp_buffer[data_pos + 7]);
 
-		freq_int_part = (long double) ((freq_word1 << 12) + (freq_word2 >> 20));
-		freq_dec_part = (long double) (freq_word2 & 0x000fffff);
+		freq_int_part = (uint64_t) ((freq_word1 << 12) + (freq_word2 >> 20));
+		freq_dec_part = (uint64_t) (freq_word2 & 0x000fffff);
 		receiver->freq = freq_int_part + (freq_dec_part / MHZ);
 		data_pos = data_pos + 8;
 	}
@@ -1320,13 +1329,13 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 
 	int64_t bw_word1 = 0;
 	int64_t bw_word2 = 0;
-	long double bw_int_part = 0;
-	long double bw_dec_part = 0;
+	uint64_t bw_int_part = 0;
+	uint64_t bw_dec_part = 0;
 
 	int64_t rf_freq_word1 = 0;
 	int64_t rf_freq_word2 = 0;
-	long double rf_freq_int_part = 0;
-	long double rf_freq_dec_part = 0;
+	uint64_t rf_freq_int_part = 0;
+	uint64_t rf_freq_dec_part = 0;
 
 	int16_t ref_level_word = 0;
 
@@ -1352,8 +1361,8 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 						(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 						(int64_t) temp_buffer[data_pos + 7]);
 		
-		bw_int_part = (long double) ((bw_word1 << 12) + (bw_word2 >> 20));
-		bw_dec_part = (long double) (bw_word2 & 0x000fffff);
+		bw_int_part = (uint64_t) ((bw_word1 << 12) + (bw_word2 >> 20));
+		bw_dec_part = (uint64_t) (bw_word2 & 0x000fffff);
 		digitizer->bandwidth = bw_int_part + (bw_dec_part / MHZ);
 		data_pos = data_pos + 8;
 	}
@@ -1372,8 +1381,8 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 						(((int64_t) temp_buffer[data_pos + 6]) << 8) + 
 						(int64_t) temp_buffer[data_pos + 7]);
 
-		rf_freq_int_part = (long double) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
-		rf_freq_dec_part = (long double) (rf_freq_word2 & 0x000fffff);
+		rf_freq_int_part = (uint64_t) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
+		rf_freq_dec_part = (uint64_t) (rf_freq_word2 & 0x000fffff);
 		digitizer->rf_freq_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
 		
 		data_pos = data_pos + 8;

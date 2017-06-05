@@ -58,10 +58,10 @@
 // ////////////////////////////////////////////////////////////////////////////
 // Local functions                                                           //
 // ////////////////////////////////////////////////////////////////////////////
-int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq);
+int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq);
 
 // Verify if the frequency is valid (within allowed range)
-int16_t wsa_verify_freq(struct wsa_device *dev, int64_t freq)
+int16_t wsa_verify_freq(struct wsa_device *dev, uint64_t freq)
 {
 	
 	// verify the frequency value
@@ -909,8 +909,7 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	}
 		
 	result = wsa_read_vrt_packet_raw(dev, header, trailer, receiver, digitizer, sweep_info, 
-		data_buffer, (uint16_t) samples_per_packet, timeout, // don@bearanascence.com 10May17; mismatch error pipe data versus expected
-		timeout);
+		data_buffer, (uint16_t) samples_per_packet, timeout);
 
 	doutf(DLOW, "wsa_read_vrt_packet_raw returned %hd\n", result);
 	
@@ -1466,7 +1465,7 @@ int16_t wsa_set_decimation(struct wsa_device *dev, int32_t rate)
  *
  * @return 0 on successful or a negative number on error.
  */
-int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
+int16_t wsa_get_freq(struct wsa_device *dev, uint64_t *cfreq)
 {	
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -1482,7 +1481,7 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*cfreq = (int64_t) temp;
+	*cfreq = (uint64_t) temp;
 
 	return 0;
 }
@@ -1496,14 +1495,14 @@ int16_t wsa_get_freq(struct wsa_device *dev, int64_t *cfreq)
  * frequency values.
  *
  * @param dev - A pointer to the WSA device structure
- * @param cfreq - An int64_t type storing the center frequency to set, in Hz
+ * @param cfreq - An uint64_t type storing the center frequency to set, in Hz
  * @return 0 on success, or a negative number on error.
  * @par Errors:
  * - Frequency out of range.
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
+int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1512,7 +1511,7 @@ int16_t wsa_set_freq(struct wsa_device *dev, int64_t cfreq)
 		return result;
     }
 
-	sprintf(temp_str, "FREQ:CENT %lld Hz\n", cfreq);
+	sprintf(temp_str, "FREQ:CENT %0.2f Hz\n", (float) cfreq);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_freq: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1647,23 +1646,29 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 	struct wsa_resp query;
 	int temp;
 
+	// initializze the query struct
+	query.status = 0;
+
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
 	{
-		// send the scpi command
-		wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
+		// get attenuation for WSA5000-108/208/308/408/220
+		if (strstr(dev->descr.dev_model, WSA5000408) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000208) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000220) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000108) != NULL || 
+			strstr(dev->descr.dev_model, WSA5000308) != NULL)
+		{
 
-		// check if SYST:ERR? got an error
-		if (query.status <= 0)
-			return (int16_t) query.status;	
-
-		// convert output to integer
-		if (wsa_to_int(query.output, &temp) < 0) {
-			doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-			return WSA_ERR_RESPUNKNOWN;
+			wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 		}
 
-		*mode = (int32_t) temp;
+		// set attenuation for 408P/418/427
+		else {
+			wsa_send_query(dev, "INPUT:ATTENUATOR:VAR?\n", &query);
+		
+		}
+
 	}
 
 	// If the device is an R5500
@@ -1673,26 +1678,28 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 		if (strstr(dev->descr.dev_model, WSA5000408) != NULL)
 		{
 			wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
-			if (query.status <= 0)
-				return (int16_t) query.status;
-			
-			if (wsa_to_int(query.output, &temp) < 0) {
-				doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
-				return WSA_ERR_RESPUNKNOWN;
-			}
-			*mode = (int32_t) temp;
 
-		//TODO: implement for 418/427
-		} 
-		
-		if (strstr(dev->descr.dev_model, WSA5000427) != NULL ||
-			strstr(dev->descr.dev_model, WSA5000418) != NULL)
-			temp = 5;
 		}
 
-	return 0;
-}
+		else
+		{
+			wsa_send_query(dev, "INPUT:ATTENUATOR:VAR?\n", &query);
 
+		}
+
+	}
+
+	if (query.status <= 0)
+		return (int16_t) query.status;
+			
+	if (wsa_to_int(query.output, &temp) < 0) {
+		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
+		return WSA_ERR_RESPUNKNOWN;
+	}
+	*mode = (int32_t) temp;
+	return 0 ;
+
+}
 
 /**
  * Sets the attenuator's mode of operation (0 = Off/1 = On)
@@ -1890,7 +1897,7 @@ int16_t wsa_set_iq_output_mode(struct wsa_device *dev, char const *mode)
  * @param amplitude - The minimum amplitutde of a signal that will satisfy the trigger
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude)
+int16_t wsa_set_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq, int32_t amplitude)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -1909,7 +1916,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_
 		return result;
     }
 
-	sprintf(temp_str, ":TRIG:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1929,7 +1936,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_
  *
  * @return 0 on successful or a negative number on error.
  */
-int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude)
+int16_t wsa_get_trigger_level(struct wsa_device *dev, uint64_t *start_freq, uint64_t *stop_freq, int32_t *amplitude)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -1954,7 +1961,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*start_freq = (int64_t) temp;
+	*start_freq = (uint64_t) temp;
 	
 	// Convert the 2nd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
@@ -1969,7 +1976,7 @@ int16_t wsa_get_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*stop_freq = (int64_t) temp;
+	*stop_freq = (uint64_t) temp;
 	
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
@@ -2442,7 +2449,7 @@ int16_t wsa_stream_stop(struct wsa_device * const dev)
  * Gets the sweep entry's attenuator's mode of operation
  *
  * @param dev - A pointer to the WSA device structure.
- * @param mode - An integer pointer to store the attenuator's mode
+ * @param mode - An integer pointer to store the attenuator's state
  * of operation
  *
  * @return 0 on successful, or a negative number on error.
@@ -2451,8 +2458,52 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 {
 	struct wsa_resp query;
 	int temp;
+	int16_t result = 0;
 
-	wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
+	// initializze the query struct
+	query.status = 0;
+
+	// check if the device is a WSA5000
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
+
+	{
+		// get attenuation for WSA5000-108/208/308/408/220
+		if (strstr(dev->descr.dev_model, WSA5000108) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000208) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000220) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000308) != NULL || 
+			strstr(dev->descr.dev_model, WSA5000408) != NULL)
+		{
+
+			wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
+		}
+
+		// Get attenuation for 408P/418/427
+		else {
+			wsa_send_query(dev, "INPUT:ATTENUATOR:VAR?\n", &query);
+		
+		}
+	}
+
+	// get sweep entry attenuation for R5500 devices
+	else if (strstr(dev->descr.prod_model, R5500) != NULL)
+	{
+		// get the attenuation for R5500-408
+		if (strstr(dev->descr.dev_model, R5500408) != NULL)
+		{
+		
+			wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR?\n", &query);
+		
+		}
+		// get the sweep entry attenuation for R5500-418/427
+		else if (strstr(dev->descr.dev_model, R5500418) != NULL ||
+				(strstr(dev->descr.dev_model, R5500427) != NULL))
+		{
+
+			wsa_send_query(dev, "SWEEP:ENTRY:ATTENUATOR:VAR?\n", &query);
+		}
+	}
+
 	if (query.status <= 0) {
 		return (int16_t) query.status;
     }
@@ -2462,9 +2513,6 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	if ((int32_t) temp != WSA_ATTEN_ENABLED  && (int32_t) temp != WSA_ATTEN_DISABLED) {
-		return WSA_ERR_INVATTEN;
-    }
 
 	*mode = (int32_t) temp;
 	
@@ -2482,16 +2530,55 @@ int16_t wsa_get_sweep_attenuation(struct wsa_device *dev, int32_t *mode)
  */
 int16_t wsa_set_sweep_attenuation(struct wsa_device *dev, int32_t mode)
 {
+
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-	
-	sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
 
-	result = wsa_send_command(dev, temp_str);
-	if (result < 0) {
-        doutf(DHIGH, "In wsa_set_sweep_attenuation: %d - %s.\n", result, wsa_get_error_msg(result));
-    }
-	
+	// check if the device is a WSA5000
+	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
+
+	{
+		// set attenuation for WSA5000-108/208/308/408/220
+		if (strstr(dev->descr.dev_model, WSA5000108) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000208) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000220) != NULL ||
+			strstr(dev->descr.dev_model, WSA5000308) != NULL || 
+			strstr(dev->descr.dev_model, WSA5000408) != NULL)
+		{
+
+			sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		}
+
+		// set attenuation for 408P/418/427
+		else {
+			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		
+		}
+	}
+
+	// set sweep entry attenuation for R5500 devices
+	else if (strstr(dev->descr.prod_model, R5500) != NULL)
+	{
+		// set the attenuation for R5500-408
+		if (strstr(dev->descr.dev_model, R5500408) != NULL)
+		{
+		
+			sprintf(temp_str, "SWEEP:ENTRY:ATTENUATOR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		
+		}
+		// set the sweep entry attenuation for R5500-418/427
+		else if (strstr(dev->descr.dev_model, R5500418) != NULL ||
+				(strstr(dev->descr.dev_model, R5500427) != NULL))
+		{
+
+			sprintf(temp_str, "SWEEP:ENTRY:ATT:VAR %d\n", mode);
+			result = wsa_send_command(dev, temp_str);
+		}
+	}
+
 	return result;
 }
 
@@ -2758,7 +2845,7 @@ int16_t wsa_set_sweep_decimation(struct wsa_device *dev, int32_t rate)
  *
  * @return 0 on successful or a negative number on error
  */
-int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq)
+int16_t wsa_get_sweep_freq(struct wsa_device *dev, uint64_t *start_freq, uint64_t *stop_freq)
 {
 	struct wsa_resp query;	// store query results
 	double temp;
@@ -2777,7 +2864,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*start_freq = (int64_t) temp;
+	*start_freq = (uint64_t) temp;
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	// Convert the number & make sure no error
 	if (wsa_to_double(strtok_result, &temp) < 0) {
@@ -2785,7 +2872,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
 		return WSA_ERR_RESPUNKNOWN;
 	}
 
-	*stop_freq = (int64_t) temp;
+	*stop_freq = (uint64_t) temp;
 
 	return 0;
 }
@@ -2804,7 +2891,7 @@ int16_t wsa_get_sweep_freq(struct wsa_device *dev, int64_t *start_freq, int64_t 
  * - Set frequency when WSA is in trigger mode.
  * - Incorrect frequency resolution (check with data sheet).
  */
-int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq)
+int16_t wsa_set_sweep_freq(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2827,7 +2914,7 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, int64_t start_freq, int64_t s
 	if (stop_freq < start_freq)
 		return  WSA_ERR_INVSTOPFREQ;
 		
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %lld Hz, %lld Hz\n", start_freq, stop_freq);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %0.2f Hz, %0.2f Hz\n", (float) start_freq, (float) stop_freq);
 	result = wsa_send_command(dev, temp_str);
     if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2903,7 +2990,7 @@ int16_t wsa_set_sweep_freq_shift(struct wsa_device *dev, float fshift)
  *
  * @return 0 on successful or a negative number on error
  */
-int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step)
+int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, uint64_t step)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -2912,7 +2999,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step)
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %lld Hz\n", step);
+	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %0.2f Hz\n", (float) step);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq_step: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2930,7 +3017,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, int64_t step)
  *
  * @return 0 on successful or a negative number on error.
  */
-int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
+int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, uint64_t *fstep)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -2946,7 +3033,7 @@ int16_t wsa_get_sweep_freq_step(struct wsa_device *dev, int64_t *fstep)
 		return WSA_ERR_RESPUNKNOWN;
 	}
 	
-	*fstep = (int64_t) temp;
+	*fstep = (uint64_t) temp;
 
 	return 0;
 }
@@ -3032,7 +3119,7 @@ int16_t wsa_get_sweep_dwell(struct wsa_device *dev, int32_t *seconds, int32_t *m
  *
  * @return 0 on success, or a negative number on error.
  */
-int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, int64_t stop_freq, int32_t amplitude)
+int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint64_t stop_freq, int32_t amplitude)
 {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
@@ -3052,7 +3139,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
 		return WSA_ERR_INVSTOPFREQ;
     }
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %lld,%lld,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
 	if (result < 0) {
@@ -3073,7 +3160,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, int64_t start_freq, 
  *
  * @return 0 on successful or a negative number on error.
  */
-int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq, int64_t *stop_freq, int32_t *amplitude)
+int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, uint64_t *start_freq, uint64_t *stop_freq, int32_t *amplitude)
 {
 	struct wsa_resp query;		// store query results
 	double temp;
@@ -3091,7 +3178,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
-	*start_freq = (int64_t) temp;
+	*start_freq = (uint64_t) temp;
 
 	// Convert the 2nd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
@@ -3099,7 +3186,7 @@ int16_t wsa_get_sweep_trigger_level(struct wsa_device *dev, int64_t *start_freq,
 		doutf(DHIGH, "Error: WSA returned '%s'.\n", query.output);
 		return WSA_ERR_RESPUNKNOWN;
 	}
-	*stop_freq = (int64_t) temp;
+	*stop_freq = (uint64_t) temp;
 
 	// Convert the 3rd number & make sure no error
 	strtok_result = strtok_r(NULL, ",", &strtok_context);

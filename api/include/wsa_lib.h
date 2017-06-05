@@ -105,7 +105,7 @@
 #define WSA_PING_TIMEOUT 1
 
 #define WSA_IBW 125000000ULL
-#define WSA_MAX_CAPTURE_BLOCK (32 * 1024 * 1024)
+#define WSA_MAX_CAPTURE_BLOCK 32768
 
 // VRT header field for packet size is 16 bits,
 // so maximum number that can be stored is 2^16 - 1
@@ -158,6 +158,9 @@
 #define R5500418 "R5500-418"
 #define R5500427 "R5500-427"
 
+#define R5500_MIN_FREQ 9000ULL
+#define R5500_FREQRES 10
+
 
 // *****
 // RTSA7500 SPECIFIC
@@ -168,10 +171,10 @@
 #define RTSA750018 "RTSA7500-18"
 #define RTSA750027 "RTSA7500-27"
 
-#define RTSA7550308 "RTSA7500-308"
-#define RTSA7550408 "RTSA7500-408"
-#define RTSA7550418 "RTSA7500-18"
-#define RTSA7550427 "RTSA7500-27"
+#define RTSA7550308 "RTSA7550-308"
+#define RTSA7550408 "RTSA7550-408"
+#define RTSA7550418 "RTSA7550-18"
+#define RTSA7550427 "RTSA7550-27"
 
 // *****
 // WSA5000 SPECIFIC
@@ -218,24 +221,33 @@
 // STRUCTS DEFINES                                                           //
 // ////////////////////////////////////////////////////////////////////////////
 
+// structure to hold device properties
 struct wsa_descriptor {
+
 	char prod_model[MAX_STR_LEN];
+	
 	char dev_model[MAX_STR_LEN];
-	char mac_addr[MAX_STR_LEN];
+	
+	char serial_number[MAX_STR_LEN];
+	
 	char fw_version[MAX_STR_LEN];
+	
 	char intf_type[MAX_STR_LEN];
-	char ATTENUATION_CONTROL[MAX_STR_LEN];
+
 	uint64_t inst_bw;
+	
 	int32_t max_sample_size;
-	int64_t max_tune_freq;
-	int64_t min_tune_freq;
+	
+	uint64_t max_tune_freq;
+	
+	uint64_t min_tune_freq;
+	
 	uint64_t freq_resolution;
-	int32_t max_if_gain;
-	int32_t min_if_gain;
+
 	int32_t min_decimation;
+	
 	int32_t max_decimation;
 
-	float abs_max_amp[NUM_RF_GAINS];
 };
 
 struct wsa_time {
@@ -257,7 +269,7 @@ struct wsa_receiver_packet {
 	int32_t indicator_field;
 	uint8_t pkt_count;
 	int32_t reference_point;
-	long double freq;
+	uint64_t freq;
 	double gain_if;
 	double gain_rf;
 	double temperature;
@@ -267,9 +279,9 @@ struct wsa_receiver_packet {
 struct wsa_digitizer_packet {
 	int32_t indicator_field;
 	uint8_t pkt_count;
-	long double bandwidth;
+	uint64_t bandwidth;
 	int16_t reference_level;
-	long double rf_freq_offset;
+	uint64_t rf_freq_offset;
 };
 
 //structure to hold extension packet data
@@ -317,6 +329,22 @@ struct wsa_sweep_list {
 struct wsa_socket {
 	int32_t cmd;
 	int32_t data;
+};
+
+struct test_data {
+
+	// total bug count
+	int bug_count;
+
+	// totail fail count
+	int fail_count;
+
+	// total pass count
+	int pass_count;
+
+	// flag to indicate whether current bug is expected to fail (0 expected to pass, 1 expected to fail)
+	int fail_expected;
+
 };
 
 struct wsa_device {

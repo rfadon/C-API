@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+
 # define strtok_r strtok_s
 //#include <sys/time.h>
 #define _USE_MATH_DEFINES
@@ -19,7 +20,9 @@
 #include "wsa_lib.h"
 #include "wsa_dsp.h"
 #include "wsa_debug.h"
-#include "wsa_lib.h"
+#include "wsa_error.h"
+
+
 #ifndef _TIMES_H
 #define _TIMES_H
 
@@ -94,8 +97,8 @@ typedef long long suseconds_t ;
 /*
  * define internal functions
  */
-static int wsa_plan_sweep(struct wsa_sweep_device * sweep_device, struct wsa_power_spectrum_config *);
-static int wsa_sweep_plan_load(struct wsa_sweep_device *, struct wsa_power_spectrum_config *);
+static int16_t wsa_plan_sweep(struct wsa_sweep_device * sweep_device, struct wsa_power_spectrum_config *);
+static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *, struct wsa_power_spectrum_config *);
 static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint32_t);
 
 
@@ -276,7 +279,7 @@ void wsa_sweep_device_free(struct wsa_sweep_device *sweepdev)
  * @param pscfgptr - a pointer to an unallocated power spectrum config struct
  * @returns - negative on error, otherwise the number of bytes allocated
  */
-int wsa_power_spectrum_alloc(
+int16_t wsa_power_spectrum_alloc(
 	struct wsa_sweep_device *sweep_device,
 	uint64_t fstart,
 	uint64_t fstop,
@@ -286,17 +289,18 @@ int wsa_power_spectrum_alloc(
 )
 {
 	struct wsa_power_spectrum_config *pscfg;
-	int result;
+	int16_t result;
 
+	uint32_t calculated_rbw = 0;
 	// right now, we don't need sweep_device or mode, so just pretend to use it to get rid of compile warnings
 	sweep_device = sweep_device;
+	
 	// alloc some memory for it
 	pscfg = malloc(sizeof(struct wsa_power_spectrum_config));
 	if (pscfg == NULL){
 		doutf(DHIGH, "wsa_power_spectrum_alloc: Failed to initialize struct wsa_power_spectrum_config\n");
 		return -15;
 	}
-
 
 	// init things in it that must be initted
 	pscfg->sweep_plan = NULL;
@@ -306,7 +310,7 @@ int wsa_power_spectrum_alloc(
 	pscfg->mode = mode_string_to_const(mode);
 	pscfg->fstart = fstart;
 	pscfg->fstop = fstop;
-	pscfg->rbw = (uint64_t) rbw;
+	pscfg->rbw = (uint32_t) rbw;
 
 	// figure out a way to get that spectrum
 
@@ -316,13 +320,18 @@ int wsa_power_spectrum_alloc(
 	}
 
 	// now allocate enough buffer for the spectrum
-	pscfg->buflen = (uint32_t) ((pscfg->fstop - pscfg->fstart) / pscfg->rbw);
-
+	pscfg->buflen =  (uint32_t) (((float) (fstop - fstart)) / ((float) (pscfg->rbw)));
+	
+	doutf(DHIGH, "wsa_power_spectrum_alloc: Calculated Buffer length to be: %d\n", pscfg->buflen);
+	
+	// allocate data to the buffer
 	pscfg->buf = malloc(sizeof(float) * pscfg->buflen);
+	
 	if (pscfg->buf == NULL) {
 		free(pscfg);
 		return -1;
 	}
+
 	*pscfgptr = pscfg;
 	return 0;
 }
@@ -413,6 +422,7 @@ int16_t wsa_capture_power_spectrum(
 	kiss_fft_scalar tmpscalar;
 	uint32_t packet_count;
 	struct wsa_sweep_device_properties *prop;
+
 	struct wsa_sweep_device_properties *dd_prop;
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;
@@ -423,10 +433,7 @@ int16_t wsa_capture_power_spectrum(
 	
 	// do a malloc to allocate data for each buffer
 	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
-	q16_buffer = (int16_t *) malloc(sizeof(int16_t) * total_samples);
-	i32_buffer = (int32_t *) malloc(sizeof(int32_t) * total_samples);
 	tmp_buffer = (int16_t *) malloc(sizeof(int16_t) * cfg->samples_per_packet);
-
 	idata = (kiss_fft_scalar *) malloc(sizeof(kiss_fft_scalar) * total_samples);
 	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * total_samples);
 	doutf(DHIGH, "wsa_capture_power_spectrum: Created Data buffers sized: %d\n", (int) total_samples);
@@ -451,10 +458,12 @@ int16_t wsa_capture_power_spectrum(
 	
 	// start the sweep
 	wsa_sweep_start(sweep_device->real_device);
-	
+	doutf(DHIGH, "wsa_capture_power_spectrum: Called sweep start \n");
 	// read out all the data
 	packet_count = 0;
 	
+	// initialize the header packet type
+	header.packet_type = 0;
 	while(1) {
 		if (packet_count < cfg->packets_per_block && cfg->sweep_plan->dd_mode == 1)
 			dd_packet = 1;
@@ -463,7 +472,7 @@ int16_t wsa_capture_power_spectrum(
 		// poison the buffers if last packet was a data packet
 		if (header.packet_type == IF_PACKET_TYPE) {
 			for(i=0; i<total_samples; i++)
-				i16_buffer[i] = 9999;
+				i16_buffer[i] = (int16_t) POISONED_BUFFER_VALUE;
 		}
 
 		// read a packet
@@ -491,7 +500,7 @@ int16_t wsa_capture_power_spectrum(
 
 		// data packets need to be parsed
 		if (header.packet_type == IF_PACKET_TYPE) {
-			doutf(DHIGH, "wsa_capture_power_spectrum: Recieved data packet %0.2f \n", (float) pkt_fcenter);
+			doutf(DMED, "wsa_capture_power_spectrum: Recieved data packet %0.2f \n", (float) pkt_fcenter);
 			pkt_reflevel = (float) digitizer.reference_level;
 
 			// increase packet count
@@ -528,41 +537,53 @@ int16_t wsa_capture_power_spectrum(
 				 * indexes are calculated given that fact
 				 */
 
-				// check for inversion and calculate indexes of our good data
-				if (trailer.spectral_inversion_indicator && dd_packet == 0) {
-					reverse_cpx(fftout, fftlen);
-
-					istart =  (prop->full_bw - prop->usable_right) / ((uint32_t) cfg->rbw);
-					istop = (prop->full_bw - prop->usable_left) / ( (uint32_t) cfg->rbw);
-
-				} else {
-
-					istart = prop->usable_left / ((uint32_t) cfg->rbw);
-					istop = prop->usable_right / ((uint32_t) cfg->rbw);
-				}
-
-				ilen = istop - istart;
-				// make sure we don't copy beyond end of buffer
-				if ((buf_offset + ilen) >= cfg->buflen) {
-					// reduce istop by how much it's past
-					istop = istop - ((buf_offset + ilen) - cfg->buflen);
-					ilen = istop - istart;
-				}
+				// calculate FFT for non DD mode
+				if (dd_packet == 0){
 				
+					// check for inversion and calculate indexes of our good data
+					if (trailer.spectral_inversion_indicator) {
+						reverse_cpx(fftout, fftlen);
+
+						istart =  (prop->full_bw - prop->usable_right) / ((uint32_t) cfg->rbw);
+						istop = (prop->full_bw - prop->usable_left) / ( (uint32_t) cfg->rbw);
+
+					// if no spectral inversion grab the data as is
+					} else {
+
+						istart = prop->usable_left / ((uint32_t) cfg->rbw);
+						istop = prop->usable_right / ((uint32_t) cfg->rbw);
+					}
+
+					ilen = istop - istart;
+
+					// if there is a compensation entry, and this is the last expected packet, then only grab half the spectrum
+					if (cfg->compensation_entry == 1 && packet_count >= cfg->packet_total){
+						istart = istart + (ilen / 2);
+					
+					}
+
 				// if we are in DD mode, the start and stop will be different
-				if (dd_packet == 1){
+				}else{
 					istart = (uint32_t) (((float)cfg->fstart /  (float) prop->full_bw) * (spp / 2));
 					 
 					doutf(DHIGH, "wsa_capture_power_spectrum: calculated istart %0.2f \n", (float) istart);
 					if (cfg->fstop >  (float) prop->min_tunable)
 						istop = (uint32_t) (0.8 * spp / 2);
 					else
-						istop = (uint32_t) (((float)cfg->fstop /  (float) prop->full_bw) * (spp / 2)) - 1;
+						istop = (uint32_t) (((float)cfg->fstop /  (float) prop->full_bw) * (spp / 2));
 
 					buf_offset = 0;
 					ilen = istop - istart;
 
 				}
+
+				// make sure we don't copy beyond end of buffer
+				if ((buf_offset + ilen) >= cfg->buflen) {
+					// reduce istop by how much it's past
+					istop = istop - ((buf_offset + ilen) - cfg->buflen);
+					ilen = istop - istart;	
+				}
+				
 				
 				// for the usable section, convert to power, apply reflevel and copy into buffer
 				for (i=0; i<ilen; i++) {
@@ -589,8 +610,6 @@ int16_t wsa_capture_power_spectrum(
 	free(fftout);
 	free(idata);
 	free(tmp_buffer);
-	free(i32_buffer);
-	free(q16_buffer);
 	free(i16_buffer);
 
 	return 0;
@@ -627,7 +646,7 @@ static struct wsa_sweep_device_properties *wsa_get_sweep_device_properties(uint3
  * @param pscfg - the config object which describes what we're trying to sweep
  * @return - negative on error, zero on success
  */
-static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
+static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg)
 {
 	// keep track of mode properties
 	struct wsa_sweep_device_properties *prop;
@@ -647,6 +666,7 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_powe
 	uint32_t points;
 	uint32_t ppb = 1;
 	uint32_t divided_points;
+	uint64_t expected_end = 0;
 
 	// try to get device properties for this mode
 	prop = wsa_get_sweep_device_properties(pscfg->mode);
@@ -655,6 +675,9 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_powe
 		return -EUNSUPPORTED;
 	}
 
+	// determine if frequency paramaters are valid
+	if (pscfg->fstart < dev_prop.min_tune_freq || pscfg->fstop > dev_prop.max_tune_freq)
+		return WSA_ERR_INV_SWEEP_FREQ;
 	/*
 	 * calculate some helper variables we'll need
 	 */
@@ -688,7 +711,8 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_powe
 	// recalc what that actually results in for the rbw
 	pscfg->rbw = (uint64_t) ((double) prop->full_bw) / (points / 2);
 	
-	
+	doutf(DHIGH, "wsa_plan_sweep: calculated new RBW: %d\n", pscfg->rbw);
+
 	// assign the samples per packet and packets per block
 	pscfg->samples_per_packet = points;
 	pscfg->packets_per_block = ppb;
@@ -724,21 +748,56 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_powe
 	// if the configuration stop is less then the fcstart, make fcstop same as fcstop
 	if (pscfg->fstop  <= fcstart){
 		fcstop = fcstart;
-		add_packet = 1;
 	}
 
 	// make the maximum fstop be the maximum tunable
-	if (fcstop > (uint64_t) dev_prop.max_tune_freq)
-		fcstop = fcstop - fstep;
-
-	// test if start frequency and stop frequency are valid
-	if ((pscfg->fstart > pscfg->fstop) || (fcstart < prop->min_tunable && dd_mode == 0) || (fcstop > prop->max_tunable)){
-		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting \n");
-		return -EFREQOUTOFRANGE;
+	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
+		fcstop = (uint64_t) dev_prop.max_tune_freq;
+		doutf(DHIGH, "wsa_plan_sweep: Recalculated fcstop %0.2f \n", (float) fcstop);
 	}
 
+	// test if start frequency and stop frequency are valid
+	if (pscfg->fstart > pscfg->fstop){
+		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting, fstart greater than fstop \n");
+		return WSA_ERR_INV_SWEEP_FREQ;
+	}
+		
+	if (fcstart < prop->min_tunable && dd_mode == 0){
+		doutf(DHIGH, "wsa_plan_sweep: calculated new center is less than min tunable \n");
+		return WSA_ERR_INV_SWEEP_FREQ;
+	}
+		
+	if (fcstop > (uint64_t) prop->max_tunable){
+		doutf(DHIGH, "wsa_plan_sweep: Fstop (%0.2f) greater than max tunable (%0.2f)\n", (float) fcstop, (float) prop->max_tunable);
+		return WSA_ERR_INV_SWEEP_FREQ;
+	}
+
+	expected_end = fcstart;
+	// calculate the expected frequency of the very last data packet
+	while (1){
+		expected_end = expected_end + (uint64_t) fstep;
+		if (expected_end > fcstop){
+			expected_end = expected_end - (uint64_t) fstep;
+			break;
+		}
+	}
+
+	doutf(DHIGH, "wsa_plan_sweep: Calculated expected fstop: %0.2f\n",  (float) expected_end);
+
+	// if the last data packet does not satisfy the sweep entry requirement, add another entry
+	if (expected_end > (uint64_t) (dev_prop.max_tune_freq - ((uint32_t) fstep))){
+		
+		doutf(DHIGH, "wsa_plan_sweep: Will add extra entry to compensate for last bins\n");
+		pscfg->compensation_entry = 1;
+		pscfg->compensation_freq = expected_end + (((uint64_t) fstep) / 2);
+	}
+		else{
+			pscfg->compensation_entry = 0;
+			pscfg->compensation_freq = 0;
+		}
 
 	
+
 	// if only a dd packet is required
 	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable))
 		pscfg->only_dd = 1;
@@ -771,6 +830,11 @@ static int wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_powe
 	// how many steps on in this plan? loop through the list and count 'em
 
 	pscfg->packet_total = 0;
+
+	// add a packet for compensation
+	if (pscfg->compensation_entry == 1)
+		pscfg->packet_total = pscfg->packet_total + ppb;
+
 	// add a packet for DD mode
 	if (dd_mode == 1)
 		pscfg->packet_total = pscfg->packet_total + ppb;
@@ -828,9 +892,9 @@ unsigned int wsa_sweep_device_get_attenuator(struct wsa_sweep_device *sweep_devi
  * @param cfg - the sweep configuration which holds all sweep info, including the sweep plan
  * @return - negative on error, 0 on success
  */
-static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
+static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_power_spectrum_config *cfg)
 {
-	int result;
+	int16_t result;
 	struct wsa_device *wsadev = wsasweepdev->real_device;
 	struct wsa_sweep_plan *plan_entry;
 	int32_t atten_val = 0;
@@ -838,6 +902,15 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 	char atten_cmd[255];
     char * strtok_context = NULL;
 	plan_entry=cfg->sweep_plan;
+
+	// reset the device before the capture
+	result = wsa_reset(wsadev);
+
+	// flush the data
+	result = wsa_flush_data(wsadev);
+
+	// abort any previous capture
+	result = wsa_system_abort_capture(wsadev);
 
 	// grab the device id, and initialize the object
 	result = _wsa_dev_init(wsadev);
@@ -850,6 +923,7 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 
 	// setup the sweep list to only run once
 	wsa_set_sweep_iteration(wsadev, 1);
+
 	atten_val = (int32_t) wsasweepdev->device_settings.attenuator;
 
 	// set attenuation, if the device is a 408 model use sweep entry
@@ -900,6 +974,12 @@ static int wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct wsa_
 		// save to end of list
 		if (cfg->only_dd != 1) 
 			wsa_sweep_entry_save(wsadev, 0);
+	}
+
+	// add entry for compensation, if required
+	if (cfg->compensation_entry == 1){
+		result = wsa_set_sweep_freq(wsadev, (int64_t) cfg->compensation_freq, (int64_t) cfg->compensation_freq);
+		wsa_sweep_entry_save(wsadev, 0);
 	}
 
 	return 0;

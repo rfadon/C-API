@@ -173,8 +173,7 @@ int16_t wsa_setup_sock(char *sock_name, const char *sock_addr,
 	// loop through all the results and bind to the first we can
 	for (ai_ptr = ai_list; ai_ptr != NULL; ai_ptr = ai_ptr->ai_next) {
 		// Check to find a valid socket
-		temp_fd = socket(ai_ptr->ai_family, ai_ptr->ai_socktype,
-			ai_ptr->ai_protocol);
+		temp_fd = (int32_t) socket(ai_ptr->ai_family, ai_ptr->ai_socktype, ai_ptr->ai_protocol);
 		if (temp_fd == -1) {
 			perror("client: socket() error");
 			continue;

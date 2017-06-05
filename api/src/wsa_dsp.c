@@ -20,6 +20,7 @@ kiss_fft_scalar find_average(int32_t array_size, kiss_fft_scalar * data_array, k
 		sum = sum + data_array[i];
 	}
 	*average = sum / array_size;
+	return sum;
 
 }
 
@@ -128,7 +129,7 @@ void correct_dc_offset(int32_t samples_per_packet,
  */
 kiss_fft_scalar window_hanning_scalar(kiss_fft_scalar value, int len, int index)
 {
-	return (float) (value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
+	return (kiss_fft_scalar) (value * 0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
 }
 
 
@@ -157,10 +158,10 @@ void window_hanning_scalar_array(kiss_fft_scalar *values, int len)
  */
 void window_hanning_cpx(kiss_fft_cpx *value, int len, int index)
 {
-	float mult =(float) (0.5 * (1 - cosf(2 * M_PI * index / (len - 1))));
+	float mult = (float) (0.5 * (1 - cosf(2 * M_PI * ((float) index) / ((float) (len - 1)))));
 
-	value->r = value->r * mult;
-	value->i = value->i * mult;
+	value->r = value->r *  ((kiss_fft_scalar) mult);
+	value->i = value->i *((kiss_fft_scalar) mult);
 }
 
 
