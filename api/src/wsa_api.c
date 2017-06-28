@@ -1675,7 +1675,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 	else if (strstr(dev->descr.prod_model, R5500) != NULL)
 	{
 
-		if (strstr(dev->descr.dev_model, WSA5000408) != NULL)
+		if (strstr(dev->descr.dev_model, R5500408) != NULL)
 		{
 			wsa_send_query(dev, "INPUT:ATTENUATOR?\n", &query);
 
@@ -1712,7 +1712,7 @@ int16_t wsa_get_attenuation(struct wsa_device *dev, int32_t *mode)
 int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 	int16_t result = 0;
 	char temp_str[MAX_STR_LEN];
-
+	
 	// check if the device is a WSA5000
 	if (strstr(dev->descr.prod_model, WSA5000) != NULL)
 	{
@@ -1737,10 +1737,10 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 	// set attenuation for R5500 devices
 	} else if (strstr(dev->descr.prod_model, R5500) != NULL)
 	{
+		
 		// set the attenuation for R5500-408
 		if (strstr(dev->descr.dev_model, R5500408) != NULL)
-		{
-		
+		{			
 			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
 			result = wsa_send_command(dev, temp_str);
 		
@@ -1748,7 +1748,7 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 		// set the attenuation for R5500-418/427
 		else if (strstr(dev->descr.dev_model, R5500418) != NULL ||
 				(strstr(dev->descr.dev_model, R5500427) != NULL))
-
+			
 			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
 			result = wsa_send_command(dev, temp_str);
 	}
