@@ -412,8 +412,8 @@ int16_t wsa_capture_power_spectrum(
 	struct wsa_extension_packet sweep;
 	int16_t *i16_buffer;
 	int16_t *tmp_buffer;
-	int16_t *q16_buffer;
-	int32_t *i32_buffer;
+	int16_t *q16_buffer = 0;
+	int32_t *i32_buffer = 0;
 	kiss_fft_scalar *idata;
 	kiss_fft_cpx *fftout;
 	float pkt_reflevel = 0;
@@ -785,10 +785,10 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	doutf(DHIGH, "wsa_plan_sweep: Calculated expected fstop: %0.2f, limit is: %0.2f \n",  (float) expected_end, (((float) dev_prop.max_tune_freq) - ((float) fstep / 2)));
 
 	// compensation packet should only be added if the fstop is the same as the max tune frequency
-	if (pscfg->fstop <= (dev_prop.max_tune_freq - (fstep / 2))){
-		
+	if (pscfg->fstop >= (dev_prop.max_tune_freq - fstep)){
+
 		// if the last data packet does not satisfy the sweep entry requirement, add another entry
-		if (expected_end > (((uint64_t) dev_prop.max_tune_freq) - ((uint64_t) fstep / 2))){
+		if (expected_end < (((uint64_t) dev_prop.max_tune_freq) - ((uint64_t) (fstep / 2)))){
 		
 
 			pscfg->compensation_entry = 1;
@@ -984,7 +984,7 @@ static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct 
 	if (cfg->compensation_entry == 1){
 		doutf(DHIGH, "wsa_sweep_plan_load: Adding Compensation Packet \n");
 		result = wsa_set_sweep_freq(wsadev, (uint64_t) cfg->compensation_freq, (uint64_t) cfg->compensation_freq);
-		printf("result of set freq %d %0.2f %0.2f \n", result, (float) cfg->compensation_freq, (float) cfg->compensation_freq);
+
 		wsa_sweep_entry_save(wsadev, 0);
 	}
 
