@@ -1741,6 +1741,7 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 		// set the attenuation for R5500-408
 		if (strstr(dev->descr.dev_model, R5500408) != NULL)
 		{			
+			
 			sprintf(temp_str, "INPUT:ATTENUATOR %d\n", mode);
 			result = wsa_send_command(dev, temp_str);
 		

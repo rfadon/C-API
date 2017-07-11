@@ -739,6 +739,8 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	
 	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
     tmpfreq =  ((((float) (fcstop) -  (float) (fcstart)) /  (float)(fstep)) *  (float) (fstep)) + ((float) fstep);
+	
+	// calculate fcstop so it is a mutliple of the step freq
 	fcstop = fcstart + (uint64_t) tmpfreq;
 	
 	// if the stop is less than the start, then make the start/stop the same
@@ -750,7 +752,7 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		fcstop = fcstart;
 	}
 
-	// make the maximum fstop be the maximum tunable
+	// make the maximum fcstop be the maximum tunable
 	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
 		fcstop = (uint64_t) dev_prop.max_tune_freq;
 		doutf(DHIGH, "wsa_plan_sweep: Recalculated fcstop %0.2f \n", (float) fcstop);
@@ -761,13 +763,14 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting, fstart greater than fstop \n");
 		return WSA_ERR_INV_SWEEP_FREQ2;
 	}
-		
+
 	if (fcstart < prop->min_tunable && dd_mode == 0){
 		doutf(DHIGH, "wsa_plan_sweep: calculated new center is less than min tunable \n");
 		return WSA_ERR_INV_SWEEP_FREQ3;
 	}
-		
-	if (fcstop > (uint64_t) prop->max_tunable){
+
+	// double check that the calculated fcstop does not exceed max tunable frequency
+	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
 		doutf(DHIGH, "wsa_plan_sweep: Fstop (%0.2f) greater than max tunable (%0.2f)\n", (float) fcstop, (float) prop->max_tunable);
 		return WSA_ERR_INV_SWEEP_FREQ4;
 	}
@@ -782,21 +785,25 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		}
 	}
 
-	doutf(DHIGH, "wsa_plan_sweep: Calculated expected fstop: %0.2f\n",  (float) expected_end);
+	doutf(DHIGH, "wsa_plan_sweep: Calculated expected fstop: %0.2f, limit is: %0.2f \n",  (float) expected_end, (((float) dev_prop.max_tune_freq) - ((float) fstep / 2)));
 
-	// if the last data packet does not satisfy the sweep entry requirement, add another entry
-	if (expected_end > (uint64_t) (dev_prop.max_tune_freq - ((uint32_t) fstep))){
+	// compensation packet should only be added if the fstop is the same as the max tune frequency
+	if (pscfg->fstop >= (dev_prop.max_tune_freq - fstep)){
+
+		// if the last data packet does not satisfy the sweep entry requirement, add another entry
+		if (expected_end < (((uint64_t) dev_prop.max_tune_freq) - ((uint64_t) (fstep / 2)))){
 		
-		doutf(DHIGH, "wsa_plan_sweep: Will add extra entry to compensate for last bins\n");
-		pscfg->compensation_entry = 1;
-		pscfg->compensation_freq = expected_end + (((uint64_t) fstep) / 2);
-	}
-		else{
-			pscfg->compensation_entry = 0;
-			pscfg->compensation_freq = 0;
-		}
 
-	
+			pscfg->compensation_entry = 1;
+			pscfg->compensation_freq = expected_end + (((uint64_t) fstep) / 2);
+			doutf(DHIGH, "wsa_plan_sweep: Adding compensation Entry with frequency %0.2f\n", (float) pscfg->compensation_freq);
+		}
+			else{
+				pscfg->compensation_entry = 0;
+				pscfg->compensation_freq = 0;
+			}
+
+	}
 
 	// if only a dd packet is required
 	if ( dd_mode == 1 && pscfg->fstop < (prop->min_tunable))
@@ -958,11 +965,11 @@ static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct 
 	for (plan_entry=cfg->sweep_plan; plan_entry; plan_entry = plan_entry->next_entry) {
 		
 		// set settings and check the errors
-		result = wsa_set_sweep_freq(wsadev, (int64_t) plan_entry->fcstart, (int64_t) plan_entry->fcstop);
+		result = wsa_set_sweep_freq(wsadev, (uint64_t) plan_entry->fcstart, (uint64_t) plan_entry->fcstop);
 		doutf(DHIGH, "wsa_sweep_plan_load: Setting sweep entry start freq: %0.6f, stop %0.6f \n", (float) plan_entry->fcstart, (float) plan_entry->fcstop);
 		if (result < 0) fprintf(stderr, "ERROR %d fstart fstop\n", result);
 
-		result = wsa_set_sweep_freq_step(wsadev, (int64_t)  plan_entry->fstep);
+		result = wsa_set_sweep_freq_step(wsadev, (uint64_t)  plan_entry->fstep);
 		if (result < 0) fprintf(stderr, "ERROR fstep\n");
 		
 		wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
@@ -978,7 +985,9 @@ static int16_t wsa_sweep_plan_load(struct wsa_sweep_device *wsasweepdev, struct 
 
 	// add entry for compensation, if required
 	if (cfg->compensation_entry == 1){
-		result = wsa_set_sweep_freq(wsadev, (int64_t) cfg->compensation_freq, (int64_t) cfg->compensation_freq);
+		doutf(DHIGH, "wsa_sweep_plan_load: Adding Compensation Packet \n");
+		result = wsa_set_sweep_freq(wsadev, (uint64_t) cfg->compensation_freq, (uint64_t) cfg->compensation_freq);
+
 		wsa_sweep_entry_save(wsadev, 0);
 	}
 

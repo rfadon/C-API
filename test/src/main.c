@@ -20,7 +20,7 @@ int32_t main(int32_t argc, char *argv[])
 // initialize WSA structure and IP setting
     struct wsa_device wsa_dev;	// the wsa device structure
     struct wsa_device *dev;
-	char wsa_addr[255] = "204.101.47.116";	// store wsa ip address
+	char wsa_addr[255] = "10.126.110.116";	// store wsa ip address
     char intf_str[255];
 
 	struct test_data test_info;
