@@ -739,6 +739,8 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	
 	// force fcstop to a multiple of fstep past fcstart (this may cause us to need another sweep entry to clean up)
     tmpfreq =  ((((float) (fcstop) -  (float) (fcstart)) /  (float)(fstep)) *  (float) (fstep)) + ((float) fstep);
+	
+	// calculate fcstop so it is a mutliple of the step freq
 	fcstop = fcstart + (uint64_t) tmpfreq;
 	
 	// if the stop is less than the start, then make the start/stop the same
@@ -750,7 +752,7 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		fcstop = fcstart;
 	}
 
-	// make the maximum fstop be the maximum tunable
+	// make the maximum fcstop be the maximum tunable
 	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
 		fcstop = (uint64_t) dev_prop.max_tune_freq;
 		doutf(DHIGH, "wsa_plan_sweep: Recalculated fcstop %0.2f \n", (float) fcstop);
@@ -761,13 +763,14 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting, fstart greater than fstop \n");
 		return WSA_ERR_INV_SWEEP_FREQ;
 	}
-		
+
 	if (fcstart < prop->min_tunable && dd_mode == 0){
 		doutf(DHIGH, "wsa_plan_sweep: calculated new center is less than min tunable \n");
 		return WSA_ERR_INV_SWEEP_FREQ;
 	}
-		
-	if (fcstop > (uint64_t) prop->max_tunable){
+
+	// double check that the calculated fcstop does not exceed max tunable frequency
+	if (fcstop > (uint64_t) dev_prop.max_tune_freq){
 		doutf(DHIGH, "wsa_plan_sweep: Fstop (%0.2f) greater than max tunable (%0.2f)\n", (float) fcstop, (float) prop->max_tunable);
 		return WSA_ERR_INV_SWEEP_FREQ;
 	}
