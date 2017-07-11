@@ -410,20 +410,20 @@ int16_t wsa_capture_power_spectrum(
 	struct wsa_receiver_packet receiver;
 	struct wsa_digitizer_packet digitizer;
 	struct wsa_extension_packet sweep;
-	int16_t *i16_buffer;
-	int16_t *tmp_buffer;
-	int16_t *q16_buffer;
-	int32_t *i32_buffer;
-	kiss_fft_scalar *idata;
-	kiss_fft_cpx *fftout;
+	int16_t *i16_buffer = 0;
+	int16_t *tmp_buffer = 0;
+	int16_t *q16_buffer = 0;
+	int32_t *i32_buffer = 0;
+	kiss_fft_scalar *idata = 0;
+	kiss_fft_cpx *fftout = 0;
 	float pkt_reflevel = 0;
 	uint64_t pkt_fcenter = 0;
 	uint32_t buf_offset = 0;
 	kiss_fft_scalar tmpscalar;
 	uint32_t packet_count;
-	struct wsa_sweep_device_properties *prop;
+	struct wsa_sweep_device_properties *prop = 0;
 
-	struct wsa_sweep_device_properties *dd_prop;
+	struct wsa_sweep_device_properties *dd_prop = 0;
 	uint32_t istart, istop, ilen;
 	uint32_t spp, fftlen;
 	int16_t dd_packet = 0;
@@ -677,7 +677,7 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 
 	// determine if frequency paramaters are valid
 	if (pscfg->fstart < dev_prop.min_tune_freq || pscfg->fstop > dev_prop.max_tune_freq)
-		return WSA_ERR_INV_SWEEP_FREQ;
+		return WSA_ERR_INV_SWEEP_FREQ1;
 	/*
 	 * calculate some helper variables we'll need
 	 */
@@ -759,17 +759,17 @@ static int16_t wsa_plan_sweep(struct wsa_sweep_device *sweep_device, struct wsa_
 	// test if start frequency and stop frequency are valid
 	if (pscfg->fstart > pscfg->fstop){
 		doutf(DHIGH, "wsa_plan_sweep: Invalid Frequency setting, fstart greater than fstop \n");
-		return WSA_ERR_INV_SWEEP_FREQ;
+		return WSA_ERR_INV_SWEEP_FREQ2;
 	}
 		
 	if (fcstart < prop->min_tunable && dd_mode == 0){
 		doutf(DHIGH, "wsa_plan_sweep: calculated new center is less than min tunable \n");
-		return WSA_ERR_INV_SWEEP_FREQ;
+		return WSA_ERR_INV_SWEEP_FREQ3;
 	}
 		
 	if (fcstop > (uint64_t) prop->max_tunable){
 		doutf(DHIGH, "wsa_plan_sweep: Fstop (%0.2f) greater than max tunable (%0.2f)\n", (float) fcstop, (float) prop->max_tunable);
-		return WSA_ERR_INV_SWEEP_FREQ;
+		return WSA_ERR_INV_SWEEP_FREQ4;
 	}
 
 	expected_end = fcstart;
