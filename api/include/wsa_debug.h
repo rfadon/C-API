@@ -27,5 +27,5 @@ int  wsa_doutf(int, const char *, ...);
 
 #define doutf wsa_doutf
 
+
 #endif
-    

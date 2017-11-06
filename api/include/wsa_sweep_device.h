@@ -1,130 +1,208 @@
+///
+/// @defgroup sweep Sweep Configuration and Spectrum Data Collection Module
+///
+/// This module provides functions to configure sweeping and
+/// to collect power spectrum data.
+///
+/// @{
+///
+
+///
+/// @file
+/// Interface for the sweep configuration and spectrum data collection module.
+///
+/// This module provides services for configuring sweeps and collecting power spectrum data.
+///
+/// @note RESTRICTIONS
+/// \li This module only supports SH and DD modes.
+/// \li This module does not support decimation.
+///
+/// @author Mohammad Farhan (original)
+/// @author Richard Low (rewrite of wsa_plan_sweep() and wsa_capture_power_spectrum()).
+///
+/// @date 2017-09-25 (rewrite)
+///
+/// @copyright (C) 2017 ThinkRF Inc.
+///
+
 #ifndef __WSA_SWEEP_DEVICE_H__
 #define __WSA_SWEEP_DEVICE_H__
+
+
+///
+/// \name External References
+///
+/// @{
 
 #include "wsa_lib.h"
 #include "wsa_api.h"
 
-/// a struct for holding all the info about captured data being received
 
-/// a struct for holding sweep device properties
-struct wsa_sweep_device_properties {
-	uint32_t mode;
-	uint32_t sample_type;
-	uint8_t fshift_available;
-	uint64_t min_tunable;
-	uint64_t max_tunable;
-	uint32_t tuning_resolution;
-	uint32_t full_bw;
-	uint32_t usable_bw;
-	uint32_t passband_center;
-	uint32_t usable_left;
-	uint32_t usable_right;
-	uint32_t min_decimation;
-	uint32_t max_decimation;
+/// @}
+///
+/// \name Public Definitions
+///
+/// @{
+
+/// An object containing sweep device properties.
+struct wsa_sweep_device_properties_t {
+    uint32_t mode;							///< Device mode
+    uint32_t sample_type;					///< Type of data generated, i.e. real only, complex
+    uint8_t fshift_available;				///< Frequency shift is available
+    uint64_t min_tunable;					///< Minimum tunable frequency in Hz, not including the DD band
+    uint64_t max_tunable;					///< Maximum tunable frequency in Hz
+    uint32_t tuning_resolution;				///< Tuning resolution in Hz
+    uint32_t full_bw;						///< Bandwidth from zero to Nyquist frequency in Hz
+    uint32_t usable_bw;						///< Bandwidth between filter corner frequencies in Hz
+    uint32_t passband_center;				///< Centre of usable_bw in Hz
+    uint32_t usable_left;					///< Position of lower corner frequency in Hz
+    uint32_t usable_right;					///< Position of upper corner frequency in Hz
+    uint32_t min_decimation;				///< Minimum possible decimation rate
+    uint32_t max_decimation;				///< Maximum possible decimation rate
 };
 
-/// a sweep plan entry struct
+/// A sweep plan entry.
 struct wsa_sweep_plan {
-	/// next sweep plan entry
-	struct wsa_sweep_plan *next_entry;
-
-	/// sweep start
-	uint64_t fcstart;
-
-	/// sweep stop
-	uint64_t fcstop;
-
-	/// step size
-	uint32_t fstep;
-
-	/// samples per packet
-	uint32_t spp;
-	
-	/// packets per block
-	uint32_t ppb;
-
-	/// indicate whether DD mode is required
-	uint8_t dd_mode;
-
+    struct wsa_sweep_plan *next_entry;	///< Pointer to the next sweep plan entry
+    uint64_t fcstart;					///< Sweep start frequency in Hz
+    uint64_t fcstop;					///< Sweep stop frequency in Hz
+    uint32_t fstep;						///< Step size in Hz
+    uint32_t spp;						///< Samples per packet
+    uint32_t ppb;						///< Packets per block
+    uint8_t dd_mode;					///< Flag to indicate if DD mode is needed
 };
 
-/// this struct represents our sweep device object
+/// A sweep device.
 struct wsa_sweep_device {
-	/// a reference to the wsa we're connected to
-	struct wsa_device *real_device;
-
-	/// device settings that get sent to a sweep
-	struct {
-		uint8_t attenuator;
-	} device_settings;
+    struct wsa_device *real_device;		///< A reference to the connected device
+    struct {
+        uint8_t attenuator;
+    } device_settings;					///< Device settings that get sent to a sweep
 };
 
-/// struct representing a configuration that we are going to sweep with and capture power spectrum data
+/// A configuration that we are going to sweep with and capture power spectrum data.
 struct wsa_power_spectrum_config {
-
-	// keep track if only a dd packet is available
-	uint8_t only_dd;
-
-	// determine if an entry is required at the end to compensate for last frequency
-	uint8_t compensation_entry;
-
-	// frequency of the very last entry
-	uint64_t compensation_freq;
-
-	/// the mode to perform the sweep in
-	uint32_t mode;
-
-	/// the start frequency
-	uint64_t fstart;
-
-	/// the stop frequency
-	uint64_t fstop;
-
-	/// the rbw
-	uint64_t rbw;
-			
-	/// a sweep plan that achieves capturing the spectrum requested
-	struct wsa_sweep_plan *sweep_plan;
-
-	/// how many packets will this sweep plan generate
-	uint32_t packet_total;
-
-	/// The number of packets within each frequency steps
-	uint32_t packets_per_block;
-
-	
-	/// The number of samples per packet
-	uint32_t samples_per_packet;
-
-	/// the float buffer 
-	float *buf;
-
-	// determine if the reference level needs to be modified
-	uint8_t modify_ref;
-
-	/// the length of the float buffer
-	uint32_t buflen;
-
-
+    uint8_t only_dd;					///< Flag to indicate if only DD packets will be produced
+    uint8_t compensation_entry;			///< NOTUSED: Flag to indicate an entry is required at the end to compensate for last frequency
+    uint64_t compensation_freq;			///< NOTUSED: Frequency of the very last entry
+    uint32_t mode;						///< Device mode to be used for the sweep
+    uint64_t fstart;					///< Start frequency
+    uint64_t fstop;						///< Stop frequency
+    uint64_t rbw;						///< Desired resolution bandwidth
+    struct wsa_sweep_plan *sweep_plan;	///< A sweep plan that accomplishes the desired sweep.
+    uint32_t packet_total;				///< Number of packets to be generated by this sweep.
+    uint32_t packets_per_block;			///< Number of packets generated from each frequency step.
+    uint32_t samples_per_packet;		///< Number of data samples per packet.
+    float *buf;							///< The output data buffer.
+    uint8_t modify_ref;					///< Flag to indicate that the reference level needs to be modified.
+    uint32_t buflen;					///< Length of the float buffer.
 };
 
 
-struct wsa_sweep_device *wsa_sweep_device_new(struct wsa_device *device);
-void wsa_sweep_device_free(struct wsa_sweep_device *sweepdev);
-void wsa_sweep_device_set_attenuator(struct wsa_sweep_device *sweep_device, unsigned int val);
-int16_t wsa_power_spectrum_alloc(
-	struct wsa_sweep_device *sweep_device,
-	uint64_t fstart,
-	uint64_t fstop,
-	uint32_t rbw,
-	char const *mode,
-	struct wsa_power_spectrum_config **pscfg
-);
-void wsa_power_spectrum_free(struct wsa_power_spectrum_config *cfg);
-int16_t wsa_configure_sweep(struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg);
-int16_t wsa_capture_power_spectrum(
-	struct wsa_sweep_device *sweep_device,
-	struct wsa_power_spectrum_config *pscfg,
-	float **buf
-);
+/// @}
+///
+/// \name Public Functions
+///
+/// @{
+
+///
+/// Create a new sweep device object and return a pointer to it.
+///
+/// @param[in] device A pointer to the device to which we are connected.
+///
+/// @return A pointer to the allocated struct.
+/// @retval NULL If the operation failed.
+///
+struct wsa_sweep_device *wsa_sweep_device_new( struct wsa_device *device );
+
+
+///
+/// Destroy a sweep device object and free associated memory.
+///
+/// @note
+/// This function does not free the device parameter that was passed in initially to the "new" function, only the sweep device.
+///
+/// @param sweepdev The object to destroy
+///
+void wsa_sweep_device_free( struct wsa_sweep_device *sweepdev );
+
+
+///
+// Set the attenuator in the sweep device.
+///
+/// @param[in] sweep_device The sweep device to use.
+/// @param[in] val The attenuator setting: 0 for out; 1 for in.
+///
+void wsa_sweep_device_set_attenuator( struct wsa_sweep_device *sweep_device, unsigned int val );
+
+///
+/// Gets the attenatuor setting from the sweep device
+///
+/// @param sweep_device The sweep device to use
+///
+/// @return The attenuator setting: 0 if out; 1 if in.
+///
+unsigned int wsa_sweep_device_get_attenuator( struct wsa_sweep_device *sweep_device );
+
+///
+/// Allocate memory for power spectrum data collection.
+///
+/// @param[in] sweep_device The sweep device to be used.
+/// @param[in] fstart The start frequency of the sweep, i.e. the lowest frequency.
+/// @param[in] fstop The stop frequency of the sweep, i.e. the highest frequency.
+/// @param[in] rbw The desired resolution bandwidth.
+/// @param[in] mode The mode in which to perform the sweep.
+/// @param[in,out] pscfgptr A pointer to an unallocated power spectrum config structure.
+///                         On return, this pointer points to a populated power spectrum configuration structure.
+///
+/// @returns The number of bytes allocated, otherwise a negative error code.
+///
+int16_t wsa_power_spectrum_alloc( struct wsa_sweep_device *sweep_device, uint64_t fstart, uint64_t fstop,
+                                  uint32_t rbw, char const *mode, struct wsa_power_spectrum_config **pscfg );
+
+
+///
+/// Free up storage for a power spectrum config object.
+///
+/// @param[in] cfg A pointer to the power spectrum configuration object to destroy.
+///
+/// @note
+/// The sweep plan pointed to by this configuration will also be destroyed.
+///
+void wsa_power_spectrum_free( struct wsa_power_spectrum_config *cfg );
+
+
+///
+/// Configure a sweep device according to an existing sweep configuration.
+///
+/// This function simply calls wsa_sweep_plan_load() and returns the result returned by that function.
+///
+/// @param[in] sweep_device The sweep device to use.
+/// @param[in] pscfg The power spectrum configuration to use.
+///
+/// @returns The result code returned by wsa_sweep_plan_load().
+///
+int16_t wsa_configure_sweep( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg );
+
+
+///
+/// Capture power spectrum data using the supplied sweep configuration.
+///
+/// @author Mohammad Farhan (original)
+/// @author Richard Low (rewrite)
+/// @date 2017-08-31 (rewite)
+///
+/// @param[in] sweep_device The sweep device to use.
+/// @param[in,out] cfg The power spectrum configuration to use.
+/// @param[in,out] buf A pointer to an alternate memory buffer to be used to store the results, otherwise
+///                    if set to NULL on entry this function populates it with a pointer to the allocated results memory buffer.
+///
+///@returns A negative error code if an error occurred, otherwise zero to indicate success.
+///
+int16_t wsa_capture_power_spectrum( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg, float **buf );
+
 #endif
+
+/// @}				// name Public Functions
+
+/// @}				// group sweep

@@ -5,7 +5,7 @@
 #include "wsa_error.h"
 #define _USE_MATH_DEFINES
 #include "math.h"
-#define ENOMEM 4
+#define EDSPNOMEM 4
 // ////////////////////////////////////////////////////////////////////////////
 // Local Functions Section                                                   //
 // ////////////////////////////////////////////////////////////////////////////
@@ -209,7 +209,7 @@ int rfft(kiss_fft_scalar *idata, kiss_fft_cpx *fftdata, int len)
 	iq = malloc(sizeof(kiss_fft_cpx) * len);
 	if (iq == NULL) {
 		fprintf(stderr, "error: out of memory during rfft alloc\n");
-		return -ENOMEM;
+		return -EDSPNOMEM;
 	}
 
 	// copy the real data into an complex iq array
@@ -273,7 +273,7 @@ kiss_fft_scalar power_to_logpower(kiss_fft_scalar value) {
  * @data_size - The number of samples inside the spectral data array
  * @spectral_data - A floating point array containing the spectral data(in dBm)
  * @peak_freq - An unsigned 64-bit integer to store the frequency of the peak(in Hz)
- * @peak_power - A flloating point pointer to store the power level of the peak (in dBm)
+ * @peak_power - A floating point pointer to store the power level of the peak (in dBm)
  *
  * @return 0 on success or a negative value on error
  */

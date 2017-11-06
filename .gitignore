@@ -4,3 +4,9 @@ html/
 js/
 latex/
 tags
+Debug/
+Release/
+Testing/
+Junk/
+.vs/
+tags

@@ -624,7 +624,7 @@ int16_t wsa_apply_lan_config(struct wsa_device *dev)
 //int16_t wsa_get_abs_max_amp(struct wsa_device *dev, enum wsa_gain gain, 
 //						  float *value)
 //{
-//	// TODO Check version of WSA & return the correct info here
+//	TODO: Check version of WSA & return the correct info here
 //	if (strcmp(gain,WSA_GAIN_VLOW_STRING) != 0 &&
 //	strcmp(gain,WSA_GAIN_LOW_STRING) != 0 &&
 //	strcmp(gain,WSA_GAIN_MED_STRING) != 0 &&
@@ -1917,7 +1917,7 @@ int16_t wsa_set_trigger_level(struct wsa_device *dev, uint64_t start_freq, uint6
 		return result;
     }
 
-	sprintf(temp_str, ":TRIG:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, ":TRIG:LEVEL %llu,%llu,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_trigger_level: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -2127,7 +2127,7 @@ int16_t wsa_set_trigger_sync_state(struct wsa_device *dev, int32_t *sync_state)
 	char temp_str[MAX_STR_LEN];
 
 		
-	sprintf(temp_str, "SYSTem:SYNC:MASTer %d \n", sync_state);
+	sprintf(temp_str, "SYSTem:SYNC:MASTer %ld \n", *sync_state);
 	
 	result = wsa_send_command(dev, temp_str);
 
@@ -3140,7 +3140,7 @@ int16_t wsa_set_sweep_trigger_level(struct wsa_device *dev, uint64_t start_freq,
 		return WSA_ERR_INVSTOPFREQ;
     }
 
-	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %u,%u,%d\n", start_freq, stop_freq, amplitude);
+	sprintf(temp_str, "SWEEP:ENTRY:TRIGGER:LEVEL %llu,%llu,%d\n", start_freq, stop_freq, amplitude);
 	result = wsa_send_command(dev, temp_str);
 
 	if (result < 0) {
@@ -3630,6 +3630,8 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	doutf(DHIGH, "Clearing socket buffer... ");
 	
 	// flush remaining data in the wsa
+
+	// TODO: Add flush command here.
 
 	if (result < 0) {
 		return result;

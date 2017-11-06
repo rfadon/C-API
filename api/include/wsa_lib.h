@@ -9,7 +9,9 @@
 #define MAX_STR_LEN 512
 
 #define NUM_RF_GAINS 5	// including 0 but not use
+#if !defined(MHZ)
 #define MHZ 1000000ULL
+#endif
 
 
 // *****
@@ -149,7 +151,7 @@
 #define KISS_FFT_OFFSET 0;
 
 // a value to use whenever a buffer needs to be poisoned
-#define POISONED_BUFFER_VALUE 99999
+#define POISONED_BUFFER_VALUE -99999
 
 // R5500 SPECIFIC
 #define R5500 "R5500"

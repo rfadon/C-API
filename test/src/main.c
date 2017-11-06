@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -11,6 +10,15 @@
 #include <sweep_device_tests.h>
 #include <device_descr_tests.h>
 
+#include "debug_printf.h"
+
+#if !defined(NDEBUG)
+// See debug_printf.h for possible values of this bitmask, and adjust as desired.
+uint32_t g_debug_mask = (DEBUG_SWEEP_PLAN | DEBUG_SWEEP_CFG | DEBUG_INFO | DEBUG_PEAKS | DEBUG_FILE_OUT );
+#else
+uint32_t g_debug_mask = 0;			// No output.
+#endif
+
 
 /**
  * Starting point
@@ -20,7 +28,7 @@ int32_t main(int32_t argc, char *argv[])
 // initialize WSA structure and IP setting
     struct wsa_device wsa_dev;	// the wsa device structure
     struct wsa_device *dev;
-	char wsa_addr[255] = "10.126.110.116";	// store wsa ip address
+	char wsa_addr[255] = "10.126.110.99";	// store wsa ip address
     char intf_str[255];
 
 	struct test_data test_info;
@@ -46,15 +54,14 @@ int32_t main(int32_t argc, char *argv[])
 
 	// ATTENUATION TESTS: Test attenuation for all 4 valid values (0, 10, 20, 30)
 	result = attenuation_tests(dev, &test_info);
-	printf("ATTENATION TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n",test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
-
+	printf("ATTENUATION TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n",test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
 	// ATTENUATION TESTS: Test sweep attenuation for all 4 valid values (0, 10, 20, 30)
 	result = sweep_attenuation_tests(dev, &test_info);
-	printf("SWEEP ATTENATION TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
+	printf("SWEEP ATTENUATION TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
-	//result = sweep_device_tests(dev, &test_info);
-	//printf("SWEEP DEVICE RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
+	result = sweep_device_tests(dev, &test_info);
+	printf("SWEEP DEVICE RESULTS: %d Tests, %d Passes, %d Fails\n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 
 	result = test_device_descr(dev, &test_info);
 	printf("DEVICE DESCR RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
@@ -62,3 +69,4 @@ int32_t main(int32_t argc, char *argv[])
 	printf("TOTAL TEST RESULTS: %d Tests, %d Passes, %d Fails \n \n", test_info.pass_count + test_info.fail_count, test_info.pass_count, test_info.fail_count);
 	return 0;
 }
+
