@@ -19,7 +19,11 @@
 
 #pragma once
 
-// Configurable debug printing flags
+/// Special-purpose flag for diagnosing data dropout 2017-11-10.
+/// @note If this flag is set, ensure g_debug_mask does not have the DEBUG_FILE_OUT bit set.
+#define DEBUG_DROPOUT	(0)
+
+/// Configurable debug printing flags
 #define DEBUG_ERROR       (1 << 31)
 #define DEBUG_WARN        (1 << 30)
 #define DEBUG_INFO        (1 << 29)
@@ -32,12 +36,12 @@
 #define DEBUG_SPEED       (1 << 22)
 #define DEBUG_PEAKS       (1 << 21)
 
-// Special groups of debug settings
+/// Special groups of debug settings
 #define DEBUG_PERFORMANCE_ALL (DEBUG_ERROR | DEBUG_WARN | DEBUG_INFO)
 #define DEBUG_SPECTRUM_ALL    (DEBUG_SWEEP_PLAN | DEBUG_COLLECT | DEBUG_SPEED | DEBUG_PEAKS | DEBUG_SPEC_DATA | DEBUG_FILE_OUT | DEBUG_SWEEP_CFG)
 #define DEBUG_ALL			  (DEBUG_PERFORMANCE_ALL | DEBUG_SPECTRUM_ALL)		// Ensure this always has all flags set.
 
-extern uint32_t g_debug_mask;	// In user application, set to any combination of above flags to enable corresponding output, or zero for no output.
+extern uint32_t g_debug_mask;	///< In user application, set to any combination of above flags to enable corresponding output, or zero for no output.
 
 #define DEBUG_PRINTF(DEBUG_MASK, FMT, ...) \
   do { \

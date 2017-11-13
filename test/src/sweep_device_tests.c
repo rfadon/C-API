@@ -41,6 +41,14 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 	//time_t start, end;
 	double diff;
 
+#if defined(DEBUG_DROPOUT)
+	// Looking for data dropouts 2017-11-09
+	int32_t runlength;
+	int32_t max_runlength;
+	float const dropout_threshold = -130.0f;
+	float dropout_freq = 0.0f;
+#endif
+
 	uint32_t max_index = 0;
 	struct wsa_sweep_device wsa_sweep_device;
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_sweep_device;
@@ -83,13 +91,25 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 	if (DEBUG_FILE_OUT & g_debug_mask) {
 		output_file = fopen("TestOutput.csv", "w");
 	}
+
+#if defined(DEBUG_DROPOUT)
+	output_file = fopen("DropoutCheck.txt", "w");
+#endif
+
 	fstart = 9000;
 	fstop = 8 * GHZ;
 	rbw = 20000UL;
 	span = fstop - fstart;
 	capt_counter = 0;
-	while(capt_counter < 1) {
+	while(capt_counter < 5) {
 		DEBUG_PRINTF(DEBUG_INFO, "----- Test %lu -----", capt_counter);
+
+#if defined(DEBUG_DROPOUT)
+		// Looking for dropouts.
+		runlength = 0;
+		max_runlength = 0;
+#endif
+
 		capt_counter++;
 		wsa_power_spectrum_free(pscfg);
 		result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart,  fstop, rbw, "SH", &pscfg);
@@ -109,6 +129,21 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 			freq = (float)fstart + ((float)fstop - (float)fstart) * location_ratio;
 			DEBUG_PRINTF(DEBUG_SPEC_DATA, ", %lu, %0.2f, %0.2f", i, freq, pscfg->buf[i]);
 
+#if defined(DEBUG_DROPOUT)
+			// Looking for dropouts
+			if (pscfg->buf[i] < dropout_threshold) {
+				// printf("%lu, %0.2f, %0.2f\n", i, freq, pscfg->buf[i]);
+				runlength++;
+				if (runlength > max_runlength) {
+					max_runlength = runlength;
+					dropout_freq = freq;
+				}
+				else {
+					runlength = 0;
+				}
+			}
+#endif
+
 			if (DEBUG_FILE_OUT & g_debug_mask) {
 				fprintf(output_file, "%lu, %0.2f, %0.2f\n", i, freq, pscfg->buf[i]);
 			}
@@ -125,9 +160,11 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 			}
 		}
 
-		if (DEBUG_FILE_OUT & g_debug_mask) {
-			fclose(output_file);
-		}
+#if defined(DEBUG_DROPOUT)
+		// Print out the max length of any dropout
+		printf("Max dropout length below %f was %lu ending at freq %f\n", dropout_threshold, max_runlength, dropout_freq);
+		fprintf(output_file, "Max dropout length below %f was %lu ending at freq %f\n", dropout_threshold, max_runlength, dropout_freq);
+#endif
 
 		// Print peak location as a frequency.
 		location_ratio = ( (float)max_index + 0.5f ) / ( (float)pscfg->buflen );		// Peak location as a fraction of the sweep band (rounded).
@@ -141,6 +178,10 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 		DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %0.2f  Peak freq: %llu\n", max, peak_freq_u64);
 
 	}
+	if (DEBUG_FILE_OUT & g_debug_mask) {
+		fclose(output_file);
+	}
+	fclose(output_file);
     return 0;
 }
 
