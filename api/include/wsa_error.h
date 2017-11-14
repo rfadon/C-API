@@ -121,6 +121,7 @@
 #define WSA_ERR_CMDINVALID		(LNEG_NUM - 1502)
 #define WSA_ERR_RESPUNKNOWN	(LNEG_NUM - 1503)
 #define WSA_ERR_QUERYNORESP	(LNEG_NUM - 1504)
+#define WSA_ERR_SOCKETNODATA	(LNEG_NUM -1505)
 
 
 // ///////////////////////////////

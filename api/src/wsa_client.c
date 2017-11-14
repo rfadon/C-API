@@ -312,7 +312,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
     		doutf(DMED, "In wsa_sock_recv: select returned %d\n", ret_val);
         }
 
-		return WSA_ERR_QUERYNORESP;
+		return WSA_ERR_SOCKETNODATA;
 	}
 
 	// if the socket is read-able, rx packet

@@ -139,6 +139,7 @@ const char *_wsa_get_err_msg(int16_t err_id)
 		{WSA_ERR_RESPUNKNOWN, 
 			"The response received is invalid for the query sent"},
 		{WSA_ERR_QUERYNORESP, "Query returns no response"},
+		{ WSA_ERR_SOCKETNODATA, "Socket data timeout" },
 
 		//*****
 		// RFE SECTION
