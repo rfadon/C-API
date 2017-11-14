@@ -14,8 +14,9 @@
 
 #if !defined(NDEBUG)
 // See debug_printf.h for possible values of this bitmask, and adjust as desired.
-uint32_t g_debug_mask = (DEBUG_SWEEP_PLAN | DEBUG_SWEEP_CFG | DEBUG_INFO | DEBUG_PEAKS );
-//uint32_t g_debug_mask = 0;
+//uint32_t g_debug_mask = (DEBUG_SWEEP_PLAN | DEBUG_SWEEP_CFG | DEBUG_INFO | DEBUG_PEAKS );
+uint32_t g_debug_mask = 0;
+//uint32_t g_debug_mask = (DEBUG_ALL);
 #else
 uint32_t g_debug_mask = 0;			// No output.
 #endif

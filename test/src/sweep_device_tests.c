@@ -97,11 +97,11 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 #endif
 
 	fstart = 9000;
-	fstop = 8 * GHZ;
+	fstop = 17 * GHZ;
 	rbw = 20000UL;
 	span = fstop - fstart;
 	capt_counter = 0;
-	while(capt_counter < 5) {
+	while(capt_counter < 1000) {
 		DEBUG_PRINTF(DEBUG_INFO, "----- Test %lu -----", capt_counter);
 
 #if defined(DEBUG_DROPOUT)
@@ -113,6 +113,13 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info){
 		capt_counter++;
 		wsa_power_spectrum_free(pscfg);
 		result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart,  fstop, rbw, "SH", &pscfg);
+		if (0 != result) {
+			printf("\nwsa_capture_power_spectrum() returned %d\n", result);
+		}
+		else {
+			printf(".");
+			if ((capt_counter % 50) == 49) printf("\n");
+		}
 		verify_result(test_info, result, 0);
 		result = wsa_configure_sweep(wsa_sweep_dev, pscfg);
 		verify_result(test_info, result, 0);

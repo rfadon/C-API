@@ -916,10 +916,9 @@ int16_t wsa_read_vrt_packet (struct wsa_device * const dev,
 	// check the result returned
 	if (result < 0)	{
 		doutf(DHIGH, "Error in wsa_read_vrt_packet: %s\n", wsa_get_error_msg(result));
-		if (result == WSA_ERR_NOTIQFRAME || result == WSA_ERR_QUERYNORESP) {
-			wsa_system_abort_capture(dev);
-			result2 = wsa_flush_data(dev); 
-        }
+		wsa_system_abort_capture(dev);
+		result2 = wsa_flush_data(dev); 
+		wsa_clean_data_socket(dev);
 
 		free(data_buffer);
 		return result;

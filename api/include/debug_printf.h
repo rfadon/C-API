@@ -21,7 +21,7 @@
 
 /// Special-purpose flag for diagnosing data dropout 2017-11-10.
 /// @note If this flag is set, ensure g_debug_mask does not have the DEBUG_FILE_OUT bit set.
-#define DEBUG_DROPOUT	(0)
+//#define DEBUG_DROPOUT	(0)
 
 /// Configurable debug printing flags
 #define DEBUG_ERROR       (1 << 31)
