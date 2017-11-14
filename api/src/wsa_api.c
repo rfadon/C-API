@@ -1510,7 +1510,8 @@ int16_t wsa_set_freq(struct wsa_device *dev, uint64_t cfreq)
 		return result;
     }
 
-	sprintf(temp_str, "FREQ:CENT %0.2f Hz\n", (float) cfreq);
+	//sprintf(temp_str, "FREQ:CENT %0.2f Hz\n", (float) cfreq);
+	sprintf(temp_str, "FREQ:CENT %0.0f Hz\n", (float)cfreq);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_freq: %d - %s.\n", result, wsa_get_error_msg(result));
@@ -1747,10 +1748,13 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 		}
 		// set the attenuation for R5500-418/427
 		else if (strstr(dev->descr.dev_model, R5500418) != NULL ||
-				(strstr(dev->descr.dev_model, R5500427) != NULL))
-			
+			(strstr(dev->descr.dev_model, R5500427) != NULL)) {
 			sprintf(temp_str, "INPUT:ATTENUATOR:VAR %d\n", mode);
 			result = wsa_send_command(dev, temp_str);
+
+		} else {
+			doutf(DLOW, "Setting attenuation - model not known!");	// NO MODEL KNOWN!
+		}
 	}
 
 	return result;

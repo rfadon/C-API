@@ -108,7 +108,7 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 			strstr(strtok_result, RTSA7550418) != NULL)
 	{
 		sprintf(dev->descr.prod_model, "%s", R5500);
-		sprintf(dev->descr.dev_model, "%s", WSA5000418);
+		sprintf(dev->descr.dev_model, "%s", R5500418);
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000418_MAX_FREQ * MHZ);
 	}
 
@@ -303,6 +303,7 @@ int16_t wsa_query_error(struct wsa_device *dev, char *output)
 	struct wsa_resp resp;
 
 	wsa_send_query(dev, "SYST:ERR?\n", &resp);
+	doutf(DLOW, "SYST:ERR <= %s", resp);
 	if (resp.status < 0)
 	{
 		strcpy(output, _wsa_get_err_msg((int16_t) resp.status));
