@@ -41,7 +41,8 @@
 #define DEBUG_SPECTRUM_ALL    (DEBUG_SWEEP_PLAN | DEBUG_COLLECT | DEBUG_SPEED | DEBUG_PEAKS | DEBUG_SPEC_DATA | DEBUG_FILE_OUT | DEBUG_SWEEP_CFG)
 #define DEBUG_ALL			  (DEBUG_PERFORMANCE_ALL | DEBUG_SPECTRUM_ALL)		// Ensure this always has all flags set.
 
-extern uint32_t g_debug_mask;	///< In user application, set to any combination of above flags to enable corresponding output, or zero for no output.
+//extern uint32_t g_debug_mask;	///< In user application, set to any combination of above flags to enable corresponding output, or zero for no output.
+uint32_t g_debug_mask = 0;	
 
 #define DEBUG_PRINTF(DEBUG_MASK, FMT, ...) \
   do { \
