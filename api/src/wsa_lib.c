@@ -49,9 +49,12 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	dev->descr.min_decimation = 0;
 		
 	wsa_send_query(dev, "*IDN?\n", &query);
-	
+
 	strtok_result = strtok_r(query.output, ",", &strtok_context);
 	strtok_result = strtok_r(NULL, " ", &strtok_context);
+	if (strtok_result == NULL) {
+		strtok_result = UNKNOWN_MODEL_NUM;
+	}
 
 	// apply device model (408 vs 418 etc)
 
@@ -121,22 +124,33 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000427_MAX_FREQ * MHZ);
 	}
 
-	// uknown device set to min frequency
+	// Unknown device: set device data accordingly and set max frequency for WSA5000-108.
 	else
 	{
 		dev->descr.max_tune_freq = (uint64_t) (WSA_5000108_MAX_FREQ * MHZ);
-		sprintf(dev->descr.prod_model, "%s", WSA5000);
+		sprintf(dev->descr.prod_model, "%s", UNKNOWN_MODEL_NUM);
+		sprintf(dev->descr.dev_model, "%s", UNKNOWN_MODEL_NUM);
 	}
 	
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
 	
-	// grab product serial number
+	// Get product serial number if available.
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(dev->descr.serial_number, strtok_result);
+	if (strtok_result == NULL) {
+		strcpy(dev->descr.serial_number, UNKNOWN_SERIAL_NUM);
+	}
+	else {
+		strcpy(dev->descr.serial_number, strtok_result);
+	}
 
-	// grab product firmware version
+	// Get product firmware version if available.
 	strtok_result = strtok_r(NULL, ",", &strtok_context);
-	strcpy(dev->descr.fw_version, strtok_result);
+	if (strtok_result == NULL) {
+		strcpy(dev->descr.fw_version, UNKNOWN_FIRMWARE_VERSION);
+	}
+	else {
+		strcpy(dev->descr.fw_version, strtok_result);
+	}
 	
 	dev->descr.max_sample_size = (int32_t) WSA_MAX_CAPTURE_BLOCK;
 	dev->descr.inst_bw = (uint64_t) WSA_IBW;
@@ -156,8 +170,6 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 	//	dev->descr.min_tune_freq = (uint64_t) R5500_MIN_FREQ;
 
 	//}
-
-
 
 	return 0;
 }

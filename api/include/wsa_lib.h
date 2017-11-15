@@ -153,6 +153,11 @@
 // a value to use whenever a buffer needs to be poisoned
 #define POISONED_BUFFER_VALUE -99999
 
+/// Strings for unknown device data
+#define UNKNOWN_MODEL_NUM "UNKNOWN"
+#define UNKNOWN_SERIAL_NUM "99999999"
+#define UNKNOWN_FIRMWARE_VERSION "UNKNOWN"
+
 // R5500 SPECIFIC
 #define R5500 "R5500"
 #define R5500308 "R5500-308"
