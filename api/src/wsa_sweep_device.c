@@ -459,11 +459,10 @@ static int16_t wsa_sweep_plan_load( struct wsa_sweep_device *wsasweepdev, struct
     // Reset the device before the capture.
     result = wsa_reset(wsadev);
 
-    // Flush the data.
+    // Abort any previous capture, flush and clean
+    result = wsa_system_abort_capture(wsadev);    
     result = wsa_flush_data(wsadev);
-
-    // Abort any previous capture.
-    result = wsa_system_abort_capture(wsadev);
+	result = wsa_clean_data_socket(wsadev);
 
     // Get the device ID and initialize the object.
     result = _wsa_dev_init(wsadev);
