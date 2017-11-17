@@ -803,6 +803,13 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 
             packet_count_this_block++;
             total_packet_count++;
+
+//*** Trap - used for intercepting 9kHz-8GHz/20kHz spectrum hole don@bearanascence.com 16Nov17
+if (199 == total_packet_count) {
+int i = 1;
+}
+//*** End of trap
+
             DEBUG_PRINTF(DEBUG_COLLECT, "Received data packet %lu at %llu Hz.", total_packet_count, pkt_fcenter);
 
             // If we're done a block, process it.
@@ -937,6 +944,46 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     } while (total_packet_count < cfg->packet_total);
 
     DEBUG_PRINTF(DEBUG_COLLECT, "total_samples = %lu", total_samples);
+
+	//*** Heavyweight resync don@bearanascence.com 16Nov17
+	{
+		int iResult = 0;
+		//iResult = wsa_system_abort_capture(dev);
+		//iResult = wsa_flush_data(dev);
+		// Test case: 9kHz-8GHz/20kHz RBW sweep
+		// With the following line in place, the gap occurs at the top end of the spectrum.
+		// If this line is commented out, then the gap monotonically advances down through
+		// the buffer on each successive sweep. 
+		//iResult = wsa_clean_data_socket(dev);  
+	}
+	//*** end of heavyweight resync
+
+	//*** Poison-search in buffer don@bearanascence.com 16Nov17
+	{
+		// if total_samples != cfg->buflen, we know we are in trouble...
+		int iPoisonFound = 0;	// Total poison values found
+		int iPoisonRunStart = 0;	// Start index of most recently found run
+		int iPoisonRunLength = 0;	// length of most recently found run
+		int bInPoison = 0;	// Interpret boolean
+		for (int i = 0; i < cfg->buflen; i++) {
+			if (POISONED_BUFFER_VALUE == cfg->buf[i]) {
+				iPoisonFound++;
+				if (0 == bInPoison) {
+					bInPoison = 1;
+					iPoisonRunStart = i;
+					iPoisonRunLength = 1;
+				} else {
+					iPoisonRunLength += 1;
+				}
+			} else {
+				bInPoison = 0;
+			}
+		}
+		if (iPoisonFound > 0) {
+			int j = 0;	// So I can breakpoint within this scope
+		}
+	}
+	//*** End of poison-search
 
     free(fftout);
     free(idata);
