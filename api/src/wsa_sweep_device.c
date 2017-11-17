@@ -274,8 +274,8 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
     struct wsa_descriptor dev_props = sweep_device->real_device->descr;
     struct wsa_sweep_plan *our_plan = NULL;
 
-    uint64_t fcstart;
-    uint64_t fcstop;
+	uint64_t fcstart;
+	uint64_t fcstop;
     uint64_t block_count;
 
     uint32_t fstep;
@@ -381,13 +381,20 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 
         // fcstart is for the non-DD segments.
         fcstart = mode_props->min_tunable + half_usable_bw;
+
     } else {
         need_dd_mode = FALSE;
-        fcstart = pscfg->fstart + half_usable_bw;
+		fcstart = pscfg->fstart + half_usable_bw;
     }
 
+	// But fstart_actual is the requested start frequency, whether DD mode or not.
+	pscfg->fstart_actual = pscfg->fstart;
+
     // Round down by tuning resolution to prevent any gap.
-    fcstart = (fcstart / (uint64_t)mode_props->tuning_resolution) * (uint64_t)mode_props->tuning_resolution;
+	fcstart = (fcstart / (uint64_t)mode_props->tuning_resolution) * (uint64_t)mode_props->tuning_resolution;
+
+	// Same for our actual start frequency.
+	pscfg->fstart_actual = (pscfg->fstart_actual / (uint64_t)mode_props->tuning_resolution) * (uint64_t)mode_props->tuning_resolution;
 
     // 2) Step size
     // Set to one RBW less than usable bandwidth so we don't miss anything at the boundary of two segments.
@@ -397,14 +404,16 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 
     // 3) Stop frequency -- the centre frequency that's the first multiple of fstep above fcstart that
     // exceeds the requested stop frequency. This will ensure we don't miss the last little bit of the spectrum.
-    fcstop = fcstart + (((pscfg->fstop - fcstart) + (uint64_t)fstep - 1LLU) / (uint64_t)fstep) * (uint64_t)fstep;
+	fcstop = fcstart + (((pscfg->fstop - fcstart) + (uint64_t)fstep - 1LLU) / (uint64_t)fstep) * (uint64_t)fstep;
     DEBUG_PRINTF(DEBUG_SWEEP_PLAN, " Rounded up fcstop: %llu", fcstop);
 
     // Constrain fcstop.
     // Among other things, if we need DD mode and fstop was < 50MHz, start might now be greater than stop.
-    fcstop = (fcstop < fcstart) ? fcstart : fcstop;
-    fcstop = (fcstop > dev_props.max_tune_freq) ? dev_props.max_tune_freq : fcstop;
+	fcstop = (fcstop < fcstart) ? fcstart : fcstop;
+	fcstop = (fcstop > dev_props.max_tune_freq) ? dev_props.max_tune_freq : fcstop;
     DEBUG_PRINTF(DEBUG_SWEEP_PLAN, "Constrained fcstop: %llu", fcstop);
+
+	pscfg->fstop_actual = fcstop + half_usable_bw;
 
     // Check if we will only get DD mode data.
     pscfg->only_dd = (need_dd_mode && (pscfg->fstop < mode_props->min_tunable)) ? TRUE : FALSE;
@@ -607,8 +616,9 @@ int16_t wsa_power_spectrum_alloc( struct wsa_sweep_device *sweep_device, uint64_
     }
 
     // Now allocate enough buffer for the spectrum.
-    pscfg->buflen = (uint32_t)(((float)(fstop - fstart)) / ((float)(pscfg->rbw)));
-    DEBUG_PRINTF(DEBUG_SWEEP_PLAN, "fstart = %llu, fstop = %llu, rbw = %llu", fstart, fstop, pscfg->rbw);
+	pscfg->buflen = (uint32_t)(((float)(pscfg->fstop_actual - pscfg->fstart_actual)) / ((float)(pscfg->rbw)));
+
+    DEBUG_PRINTF(DEBUG_SWEEP_PLAN, "actual fstart = %llu, actual fstop = %llu, rbw = %llu", pscfg->fstart_actual, pscfg->fstop_actual, pscfg->rbw);
     doutf(DHIGH, "wsa_power_spectrum_alloc: Calculated Buffer length to be: %d\n", pscfg->buflen);
     DEBUG_PRINTF(DEBUG_SWEEP_PLAN, "buflen = %lu", pscfg->buflen);
 
@@ -775,7 +785,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
             // ...and grab the center frequency from each.
             if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
                 pkt_fcenter = (uint64_t)receiver.freq;
-				assert((pkt_fcenter >= cfg->fstart) && (pkt_fcenter <= cfg->fstop));
+				assert((pkt_fcenter >= cfg->fstart_actual) && (pkt_fcenter <= cfg->fstop_actual));
 
                 // TODO Check that this center frequency does not ever change over one block.
             }
@@ -876,7 +886,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
                     // We will probably overwrite some previously written data and that is OK.
                     // Make sure we don't underflow with the first buffer.
                     //
-                    tmp_float = (float)(pkt_fcenter - cfg->fstart) / (float)(cfg->fstop - cfg->fstart);		// Fraction of the sweep
+                    tmp_float = (float)(pkt_fcenter - cfg->fstart_actual) / (float)(cfg->fstop_actual - cfg->fstart_actual);		// Fraction of the sweep
                     tmp_float *= (float)(cfg->buflen);														// Fraction of the buffer
                     tmp_u32 = (uint32_t)(tmp_float + 0.5f);													// Rounded up
                     if (tmp_u32 < (ilen / 2)) {
@@ -885,8 +895,9 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
                         buf_offset = tmp_u32 - ilen / 2;		// We just computed offset of centre of packet. Find offset of lower edge.
                     }
 
-                    DEBUG_PRINTF(DEBUG_COLLECT, "buf_offset = %lu", buf_offset);
+ //                   DEBUG_PRINTF(DEBUG_BUFFERS, "buf_offset = %lu", buf_offset);
                     assert((buf_offset >= 0) && (buf_offset < cfg->buflen));
+//					DEBUG_PRINTF(DEBUG_COLLECT, "buf_offset = %ul\n", buf_offset);
                 } else {
 
                     // DD Mode
@@ -942,7 +953,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     free(idata);
     free(tmp_buffer);
 
-    return 0;
+	return 0;
 }
 
 /// @}				// name Public Functions
