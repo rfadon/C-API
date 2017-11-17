@@ -274,8 +274,8 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
     struct wsa_descriptor dev_props = sweep_device->real_device->descr;
     struct wsa_sweep_plan *our_plan = NULL;
 
-	uint64_t fcstart;
-	uint64_t fcstop;
+    uint64_t fcstart;
+    uint64_t fcstop;
     uint64_t block_count;
 
     uint32_t fstep;
@@ -422,7 +422,7 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
     pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, required_points, actual_ppb, need_dd_mode);
 
     // Calculate total number of data blocks and thus packet total (a multiple of number of blocks).
-    block_count = (fcstop - fcstart) / (uint64_t)fstep;
+    block_count = 1 + (fcstop - fcstart) / (uint64_t)fstep;
     if (need_dd_mode) {
         // Assume DD mode will use one block.
         // TODO: Verify DD mode only needs one block.
@@ -813,6 +813,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 
             packet_count_this_block++;
             total_packet_count++;
+
             DEBUG_PRINTF(DEBUG_COLLECT, "Received data packet %lu at %llu Hz.", total_packet_count, pkt_fcenter);
 
             // If we're done a block, process it.
@@ -895,10 +896,9 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
                         buf_offset = tmp_u32 - ilen / 2;		// We just computed offset of centre of packet. Find offset of lower edge.
                     }
 
- //                   DEBUG_PRINTF(DEBUG_BUFFERS, "buf_offset = %lu", buf_offset);
                     assert((buf_offset >= 0) && (buf_offset < cfg->buflen));
-//					DEBUG_PRINTF(DEBUG_COLLECT, "buf_offset = %ul\n", buf_offset);
-                } else {
+
+				} else {
 
                     // DD Mode
 
@@ -920,7 +920,6 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 
                     buf_offset = 0;				// Target for DD mode spectral data is always the first part of the output buffer.
                     DEBUG_PRINTF(DEBUG_COLLECT, "DD, normal spectrum. istart = %lu, istop = %lu, ilen = %lu", istart, istop, ilen);
-                    DEBUG_PRINTF(DEBUG_COLLECT, "buf_offset = %lu", buf_offset);
 
                 }
 
