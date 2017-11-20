@@ -4,7 +4,7 @@
 
 #include "wsa_lib.h"
 
-#ifdef _BUILDASDLL_
+#ifdef _THINKRFDLL_
 #ifdef _DLL_
 #define DECL _declspec(dllexport)
 #else
@@ -12,7 +12,7 @@
 #endif // _DLL_
 #else
 #define DECL
-#endif // _BUILDASDLL_
+#endif // _THINKRFDLL_
 
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -21,7 +21,7 @@
 
 DECL void wsa_debuglevel(int);
 DECL void wsa_debugcallback(void(*callback)(void * pvoid, char const * pstring), void * pvoid);
-
+DECL const char *wsa_get_error_msg(int16_t err_code);
 
 
 // ////////////////////////////////////////////////////////////////////////////

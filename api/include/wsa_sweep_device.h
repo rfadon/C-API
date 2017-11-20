@@ -115,7 +115,7 @@ struct wsa_power_spectrum_config {
 /// @return A pointer to the allocated struct.
 /// @retval NULL If the operation failed.
 ///
-struct wsa_sweep_device *wsa_sweep_device_new( struct wsa_device *device );
+DECL struct wsa_sweep_device *wsa_sweep_device_new( struct wsa_device *device );
 
 
 ///
@@ -126,7 +126,7 @@ struct wsa_sweep_device *wsa_sweep_device_new( struct wsa_device *device );
 ///
 /// @param sweepdev The object to destroy
 ///
-void wsa_sweep_device_free( struct wsa_sweep_device *sweepdev );
+DECL void wsa_sweep_device_free( struct wsa_sweep_device *sweepdev );
 
 
 ///
@@ -135,7 +135,7 @@ void wsa_sweep_device_free( struct wsa_sweep_device *sweepdev );
 /// @param[in] sweep_device The sweep device to use.
 /// @param[in] val The attenuator setting: 0 for out; 1 for in.
 ///
-void wsa_sweep_device_set_attenuator( struct wsa_sweep_device *sweep_device, unsigned int val );
+DECL void wsa_sweep_device_set_attenuator( struct wsa_sweep_device *sweep_device, unsigned int val );
 
 ///
 /// Gets the attenatuor setting from the sweep device
@@ -144,7 +144,7 @@ void wsa_sweep_device_set_attenuator( struct wsa_sweep_device *sweep_device, uns
 ///
 /// @return The attenuator setting: 0 if out; 1 if in.
 ///
-unsigned int wsa_sweep_device_get_attenuator( struct wsa_sweep_device *sweep_device );
+DECL unsigned int wsa_sweep_device_get_attenuator( struct wsa_sweep_device *sweep_device );
 
 ///
 /// Allocate memory for power spectrum data collection.
@@ -159,7 +159,7 @@ unsigned int wsa_sweep_device_get_attenuator( struct wsa_sweep_device *sweep_dev
 ///
 /// @returns The number of bytes allocated, otherwise a negative error code.
 ///
-int16_t wsa_power_spectrum_alloc( struct wsa_sweep_device *sweep_device, uint64_t fstart, uint64_t fstop,
+DECL int16_t wsa_power_spectrum_alloc( struct wsa_sweep_device *sweep_device, uint64_t fstart, uint64_t fstop,
                                   uint32_t rbw, char const *mode, struct wsa_power_spectrum_config **pscfg );
 
 
@@ -171,7 +171,7 @@ int16_t wsa_power_spectrum_alloc( struct wsa_sweep_device *sweep_device, uint64_
 /// @note
 /// The sweep plan pointed to by this configuration will also be destroyed.
 ///
-void wsa_power_spectrum_free( struct wsa_power_spectrum_config *cfg );
+DECL void wsa_power_spectrum_free( struct wsa_power_spectrum_config *cfg );
 
 
 ///
@@ -184,7 +184,7 @@ void wsa_power_spectrum_free( struct wsa_power_spectrum_config *cfg );
 ///
 /// @returns The result code returned by wsa_sweep_plan_load().
 ///
-int16_t wsa_configure_sweep( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg );
+DECL int16_t wsa_configure_sweep( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg );
 
 
 ///
@@ -201,7 +201,7 @@ int16_t wsa_configure_sweep( struct wsa_sweep_device *sweep_device, struct wsa_p
 ///
 ///@returns A negative error code if an error occurred, otherwise zero to indicate success.
 ///
-int16_t wsa_capture_power_spectrum( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg, float **buf );
+DECL int16_t wsa_capture_power_spectrum( struct wsa_sweep_device *sweep_device, struct wsa_power_spectrum_config *pscfg, float **buf );
 
 #endif
 

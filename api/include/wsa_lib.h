@@ -393,6 +393,4 @@ int32_t wsa_decode_i_only_frame(uint32_t stream_id, uint8_t *data_buf, int32_t d
 
 int16_t wsa_read_status(struct wsa_device *dev, char *output);
 
-const char *wsa_get_error_msg(int16_t err_code);
-
 #endif

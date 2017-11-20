@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "wsa_api.h"
 #include "wsa_debug.h"
 
 

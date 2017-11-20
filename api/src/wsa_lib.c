@@ -4,8 +4,8 @@
 
 #include "wsa_client.h"
 #include "wsa_error.h"
+#include "wsa_api.h"
 #include "wsa_lib.h"
-
 
 #ifdef _WIN32
 # define strtok_r strtok_s
