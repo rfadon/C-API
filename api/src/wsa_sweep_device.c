@@ -409,8 +409,11 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 
     // Constrain fcstop.
     // Among other things, if we need DD mode and fstop was < 50MHz, start might now be greater than stop.
+    // Also, if fcstop exceeds maximum tunable frequency, back it off by one step.
 	fcstop = (fcstop < fcstart) ? fcstart : fcstop;
-	fcstop = (fcstop > dev_props.max_tune_freq) ? dev_props.max_tune_freq : fcstop;
+    if (fcstop >= dev_props.max_tune_freq) {
+        fcstop -= fstep;
+    }
     DEBUG_PRINTF(DEBUG_SWEEP_PLAN, "Constrained fcstop: %llu", fcstop);
 
 	pscfg->fstop_actual = fcstop + half_usable_bw;

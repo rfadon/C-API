@@ -56,10 +56,20 @@ int16_t _wsa_dev_init(struct wsa_device *dev)
 		strtok_result = UNKNOWN_MODEL_NUM;
 	}
 
-	// apply device model (408 vs 418 etc)
+	// Apply device model (408 vs 418 etc.)
+    //
+    /// TODO: Refactor into an array of structs and a lookup. Ensure all models are present.
 
-	// check if the device is a WSA5000 308/408 or BNC 7500-8, treat all as 408
-	if (strstr(strtok_result, WSA5000308) != NULL ||
+    // Check for WSA5000-220
+    if (strstr(strtok_result, WSA5000220) != NULL)
+    {
+        sprintf(dev->descr.prod_model, "%s", WSA5000);
+        sprintf(dev->descr.dev_model, "%s", WSA5000220);
+        dev->descr.max_tune_freq = (uint64_t)(WSA_5000220_MAX_FREQ * MHZ);
+    }
+
+    // check if the device is a WSA5000 308/408 or BNC 7500-8, treat all as 408
+	else if (strstr(strtok_result, WSA5000308) != NULL ||
 		strstr(strtok_result, WSA5000408) != NULL ||
 		strstr(strtok_result, RTSA75008) != NULL)
 	{
