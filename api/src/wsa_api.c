@@ -2918,8 +2918,8 @@ int16_t wsa_set_sweep_freq(struct wsa_device *dev, uint64_t start_freq, uint64_t
 	if (stop_freq < start_freq)
 		return  WSA_ERR_INVSTOPFREQ;
 		
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %0.2f Hz, %0.2f Hz\n", (float) start_freq, (float) stop_freq);
-	result = wsa_send_command(dev, temp_str);
+    sprintf(temp_str, "SWEEP:ENTRY:FREQ:CENT %llu Hz, %llu Hz\n", start_freq, stop_freq);
+    result = wsa_send_command(dev, temp_str);
     if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq: %d - %s.\n", result, wsa_get_error_msg(result));
     }
@@ -3003,7 +3003,7 @@ int16_t wsa_set_sweep_freq_step(struct wsa_device *dev, uint64_t step)
 	if (result < 0)
 		return result;
 
-	sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %0.2f Hz\n", (float) step);
+    sprintf(temp_str, "SWEEP:ENTRY:FREQ:STEP %llu Hz\n", step);
 	result = wsa_send_command(dev, temp_str);
 	if (result < 0) {
         doutf(DHIGH, "In wsa_set_sweep_freq_step: %d - %s.\n", result, wsa_get_error_msg(result));

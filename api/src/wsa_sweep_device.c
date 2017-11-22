@@ -352,7 +352,6 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 
     // We want to maximize packet size to make most efficient use of buffers.
     // Min packet size is WSA_MIN_SPP; max is WSA_MAX_SPP (currently 256, 64000).
-    // We already made sure above that actual_spp is at least WSA_MIN_SPP.
     if (required_points < WSA_MIN_SPP) {
         actual_spp = WSA_MIN_SPP;
         actual_ppb = 1;
@@ -397,9 +396,9 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 	pscfg->fstart_actual = (pscfg->fstart_actual / (uint64_t)mode_props->tuning_resolution) * (uint64_t)mode_props->tuning_resolution;
 
     // 2) Step size
-    // Set to one RBW less than usable bandwidth so we don't miss anything at the boundary of two segments.
-    // Then quantize to tuning resolution so our final fstep might be even a bit smaller.
-    fstep = mode_props->usable_bw - (uint32_t)pscfg->rbw;
+    // Set step size to device's usable bandwidth.
+    // Then quantize to tuning resolution so our final fstep might be a bit smaller.
+    fstep = mode_props->usable_bw;
     fstep = (fstep / (uint64_t)mode_props->tuning_resolution) * (uint64_t)mode_props->tuning_resolution;
 
     // 3) Stop frequency -- the centre frequency that's the first multiple of fstep above fcstart that
@@ -517,14 +516,15 @@ static int16_t wsa_sweep_plan_load( struct wsa_sweep_device *wsasweepdev, struct
 
         // Set settings and check the errors.
         result = wsa_set_sweep_freq(wsadev, (uint64_t)plan_entry->fcstart, (uint64_t)plan_entry->fcstop);
-        doutf(DHIGH, "wsa_sweep_plan_load: Setting sweep entry start freq: %0.6f, stop %0.6f \n", (float)plan_entry->fcstart, (float)plan_entry->fcstop);
-        DEBUG_PRINTF(DEBUG_SWEEP_CFG, "Sweep start: %0.6f, stop: %0.6f", (float)plan_entry->fcstart, (float)plan_entry->fcstop);
+        doutf(DHIGH, "wsa_sweep_plan_load: Setting sweep entry start freq: %llu, stop %llu \n", plan_entry->fcstart, plan_entry->fcstop);
+        DEBUG_PRINTF(DEBUG_SWEEP_CFG, "Sweep start: %llu, stop: %llu", plan_entry->fcstart, plan_entry->fcstop);
+
         if (result < 0) {
             fprintf(stderr, "ERROR %d fstart fstop\n", result);
         }
 
         result = wsa_set_sweep_freq_step(wsadev, (uint64_t)plan_entry->fstep);
-        DEBUG_PRINTF(DEBUG_SWEEP_CFG, "Sweep step: %0.6f", (float)plan_entry->fstep);
+        DEBUG_PRINTF(DEBUG_SWEEP_CFG, "Sweep step: %lu", plan_entry->fstep);
         if (result < 0) {
             fprintf(stderr, "ERROR fstep\n");
         }
