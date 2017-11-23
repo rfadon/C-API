@@ -421,7 +421,7 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
     pscfg->only_dd = (need_dd_mode && (pscfg->fstop < mode_props->min_tunable)) ? TRUE : FALSE;
 
     // Create sweep plan entry.
-    pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, required_points, actual_ppb, need_dd_mode);
+	pscfg->sweep_plan = wsa_sweep_plan_entry_new(fcstart, fcstop, fstep, actual_spp, actual_ppb, need_dd_mode);
 
     // Calculate total number of data blocks and thus packet total (a multiple of number of blocks).
     block_count = 1 + (fcstop - fcstart) / (uint64_t)fstep;
