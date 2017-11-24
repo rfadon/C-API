@@ -748,6 +748,10 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     prop = wsa_get_sweep_device_properties(cfg->mode);
     if (prop == NULL) {
         doutf(DMED, "Unsupported RFE mode: %d - %s\n", cfg->mode, mode_const_to_string(cfg->mode));
+		// Fixed possible memory leak. 20171124 <rick.low@thinkrf.com>
+		free(fftout);
+		free(idata);
+		free(tmp_buffer);
         return -EUNSUPPORTED;
     }
 
@@ -777,9 +781,14 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
         if (result < 0) {
             doutf(DHIGH, "wsa_read_vrt_packet() returned error %d\n", result);
 
-            // We will return with the work incomplete.
-            // The caller should detect the error code and take action.
-            return result;
+ 			// Fixed possible memory leak. 20171124 <rick.low@thinkrf.com>
+			free(fftout);
+			free(idata);
+			free(tmp_buffer);
+
+			// We will return with the work incomplete.
+			// The caller should detect the error code and take action.
+			return result;
         }
 
         //  Watch for the receiver context packets we need...
