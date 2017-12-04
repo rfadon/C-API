@@ -1010,10 +1010,10 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	int16_t result = 0;
 	int32_t i = 0;
 
-	idata = (float *) malloc(sizeof(float) * fft_size);
-	qdata = (float *) malloc(sizeof(float) * fft_size);
-	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * fft_size);
-	iq = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * fft_size);
+	idata = (float *)malloc(sizeof(float) * MAX_BLOCK_SIZE);
+	qdata = (float *)malloc(sizeof(float) * MAX_BLOCK_SIZE);
+	fftout = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
+	iq = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
 
 	if (!idata || !qdata || !fftout || !iq) {
 		fprintf(stderr, "In wsa_compute_fft: malloc() failed\n");
