@@ -547,10 +547,10 @@ int16_t wsa_get_lan_dns(struct wsa_device *dev, char const *config, char *dns)
 	sprintf(command, "SYST:COMM:LAN:DNS? %s \n", config);
 
 	wsa_send_query(dev, command, &query);
-	
-	if (query.status <= 0)
-		return (int16_t) query.status;
-
+	if (query.status <= 0) {
+		return (int16_t)query.status;
+	}
+	strcpy(dns, query.output);
 	return 0;
 }
 
@@ -796,7 +796,12 @@ int16_t wsa_system_abort_capture(struct wsa_device *dev)
 int16_t wsa_get_capture_mode(struct wsa_device * const dev, char *mode)
 {
 	struct wsa_resp query;
+
 	wsa_send_query(dev, "SYST:CAPT:MODE?\n", &query);
+	if (query.status <= 0) {
+		return (int16_t)query.status;
+	}
+	strcpy(mode, query.output);
 	return 0;
 }
 
@@ -970,18 +975,19 @@ int16_t wsa_get_fft_size(int32_t const samples_per_packet,
 
 
 /**
- * Retrieve the the size of the buffer required to store the spectral data
+ * Compute the DFT of a complex data vector.
  *
- * @param samples_per_packet - The number of time domain samples
- * @param stream_id - The ID indentifying the type of data
- * @param reference_level - dBm value used to calibrate the signal
- * @param spectral_inversion - byte containing whether spectral inversion is active
- * @param i16_buffer - buffer containing 16-bit iData
- * @param q16_buffer - buffer containing 16-bit qData
- * @param i32_buffer - buffer containing 32-bit iData
- * @param fft_buffer - Buffer to store the FFT data
+ * @param samples_per_packet The number of time domain samples to process
+ * @param stream_id The identity of the type of data
+ * @param reference_level A dBm value used to calibrate the signal
+ * @param spectral_inversion A byte containing whether spectral inversion is active
+ * @param i16_buffer A buffer containing 16-bit iData
+ * @param q16_buffer A buffer containing 16-bit qData
+ * @param i32_buffer A buffer containing 32-bit iData
+ * @param fft_buffer A Buffer to store the FFT data
  *
-* @return 0 on successful or a negative number   on error.
+ * @return 0 on success or a negative number on error.
+ * @retval -4 Malloc failed when allocating internal buffer space.
  */
 int16_t wsa_compute_fft(int32_t const samples_per_packet,
 				int32_t const fft_size,
@@ -997,16 +1003,24 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 
 	kiss_fft_scalar *idata;
 	kiss_fft_scalar *qdata;
+	kiss_fft_cpx *iq;
 	kiss_fft_cpx *fftout;
 	kiss_fft_scalar tmpscalar;
+	kiss_fft_cfg fft_cfg;
 	int16_t result = 0;
 	int32_t i = 0;
 
-	idata = (float *) malloc(sizeof(float) *MAX_BLOCK_SIZE);
-	qdata = (float *) malloc(sizeof(float) * MAX_BLOCK_SIZE);
-	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
+	idata = (float *) malloc(sizeof(float) * fft_size);
+	qdata = (float *) malloc(sizeof(float) * fft_size);
+	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * fft_size);
+	iq = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * fft_size);
 
-	// window and normalize the data
+	if (!idata || !qdata || !fftout || !iq) {
+		fprintf(stderr, "In wsa_compute_fft: malloc() failed\n");
+		return -4;		// FIXME: This is EDSPNOMEM as defined locally in wsa_dsp.c. Make it global. 
+	}
+
+	// Window and normalize the data.
 	normalize_iq_data(samples_per_packet,
 					stream_id,
 					i16_buffer,
@@ -1020,33 +1034,34 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	//correct_dc_offset(samples_per_packet, idata, qdata);
 
 	window_hanning_scalar_array(idata, samples_per_packet);
-
+	window_hanning_scalar_array(qdata, samples_per_packet);
 	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
-	// fft this data
-	rfft(idata, fftout, samples_per_packet);
-	
-	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
-	/*
-	* we used to be in superhet mode, but after a complex FFT, we have twice 
-	* the spectrum at twice the RBW.
-	* our fcenter is now moved from center to $passband_center so our start and stop 
-	* indexes are calculated given that fact
-	*/
 
-	// check for inversion and calculate indexes of our good data
+	// Compute DFT of the input data.
+	for (i = 0; i < fft_size; i++) {
+		iq[i].r = idata[i];					// Pack separate I and Q data into a complex array.
+		iq[i].i = qdata[i];
+	}
+	fft_cfg = kiss_fft_alloc(fft_size, 0, 0, 0);		// Allocate storage for KISS FFT.
+	kiss_fft(fft_cfg, iq, fftout);						// Do the FFT.
+	free(fft_cfg);
+	free(iq);
+	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
+
+	// Check for inversion and calculate indexes of our good data.
 	if (spectral_inversion)
 		reverse_cpx(fftout, fft_size);
-
 	doutf(DHIGH, "In wsa_compute_fft: finished compensating for spectral inversion\n");
-	// for the usable section, convert to power, apply reflevel and copy into buffer
+
+	// For the usable section, convert to power, apply reflevel and copy into buffer.
 	for (i = 0; i < fft_size; i++) {
 		tmpscalar = cpx_to_power(fftout[i]) / samples_per_packet;
 		tmpscalar = 2 * power_to_logpower(tmpscalar);
 		fft_buffer[i] = tmpscalar + ((float) reference_level) - KISS_FFT_OFFSET;
-		}
-
+	}
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
 
+	// Free all the dynamic data we used.
 	free(qdata);
 	free(fftout);
 	free(idata);

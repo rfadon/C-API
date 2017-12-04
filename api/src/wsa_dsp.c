@@ -82,12 +82,15 @@ void normalize_iq_data(int32_t samples_per_packet,
 		{
 			
 			idata[i] = ((float) i16_buffer[i]) / normalization_factor;
+			qdata[i] = 0.0f;
 		}
 	}
 	else
 	{
-		for (i=0; i<samples_per_packet; i++)
-			idata[i] = normalize_scalar( (kiss_fft_scalar) i32_buffer[i], normalization_factor);
+		for (i = 0; i < samples_per_packet; i++) {
+			idata[i] = normalize_scalar((kiss_fft_scalar)i32_buffer[i], normalization_factor);
+			qdata[i] = 0.0f;
+		}
 	}
 
 }
