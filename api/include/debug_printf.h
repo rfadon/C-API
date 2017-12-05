@@ -35,14 +35,14 @@
 #define DEBUG_SWEEP_CFG   (1 << 23)
 #define DEBUG_SPEED       (1 << 22)
 #define DEBUG_PEAKS       (1 << 21)
+#define DEBUG_TIMEOUTS	  (1 << 20)
 
 /// Special groups of debug settings
 #define DEBUG_PERFORMANCE_ALL (DEBUG_ERROR | DEBUG_WARN | DEBUG_INFO)
 #define DEBUG_SPECTRUM_ALL    (DEBUG_SWEEP_PLAN | DEBUG_COLLECT | DEBUG_SPEED | DEBUG_PEAKS | DEBUG_SPEC_DATA | DEBUG_FILE_OUT | DEBUG_SWEEP_CFG)
 #define DEBUG_ALL			  (DEBUG_PERFORMANCE_ALL | DEBUG_SPECTRUM_ALL)		// Ensure this always has all flags set.
 
-//extern uint32_t g_debug_mask;	///< In user application, set to any combination of above flags to enable corresponding output, or zero for no output.
-uint32_t g_debug_mask = 0;	
+extern uint32_t g_debug_mask;	///< In user application, set to any combination of above flags to enable corresponding output, or zero for no output.	
 
 #define DEBUG_PRINTF(DEBUG_MASK, FMT, ...) \
   do { \
