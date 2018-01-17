@@ -10,6 +10,8 @@
 #define CTRL_PORT "37001"
 #define DATA_PORT "37000"
 
+#define WSA_ARE_YOU_DEAD_Q (1 << 0)
+
 int16_t wsa_get_host_info(char *name);
 
 int16_t wsa_addr_check(const char *sock_addr, const char *sock_port);
@@ -21,7 +23,7 @@ int32_t wsa_sock_send(int32_t sock_fd, char const *out_str, int32_t len);
 int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 					  uint32_t time_out, int32_t *bytes_received);
 int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr, 
-						   int32_t buf_size, uint32_t time_out, int32_t *total_bytes);
+						   int32_t buf_size, uint32_t time_out, int32_t *total_bytes, uint32_t flags);
 void wsa_initialize_client();
 void wsa_destroy_client();
 

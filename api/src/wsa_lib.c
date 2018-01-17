@@ -958,12 +958,12 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		return WSA_ERR_MALLOCFAILED;
 
 	// retrieve the first two words of the packet to determine if the packet contains IQ data or context data
-	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
-												vrt_header_buffer, 
-												vrt_header_bytes, 
-												timeout, 
-												&bytes_received);	
-	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
+	socket_receive_result = wsa_sock_recv_data(
+		device->sock.data, vrt_header_buffer, vrt_header_bytes, timeout, &bytes_received, WSA_ARE_YOU_DEAD_Q
+	);
+
+	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data read %d bytes, returned %hd\n", bytes_received, socket_receive_result);
+
 	if (socket_receive_result < 0) {
 		doutf(DHIGH, "Error in wsa_read_vrt_packet_raw:  %s\n", wsa_get_error_msg(socket_receive_result));
 		free(vrt_header_buffer);
@@ -1029,7 +1029,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 	}
 
 	socket_receive_result = wsa_sock_recv_data(device->sock.data, 
-		vrt_packet_buffer, vrt_packet_bytes, timeout, &bytes_received);
+		vrt_packet_buffer, vrt_packet_bytes, timeout, &bytes_received, WSA_ARE_YOU_DEAD_Q);
 	doutf(DLOW, "In wsa_read_vrt_packet_raw: wsa_sock_recv_data returned %hd\n", socket_receive_result);
 	if (socket_receive_result < 0)
 	{

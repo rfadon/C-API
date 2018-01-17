@@ -3,6 +3,7 @@
 #include <string.h> 
 #include <errno.h>
 #include <math.h>
+#include <sys/socket.h>
 #include "wsa_client_os_specific.h"
 #include "wsa_client.h"
 #include "wsa_error.h"
@@ -21,6 +22,7 @@ void *get_in_addr(struct sockaddr *sock_addr);
 int16_t _addr_check(const char *sock_addr, const char *sock_port,
 					struct addrinfo *ai_list);
 
+static int wsa_poke_device(int sock);
 
 /**
  * Get sockaddr, IPv4 or IPv6
@@ -357,7 +359,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
  * @return 0 on success or a negative value on error
  */
 int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr, 
-						   int32_t buf_size, uint32_t time_out, int32_t *total_bytes)
+						   int32_t buf_size, uint32_t time_out, int32_t *total_bytes, uint32_t flags)
 {
 	int16_t recv_result = 0;
 	int32_t bytes_received = 0;
@@ -384,15 +386,60 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 			}
 
 			doutf(DLOW, "bytes received: %d - ", bytes_received);
-		}
-		else {
+		} else {
+			if (flags & WSA_ARE_YOU_DEAD_Q) {
+				wsa_poke_device(sock_fd);
+			}
+
 			// if got error, try again to make sure?
-			if (retry == (try_limit - 1))
+			if (retry == (try_limit - 1)) {
 				return recv_result;
+			}
 			retry++;
 		}
 	} while (1);
 
+	return 0;
+}
+
+
+static int wsa_poke_device(int vrtsock)
+{
+	int result;
+	int sockfd;
+	struct sockaddr_in serv_addr; 
+	int len;
+
+	// get the IP
+	len = sizeof(serv_addr);
+	result = getpeername(vrtsock, (struct sockaddr *) &serv_addr, &len);
+	if (result) {
+		printf("error: result = %d (%d)\n", result, errno);
+		return -1;
+	}
+	printf("- connecting to 0x%08x\n", serv_addr.sin_addr);
+	
+	// create the socket
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) {
+		printf("\n Error : Could not create socket \n");
+		return -2;
+	} 
+	
+	// connect to port 80 instead
+	serv_addr.sin_port = htons(80); 
+
+	// connect to the server
+	result = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+	if (result < 0) {
+		printf("\n Error : Connect Failed \n");
+		return -3;
+	} 
+
+	// now close it
+	close(sockfd);
+
+	// all done
 	return 0;
 }
 

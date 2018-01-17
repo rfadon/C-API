@@ -755,7 +755,7 @@ int16_t wsa_clean_data_socket(struct wsa_device *dev)
 									packet, 
 									packet_size, 
 									timeout,	
-									&bytes_received);
+									&bytes_received, 0);
 	}
 
 	free(packet);
