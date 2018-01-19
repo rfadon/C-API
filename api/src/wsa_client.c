@@ -3,7 +3,6 @@
 #include <string.h> 
 #include <errno.h>
 #include <math.h>
-#include <sys/socket.h>
 #include "wsa_client_os_specific.h"
 #include "wsa_client.h"
 #include "wsa_error.h"
