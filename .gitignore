@@ -9,4 +9,8 @@ Release/
 Testing/
 Junk/
 .vs/
-tags
+*.csv
+*.txt
+*.out
+*.bak
+*~

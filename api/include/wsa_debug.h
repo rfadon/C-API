@@ -5,10 +5,6 @@
 #ifndef __WSA_DEBUG_H__
 #define __WSA_DEBUG_H__
 
-#ifndef DEBUGLEVEL
-#define DEBUGLEVEL 0
-#endif
-
 // Different debug levels
 //
 // DHIGH - Show Error messages
@@ -19,6 +15,10 @@
 #define DHIGH 1
 #define DMED  2
 #define DLOW  3
+
+#ifndef DEBUGLEVEL
+#define DEBUGLEVEL DNO
+#endif
 
 #define WSA_API_LOG_FILE "wsa_api.log"
 #define ENABLE_LOG_FILE 0

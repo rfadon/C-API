@@ -19,6 +19,8 @@
 #define MHZ	(1000000ULL)
 #define GHZ (1000000000ULL)
 
+
+// Define the following to test using repeated runs of two sweeps back-to-back.
 #define TWO_SWEEPS  1
 
 #if defined(TWO_SWEEPS)
@@ -113,7 +115,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 
 		isweep = 1;
 
-		for (j = 0; j < 10000; j++)
+		for (j = 0; j < 20000; j++)
 		{
 			if (isweep == 1) {
 
@@ -128,12 +130,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				diff = (double)(fstop1 - fstart1) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
 				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
-					if (result == -11505) {
- 						printf("<TO>");
-					}
-					else {
-						printf("\nwsa_capture_power_spectrum() returned %d\n", result);
-					}
+					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
 				else {
 					printf("1");
@@ -166,12 +163,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				diff = (double)(fstop2 - fstart2) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
 				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
-					if (result == -11505) {
-						printf("<TO>");
-					}
-					else {
-						printf("\nwsa_capture_power_spectrum() returned %d\n", result);
-					}
+					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
 				else {
 					printf("2");
