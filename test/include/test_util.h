@@ -10,4 +10,5 @@ void verify_signed32_result(struct test_data *test_info, short function_result, 
 
 void verify_result(struct test_data *test_info, int16_t function_result, int fail_expected);
 
+int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info);
 

@@ -312,7 +312,6 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
         return (WSA_ERR_INV_SWEEP_FREQ);
     }
 
-
     // 2. Calculate sweep parameters.
 
     // Get properties for the mode we want to use.
@@ -403,7 +402,7 @@ static int16_t wsa_plan_sweep( struct wsa_sweep_device *sweep_device, struct wsa
 
     // 3) Stop frequency -- the centre frequency that's the first multiple of fstep above fcstart that
     // exceeds the requested stop frequency. This will ensure we don't miss the last little bit of the spectrum.
-	fcstop = fcstart + (((pscfg->fstop - fcstart) + (uint64_t)fstep - 1LLU) / (uint64_t)fstep) * (uint64_t)fstep;
+	fcstop = fcstart + (((pscfg->fstop - fcstart) + (uint64_t)fstep - 1ULL) / (uint64_t)fstep) * (uint64_t)fstep;
     DEBUG_PRINTF(DEBUG_SWEEP_PLAN, " Rounded up fcstop: %llu", fcstop);
 
     // Constrain fcstop.
@@ -529,19 +528,22 @@ static int16_t wsa_sweep_plan_load( struct wsa_sweep_device *wsasweepdev, struct
             fprintf(stderr, "ERROR fstep\n");
         }
 
-        wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
+        result = wsa_set_sweep_samples_per_packet(wsadev, plan_entry->spp);
         if (result < 0) {
             fprintf(stderr, "ERROR spp\n");
         }
 
-        wsa_set_sweep_packets_per_block(wsadev, plan_entry->ppb);
+        result = wsa_set_sweep_packets_per_block(wsadev, plan_entry->ppb);
         if (result < 0) {
             fprintf(stderr, "ERROR ppb\n");
         }
 
         // Save to end of list.
         if (cfg->only_dd != 1) {
-            wsa_sweep_entry_save(wsadev, 0);
+            result = wsa_sweep_entry_save(wsadev, 0);
+			if (result < 0) {
+				fprintf(stderr, "ERROR save\n");
+			}
         }
     }
     return 0;
@@ -775,10 +777,12 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
         dd_packet = ((total_packet_count < cfg->packets_per_block) && (cfg->sweep_plan->dd_mode == 1)) ? 1 : 0;
 
         // Read the next packet.
-        result = wsa_read_vrt_packet(dev, &header, &trailer, &receiver, &digitizer, &sweep,
-                                     tmp_buffer, q16_buffer, i32_buffer, cfg->samples_per_packet, TIMEOUT_5S);
+		result = wsa_read_vrt_packet(dev, &header, &trailer, &receiver, &digitizer, &sweep,
+			tmp_buffer, q16_buffer, i32_buffer, cfg->samples_per_packet, TIMEOUT_5S);
 
-        if (result < 0) {
+		if (result < 0) {
+
+			// Either a non-timeout error or we retried multiple times and still time out.
             doutf(DHIGH, "wsa_read_vrt_packet() returned error %d\n", result);
 
  			// Fixed possible memory leak. 20171124 <rick.low@thinkrf.com>
@@ -799,6 +803,14 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
                 pkt_fcenter = (uint64_t)receiver.freq;
 				assert((pkt_fcenter >= cfg->fstart_actual) && (pkt_fcenter <= cfg->fstop_actual));
 
+				// Clamp the centre frequency in case we get a bad centre frequency.
+				if (pkt_fcenter < cfg->fstart_actual) {
+					pkt_fcenter = cfg->fstart_actual;
+				}
+				else if (pkt_fcenter > cfg->fstop_actual) {
+					pkt_fcenter = cfg->fstop_actual;
+				}
+
                 // TODO Check that this center frequency does not ever change over one block.
             }
         }
@@ -813,6 +825,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
             // TODO: If we don't have a pkt_center frequency here, then bail out and return an error code.
 
             doutf(DMED, "wsa_capture_power_spectrum: Received data packet at %llu Hz.\n", pkt_fcenter);
+			//DEBUG_PRINTF(DEBUG_COLLECT, "Count: %d", header.pkt_count);
 
             pkt_reflevel = (float)digitizer.reference_level;
 
@@ -980,7 +993,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 		int iPoisonRunStart = 0;	// Start index of most recently found run
 		int iPoisonRunLength = 0;	// length of most recently found run
 		int bInPoison = 0;	// Interpret boolean
-		for (int i = 0; i < cfg->buflen; i++) {
+		for (unsigned int i = 0; i < cfg->buflen; i++) {
 			if (POISONED_BUFFER_VALUE == cfg->buf[i]) {
 				iPoisonFound++;
 				if (0 == bInPoison) {

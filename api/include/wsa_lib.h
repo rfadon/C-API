@@ -340,6 +340,9 @@ struct wsa_socket {
 
 struct test_data {
 
+	// total test count
+	int test_count;
+
 	// total bug count
 	int bug_count;
 

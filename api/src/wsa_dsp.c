@@ -94,6 +94,7 @@ void normalize_iq_data(int32_t samples_per_packet,
 	}
 
 }
+
 /**
  * Correct the DC offset
  *
