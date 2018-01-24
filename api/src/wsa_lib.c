@@ -1386,7 +1386,7 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 		
 		bw_int_part = (uint64_t) ((bw_word1 << 12) + (bw_word2 >> 20));
 		bw_dec_part = (uint64_t) (bw_word2 & 0x000fffff);
-		digitizer->bandwidth = bw_int_part + (bw_dec_part / MHZ);
+		digitizer->bandwidth = (uint64_t) (bw_int_part + (bw_dec_part / pow(2,20)));
 		data_pos = data_pos + 8;
 	}
 
@@ -1406,7 +1406,7 @@ void extract_digitizer_packet_data(uint8_t *temp_buffer, struct wsa_digitizer_pa
 
 		rf_freq_int_part = (uint64_t) ((rf_freq_word1 << 12) + (rf_freq_word2 >> 20));
 		rf_freq_dec_part = (uint64_t) (rf_freq_word2 & 0x000fffff);
-		digitizer->rf_freq_offset = rf_freq_int_part + (rf_freq_dec_part / MHZ);
+		digitizer->rf_freq_offset = (uint64_t) (rf_freq_int_part + (rf_freq_dec_part / pow(2,20)));
 		
 		data_pos = data_pos + 8;
 	}

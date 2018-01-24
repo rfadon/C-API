@@ -978,7 +978,7 @@ int16_t wsa_get_fft_size(int32_t const samples_per_packet,
  * Compute the DFT of a complex data vector.
  *
  * @param samples_per_packet The number of time domain samples to process
- * @param stream_id The identity of the type of data
+ * @param stream_id The ID value identifying the type of data stream
  * @param reference_level A dBm value used to calibrate the signal
  * @param spectral_inversion A byte containing whether spectral inversion is active
  * @param i16_buffer A buffer containing 16-bit iData
@@ -1005,15 +1005,18 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	kiss_fft_scalar *qdata;
 	kiss_fft_cpx *iq;
 	kiss_fft_cpx *fftout;
+	kiss_fft_cpx tmpval;
+
 	kiss_fft_scalar tmpscalar;
 	kiss_fft_cfg fft_cfg;
+	int32_t half_bin;
 	int16_t result = 0;
 	int32_t i = 0;
 
-	idata = (float *)malloc(sizeof(float) * MAX_BLOCK_SIZE);
-	qdata = (float *)malloc(sizeof(float) * MAX_BLOCK_SIZE);
-	fftout = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
-	iq = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * MAX_BLOCK_SIZE);
+	idata = (float *) malloc(sizeof(float) * samples_per_packet);
+	qdata = (float *) malloc(sizeof(float) * samples_per_packet);
+	fftout = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * samples_per_packet);
+	iq = (kiss_fft_cpx *) malloc(sizeof(kiss_fft_cpx) * samples_per_packet);
 
 	if (!idata || !qdata || !fftout || !iq) {
 		fprintf(stderr, "In wsa_compute_fft: malloc() failed\n");
@@ -1037,20 +1040,40 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	window_hanning_scalar_array(qdata, samples_per_packet);
 	doutf(DHIGH, "In wsa_compute_fft: applied hanning window\n");
 
-	// Compute DFT of the input data.
-	for (i = 0; i < fft_size; i++) {
-		iq[i].r = idata[i];					// Pack separate I and Q data into a complex array.
+	// Pack separate I and Q data into a complex array
+	for (i = 0; i < samples_per_packet; i++) {
+		iq[i].r = idata[i];
 		iq[i].i = qdata[i];
 	}
-	fft_cfg = kiss_fft_alloc(fft_size, 0, 0, 0);		// Allocate storage for KISS FFT.
-	kiss_fft(fft_cfg, iq, fftout);						// Do the FFT.
+	fft_cfg = kiss_fft_alloc(samples_per_packet, 0, 0, 0);		// Allocate storage for KISS FFT.
+	kiss_fft(fft_cfg, iq, fftout);						// Do the DFT.
 	free(fft_cfg);
 	free(iq);
-	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");	
+	doutf(DHIGH, "In wsa_compute_fft: finished computing FFT\n");    
+    
+    // Perform fft shift
+    half_bin = samples_per_packet/2;
+	for (i = 0; i < half_bin; i++) {
+		tmpval.r = fftout[i].r;
+		tmpval.i = fftout[i].i;
+		fftout[i].r = fftout[i + half_bin].r;
+		fftout[i].i = fftout[i + half_bin].i;
+		fftout[i + half_bin].r = tmpval.r;
+		fftout[i + half_bin].i = tmpval.i;
+	}
+    
+    // For non-IQ output data, take the upper half of the FFT data as that's the positive image
+    if (stream_id != I16Q16_DATA_STREAM_ID) {
+        for (i = 0; i < half_bin; i++) {
+            fftout[i].r = fftout[i + half_bin].r;
+            fftout[i].i = fftout[i + half_bin].i;
+        }
+    }
 
 	// Check for inversion and calculate indexes of our good data.
-	if (spectral_inversion)
+	if (spectral_inversion) {
 		reverse_cpx(fftout, fft_size);
+	}
 	doutf(DHIGH, "In wsa_compute_fft: finished compensating for spectral inversion\n");
 
 	// For the usable section, convert to power, apply reflevel and copy into buffer.
@@ -1062,9 +1085,9 @@ int16_t wsa_compute_fft(int32_t const samples_per_packet,
 	doutf(DHIGH, "In wsa_compute_fft: finished moving buffer\n");
 
 	// Free all the dynamic data we used.
+	free(idata);
 	free(qdata);
 	free(fftout);
-	free(idata);
 	
 	return result;
 }
@@ -1121,8 +1144,9 @@ int16_t peak_find(struct wsa_device *dev,
 	// capture power spectrum
 	wsa_configure_sweep(wsa_sweep_dev, pscfg);
 	result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
-	result = psd_peak_find(fstart, 
-				fstop, 
+	result = psd_peak_find(
+				pscfg->fstart_actual, 
+				pscfg->fstop_actual,
 				rbw, 
 				pscfg->buflen,
 				psbuf,
@@ -1262,7 +1286,8 @@ int16_t calculate_occupied_bandwidth(struct wsa_device *dev,
 	// calculate the total absolute power
 	result = psd_calculate_absolute_power((uint32_t) 0, (uint32_t) pscfg->buflen, psbuf,  pscfg->buflen, &abs_power);
 	
-	perc_abs_power = abs_power * (occupied_percentage / 100);;
+	perc_abs_power = abs_power * (occupied_percentage / 100);
+    
 	// find the location where the occupied bandwidth begins
 	i = 1;
 	tmp_channel_power = -50;
