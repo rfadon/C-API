@@ -801,9 +801,8 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
             // ...and grab the center frequency from each.
             if ((receiver.indicator_field & FREQ_INDICATOR_MASK) == FREQ_INDICATOR_MASK) {
                 pkt_fcenter = (uint64_t)receiver.freq;
-				assert((pkt_fcenter >= cfg->fstart_actual) && (pkt_fcenter <= cfg->fstop_actual));
 
-				// Clamp the centre frequency in case we get a bad centre frequency.
+				// Clamp the centre frequency in case we get one that is out of range.
 				if (pkt_fcenter < cfg->fstart_actual) {
 					pkt_fcenter = cfg->fstart_actual;
 				}
