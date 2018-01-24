@@ -102,7 +102,7 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	i16_buffer = (int16_t *)malloc(sizeof(int16_t) * SPP);
+	i16_buffer = (int16_t *) malloc(sizeof(int16_t) * SPP);
 	if (i16_buffer == NULL) {
 		printf("failed to allocate memory for i_buffer\n");
 		free(header);
@@ -114,7 +114,7 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	q16_buffer = (int16_t *)malloc(sizeof(int16_t) * SPP);
+	q16_buffer = (int16_t *) malloc(sizeof(int16_t) * SPP);
 	if (q16_buffer == NULL) {
 		printf("failed to allocate memory for q_buffer\n");
 		free(header);
@@ -127,7 +127,7 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 		return WSA_ERR_MALLOCFAILED;
 	}
 
-	i32_buffer = (int32_t *)malloc(sizeof(int32_t) * SPP);
+	i32_buffer = (int32_t *) malloc(sizeof(int32_t) * SPP);
 	if (i32_buffer == NULL) {
 		printf("failed to allocate memory for q_buffer\n");
 		free(header);
@@ -208,9 +208,9 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 			}
 		} // end save data while loop
 
-		  // do some processing
+		// do some processing
 		result = wsa_get_fft_size(SPP, header->stream_id, &array_size);
-		fft_buffer = (float *)malloc(sizeof(float) * array_size);
+		fft_buffer = (float *) malloc(sizeof(float) * array_size);
 		result = wsa_compute_fft(SPP,
 			array_size,
 			header->stream_id,
@@ -226,12 +226,14 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 				printf("%0.2f, i: %d \n", fft_buffer[i], i);
 			}
 		}
+        
+		free(fft_buffer);
 	}
 
-	// TODO fix these
+	
 	printf("Center Frequency: %llu Hz\n", receiver->freq);
 	printf("Bandwidth: %llu Hz\n", digitizer->bandwidth);
-	printf("Power Peak: %0.2f dBm\n", max_buffer);
+	printf("Power Peak: %0.6f dBm\n", max_buffer);
 	//system("PAUSE");
 
 	printf("----- all capture done.\n");
@@ -243,12 +245,13 @@ int16_t block_capture_tests(struct wsa_device *dev, struct test_data *test_info)
 	free(extension);
 	free(i16_buffer);
 	free(q16_buffer);
-	free(fft_buffer);
+	free(i32_buffer);
+    
 	// just to indicate the test pass
 	test_info->pass_count++;
 
 	// update the test count
-	//test_info->test_count = test_info->pass_count + test_info->fail_count;
+	test_info->test_count = test_info->pass_count + test_info->fail_count;
 
 	return 0;
 }

@@ -178,6 +178,7 @@
 #define RTSA750018 "RTSA7500-18"
 #define RTSA750027 "RTSA7500-27"
 
+#define RTSA7550 "RTSA7550"
 #define RTSA7550308 "RTSA7550-8B"
 #define RTSA7550408 "RTSA7550-8"
 #define RTSA7550418 "RTSA7550-18"
@@ -336,25 +337,6 @@ struct wsa_sweep_list {
 struct wsa_socket {
 	int32_t cmd;
 	int32_t data;
-};
-
-struct test_data {
-
-	// total test count
-	int test_count;
-
-	// total bug count
-	int bug_count;
-
-	// totail fail count
-	int fail_count;
-
-	// total pass count
-	int pass_count;
-
-	// flag to indicate whether current bug is expected to fail (0 expected to pass, 1 expected to fail)
-	int fail_expected;
-
 };
 
 struct wsa_device {
