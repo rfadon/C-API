@@ -20,7 +20,8 @@
 #define GHZ (1000000000ULL)
 
 
-// Define the following to test using repeated runs of two sweeps back-to-back.
+// Define the following to test using repeated runs of two sweeps back-to-back --
+// one wide and one more narrow.
 #define TWO_SWEEPS  1
 
 #if defined(TWO_SWEEPS)
@@ -35,7 +36,6 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 	float peak_freq = 0.0f;
 	float freq = 0.0f;
 	int32_t capt_counter = 0;
-	//uint64_t span = fstop - fstart;
 	uint64_t peak_freq_u64 = 0;
 	uint64_t fstart1 = 26500000000;
 	uint64_t fstop1 = 27000000000;
@@ -67,10 +67,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 	uint32_t j = 0;
 	int isweep;
 
-	// Investigating network timeouts during wsa_read_vrt_packet(), among other things.
-	g_debug_mask |= DEBUG_TIMEOUTS;
-
-	//init_test_data(test_info);
+	init_test_data(test_info);
 
 	// reset R5500 state
 	result = wsa_system_abort_capture(dev);
@@ -85,21 +82,15 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 		output_file = fopen("TestOutput.csv", "w");
 	}
 
-	// SWEEP 1 -- 418
-	fstart1 = 9000;
-	fstop1 = 18 * GHZ;
-	rbw1 = 20000UL;
-	//rbw1 = 2000UL;
+	// SWEEP 1 -- R5500-418
+	fstart1 = 1000 * MHZ;
+	fstop1 = 1900 * MHZ;
+	rbw1 = 1 * MHZ;
 
-	//// SWEEP 1 -- 427
-	//fstart1 = 9000;
-	//fstop1 = 27 * GHZ;
-	//rbw1 = 20000UL;
-
-	// SWEEP 2 -- 418
-	fstart2 = 100 * MHZ;
-	fstop2 = 900 * MHZ;
-	rbw2 = 1 * MHZ;
+	// SWEEP 2 -- R5500-418
+	fstart2 = 9000;
+	fstop2 = 18 * GHZ;
+	rbw2 = 20000UL;
 
 	capt_counter = 0;
 	while (capt_counter < 1) {
@@ -115,7 +106,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 
 		isweep = 1;
 
-		for (j = 0; j < 20000; j++)
+		for (j = 0; j < 200000; j++)
 		{
 			if (isweep == 1) {
 
@@ -123,99 +114,73 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				result = wsa_configure_sweep(wsa_sweep_dev, pscfg1);
 				verify_result(test_info, result, 0);
 
-				max = -FLT_MAX;
 				start = clock();
 				result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg1, &psbuf1);
 				end = clock();
-				diff = (double)(fstop1 - fstart1) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
+				diff = (double)(pscfg1->fstop_actual - pscfg1->fstart_actual) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
 				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
 					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
-				else {
-					printf("1");
-					if ((capt_counter % 50) == 0) printf("\n");
-				}
+
 				verify_result(test_info, result, 0);
+				isweep = 2;
 
-				// Print peak location as a frequency.
-				location_ratio = ((float)max_index + 0.5f) / ((float)pscfg1->buflen);		// Peak location as a fraction of the sweep band (rounded).
-				peak_freq = (float)fstart1 + ((float)fstop1 - (float)fstart1) * location_ratio;		// Convert that to frequency.
-
-				DEBUG_PRINTF(DEBUG_PEAKS, "Peak value: %0.2f  Peak freq: %0.2f\n", max, peak_freq);
-				// printf("%d %d, %d, %0.2f, %0.2f \n",capt_counter, max_index, i, (((float) fstart) + (span * location_ratio)) / 1000000, max);
+				// Print peak.
 				max = -FLT_MAX;
+				for (i = 0; i < pscfg1->buflen; i++) {
+					if (pscfg1->buf[i] == POISONED_BUFFER_VALUE) {
+						printf("Sweep %d %d sample %i is poisoned\n", capt_counter, j, i);
+					}
+					if (pscfg1->buf[i] > max) {
+						max_index = i;
+						max = pscfg1->buf[i];
+					}
+				}
 
-				psd_peak_find(fstart1, fstop1, rbw1, pscfg1->buflen, pscfg1->buf, &peak_freq_u64, &max);
-				DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %0.2f  Peak freq: %llu\n", max, peak_freq_u64);
+				location_ratio = (float)max_index / (float)pscfg1->buflen;		// Peak location as a fraction of the sweep band.
+				peak_freq = (float)pscfg1->fstart_actual + ((float)pscfg1->fstop_actual - (float)pscfg1->fstart_actual) * location_ratio;		// Convert that to frequency.
+				printf("%8d, %8d, %8d, %10.2f, %16.2f \n", capt_counter, j, max_index, max, peak_freq);
+				psd_peak_find(pscfg1->fstart_actual, pscfg1->fstop_actual, rbw1, pscfg1->buflen, pscfg1->buf, &peak_freq_u64, &max);
+				DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %10.2f  Peak freq: %llu", max, peak_freq_u64);
 
-				isweep = 0;
 			}
 			else {
 				// Do second sweep.
 				result = wsa_configure_sweep(wsa_sweep_dev, pscfg2);
 				verify_result(test_info, result, 0);
 
-				max = -FLT_MAX;
 				start = clock();
 				result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg2, &psbuf2);
 				end = clock();
-				diff = (double)(fstop2 - fstart2) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
+				diff = (double)(pscfg2->fstop_actual - pscfg2->fstart_actual) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
 				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
 					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
-				else {
-					printf("2");
-					if ((capt_counter % 50) == 0) printf("\n");
-				}
+
 				verify_result(test_info, result, 0);
-
-				// Print peak location as a frequency.
-				location_ratio = ((float)max_index + 0.5f) / ((float)pscfg2->buflen);		// Peak location as a fraction of the sweep band (rounded).
-				peak_freq = (float)fstart2 + ((float)fstop2 - (float)fstart2) * location_ratio;		// Convert that to frequency.
-
-				DEBUG_PRINTF(DEBUG_PEAKS, "Peak value: %0.2f  Peak freq: %0.2f\n", max, peak_freq);
-				// printf("%d %d, %d, %0.2f, %0.2f \n",capt_counter, max_index, i, (((float) fstart) + (span * location_ratio)) / 1000000, max);
-				max = -FLT_MAX;
-
-				psd_peak_find(fstart2, fstop2, rbw2, pscfg2->buflen, pscfg2->buf, &peak_freq_u64, &max);
-				DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %0.2f  Peak freq: %llu\n", max, peak_freq_u64);
-
 				isweep = 1;
+
+				// Print the peak.
+				max = -FLT_MAX;
+				for (i = 0; i < pscfg2->buflen; i++) {
+					if (pscfg2->buf[i] == POISONED_BUFFER_VALUE) {
+						printf("Sweep %d %d sample %i is poisoned\n", capt_counter, j, i);
+					}
+					if (pscfg2->buf[i] > max) {
+						max_index = i;
+						max = pscfg2->buf[i];
+					}
+				}
+
+				location_ratio = (float)max_index / (float)pscfg1->buflen;		// Peak location as a fraction of the sweep band.
+				peak_freq = (float)pscfg2->fstart_actual + ((float)pscfg2->fstop_actual - (float)pscfg2->fstart_actual) * location_ratio;		// Convert that to frequency.
+				printf("%8d, %8d, %8d, %10.2f, %16.2f \n", capt_counter, j, max_index, max, peak_freq);
+				psd_peak_find(pscfg2->fstart_actual, pscfg2->fstop_actual, rbw2, pscfg2->buflen, pscfg2->buf, &peak_freq_u64, &max);
+				DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %10.2f  Peak freq: %llu", max, peak_freq_u64);
+
 			}
-
-			// print the spectral data
-
-#if 0
-			for (i = 0; i < pscfg->buflen; i++) {
-
-				location_ratio = ((float)i + 0.5f) / ((float)pscfg->buflen);
-				freq = (float)fstart + ((float)fstop - (float)fstart) * location_ratio;
-				DEBUG_PRINTF(DEBUG_SPEC_DATA, ", %lu, %0.2f, %0.2f", i, freq, pscfg->buf[i]);
-
-				if (DEBUG_FILE_OUT & g_debug_mask) {
-					fprintf(output_file, "%lu, %0.2f, %0.2f\n", i, freq, pscfg->buf[i]);
-				}
-
-				if (pscfg->buf[i] == POISONED_BUFFER_VALUE) {
-					//printf("Sweep %d %d sample %i is poisoned\n", capt_counter, j, i);
-					printf("P");
-				}
-
-				if (pscfg->buf[i] > max) {
-
-					max_index = i;
-					max = pscfg->buf[i];
-					//printf("MAX\n");
-
-				}
-				else {
-					//printf("\n");
-				}
-			}
-#endif
-
 		}
 		printf("\n");
 
@@ -243,8 +208,8 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 	uint32_t rbw;
 	uint64_t fstart =  26500000000;
 	uint64_t fstop =  27000000000;
-	uint64_t span = fstop - fstart;
-	uint64_t peak_freq;
+	float peak_freq;
+	uint64_t peak_freq_u64 = 0;
 	struct wsa_sweep_device wsa_sweep_device;
 	struct wsa_sweep_device *wsa_sweep_dev = &wsa_sweep_device;
 
@@ -284,12 +249,11 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 	fstart = 9000;
 	fstop = 18 * GHZ;
 	rbw = 20000UL;
-	span = fstop - fstart;
 	capt_counter = 0;
-	while(capt_counter < 100) {
+	while(capt_counter < 40) {
 		capt_counter++;
 		wsa_power_spectrum_free(pscfg);
-		result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart,  fstop, rbw, "SH", &pscfg);
+		result = wsa_power_spectrum_alloc(wsa_sweep_dev, fstart,  fstop, rbw, "SHN", &pscfg);
 		if (0 != result) {
 			printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 		}
@@ -298,26 +262,21 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 		verify_result(test_info, result, 0);
 		result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg, &psbuf);
 		verify_result(test_info, result, 0);
-		// print the spectral data
-		for(i = 0; i < pscfg->buflen; i++){
-			//printf("%0.2f \n", pscfg->buf[i]);
+
+		// Find peak location as a frequency.
+		max = -FLT_MAX;
+		for(i = 0; i < pscfg->buflen; i++) {
 			if (pscfg->buf[i] > max) {
 				max_index = i;
 				max = pscfg->buf[i];
 			}
 		}
 
-		// Find peak location as a frequency.
-		location_ratio = ( (float)max_index + 0.5f ) / ( (float)pscfg->buflen );			// Peak location as a fraction of the sweep band (rounded).
-		peak_freq = (float)fstart + ((float)fstop - (float)fstart) * location_ratio;		// Convert that to frequency.
-
-		DEBUG_PRINTF(DEBUG_PEAKS, "Peak value: %0.2f  Peak freq: %llu\n", max, peak_freq);
-		printf("%d %d, %d, %0.2f, %0.2f \n",capt_counter, max_index, i, (((float) fstart) + (span * location_ratio)) / 1000000, max);
-		max = -FLT_MAX;
-
-		psd_peak_find(fstart, fstop, rbw, pscfg->buflen, pscfg->buf, &peak_freq, &max);
-		DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %0.2f  Peak freq: %llu\n", max, peak_freq);
-
+		location_ratio = (float)max_index / (float)pscfg->buflen;																	// Peak location as a fraction of the sweep band.
+		peak_freq = (float)pscfg->fstart_actual + ((float)pscfg->fstop_actual - (float)pscfg->fstart_actual) * location_ratio;		// Convert that to frequency.
+		printf("%8d, %8d, %10.2f, %16.2f \n", capt_counter, max_index, max, peak_freq);
+		psd_peak_find(pscfg->fstart_actual, pscfg->fstop_actual, rbw, pscfg->buflen, pscfg->buf, &peak_freq_u64, &max);
+		DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power: %10.2f  Peak freq: %llu", max, peak_freq_u64);
 	}
     return 0;
 }
