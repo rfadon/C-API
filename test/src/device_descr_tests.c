@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -13,14 +12,15 @@
 #endif
 
 // uses an R5500 device to test different sweep device settings
-int16_t test_device_descr(struct wsa_device *dev, struct test_data *test_info){
-
+int16_t test_device_descr(struct wsa_device *dev, struct test_data *test_info)
+{
 
 	int16_t result;
 	char raw_idn[255];
 
+	init_test_data(test_info);
+	
 	// retrieve the *IDN command
-
 	result = wsa_query_scpi(dev, "*IDN?", raw_idn);
 	printf("ID: %s \n", raw_idn);
 	
@@ -40,4 +40,3 @@ int16_t test_device_descr(struct wsa_device *dev, struct test_data *test_info){
 
 	return result;
 }
-

@@ -24,7 +24,7 @@
 #define MAX_VRT_PKT_COUNT 15
 #define MIN_VRT_PKT_COUNT 0
 
-#define MAX_BLOCK_SIZE 70000000
+
 // VRT packet stream indentifier
 #define RECEIVER_STREAM_ID 0x90000001
 #define DIGITIZER_STREAM_ID 0x90000002
@@ -44,7 +44,7 @@
 #define GAIN_INDICATOR_MASK 0x00800000
 
 // Digitizer context data field indicator masks
-#define BW_INDICATOR_MASK 0xa0000000
+#define BW_INDICATOR_MASK 0x20000000
 #define RF_FREQ_OFFSET_INDICATOR_MASK 0x04000000
 #define REF_LEVEL_INDICATOR_MASK 0x01000000
 
@@ -178,6 +178,7 @@
 #define RTSA750018 "RTSA7500-18"
 #define RTSA750027 "RTSA7500-27"
 
+#define RTSA7550 "RTSA7550"
 #define RTSA7550308 "RTSA7550-8B"
 #define RTSA7550408 "RTSA7550-8"
 #define RTSA7550418 "RTSA7550-18"
@@ -336,25 +337,6 @@ struct wsa_sweep_list {
 struct wsa_socket {
 	int32_t cmd;
 	int32_t data;
-};
-
-struct test_data {
-
-	// total test count
-	int test_count;
-
-	// total bug count
-	int bug_count;
-
-	// totail fail count
-	int fail_count;
-
-	// total pass count
-	int pass_count;
-
-	// flag to indicate whether current bug is expected to fail (0 expected to pass, 1 expected to fail)
-	int fail_expected;
-
 };
 
 struct wsa_device {

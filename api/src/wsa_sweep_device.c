@@ -992,7 +992,8 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 		int iPoisonRunStart = 0;	// Start index of most recently found run
 		int iPoisonRunLength = 0;	// length of most recently found run
 		int bInPoison = 0;	// Interpret boolean
-		for (unsigned int i = 0; i < cfg->buflen; i++) {
+        unsigned int i;
+		for (i = 0; i < cfg->buflen; i++) {
 			if (POISONED_BUFFER_VALUE == cfg->buf[i]) {
 				iPoisonFound++;
 				if (0 == bInPoison) {
