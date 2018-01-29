@@ -402,16 +402,14 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 	return 0;
 }
 
-#if !defined(NDEBUG)
-static int wsa_client_timeouts = 0;				// So we can check in a debugger, but only in debug builds.
-#endif
-
 static int wsa_unblock_device(int vrtsock)
 {
 	int result;
 	int sockfd;
 	struct sockaddr_in serv_addr; 
 	int len;
+
+	doutf(DMED, "wsa_unblock_device() handled a timeout\n");
 
 	// Get the IP address.
 	len = sizeof(serv_addr);
@@ -421,11 +419,6 @@ static int wsa_unblock_device(int vrtsock)
 
 		return -1;
 	}
-#if !defined(NDEBUG)
-	// Inform the user in debug builds only.
-	printf("<TO>");
-	wsa_client_timeouts++;
-#endif
 	
 	// Create a socket.
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);

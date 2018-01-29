@@ -1024,6 +1024,8 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     free(idata);
     free(tmp_buffer);
 
+	doutf(DMED, "wsa_capture_power_spectrum() Sweep finished with no errors.\n");
+
 	return 0;
 }
 
