@@ -17,11 +17,13 @@
 #define DLOW  3
 
 #ifndef DEBUGLEVEL
-#define DEBUGLEVEL DNO
+#define DEBUGLEVEL DHIGH
 #endif
 
+#define ENABLE_PRINTING 0
+
 #define WSA_API_LOG_FILE "wsa_api.log"
-#define ENABLE_LOG_FILE 0
+#define ENABLE_LOG_FILE 1
 
 int  wsa_doutf(int, const char *, ...);
 

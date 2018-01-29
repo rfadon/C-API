@@ -39,21 +39,23 @@ int wsa_doutf(int level, const char *fmt, ...)
 		return 0;
     }
 	
-    if(debugcallbackfunc) {
-	  va_start(ap, fmt);
-	  n = vsnprintf(buffer, sizeof(buffer), fmt, ap);
-	  va_end(ap);
-      buffer[sizeof(buffer)-1] = 0;
-      debugcallbackfunc(debugcallbackpvoid, buffer); 
-    } else {
-	  va_start(ap, fmt);
-	  n = vprintf(fmt, ap);
-	  va_end(ap);
-  	  fflush(stdout);
-    }
+	if (ENABLE_PRINTING) {
+		if (debugcallbackfunc) {
+			va_start(ap, fmt);
+			n = vsnprintf(buffer, sizeof(buffer), fmt, ap);
+			va_end(ap);
+			buffer[sizeof(buffer) - 1] = 0;
+			debugcallbackfunc(debugcallbackpvoid, buffer);
+		}
+		else {
+			va_start(ap, fmt);
+			n = vprintf(fmt, ap);
+			va_end(ap);
+			fflush(stdout);
+		}
+	}
 
-	if (ENABLE_LOG_FILE)
-	{
+	if (ENABLE_LOG_FILE) {
 		debugFile = fopen(WSA_API_LOG_FILE, "a");
 	
 		if (debugFile) {

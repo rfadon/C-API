@@ -733,7 +733,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     tmp_buffer = (int16_t *)malloc(sizeof(int16_t) * cfg->samples_per_packet);			// Buffer to hold one packet's data.
     idata = (kiss_fft_scalar *)malloc(sizeof(kiss_fft_scalar) * block_samples);			// Buffer to hold one block (time domain).
     fftout = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * block_samples);				// Buffer to hold one block (freq domain).
-    doutf(DHIGH, "wsa_capture_power_spectrum: Created data buffers, block size is %lu", block_samples);
+    doutf(DHIGH, "wsa_capture_power_spectrum: Created data buffers, block size is %lu\n", block_samples);
 
     // Assign the caller's convenience pointer.
     if (*buf) {
@@ -761,7 +761,14 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     dd_prop = wsa_get_sweep_device_properties(MODE_DD);
 
     // Start the sweep.
-    wsa_sweep_start(sweep_device->real_device);
+    result = wsa_sweep_start(sweep_device->real_device);
+	if (result < 0) {
+		doutf(DHIGH, "wsa_sweep_start() returned error %d\n", result);
+		free(fftout);
+		free(idata);
+		free(tmp_buffer);
+		return result;
+	}
     doutf(DHIGH, "wsa_capture_power_spectrum() Sweep started.\n");
 
     // PROCESS PACKETS OF INTEREST

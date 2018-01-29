@@ -106,7 +106,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 
 		isweep = 1;
 
-		for (j = 0; j < 200000; j++)
+		for (j = 0; j < 400000; j++)
 		{
 			if (isweep == 1) {
 

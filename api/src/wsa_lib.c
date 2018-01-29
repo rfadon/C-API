@@ -563,16 +563,17 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 	int32_t len = (int32_t)strlen(command);
 	char query_msg[MAX_STR_LEN];
 
-
     doutf(DLOW, "wsa_send_command(%s)\n", command);
 
 	if (NULL == dev) {
+		doutf(DLOW, "wsa_send_command: null device pointer\n");
 		return WSA_ERR_WSADEVPTRNULL;
 	}
 
     // TODO: check WSA version/model # 
 	if (strcmp(dev->descr.intf_type, "USB") == 0) 
 	{	
+		doutf(DLOW, "wsa_send_command: unsupported USB device\n");
 		return WSA_ERR_USBNOTAVBL;
 	}
 	else if (strcmp(dev->descr.intf_type, "TCPIP") == 0) 
@@ -585,12 +586,15 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
 			bytes_txed = (int16_t) wsa_sock_send(dev->sock.cmd, command, len);
 			if (bytes_txed < 0)
 			{
+				doutf(DHIGH, "wsa_send_command: wsa_sock_send returned %d\n", bytes_txed);
 				return bytes_txed;
 			}
 			else if (bytes_txed < len) 
 			{
-				if (resend_cnt > 3)
+				if (resend_cnt > 3) {
+					doutf(DHIGH, "wsa_send_command: hit max retries\n");
 					return WSA_ERR_CMDSENDFAILED;
+				}
 
 				doutf(DMED, "Not all bytes sent. Resending the packet...\n");
 				resend_cnt++;
@@ -616,7 +620,6 @@ int16_t wsa_send_command(struct wsa_device *dev, char const *command)
                 }
 				
                 doutf(DHIGH, "wsa_send_command(%s) = WSA_ERR_SETFAILED\n", command);
-
                 return WSA_ERR_SETFAILED;
 			}
         }
