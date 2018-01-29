@@ -515,7 +515,7 @@ static int16_t wsa_sweep_plan_load( struct wsa_sweep_device *wsasweepdev, struct
 
         // Set settings and check the errors.
         result = wsa_set_sweep_freq(wsadev, (uint64_t)plan_entry->fcstart, (uint64_t)plan_entry->fcstop);
-        doutf(DHIGH, "wsa_sweep_plan_load: Setting sweep entry start freq: %llu, stop %llu \n", plan_entry->fcstart, plan_entry->fcstop);
+        doutf(DMED, "wsa_sweep_plan_load: Setting sweep entry start freq: %llu, stop %llu \n", plan_entry->fcstart, plan_entry->fcstop);
         DEBUG_PRINTF(DEBUG_SWEEP_CFG, "Sweep start: %llu, stop: %llu", plan_entry->fcstart, plan_entry->fcstop);
 
         if (result < 0) {
@@ -733,7 +733,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     tmp_buffer = (int16_t *)malloc(sizeof(int16_t) * cfg->samples_per_packet);			// Buffer to hold one packet's data.
     idata = (kiss_fft_scalar *)malloc(sizeof(kiss_fft_scalar) * block_samples);			// Buffer to hold one block (time domain).
     fftout = (kiss_fft_cpx *)malloc(sizeof(kiss_fft_cpx) * block_samples);				// Buffer to hold one block (freq domain).
-    doutf(DHIGH, "wsa_capture_power_spectrum: Created data buffers, block size is %lu\n", block_samples);
+    doutf(DMED, "wsa_capture_power_spectrum: Created data buffers, block size is %lu\n", block_samples);
 
     // Assign the caller's convenience pointer.
     if (*buf) {
@@ -749,7 +749,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
     // Get device properties for this mode.
     prop = wsa_get_sweep_device_properties(cfg->mode);
     if (prop == NULL) {
-        doutf(DMED, "Unsupported RFE mode: %d - %s\n", cfg->mode, mode_const_to_string(cfg->mode));
+        doutf(DHIGH, "Unsupported RFE mode: %d - %s\n", cfg->mode, mode_const_to_string(cfg->mode));
 		// Fixed possible memory leak. 20171124 <rick.low@thinkrf.com>
 		free(fftout);
 		free(idata);
@@ -769,7 +769,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
 		free(tmp_buffer);
 		return result;
 	}
-    doutf(DHIGH, "wsa_capture_power_spectrum() Sweep started.\n");
+    doutf(DMED, "wsa_capture_power_spectrum() Sweep started.\n");
 
     // PROCESS PACKETS OF INTEREST
 
@@ -830,7 +830,7 @@ int16_t wsa_capture_power_spectrum(struct wsa_sweep_device *sweep_device,
             // TODO: Check that data packets are the stream type we expect (I14 sign extended to int16).
             // TODO: If we don't have a pkt_center frequency here, then bail out and return an error code.
 
-            doutf(DMED, "wsa_capture_power_spectrum: Received data packet at %llu Hz.\n", pkt_fcenter);
+            doutf(DLOW, "wsa_capture_power_spectrum: Received data packet at %llu Hz.\n", pkt_fcenter);
 			//DEBUG_PRINTF(DEBUG_COLLECT, "Count: %d", header.pkt_count);
 
             pkt_reflevel = (float)digitizer.reference_level;

@@ -6,6 +6,7 @@
 #define __WSA_DEBUG_H__
 
 // Different debug levels
+// DHIGH shows fewest messages; DLOW shows DHIGH, DMED and DLOW messages.
 //
 // DHIGH - Show Error messages
 // DMED  - Show Errors and Commands
@@ -17,7 +18,7 @@
 #define DLOW  3
 
 #ifndef DEBUGLEVEL
-#define DEBUGLEVEL DHIGH
+#define DEBUGLEVEL DMED
 #endif
 
 #define ENABLE_PRINTING 0
