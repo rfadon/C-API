@@ -27,7 +27,7 @@ void wsa_initialize_client()
 	int32_t ws_err_code;	// get error code
 
 	if ((ws_err_code = WSAStartup(MAKEWORD(2, 2), &ws_data)) != 0) {
-		doutf(DHIGH, "WSAStartup() returned error code %d. ", ws_err_code);
+		doutf(DHIGH, "WSAStartup() returned error code %d.\n", ws_err_code);
 		//return WSA_ERR_WINSOCKSTARTUPFAILED;	// random # for now
 	}
 }

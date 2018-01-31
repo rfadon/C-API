@@ -300,7 +300,7 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 	ret_val = select(sock_fd + 1, &read_fd, NULL, NULL, &timer);
 	// Make reading of socket non-blocking w/ time-out of s.ms sec
 	if (ret_val == -1) {
-		doutf(DHIGH, "init select() function returned with error %d (\"%s\")", errno, strerror(errno));
+		doutf(DHIGH, "init select() function returned with error %d (\"%s\")\n", errno, strerror(errno));
 
 		return WSA_ERR_SOCKETERROR;
 	}
@@ -331,12 +331,11 @@ int16_t wsa_sock_recv(int32_t sock_fd, uint8_t *rx_buf_ptr, int32_t buf_size,
 			return WSA_ERR_SOCKETERROR;
 		}
 		else if (ret_val < 0) {
-			doutf(DHIGH, "recv() function returned with error %d (\"%s\")", errno, strerror(errno));
-
+			doutf(DHIGH, "recv() function returned with error %d (\"%s\")\n", errno, strerror(errno));
 			return WSA_ERR_SOCKETSETFUPFAILED;
 		}
 		
-		doutf(DLOW, "Received (%d bytes)\n\n", ret_val);
+		doutf(DLOW, "Received (%d bytes)\n", ret_val);
 	}
 		
 	*bytes_received = ret_val;
@@ -380,14 +379,14 @@ int16_t wsa_sock_recv_data(int32_t sock_fd, uint8_t *rx_buf_ptr,
 				bytes_expected -= bytes_received;
 			}
 			else {
-				doutf(DLOW, "total bytes received: %d - ", *total_bytes);
+				doutf(DLOW, "total bytes received: %d\n", *total_bytes);
 				break;
 			}
 
-			doutf(DLOW, "bytes received: %d - ", bytes_received);
+			doutf(DLOW, "bytes received: %d\n", bytes_received);
 		} else {
 			if (flags & WSA_ARE_YOU_DEAD_Q) {
-				doutf(DLOW, "socket timeout; poking the device");
+				doutf(DHIGH, "socket timeout; poking the device\n");
 				wsa_unblock_device(sock_fd);
 			}
 
@@ -408,8 +407,6 @@ static int wsa_unblock_device(int vrtsock)
 	int sockfd;
 	struct sockaddr_in serv_addr; 
 	int len;
-
-	doutf(DMED, "wsa_unblock_device() handled a timeout\n");
 
 	// Get the IP address.
 	len = sizeof(serv_addr);

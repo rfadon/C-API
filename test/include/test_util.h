@@ -10,7 +10,7 @@ struct test_data {
 	// total bug count
 	int bug_count;
 
-	// totail fail count
+	// total fail count
 	int fail_count;
 
 	// total pass count

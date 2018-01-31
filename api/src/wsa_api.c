@@ -1793,7 +1793,7 @@ int16_t wsa_set_attenuation(struct wsa_device *dev, int32_t mode) {
 			result = wsa_send_command(dev, temp_str);
 
 		} else {
-			doutf(DLOW, "Setting attenuation - model not known!");	// NO MODEL KNOWN!
+			doutf(DLOW, "Setting attenuation - model not known!\n");	// NO MODEL KNOWN!
 		}
 	}
 
@@ -3670,7 +3670,7 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 		return result;
     }
 	
-	doutf(DHIGH, "Clearing socket buffer... ");
+	doutf(DHIGH, "wsa_sweep_stop: clearing socket buffer.\n");
 	
 	// flush remaining data in the wsa
 
@@ -3685,8 +3685,6 @@ int16_t wsa_sweep_stop(struct wsa_device *dev)
 	if (result < 0) {
 		return result;
     }
-
-	doutf(DHIGH, "done.\n");
 	
 	return 0;
 }

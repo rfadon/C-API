@@ -1106,7 +1106,7 @@ int16_t wsa_read_vrt_packet_raw(struct wsa_device * const device,
 		// Copy only the IQ data payload to the provided buffer
 		copy_size = iq_packet_size;
 		if (iq_packet_size > data_buffer_size) {
-			doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)", iq_packet_size, data_buffer_size);
+			doutf(DLOW, "iq_packet_size exceeds passed data_buffer_size (%d > %d)\n", iq_packet_size, data_buffer_size);
 			copy_size = data_buffer_size;
 		}
 		memcpy(data_buffer, 

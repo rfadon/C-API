@@ -118,7 +118,6 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg1, &psbuf1);
 				end = clock();
 				diff = (double)(pscfg1->fstop_actual - pscfg1->fstart_actual) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
-				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
 					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
@@ -154,7 +153,6 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				result = wsa_capture_power_spectrum(wsa_sweep_dev, pscfg2, &psbuf2);
 				end = clock();
 				diff = (double)(pscfg2->fstop_actual - pscfg2->fstart_actual) / 1000000.0F / ((double)(end - start) / CLOCKS_PER_SEC);		// Sweep speed in MHz / second
-				DEBUG_PRINTF(DEBUG_SPEED, "Sweep speed = %.2f MHz/s", diff);
 				if (0 != result) {
 					printf("\nwsa_capture_power_spectrum() returned %d\n", result);
 				}
@@ -181,6 +179,7 @@ int16_t sweep_device_tests(struct wsa_device *dev, struct test_data *test_info) 
 				DEBUG_PRINTF(DEBUG_PEAKS, "psd_peak_find() Peak power %10.2f  Peak freq: %llu", max, peak_freq_u64);
 
 			}
+			// printf("Sweep speed = %.2f MHz/s\n", diff);
 		}
 		printf("\n");
 
